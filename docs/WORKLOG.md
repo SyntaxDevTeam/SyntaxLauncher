@@ -8,6 +8,74 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-16 — Start v0.1 implementation foundation
+
+**Milestone:** v0.1 — Minimal Vanilla Launcher  
+**Author/Agent:** ChatGPT  
+**Status:** Partial
+
+### Completed
+
+- Initialized the Kotlin/Gradle project as two explicit modules: UI-independent `launcher-core` and Compose-based `launcher-desktop`.
+- Configured Kotlin/JVM 21, Compose Desktop, Coroutines, Ktor Client, kotlinx.serialization, SLF4J/Logback and Kotlin/JUnit5 test dependencies.
+- Added repository `.gitignore` rules for build/IDE files and launcher-managed local/runtime state.
+- Added common `Account` boundary and `OfflineAccount` implementation.
+- Added Minecraft-style offline username validation and deterministic `OfflinePlayer:<username>` UUID generation.
+- Added Mojang version-manifest DTOs, parsing and domain models.
+- Added `MinecraftVersionCatalog` backed by the official `version_manifest_v2.json` endpoint.
+- Added shared Ktor HTTP client configuration with timeouts, JSON support and SyntaxLauncher User-Agent.
+- Added platform-aware launcher path resolution for Windows, macOS and XDG-style Unix systems.
+- Added unit-test sources for offline identity, version-manifest parsing and platform path resolution.
+- Added the first lightweight Compose Desktop surface with loading/error states, offline nickname validation, release/snapshot selection, Minecraft version selection and RAM control.
+- Deliberately did not expose a `Play` button before the Java/game preparation and launch pipeline exists.
+
+### Changed files
+
+- `.gitignore` — added build, IDE and launcher-local-state exclusions.
+- `settings.gradle.kts` — initialized multi-module Gradle project and repositories.
+- `build.gradle.kts` — configured Kotlin/Compose plugins and project identity.
+- `gradle.properties` — configured Gradle/Kotlin defaults.
+- `launcher-core/build.gradle.kts` — configured core dependencies and tests.
+- `launcher-core/src/main/kotlin/.../account/*` — common/offline account model.
+- `launcher-core/src/main/kotlin/.../minecraft/*` — version manifest models, parser and catalog service.
+- `launcher-core/src/main/kotlin/.../network/LauncherHttpClientFactory.kt` — shared HTTP configuration.
+- `launcher-core/src/main/kotlin/.../storage/LauncherPaths.kt` — platform-aware storage layout.
+- `launcher-core/src/test/kotlin/...` — initial deterministic unit-test sources.
+- `launcher-desktop/build.gradle.kts` — Compose Desktop module and packaging configuration.
+- `launcher-desktop/src/main/kotlin/.../Main.kt` — desktop application entry point.
+- `launcher-desktop/src/main/kotlin/.../ui/SyntaxLauncherApp.kt` — first v0.1 UI state/screen.
+- `launcher-desktop/src/main/kotlin/.../ui/SyntaxTheme.kt` — initial lightweight dark design tokens.
+- `launcher-desktop/src/main/resources/logback.xml` — initial desktop logging backend configuration.
+- `README.md` — changed project status from pre-v0.1 to active v0.1 implementation and documented current code.
+- `docs/ROADMAP.md` — marked implemented-but-not-yet-fully-verified v0.1 work as `🚧 IN PROGRESS` and left later work open.
+- `docs/WORKLOG.md` — recorded this implementation pass.
+
+### Verification
+
+- Pure-core `kotlinc` smoke compilation for `Account.kt`, `OfflineAccount.kt` and `LauncherPaths.kt` — PASS on the available JDK 21 environment.
+- `./gradlew test` — NOT RUN; no Gradle wrapper is committed yet, system Gradle is unavailable in the execution environment, and the container cannot resolve external Gradle/Maven downloads.
+- `./gradlew build` — NOT RUN for the same environment/tooling reason.
+- Manual verification — repository structure, module dependency direction, v0.1 scope and uploaded GitHub sources reviewed after commit.
+
+### Roadmap updates
+
+- Project-foundation items are marked `🚧 IN PROGRESS` where code/configuration exists but full Gradle verification is still pending.
+- `.gitignore` is marked complete.
+- Offline account model, validation and UUID tasks are marked `🚧 IN PROGRESS` pending full test execution.
+- Version-manifest discovery/parsing/filtering items are marked `🚧 IN PROGRESS` pending full build/runtime verification.
+- Shared HTTP infrastructure and implemented UI elements are marked `🚧 IN PROGRESS` with remaining scope noted explicitly.
+- Java runtime manager, selected-version metadata resolution, game-file preparation, launch planning, process management and the v0.1 quality gates remain unchecked.
+
+### Follow-ups / known issues
+
+- Add a Gradle wrapper and perform the first complete `test`/`build` verification in an environment with dependency access.
+- Implement selected Minecraft version metadata resolution next, including libraries/assets/natives/arguments/Java requirement parsing.
+- Add safe manifest/settings persistence and cache handling.
+- Implement the managed Java Runtime Manager before exposing the Play action.
+- Build the launch-plan/process pipeline and then wire RAM/account/version UI state into it.
+
+---
+
 ## 2026-10-16 — Define lightweight modern UI/UX direction
 
 **Milestone:** Project foundation / pre-v0.1  
