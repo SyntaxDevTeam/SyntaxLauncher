@@ -3,19 +3,21 @@ package pl.syntaxdevteam.syntaxlauncher.core.minecraft
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import pl.syntaxdevteam.syntaxlauncher.core.storage.MinecraftInstallationLayout
 
 class MinecraftFilePlannerTest {
+    private val root = Path.of("test-root")
     private val layout = MinecraftInstallationLayout(
-        gameDir = Path.of("/tmp/game"),
-        versionsDir = Path.of("/tmp/cache/versions"),
-        librariesDir = Path.of("/tmp/cache/libraries"),
-        assetsDir = Path.of("/tmp/cache/assets"),
-        assetIndexesDir = Path.of("/tmp/cache/assets/indexes"),
-        assetObjectsDir = Path.of("/tmp/cache/assets/objects"),
-        loggingConfigsDir = Path.of("/tmp/cache/assets/log_configs"),
-        nativesDir = Path.of("/tmp/cache/natives"),
+        gameDir = root.resolve("game"),
+        versionsDir = root.resolve("cache/versions"),
+        librariesDir = root.resolve("cache/libraries"),
+        assetsDir = root.resolve("cache/assets"),
+        assetIndexesDir = root.resolve("cache/assets/indexes"),
+        assetObjectsDir = root.resolve("cache/assets/objects"),
+        loggingConfigsDir = root.resolve("cache/assets/log_configs"),
+        nativesDir = root.resolve("cache/natives"),
     )
 
     @Test
@@ -72,12 +74,13 @@ class MinecraftFilePlannerTest {
         )
 
         val plan = MinecraftFilePlanner().planVersion(version, platform, layout)
+        val client = assertNotNull(plan.client)
 
-        assertEquals(Path.of("/tmp/cache/versions/26.2/26.2.jar"), plan.client?.target)
+        assertEquals(root.resolve("cache/versions/26.2/26.2.jar"), client.target)
         assertEquals(1, plan.libraries.size)
         assertEquals(1, plan.natives.size)
-        assertTrue(plan.classpath.contains(plan.client?.target))
-        assertEquals(Path.of("/tmp/cache/assets/indexes/26.json"), plan.assetIndex?.target)
+        assertTrue(client.target in plan.classpath)
+        assertEquals(root.resolve("cache/assets/indexes/26.json"), plan.assetIndex?.target)
     }
 
     @Test
@@ -94,7 +97,7 @@ class MinecraftFilePlannerTest {
         )
 
         assertEquals(
-            Path.of("/tmp/cache/assets/objects/ab/${asset.hash}"),
+            root.resolve("cache/assets/objects/ab/${asset.hash}"),
             plan.single().target,
         )
     }

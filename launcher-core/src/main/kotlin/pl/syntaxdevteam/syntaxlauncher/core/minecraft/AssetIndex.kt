@@ -1,5 +1,6 @@
 package pl.syntaxdevteam.syntaxlauncher.core.minecraft
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -38,6 +39,7 @@ class AssetIndexParser(
 private data class AssetIndexContentDto(
     val objects: Map<String, AssetObjectDto> = emptyMap(),
     val virtual: Boolean = false,
+    @SerialName("map_to_resources")
     val mapToResources: Boolean = false,
 )
 
