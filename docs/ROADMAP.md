@@ -16,38 +16,40 @@ Agents and contributors MUST keep this file synchronized with actual repository 
 
 Goal: launch a selected vanilla Minecraft version using an offline account and an automatically resolved Java runtime.
 
+**Current status:** 🚧 Implementation started. The initial Gradle/Kotlin/Compose structure, offline account primitives, Mojang version manifest integration, platform paths and first desktop UI are present. Full Gradle verification, Java management and the actual Minecraft launch pipeline remain open.
+
 ## Project foundation
 
-- [ ] Create Gradle Kotlin DSL project structure.
-- [ ] Define `launcher-core` and `launcher-desktop` boundaries or equivalent package separation.
-- [ ] Configure Kotlin/JVM toolchain.
-- [ ] Configure Compose Desktop.
-- [ ] Add Coroutines.
-- [ ] Add Ktor Client.
-- [ ] Add kotlinx.serialization.
-- [ ] Add logging facade/backend.
-- [ ] Add unit test framework.
-- [ ] Add `.gitignore` for IDE/build/runtime/generated files.
-- [ ] Establish application data/config/cache/log directory resolution per supported OS.
+- [ ] 🚧 IN PROGRESS — Gradle Kotlin DSL project structure created; full Gradle build verification is still pending.
+- [ ] 🚧 IN PROGRESS — `launcher-core` and `launcher-desktop` module boundaries created; full Gradle verification is still pending.
+- [ ] 🚧 IN PROGRESS — Kotlin/JVM toolchain configured for Java 21; full Gradle verification is still pending.
+- [ ] 🚧 IN PROGRESS — Compose Desktop configured in `launcher-desktop`; full Gradle verification is still pending.
+- [ ] 🚧 IN PROGRESS — Coroutines dependency configured; full Gradle verification is still pending.
+- [ ] 🚧 IN PROGRESS — Ktor Client dependencies configured; full Gradle verification is still pending.
+- [ ] 🚧 IN PROGRESS — kotlinx.serialization configured; full Gradle verification is still pending.
+- [ ] 🚧 IN PROGRESS — SLF4J API and Logback desktop backend configured; file logging/final production policy is still pending.
+- [ ] 🚧 IN PROGRESS — Kotlin/JUnit5 test framework configured and first test sources added; Gradle test execution is pending.
+- [x] Add `.gitignore` for IDE/build/runtime/generated files.
+- [ ] 🚧 IN PROGRESS — platform-aware data/config/cache/log/runtime path resolution implemented; directory creation/lifecycle integration remains pending.
 
 ## Offline account
 
-- [ ] Add common `Account` model.
-- [ ] Add `OfflineAccount` implementation.
-- [ ] Validate Minecraft usernames appropriately for offline profile creation.
-- [ ] Generate deterministic offline UUID compatible with Minecraft offline identity behavior.
+- [ ] 🚧 IN PROGRESS — common `Account` model implemented; full project verification remains pending.
+- [ ] 🚧 IN PROGRESS — `OfflineAccount` implementation added; full project verification remains pending.
+- [ ] 🚧 IN PROGRESS — Minecraft-style offline username validation implemented and test source added; Gradle tests remain pending.
+- [ ] 🚧 IN PROGRESS — deterministic `OfflinePlayer:<username>` UUID generation implemented and test source added; Gradle tests remain pending.
 - [ ] Persist last-used offline username without storing unnecessary sensitive data.
-- [ ] Clearly label offline account mode in the UI.
+- [ ] 🚧 IN PROGRESS — offline nickname field and explanatory text are present in the v0.1 UI; final account-state integration remains pending.
 
 ## Minecraft version discovery
 
-- [ ] Fetch official Minecraft version manifest.
-- [ ] Parse available versions.
-- [ ] Distinguish releases and snapshots.
-- [ ] Allow release filtering in UI.
-- [ ] Optionally expose snapshots through an explicit toggle/filter.
+- [ ] 🚧 IN PROGRESS — official Mojang `version_manifest_v2.json` fetch service implemented; full Gradle/runtime verification remains pending.
+- [ ] 🚧 IN PROGRESS — version manifest parser and DTO/domain mapping implemented; Gradle tests remain pending.
+- [ ] 🚧 IN PROGRESS — release/snapshot/legacy type mapping implemented; Gradle tests remain pending.
+- [ ] 🚧 IN PROGRESS — release filtering is implemented in the first Compose UI; full UI build/manual verification remains pending.
+- [ ] 🚧 IN PROGRESS — snapshots can be explicitly selected through the channel filter; full UI build/manual verification remains pending.
 - [ ] Cache version manifest safely.
-- [ ] Handle manifest/network errors with actionable messages.
+- [ ] 🚧 IN PROGRESS — version-catalog load failures produce a visible error and Retry action; typed network errors remain pending.
 
 ## Version metadata resolver
 
@@ -82,7 +84,7 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 
 ## Download infrastructure
 
-- [ ] Centralize HTTP/download operations.
+- [ ] 🚧 IN PROGRESS — shared Ktor `HttpClient` factory with timeouts, serialization and SyntaxLauncher User-Agent added; reusable file downloader is still pending.
 - [ ] Support cancellation.
 - [ ] Add bounded concurrent downloading.
 - [ ] Report progress to application/UI layer.
@@ -132,13 +134,13 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 
 ## v0.1 UI
 
-- [ ] Nickname input.
-- [ ] Minecraft version selector.
-- [ ] Release/snapshot filter as supported.
-- [ ] RAM configuration.
+- [ ] 🚧 IN PROGRESS — offline nickname input and validation state implemented; persistence remains pending.
+- [ ] 🚧 IN PROGRESS — Minecraft version selector backed by the Mojang manifest implemented; full build/manual verification remains pending.
+- [ ] 🚧 IN PROGRESS — release/snapshot channel filter implemented; full build/manual verification remains pending.
+- [ ] 🚧 IN PROGRESS — RAM slider implemented; value is not yet persisted or wired into launch options.
 - [ ] Play button.
 - [ ] Download/preparation progress.
-- [ ] Clear preparation/launch error presentation.
+- [ ] 🚧 IN PROGRESS — version-catalog loading and retryable error presentation implemented; launch/preparation errors remain pending.
 - [ ] Disable conflicting controls during critical operations.
 - [ ] Remember last selected version/settings.
 
