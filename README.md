@@ -1,8 +1,8 @@
 # SyntaxLauncher
 
-SyntaxLauncher is a planned modern Minecraft launcher from SyntaxDevTeam, written primarily in Kotlin and developed incrementally from a minimal vanilla launcher into a modular launcher with premium authentication, isolated instances, mod loaders, Modrinth integration, modpacks and diagnostics.
+SyntaxLauncher is a modern Minecraft launcher from SyntaxDevTeam, written primarily in Kotlin and developed incrementally from a minimal vanilla launcher into a modular launcher with premium authentication, isolated instances, mod loaders, Modrinth integration, modpacks and diagnostics.
 
-The project is currently in the **documentation / pre-v0.1** stage. Application code has not been initialized yet.
+The project is currently in **active v0.1 development**. The initial Kotlin/Gradle/Compose foundation, offline account model, Mojang version catalog integration and first desktop UI are now present in the repository.
 
 ## Project philosophy
 
@@ -20,7 +20,28 @@ The first release will **not** try to compete with mature launchers by implement
 
 Later features must extend that core rather than replace it.
 
-## Planned technology
+## Current implementation
+
+The first v0.1 foundation currently includes:
+
+- Gradle Kotlin DSL multi-module structure;
+- `launcher-core` separated from `launcher-desktop`;
+- Kotlin/JVM 21 toolchain configuration;
+- Compose Desktop presentation layer;
+- Coroutines, Ktor Client and kotlinx.serialization dependencies;
+- SLF4J/Logback logging foundation;
+- common `Account` boundary and `OfflineAccount` implementation;
+- offline username validation and deterministic Minecraft-compatible offline UUID generation;
+- Mojang version manifest DTOs, parser and catalog service;
+- release/snapshot classification;
+- centralized Ktor HTTP client configuration;
+- platform-aware launcher data/config/cache/log/runtime paths;
+- initial unit-test sources for offline identities, manifest parsing and platform paths;
+- a lightweight Compose screen with nickname validation, release/snapshot selection, version selection, RAM control, loading state and retryable version-catalog errors.
+
+The Java runtime manager, complete version metadata resolver, game-file preparation and actual Minecraft process launch are the next v0.1 implementation stages. The UI intentionally does not expose a fake `Play` action before that pipeline exists.
+
+## Technology
 
 - Kotlin/JVM
 - Gradle Kotlin DSL
@@ -28,9 +49,10 @@ Later features must extend that core rather than replace it.
 - Kotlin Coroutines
 - Ktor Client
 - kotlinx.serialization
+- SLF4J + Logback
 - JUnit-compatible Kotlin tests
 
-Exact dependency versions will be defined by Gradle files once implementation starts.
+Build files are authoritative for exact dependency versions.
 
 ## Release roadmap
 
@@ -66,30 +88,24 @@ Minecraft launcher core
 Metadata / downloads / Java / filesystem / authentication adapters
 ```
 
-The initial v0.1 core is expected to contain concepts similar to:
+The v0.1 implementation starts with:
 
 ```text
-launcher-core
-├── account/
-│   ├── Account
-│   └── OfflineAccount
-├── minecraft/
-│   ├── MinecraftManifest
-│   ├── MinecraftVersion
-│   ├── VersionResolver
-│   ├── AssetManager
-│   ├── LibraryManager
-│   └── NativeManager
-├── java/
-│   ├── JavaRuntime
-│   └── JavaRuntimeManager
-├── launch/
-│   ├── LaunchRequest
-│   ├── LaunchOptions
-│   ├── LaunchCommandBuilder
-│   └── MinecraftProcess
-├── network/
-└── storage/
+SyntaxLauncher/
+├── launcher-core/
+│   └── src/
+│       ├── main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/
+│       │   ├── account/
+│       │   ├── minecraft/
+│       │   ├── network/
+│       │   └── storage/
+│       └── test/kotlin/
+├── launcher-desktop/
+│   └── src/main/
+│       ├── kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/
+│       └── resources/
+├── docs/
+└── AGENTS.md
 ```
 
 Future abstractions such as mod loaders should only be introduced when the relevant milestone needs them. The project explicitly avoids speculative overengineering.
@@ -103,6 +119,8 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full architecture spe
 Available from v0.1.
 
 Offline accounts are intended for local play and servers configured to accept offline clients. SyntaxLauncher will not use offline accounts to bypass authentication on servers operating in online mode.
+
+The current implementation already provides a common account model, offline username validation and deterministic UUID generation using Minecraft's `OfflinePlayer:<username>` convention.
 
 ### Microsoft / premium
 
@@ -123,6 +141,8 @@ The selected Minecraft version's metadata determines the Java requirement. The r
 5. provide its executable to the launch planner.
 
 The UI must not hardcode assumptions such as `Minecraft X = Java Y`.
+
+This system is part of the remaining v0.1 work and is not yet implemented.
 
 ## Instances
 
@@ -161,12 +181,19 @@ Local mod management arrives in v0.5, followed by Modrinth integration and depen
 
 OptiFine is planned as an instance component/integration rather than being forced into a generic mod-loader abstraction.
 
+## Design direction
+
+SyntaxLauncher should be visually distinctive and modern without becoming visually heavy. The interface should attract attention through polish, hierarchy and detail rather than excessive effects or permanently visible technical controls.
+
+The canonical UI/UX rules are maintained in [`docs/DESIGN.md`](docs/DESIGN.md).
+
 ## Documentation
 
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — canonical detailed project checklist and quality gates.
 - [`docs/MILESTONES.md`](docs/MILESTONES.md) — scope, exclusions and acceptance intent for every planned version.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — architecture, domain concepts and extension boundaries.
 - [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) — engineering conventions, testing, security and implementation workflow.
+- [`docs/DESIGN.md`](docs/DESIGN.md) — mandatory visual and interaction direction.
 - [`docs/WORKLOG.md`](docs/WORKLOG.md) — append-only development journal describing completed work and verification.
 - [`AGENTS.md`](AGENTS.md) — mandatory rules for AI/agent contributors.
 
@@ -187,11 +214,11 @@ This is intended to prevent the project roadmap from drifting away from the real
 
 ## Current status
 
-**Pre-v0.1 / documentation phase**
+**v0.1 — Minimal Vanilla Launcher: in progress**
 
-The next implementation milestone is **v0.1 — Minimal Vanilla Launcher**.
+Implemented so far: project/module foundation, offline account primitives, Mojang version discovery/parsing, shared HTTP setup, platform paths and the first lightweight Compose Desktop screen.
 
-The v0.1 quality target is straightforward: on a supported clean system, a user should be able to enter an offline nickname, select a supported vanilla Minecraft version, let SyntaxLauncher prepare the required files and Java runtime, and start the game successfully.
+Still required before v0.1 can be considered functional: selected-version metadata resolution, libraries/assets/natives preparation, managed Java installation, launch-plan construction, process management, persistence/cache behavior and full build/test/manual launch verification.
 
 ## License
 
