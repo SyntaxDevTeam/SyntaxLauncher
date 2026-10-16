@@ -16,7 +16,7 @@ Agents and contributors MUST keep this file synchronized with actual repository 
 
 Goal: launch a selected vanilla Minecraft version using an offline account and an automatically resolved Java runtime.
 
-**Current status:** 🚧 Implementation started. The initial Gradle/Kotlin/Compose structure, offline account primitives, Mojang version manifest integration, platform paths and first desktop UI are present. Full Gradle verification, Java management and the actual Minecraft launch pipeline remain open.
+**Current status:** 🚧 Implementation in progress. The Kotlin/Compose foundation, offline account primitives, Mojang version catalog, selected-version metadata resolver, Mojang rule evaluation, file planning, asset-index parsing, safe native extraction primitives and the first Java runtime boundary now exist. Actual game-file downloads, cache/integrity execution, managed Java installation, final launch-plan construction and process launch remain open.
 
 ## Project foundation
 
@@ -28,9 +28,9 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 - [ ] 🚧 IN PROGRESS — Ktor Client dependencies configured; full Gradle verification is still pending.
 - [ ] 🚧 IN PROGRESS — kotlinx.serialization configured; full Gradle verification is still pending.
 - [ ] 🚧 IN PROGRESS — SLF4J API and Logback desktop backend configured; file logging/final production policy is still pending.
-- [ ] 🚧 IN PROGRESS — Kotlin/JUnit5 test framework configured and first test sources added; Gradle test execution is pending.
+- [ ] 🚧 IN PROGRESS — Kotlin/JUnit5 test framework configured and test sources expanded; Gradle test execution is pending.
 - [x] Add `.gitignore` for IDE/build/runtime/generated files.
-- [ ] 🚧 IN PROGRESS — platform-aware data/config/cache/log/runtime path resolution implemented; directory creation/lifecycle integration remains pending.
+- [ ] 🚧 IN PROGRESS — platform-aware data/config/cache/log/runtime path resolution and Minecraft installation layout implemented; lifecycle/integration remains pending.
 
 ## Offline account
 
@@ -53,38 +53,38 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 
 ## Version metadata resolver
 
-- [ ] Download selected version metadata.
-- [ ] Parse version id/type.
-- [ ] Parse client download metadata.
-- [ ] Parse library metadata.
-- [ ] Parse asset index metadata.
-- [ ] Parse main class.
-- [ ] Parse JVM/game argument definitions.
-- [ ] Parse Java requirement/component metadata.
-- [ ] Parse OS/architecture rules.
+- [ ] 🚧 IN PROGRESS — selected version metadata download service implemented and wired to UI; full live/Gradle verification remains pending.
+- [ ] 🚧 IN PROGRESS — version id/type parsing implemented; Gradle tests remain pending.
+- [ ] 🚧 IN PROGRESS — client download metadata parsing implemented; Gradle tests remain pending.
+- [ ] 🚧 IN PROGRESS — library/download/classifier metadata parsing implemented; Gradle tests remain pending.
+- [ ] 🚧 IN PROGRESS — asset-index metadata parsing implemented; Gradle tests remain pending.
+- [ ] 🚧 IN PROGRESS — main class parsing implemented; Gradle tests remain pending.
+- [ ] 🚧 IN PROGRESS — modern JVM/game arguments and legacy `minecraftArguments` parsing implemented; final launch substitution remains pending.
+- [ ] 🚧 IN PROGRESS — Java requirement/component metadata parsing implemented; managed runtime resolution remains pending.
+- [ ] 🚧 IN PROGRESS — OS/version/architecture and feature rules parsed and normalized; Gradle tests remain pending.
 - [ ] Support metadata inheritance where required by supported versions.
-- [ ] Implement deterministic rule evaluation.
-- [ ] Unit test representative metadata fixtures.
+- [ ] 🚧 IN PROGRESS — deterministic ordered allow/disallow rule evaluation implemented with test sources; Gradle execution remains pending.
+- [ ] 🚧 IN PROGRESS — representative modern/legacy metadata fixture tests added; full `./gradlew test` remains pending.
 
 ## Minecraft files
 
 - [ ] Download Minecraft client JAR.
 - [ ] Verify client file hash when metadata provides one.
-- [ ] Resolve required libraries for current platform.
+- [ ] 🚧 IN PROGRESS — required classpath libraries are selected for the current OS/architecture/rules and planned to cache paths; execution verification remains pending.
 - [ ] Download missing libraries.
 - [ ] Verify library hashes where available.
-- [ ] Resolve native classifiers.
+- [ ] 🚧 IN PROGRESS — native classifier selection including `${arch}` replacement implemented and tested in source; Gradle execution remains pending.
 - [ ] Download native libraries.
-- [ ] Extract natives into a launch-specific/native directory safely.
+- [ ] 🚧 IN PROGRESS — safe native extractor implemented with `META-INF` exclusion and Zip Slip protection; download/extraction lifecycle integration remains pending.
 - [ ] Fetch asset index.
-- [ ] Resolve required assets.
+- [ ] 🚧 IN PROGRESS — asset-index content parser and Mojang asset-object URL/cache planner implemented; actual index fetch/download remains pending.
 - [ ] Download missing assets.
 - [ ] Reuse valid cached assets/libraries.
 - [ ] Avoid treating incomplete downloads as valid files.
 
 ## Download infrastructure
 
-- [ ] 🚧 IN PROGRESS — shared Ktor `HttpClient` factory with timeouts, serialization and SyntaxLauncher User-Agent added; reusable file downloader is still pending.
+- [ ] 🚧 IN PROGRESS — shared Ktor `HttpClient` factory with timeouts, serialization and SyntaxLauncher User-Agent added; reusable streaming file downloader is still pending.
 - [ ] Support cancellation.
 - [ ] Add bounded concurrent downloading.
 - [ ] Report progress to application/UI layer.
@@ -95,26 +95,26 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 
 ## Java Runtime Manager
 
-- [ ] Parse Java requirement from Minecraft metadata.
-- [ ] Define `JavaRuntime` model.
-- [ ] Define `JavaRuntimeManager` service.
-- [ ] Detect/reuse compatible launcher-managed runtime.
+- [ ] 🚧 IN PROGRESS — Java requirement is parsed from selected Minecraft metadata; full version/runtime verification remains pending.
+- [ ] 🚧 IN PROGRESS — `JavaRuntime` model implemented; full build verification remains pending.
+- [ ] 🚧 IN PROGRESS — `JavaRuntimeManager` service boundary defined; managed installation implementation remains pending.
+- [ ] 🚧 IN PROGRESS — local runtime inspector can validate a Java home/executable and read its major version; managed-runtime inventory/reuse policy remains pending.
 - [ ] Resolve a supported runtime distribution/source.
 - [ ] Download missing runtime.
 - [ ] Verify runtime installation integrity sufficiently for launch.
-- [ ] Locate correct `java` executable on Windows/Linux/macOS.
-- [ ] Verify runtime can execute.
+- [ ] 🚧 IN PROGRESS — platform-specific `bin/java` vs `bin/java.exe` discovery exists in the runtime inspector; installation integration remains pending.
+- [ ] 🚧 IN PROGRESS — runtime inspector executes `java -version` and parses modern/legacy version strings; full tests remain pending.
 - [ ] Return clear runtime installation/selection errors.
-- [ ] Keep runtime logic independent from UI.
+- [ ] 🚧 IN PROGRESS — runtime models/services remain in `launcher-core` and independent from Compose UI; full build verification remains pending.
 
 ## Launch planning
 
-- [ ] Define `LaunchOptions`.
-- [ ] Define `LaunchRequest`.
-- [ ] Build classpath from resolved metadata.
+- [ ] 🚧 IN PROGRESS — `LaunchOptions` model defined with validated minimum/maximum RAM and extra JVM args; final builder integration remains pending.
+- [ ] 🚧 IN PROGRESS — `LaunchRequest` defined around common account, resolved version, Java runtime, platform and options; final builder integration remains pending.
+- [ ] 🚧 IN PROGRESS — target classpath is planned from selected platform libraries plus client JAR; final launch command construction remains pending.
 - [ ] Substitute Minecraft argument placeholders correctly.
-- [ ] Apply OS-specific JVM/game rules.
-- [ ] Configure minimum/maximum RAM.
+- [ ] 🚧 IN PROGRESS — Mojang rule filtering for JVM/game arguments is implemented; final launch builder application remains pending.
+- [ ] 🚧 IN PROGRESS — memory bounds exist in `LaunchOptions`; Compose RAM value is not yet wired into a final request/plan.
 - [ ] Configure assets directory/index.
 - [ ] Configure natives path.
 - [ ] Configure game directory.
@@ -137,10 +137,10 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 - [ ] 🚧 IN PROGRESS — offline nickname input and validation state implemented; persistence remains pending.
 - [ ] 🚧 IN PROGRESS — Minecraft version selector backed by the Mojang manifest implemented; full build/manual verification remains pending.
 - [ ] 🚧 IN PROGRESS — release/snapshot channel filter implemented; full build/manual verification remains pending.
-- [ ] 🚧 IN PROGRESS — RAM slider implemented; value is not yet persisted or wired into launch options.
+- [ ] 🚧 IN PROGRESS — RAM slider implemented; value is not yet persisted or wired into final launch options.
 - [ ] Play button.
 - [ ] Download/preparation progress.
-- [ ] 🚧 IN PROGRESS — version-catalog loading and retryable error presentation implemented; launch/preparation errors remain pending.
+- [ ] 🚧 IN PROGRESS — catalog plus selected-version metadata loading/error/retry states are implemented; download/runtime/launch errors remain pending.
 - [ ] Disable conflicting controls during critical operations.
 - [ ] Remember last selected version/settings.
 
