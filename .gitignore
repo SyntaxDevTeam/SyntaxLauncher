@@ -1,0 +1,27 @@
+# Gradle
+.gradle/
+**/build/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+out/
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local launcher state
+.syntaxlauncher/
+run/
+logs/
+instances/
+runtimes/
+cache/
+
+# Local environment
+.env
+*.local
