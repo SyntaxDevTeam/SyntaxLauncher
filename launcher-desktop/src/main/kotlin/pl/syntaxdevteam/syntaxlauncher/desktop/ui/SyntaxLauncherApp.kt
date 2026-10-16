@@ -42,7 +42,9 @@ import pl.syntaxdevteam.syntaxlauncher.core.account.OfflineAccount
 import pl.syntaxdevteam.syntaxlauncher.core.minecraft.MinecraftVersion
 import pl.syntaxdevteam.syntaxlauncher.core.minecraft.MinecraftVersionCatalog
 import pl.syntaxdevteam.syntaxlauncher.core.minecraft.MinecraftVersionManifest
+import pl.syntaxdevteam.syntaxlauncher.core.minecraft.MinecraftVersionResolver
 import pl.syntaxdevteam.syntaxlauncher.core.minecraft.MinecraftVersionType
+import pl.syntaxdevteam.syntaxlauncher.core.minecraft.ResolvedMinecraftVersion
 
 private enum class VersionFilter {
     RELEASES,
@@ -50,7 +52,10 @@ private enum class VersionFilter {
 }
 
 @Composable
-fun SyntaxLauncherApp(versionCatalog: MinecraftVersionCatalog) {
+fun SyntaxLauncherApp(
+    versionCatalog: MinecraftVersionCatalog,
+    versionResolver: MinecraftVersionResolver,
+) {
     SyntaxTheme {
         var manifestState by remember { mutableStateOf<ManifestState>(ManifestState.Loading) }
         var reloadToken by remember { mutableIntStateOf(0) }
@@ -85,7 +90,10 @@ fun SyntaxLauncherApp(versionCatalog: MinecraftVersionCatalog) {
                                 message = state.message,
                                 onRetry = { reloadToken++ },
                             )
-                            is ManifestState.Ready -> LauncherPanel(state.manifest)
+                            is ManifestState.Ready -> LauncherPanel(
+                                manifest = state.manifest,
+                                versionResolver = versionResolver,
+                            )
                         }
                     }
                 }
@@ -147,7 +155,10 @@ private fun ErrorPanel(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun LauncherPanel(manifest: MinecraftVersionManifest) {
+private fun LauncherPanel(
+    manifest: MinecraftVersionManifest,
+    versionResolver: MinecraftVersionResolver,
+) {
     var nickname by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf(VersionFilter.RELEASES) }
     var selectedVersion by remember(manifest) {
@@ -158,6 +169,28 @@ private fun LauncherPanel(manifest: MinecraftVersionManifest) {
     }
     var versionMenuOpen by remember { mutableStateOf(false) }
     var memoryMb by remember { mutableStateOf(4096f) }
+    var metadataReloadToken by remember { mutableIntStateOf(0) }
+    var metadataState by remember { mutableStateOf<VersionMetadataState>(VersionMetadataState.Idle) }
+
+    LaunchedEffect(selectedVersion?.id, metadataReloadToken) {
+        val version = selectedVersion
+        if (version == null) {
+            metadataState = VersionMetadataState.Idle
+            return@LaunchedEffect
+        }
+
+        metadataState = VersionMetadataState.Loading(version.id)
+        metadataState = runCatching { versionResolver.resolve(version) }
+            .fold(
+                onSuccess = { VersionMetadataState.Ready(it) },
+                onFailure = {
+                    VersionMetadataState.Error(
+                        versionId = version.id,
+                        message = it.message ?: "Unable to resolve selected Minecraft version.",
+                    )
+                },
+            )
+    }
 
     val visibleVersions = remember(manifest, filter) {
         manifest.versions.filter {
@@ -313,19 +346,55 @@ private fun LauncherPanel(manifest: MinecraftVersionManifest) {
         ) {
             StatusCard {
                 SectionTitle(
-                    title = "v0.1 foundation",
-                    subtitle = "The launcher core is being built in small, testable layers.",
+                    title = "Launch readiness",
+                    subtitle = "Selected version metadata is now validated before preparation begins.",
                 )
                 Spacer(Modifier.height(18.dp))
-                StatusLine("Account", if (accountValidation == null && nickname.isNotBlank()) "Valid offline profile" else "Not ready")
+                StatusLine(
+                    "Account",
+                    if (accountValidation == null && nickname.isNotBlank()) "Valid offline profile" else "Not ready",
+                )
                 StatusLine("Version catalog", "${manifest.versions.size} versions loaded")
-                StatusLine("Latest release", manifest.latestRelease)
-                StatusLine("Java runtime", "Next implementation step")
-                StatusLine("Game launch", "Next implementation step")
+
+                when (val state = metadataState) {
+                    VersionMetadataState.Idle -> {
+                        StatusLine("Version metadata", "Select a version")
+                        StatusLine("Java requirement", "Waiting")
+                    }
+                    is VersionMetadataState.Loading -> {
+                        StatusLine("Version metadata", "Loading ${state.versionId}")
+                        StatusLine("Java requirement", "Waiting")
+                    }
+                    is VersionMetadataState.Ready -> {
+                        StatusLine("Version metadata", "Verified ${state.version.id}")
+                        StatusLine(
+                            "Java requirement",
+                            state.version.javaRequirement?.let { "Java ${it.majorVersion}" } ?: "Metadata default",
+                        )
+                        StatusLine("Libraries", state.version.libraries.size.toString())
+                    }
+                    is VersionMetadataState.Error -> {
+                        StatusLine("Version metadata", "Could not verify")
+                        StatusLine("Java requirement", "Unavailable")
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            state.message,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Button(onClick = { metadataReloadToken++ }) {
+                            Text("Retry metadata")
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(10.dp))
+                StatusLine("Game launch", "Preparation pipeline next")
             }
 
             Text(
-                text = "The Play action will appear when the launch preparation pipeline is functional; SyntaxLauncher does not expose fake controls.",
+                text = "The Play action will appear when Java selection, game-file preparation and launch planning are functional.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -416,4 +485,14 @@ private sealed interface ManifestState {
     data object Loading : ManifestState
     data class Ready(val manifest: MinecraftVersionManifest) : ManifestState
     data class Error(val message: String) : ManifestState
+}
+
+private sealed interface VersionMetadataState {
+    data object Idle : VersionMetadataState
+    data class Loading(val versionId: String) : VersionMetadataState
+    data class Ready(val version: ResolvedMinecraftVersion) : VersionMetadataState
+    data class Error(
+        val versionId: String,
+        val message: String,
+    ) : VersionMetadataState
 }
