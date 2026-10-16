@@ -8,6 +8,46 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-16 — Define lightweight modern UI/UX direction
+
+**Milestone:** Project foundation / pre-v0.1  
+**Author/Agent:** ChatGPT  
+**Status:** Completed
+
+### Completed
+
+- Established a mandatory visual direction for SyntaxLauncher: lightweight, highly modern, distinctive and visually attractive without overwhelming the user.
+- Defined progressive disclosure as the main mechanism for keeping future feature growth from increasing cognitive load on primary screens.
+- Defined visual-weight, hierarchy, typography, color, motion, responsiveness, accessibility and perceived-performance principles.
+- Defined `Play` as the dominant primary action for the normal launcher home screen.
+- Defined requirements for loading, empty, disabled and error states.
+- Defined an incremental Compose design-system approach based on reusable tokens/components without prematurely building a large UI framework.
+- Made the design guidelines mandatory for AI/agent contributors working on UI/UX.
+
+### Changed files
+
+- `docs/DESIGN.md` — added the canonical visual and interaction guidelines for SyntaxLauncher.
+- `AGENTS.md` — made the design document mandatory reading for UI work and added enforceable UI/UX implementation rules.
+- `docs/WORKLOG.md` — recorded this documentation change.
+
+### Verification
+
+- `./gradlew test` — NOT RUN; documentation-only change and the repository still has no Gradle implementation.
+- `./gradlew build` — NOT RUN; documentation-only change and the repository still has no Gradle implementation.
+- Manual verification — design principles reviewed against the existing staged project scope and v0.1 minimal-launcher goal.
+
+### Roadmap updates
+
+- No implementation checkbox changed state; this task defines a cross-cutting design requirement rather than completing a v0.1 implementation item.
+- Future UI roadmap items must be implemented consistently with `docs/DESIGN.md` before they may be considered complete.
+
+### Follow-ups / known issues
+
+- Final brand palette, typography choice and exact component tokens should be established during implementation rather than frozen prematurely in documentation.
+- The v0.1 UI should establish the visual foundation while keeping engineering priority on a reliable launch pipeline.
+
+---
+
 ## 2026-10-16 — Establish project documentation and release plan
 
 **Milestone:** Project foundation / pre-v0.1  
