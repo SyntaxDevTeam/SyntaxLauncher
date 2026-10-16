@@ -8,6 +8,76 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-16 — Resolve version metadata and plan Minecraft files
+
+**Milestone:** v0.1 — Minimal Vanilla Launcher  
+**Author/Agent:** ChatGPT  
+**Status:** Partial
+
+### Completed
+
+- Added `MinecraftVersionResolver` for downloading the selected version metadata and verifying its manifest SHA-1 before parsing.
+- Added domain models and DTO parsing for client download metadata, libraries, native classifiers, asset indexes, main class, modern JVM/game arguments, legacy `minecraftArguments`, Java runtime requirements and client logging configuration.
+- Added normalized Windows/Linux/macOS and CPU-architecture detection for Minecraft rule evaluation.
+- Added deterministic Mojang-style allow/disallow rule evaluation including OS/version/architecture and feature predicates.
+- Added argument filtering/resolution for the selected platform and feature set.
+- Added platform-aware library and native-classifier resolution.
+- Added `MinecraftInstallationLayout` and a `MinecraftFilePlanner` that plans client, library, native, asset-index, logging-config and classpath locations without performing downloads yet.
+- Added asset-index parsing plus planning of Mojang asset-object URLs and hash-prefix cache paths.
+- Added safe native JAR extraction with `META-INF` filtering and Zip Slip protection.
+- Added initial `JavaRuntime`, `JavaRuntimeManager` boundary and `JavaRuntimeInspector` capable of validating a local Java executable and parsing modern/legacy Java version strings.
+- Added initial `LaunchOptions` and `LaunchRequest` models so the future launch builder receives explicit account/version/runtime/platform/options state.
+- Connected selected-version resolution to Compose Desktop. The UI now verifies `version.json` after version selection and shows Java requirement/library count or a retryable metadata error.
+- Added unit-test sources for rule evaluation, modern/legacy version metadata parsing, native resolution, asset-index parsing, file planning, Zip Slip rejection and Java version parsing.
+
+### Changed files
+
+- `launcher-core/src/main/kotlin/.../minecraft/MinecraftPlatform.kt` — normalized OS/architecture model.
+- `launcher-core/src/main/kotlin/.../minecraft/MinecraftRule.kt` — Mojang rule model/evaluator.
+- `launcher-core/src/main/kotlin/.../minecraft/ResolvedMinecraftVersion.kt` — resolved metadata domain, argument resolution and legacy tokenizer.
+- `launcher-core/src/main/kotlin/.../minecraft/VersionMetadataDto.kt` — serialization DTOs for `version.json`.
+- `launcher-core/src/main/kotlin/.../minecraft/VersionMetadataParser.kt` — metadata-to-domain parser.
+- `launcher-core/src/main/kotlin/.../minecraft/MinecraftVersionResolver.kt` — selected-version metadata fetch and SHA-1 verification.
+- `launcher-core/src/main/kotlin/.../minecraft/LibraryResolver.kt` — OS/rule/native library selection.
+- `launcher-core/src/main/kotlin/.../minecraft/AssetIndex.kt` — asset-index model/parser including legacy `map_to_resources` support.
+- `launcher-core/src/main/kotlin/.../minecraft/MinecraftFilePlan.kt` — download/classpath/native planning.
+- `launcher-core/src/main/kotlin/.../minecraft/NativeExtractor.kt` — safe native extraction.
+- `launcher-core/src/main/kotlin/.../storage/MinecraftInstallationLayout.kt` — v0.1 game/cache directory layout.
+- `launcher-core/src/main/kotlin/.../java/JavaRuntime.kt` — resolved runtime model.
+- `launcher-core/src/main/kotlin/.../java/JavaRuntimeManager.kt` — runtime-manager boundary and local runtime inspector.
+- `launcher-core/src/main/kotlin/.../launch/LaunchModels.kt` — initial launch request/options models.
+- `launcher-core/src/test/kotlin/...` — metadata/rules/files/natives/Java test sources.
+- `launcher-desktop/src/main/kotlin/.../Main.kt` — creates and injects `MinecraftVersionResolver`.
+- `launcher-desktop/src/main/kotlin/.../ui/SyntaxLauncherApp.kt` — resolves selected version metadata and exposes readiness/error state without adding a fake Play action.
+- `docs/ROADMAP.md` — synchronized v0.1 implementation state.
+- `docs/WORKLOG.md` — this entry.
+
+### Verification
+
+- Source review — PASS for architecture boundaries, v0.1 scope, metadata/rule semantics, path planning and Zip Slip guard.
+- Container repository clone/build attempt — BLOCKED; execution environment cannot resolve `github.com`, so dependencies/repository cannot be fetched for a complete local Gradle run.
+- `./gradlew test` — NOT RUN; Gradle wrapper is still not committed and external dependency access is unavailable in the execution environment.
+- `./gradlew build` — NOT RUN for the same tooling/network reason.
+- Roadmap items that require build/test acceptance therefore remain unchecked or `🚧 IN PROGRESS` rather than being marked complete.
+
+### Roadmap updates
+
+- Selected-version metadata download/parsing, Java requirement parsing, OS/architecture rules and deterministic rule evaluation are now `🚧 IN PROGRESS` pending full build/runtime verification.
+- Library/native selection, asset-index parsing/planning and safe native extraction are now `🚧 IN PROGRESS`; actual downloads/integrity/cache reuse remain open.
+- `JavaRuntime`, `JavaRuntimeManager`, local runtime inspection, `LaunchOptions` and `LaunchRequest` now exist but runtime installation and final launch planning remain open.
+- Desktop version-metadata readiness/error handling is now implemented but remains `🚧 IN PROGRESS` pending full Compose build/manual execution.
+
+### Follow-ups / known issues
+
+- Implement the reusable downloader with atomic partial files, hash verification, bounded concurrency, cancellation, retry and progress reporting.
+- Fetch/verify the asset index, plan its objects, and execute client/library/native/asset/log-config downloads.
+- Add deterministic native extraction lifecycle after native downloads finish.
+- Implement managed Java runtime discovery/download/install using a supported upstream runtime source.
+- Build placeholder substitution and final `LaunchPlan`, then process execution and logging.
+- Add a Gradle wrapper and perform complete `test`/`build` verification in an environment with dependency access before checking acceptance boxes.
+
+---
+
 ## 2026-10-16 — Start v0.1 implementation foundation
 
 **Milestone:** v0.1 — Minimal Vanilla Launcher  
