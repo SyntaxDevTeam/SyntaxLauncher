@@ -2,7 +2,7 @@
 
 This file defines mandatory working rules for AI/agentic contributors operating in this repository.
 
-The rules below are part of the project workflow, not suggestions. An agent changing code, build configuration, documentation, CI, tests, or project structure MUST follow them.
+The rules below are part of the project workflow, not suggestions. An agent changing code, build configuration, documentation, CI, tests, project structure, or user interface MUST follow them.
 
 ## 1. Project goal
 
@@ -21,6 +21,8 @@ The launcher must ultimately be able to support:
 - modpacks;
 - diagnostics, repair and production-grade updating.
 
+The product must also maintain a lightweight, highly modern and visually distinctive desktop experience. It should attract the user's attention through polish and strong hierarchy without overwhelming the user with controls, decoration or technical complexity. `docs/DESIGN.md` is authoritative for UI/UX direction.
+
 Do not implement future milestones prematurely unless the current work explicitly requires a compatibility seam for them.
 
 ## 2. Mandatory files to read before making changes
@@ -32,7 +34,8 @@ Before starting any non-trivial task, read at minimum:
 3. `docs/ROADMAP.md`
 4. `docs/MILESTONES.md`
 5. `docs/DEVELOPMENT.md`
-6. the latest entries in `docs/WORKLOG.md`
+6. `docs/DESIGN.md` for any UI, UX, Compose, navigation, interaction, layout or presentation work
+7. the latest entries in `docs/WORKLOG.md`
 
 If the task concerns a specific milestone, read that milestone's complete section in `docs/MILESTONES.md` before editing code.
 
@@ -94,6 +97,7 @@ A task is not done until all applicable points below are satisfied:
 
 - implementation is complete for the requested scope;
 - code follows the architecture boundaries documented in `docs/ARCHITECTURE.md`;
+- UI/UX work follows `docs/DESIGN.md`;
 - public behavior is covered by tests where practical;
 - existing tests still pass;
 - the project builds, unless the task is documentation-only;
@@ -252,3 +256,27 @@ Before considering a repository task complete, the agent should be able to state
 6. whether there are known follow-ups or blockers.
 
 If any of these cannot be answered, the repository state is not fully documented.
+
+## 15. Mandatory UI/UX direction
+
+All UI/UX work must follow `docs/DESIGN.md`.
+
+The design objective is not generic minimalism. SyntaxLauncher should be visually memorable and clearly modern while remaining light, calm and easy to understand.
+
+Mandatory principles:
+
+- The interface must attract attention through polish, composition, typography and coherent identity rather than visual noise.
+- The user must not be overwhelmed by the number of features supported internally.
+- Prefer progressive disclosure: common actions stay visible; advanced/technical controls are shown when requested or contextually necessary.
+- Keep one clear primary action per screen or context. On the normal launcher home screen, `Play` is the dominant action.
+- Use a limited, intentional palette and restrained visual effects.
+- Avoid excessive nested cards, borders, gradients, glow, blur, glass effects or animation.
+- Animation and micro-interactions must communicate state or improve continuity, not exist only as decoration.
+- Heavy work must never block the Compose UI thread. Perceived performance is part of the design quality requirement.
+- Significant screens must define loading, empty, disabled and error states rather than only the ideal state.
+- Layouts must remain usable across supported window sizes and common DPI scaling.
+- Accessibility, contrast, focus states and clear state communication are part of normal component quality, not a post-v1.0 cleanup task.
+- UI implementations should build on a small reusable design-token/component system rather than scattering arbitrary colors, spacing, radii and typography values across screens.
+- The launcher should develop its own visual identity and must not simply clone another Minecraft launcher.
+
+A UI task is not complete merely because every requested control exists. It must also preserve hierarchy, clarity, responsiveness and the lightweight visual character defined in `docs/DESIGN.md`.
