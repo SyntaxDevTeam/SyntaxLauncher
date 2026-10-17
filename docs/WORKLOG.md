@@ -8,6 +8,72 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-17 — Build metadata-driven Minecraft LaunchPlan
+
+**Milestone:** v0.1 — Minimal Vanilla Launcher  
+**Author/Agent:** ChatGPT  
+**Status:** Partial
+
+### Completed
+
+- Implemented `LaunchPlan` as the structured, process-independent output of the v0.1 launch pipeline: resolved Java runtime, working directory, main class, JVM arguments, game arguments and final argument-vector command.
+- Refactored `LaunchRequest` to consume a verified `PreparedMinecraftVersion` instead of only raw version metadata, so launch planning uses the exact prepared classpath/directories rather than recalculating filesystem state.
+- Added `LaunchAuthentication` as a narrow normalized session boundary. v0.1 maps an offline account to stable UUID, `accessToken=0`, legacy user type and a deterministic offline session string; v0.3 can later provide Microsoft credentials without cloning the launch engine.
+- Added `MinecraftArgumentPlaceholderResolver` with explicit unresolved-placeholder failure rather than silently starting Java with invalid `${...}` values.
+- Added metadata-driven substitution for `auth_player_name`, `version_name`, `game_directory`, `assets_root`, `game_assets`, `assets_index_name`, `auth_uuid`, `auth_access_token`, `auth_session`, `user_type`, `user_properties`, `version_type`, `natives_directory`, `launcher_name`, `launcher_version`, `classpath`, `library_directory`, `classpath_separator`, `auth_xuid` and `clientid`.
+- Added platform-aware classpath joining (`;` on Windows, `:` elsewhere) while preserving each Java/process argument as a separate list element instead of building a shell command string.
+- Added JVM memory arguments from `LaunchOptions` plus extra user JVM arguments.
+- Applied already-existing Mojang OS/architecture/feature rules before resolving JVM/game placeholders.
+- Added logging configuration injection by resolving the metadata logging argument `${path}` to the verified downloaded logging configuration.
+- Added legacy launch fallback for versions without metadata JVM arguments: explicit `-Djava.library.path`, `-cp` and the prepared classpath while continuing to use legacy `minecraftArguments` parsing.
+- Added `librariesDirectory` to `PreparedMinecraftVersion` so `${library_directory}` is sourced from preparation output rather than guessed by the launch layer.
+- Added typed launch-plan failures for missing required artifacts and unknown/unresolved placeholders.
+- Added deterministic tests covering modern metadata-driven plans, memory/classpath/natives/logging/offline identity substitution, legacy JVM fallback, paths containing spaces, full command ordering and explicit failure for future unknown placeholders.
+- Cross-checked standard launch placeholder usage against current PrismLauncher launch/session handling and historical metadata fixtures before freezing the v0.1 mapping.
+- Updated `docs/ROADMAP.md` so all launch-planning items reflect implemented-but-not-yet-fully-executed state.
+
+### Changed files
+
+- `launcher-core/src/main/kotlin/.../launch/LaunchModels.kt` — prepared-game request boundary plus normalized offline launch authentication.
+- `launcher-core/src/main/kotlin/.../launch/LaunchPlan.kt` — structured final launch plan and typed launch-plan errors.
+- `launcher-core/src/main/kotlin/.../launch/MinecraftArgumentPlaceholderResolver.kt` — strict Mojang placeholder substitution.
+- `launcher-core/src/main/kotlin/.../launch/LaunchPlanBuilder.kt` — modern/legacy JVM and game argument construction, classpath, memory, logging and offline identity wiring.
+- `launcher-core/src/main/kotlin/.../minecraft/MinecraftPreparationService.kt` — exposes prepared libraries directory to launch planning.
+- `launcher-core/src/test/kotlin/.../launch/LaunchPlanBuilderTest.kt` — modern/legacy structured launch-plan tests.
+- `launcher-core/src/test/kotlin/.../launch/MinecraftArgumentPlaceholderResolverTest.kt` — placeholder and path-with-spaces tests.
+- `docs/ROADMAP.md` — synchronized launch-planning status.
+- `docs/WORKLOG.md` — this entry.
+
+### Verification
+
+- Launch core `kotlinc` smoke compilation with minimal domain stubs — PASS on the available JDK 21 environment; the new launch classes compile as a coherent unit.
+- Architecture/source review — PASS: launch construction remains in `launcher-core`, consumes prepared/runtime state, does not depend on Compose and never uses shell command concatenation.
+- GitHub compare review — PASS for the intended v0.1 launch-planning files and deterministic tests.
+- External launcher compatibility review — PASS for standard Mojang placeholders/session mapping patterns used by PrismLauncher; unknown future placeholders intentionally fail explicitly.
+- Container repository access — BLOCKED; the execution container still cannot resolve `github.com`, preventing a real repository clone/dependency resolution.
+- `./gradlew test` — NOT RUN; repository still lacks a committed Gradle wrapper and external Gradle/Maven dependency access is unavailable in the execution environment.
+- `./gradlew build` — NOT RUN for the same environment/tooling limitation.
+- Real Minecraft process launch — NOT RUN by design in this task; process execution is the next v0.1 stage.
+
+### Roadmap updates
+
+- `LaunchRequest`, `LaunchOptions`, classpath construction, placeholder substitution, Mojang argument rules, memory, assets, natives, game directory, offline identity, logging config, legacy fallback and final `LaunchPlan` are now `🚧 IN PROGRESS` with implementation/test sources present.
+- The new normalized authentication seam is documented as infrastructure for the common launch pipeline, not as premature Microsoft authentication.
+- Process-management items remain fully open.
+- v0.1 quality gates remain unchecked until full Gradle tests/build and a real clean-machine vanilla launch pass.
+
+### Follow-ups / known issues
+
+- Implement `MinecraftProcessManager` around `ProcessBuilder` using `LaunchPlan.command` and `LaunchPlan.workingDirectory`.
+- Capture stdout/stderr into a separate Minecraft process log and expose running/stopped/crashed state plus exit code.
+- Prevent duplicate launches and define launcher shutdown behavior while Minecraft remains running.
+- Wire the real end-to-end pipeline (metadata → preparation → Java → launch plan → process) into Compose and only then expose `Play`.
+- Add persistence for nickname/version/RAM selections and version-manifest cache.
+- Legacy asset indexes using `virtual` / `map_to_resources` still require materialized legacy asset views before claiming broad historical-version compatibility.
+- Add a Gradle wrapper and execute the complete automated test/build suite in an environment with dependency access.
+
+---
+
 ## 2026-10-17 — Implement automatic managed Mojang Java Runtime Manager
 
 **Milestone:** v0.1 — Minimal Vanilla Launcher  
