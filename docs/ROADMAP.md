@@ -16,7 +16,7 @@ Agents and contributors MUST keep this file synchronized with actual repository 
 
 Goal: launch a selected vanilla Minecraft version using an offline account and an automatically resolved Java runtime.
 
-**Current status:** 🚧 Implementation in progress. The Kotlin/Compose foundation, offline account primitives, Mojang version catalog, selected-version metadata resolver, Mojang rule evaluation, file planning, asset-index parsing, safe native extraction primitives and the first Java runtime boundary now exist. Actual game-file downloads, cache/integrity execution, managed Java installation, final launch-plan construction and process launch remain open.
+**Current status:** 🚧 Implementation in progress. The Kotlin/Compose foundation, offline account primitives, Mojang version catalog, selected-version metadata resolver, rule evaluation, file planning and a reusable verified download/preparation pipeline now exist. The core can plan and execute client/library/native/asset/logging downloads with cache verification, retries, bounded concurrency, progress events and safe native extraction. Managed Java installation, final launch-plan construction, process launch, persistence and full Gradle/manual verification remain open.
 
 ## Project foundation
 
@@ -49,7 +49,7 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 - [ ] 🚧 IN PROGRESS — release filtering is implemented in the first Compose UI; full UI build/manual verification remains pending.
 - [ ] 🚧 IN PROGRESS — snapshots can be explicitly selected through the channel filter; full UI build/manual verification remains pending.
 - [ ] Cache version manifest safely.
-- [ ] 🚧 IN PROGRESS — version-catalog load failures produce a visible error and Retry action; typed network errors remain pending.
+- [ ] 🚧 IN PROGRESS — version-catalog load failures produce a visible error and Retry action; typed download errors now exist but catalog-specific typed errors remain pending.
 
 ## Version metadata resolver
 
@@ -68,30 +68,30 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 
 ## Minecraft files
 
-- [ ] Download Minecraft client JAR.
-- [ ] Verify client file hash when metadata provides one.
+- [ ] 🚧 IN PROGRESS — `MinecraftPreparationService` now executes the planned client JAR download through the shared verified downloader; Gradle/integration execution remains pending.
+- [ ] 🚧 IN PROGRESS — client JAR SHA-1 and size are verified before the `.part` file is atomically published; Gradle tests remain pending.
 - [ ] 🚧 IN PROGRESS — required classpath libraries are selected for the current OS/architecture/rules and planned to cache paths; execution verification remains pending.
-- [ ] Download missing libraries.
-- [ ] Verify library hashes where available.
+- [ ] 🚧 IN PROGRESS — preparation service downloads missing planned libraries through bounded shared infrastructure; Gradle/integration execution remains pending.
+- [ ] 🚧 IN PROGRESS — library hashes/sizes are verified by the generic integrity layer before publication; Gradle tests remain pending.
 - [ ] 🚧 IN PROGRESS — native classifier selection including `${arch}` replacement implemented and tested in source; Gradle execution remains pending.
-- [ ] Download native libraries.
-- [ ] 🚧 IN PROGRESS — safe native extractor implemented with `META-INF` exclusion and Zip Slip protection; download/extraction lifecycle integration remains pending.
-- [ ] Fetch asset index.
-- [ ] 🚧 IN PROGRESS — asset-index content parser and Mojang asset-object URL/cache planner implemented; actual index fetch/download remains pending.
-- [ ] Download missing assets.
-- [ ] Reuse valid cached assets/libraries.
-- [ ] Avoid treating incomplete downloads as valid files.
+- [ ] 🚧 IN PROGRESS — planned native archives are downloaded through the shared verified downloader; Gradle/integration execution remains pending.
+- [ ] 🚧 IN PROGRESS — verified native archives are extracted into a regenerated version-specific natives directory with `META-INF` exclusion and Zip Slip protection; full execution remains pending.
+- [ ] 🚧 IN PROGRESS — asset index is now included in the executable preparation download plan and verified before parsing; Gradle/integration execution remains pending.
+- [ ] 🚧 IN PROGRESS — asset-index parser and Mojang asset-object URL/cache planner are integrated into preparation; duplicate hashes are de-duplicated.
+- [ ] 🚧 IN PROGRESS — missing asset objects are planned and downloaded through the shared manager; Gradle/integration execution remains pending.
+- [ ] 🚧 IN PROGRESS — verified existing client/libraries/natives/assets are reused without network access; controlled MockEngine test source covers cache reuse but Gradle execution remains pending.
+- [ ] 🚧 IN PROGRESS — downloads use sibling `.part` files and publish only after successful size/hash verification; interrupted/failed partials are cleaned and never treated as valid cache.
 
 ## Download infrastructure
 
-- [ ] 🚧 IN PROGRESS — shared Ktor `HttpClient` factory with timeouts, serialization and SyntaxLauncher User-Agent added; reusable streaming file downloader is still pending.
-- [ ] Support cancellation.
-- [ ] Add bounded concurrent downloading.
-- [ ] Report progress to application/UI layer.
-- [ ] Add retry policy for safe transient failures.
-- [ ] Add checksum/integrity verification support.
-- [ ] Use atomic/finalized file writes where practical.
-- [ ] Provide typed download/network errors.
+- [ ] 🚧 IN PROGRESS — centralized `DownloadManager` now streams all planned artifacts through the shared Ktor client; full Gradle/runtime verification remains pending.
+- [ ] 🚧 IN PROGRESS — structured coroutine cancellation propagates through batches and removes partial files; dedicated cancellation test/manual verification remains pending.
+- [ ] 🚧 IN PROGRESS — batch downloads use a coroutine `Semaphore` with configurable bounded parallelism (default 6); Gradle execution remains pending.
+- [ ] 🚧 IN PROGRESS — typed batch/file start, progress, retry, complete and failure events are exposed to application callers; Compose progress UI is not wired yet.
+- [ ] 🚧 IN PROGRESS — retry policy handles transient network failures, HTTP 408/425/429/5xx and integrity/size failures with bounded backoff; controlled retry test source added.
+- [ ] 🚧 IN PROGRESS — SHA-1 and expected-size validation is shared for downloaded and cached files; controlled integrity/cache test sources added.
+- [ ] 🚧 IN PROGRESS — downloads are written to `.part` and finalized with atomic move where supported, falling back to replace move only after verification; Gradle execution remains pending.
+- [ ] 🚧 IN PROGRESS — typed network, HTTP, integrity, size, filesystem and conflicting-target download errors are implemented; final UI mapping remains pending.
 
 ## Java Runtime Manager
 
@@ -111,13 +111,13 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 
 - [ ] 🚧 IN PROGRESS — `LaunchOptions` model defined with validated minimum/maximum RAM and extra JVM args; final builder integration remains pending.
 - [ ] 🚧 IN PROGRESS — `LaunchRequest` defined around common account, resolved version, Java runtime, platform and options; final builder integration remains pending.
-- [ ] 🚧 IN PROGRESS — target classpath is planned from selected platform libraries plus client JAR; final launch command construction remains pending.
+- [ ] 🚧 IN PROGRESS — target classpath is planned from selected platform libraries plus client JAR and now points at files produced by preparation; final launch command construction remains pending.
 - [ ] Substitute Minecraft argument placeholders correctly.
 - [ ] 🚧 IN PROGRESS — Mojang rule filtering for JVM/game arguments is implemented; final launch builder application remains pending.
 - [ ] 🚧 IN PROGRESS — memory bounds exist in `LaunchOptions`; Compose RAM value is not yet wired into a final request/plan.
-- [ ] Configure assets directory/index.
-- [ ] Configure natives path.
-- [ ] Configure game directory.
+- [ ] 🚧 IN PROGRESS — preparation now exposes the resolved assets directory/index content; final argument substitution remains pending.
+- [ ] 🚧 IN PROGRESS — preparation exposes a version-specific regenerated natives directory; final JVM placeholder wiring remains pending.
+- [ ] 🚧 IN PROGRESS — preparation exposes the game directory from platform-aware layout; final launch request wiring remains pending.
 - [ ] Configure offline username and UUID.
 - [ ] Build final launch command/plan without starting the process.
 - [ ] Unit test launch argument construction with fixtures.
@@ -139,8 +139,8 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 - [ ] 🚧 IN PROGRESS — release/snapshot channel filter implemented; full build/manual verification remains pending.
 - [ ] 🚧 IN PROGRESS — RAM slider implemented; value is not yet persisted or wired into final launch options.
 - [ ] Play button.
-- [ ] Download/preparation progress.
-- [ ] 🚧 IN PROGRESS — catalog plus selected-version metadata loading/error/retry states are implemented; download/runtime/launch errors remain pending.
+- [ ] 🚧 IN PROGRESS — core preparation/download stages and per-file progress events now exist; Compose presentation and user-triggered preparation remain pending.
+- [ ] 🚧 IN PROGRESS — catalog plus selected-version metadata loading/error/retry states are implemented and downloader has typed failures; download/runtime/launch error mapping in UI remains pending.
 - [ ] Disable conflicting controls during critical operations.
 - [ ] Remember last selected version/settings.
 
