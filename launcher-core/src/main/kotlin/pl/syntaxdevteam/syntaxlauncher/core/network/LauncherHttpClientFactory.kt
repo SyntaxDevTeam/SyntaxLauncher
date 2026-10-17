@@ -17,7 +17,7 @@ object LauncherHttpClientFactory {
 
             install(HttpTimeout) {
                 connectTimeoutMillis = 10_000
-                requestTimeoutMillis = 30_000
+                requestTimeoutMillis = 120_000
                 socketTimeoutMillis = 30_000
             }
 

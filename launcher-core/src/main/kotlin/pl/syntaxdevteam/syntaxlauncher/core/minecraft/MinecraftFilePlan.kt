@@ -110,18 +110,22 @@ class MinecraftFilePlanner(
         index: MinecraftAssetIndexContent,
         layout: MinecraftInstallationLayout,
     ): List<PlannedMinecraftDownload> =
-        index.objects.map { asset ->
-            require(asset.hash.length >= 2) { "Invalid Minecraft asset hash: ${asset.hash}" }
-            PlannedMinecraftDownload(
-                kind = MinecraftDownloadKind.ASSET_OBJECT,
-                url = "https://resources.download.minecraft.net/${asset.hash.take(2)}/${asset.hash}",
-                target = layout.assetObjectsDir
-                    .resolve(asset.hash.take(2))
-                    .resolve(asset.hash),
-                sha1 = asset.hash,
-                size = asset.size,
-            )
-        }
+        index.objects
+            .asSequence()
+            .distinctBy(MinecraftAssetObject::hash)
+            .map { asset ->
+                require(asset.hash.length >= 2) { "Invalid Minecraft asset hash: ${asset.hash}" }
+                PlannedMinecraftDownload(
+                    kind = MinecraftDownloadKind.ASSET_OBJECT,
+                    url = "https://resources.download.minecraft.net/${asset.hash.take(2)}/${asset.hash}",
+                    target = layout.assetObjectsDir
+                        .resolve(asset.hash.take(2))
+                        .resolve(asset.hash),
+                    sha1 = asset.hash,
+                    size = asset.size,
+                )
+            }
+            .toList()
 
     private fun MinecraftArtifact.toPlanned(
         kind: MinecraftDownloadKind,
