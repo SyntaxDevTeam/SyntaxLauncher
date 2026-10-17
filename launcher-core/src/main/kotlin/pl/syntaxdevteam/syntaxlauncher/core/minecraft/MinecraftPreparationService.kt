@@ -37,6 +37,7 @@ data class PreparedMinecraftVersion(
     val assetIndex: MinecraftAssetIndexContent?,
     val downloadResults: List<DownloadResult>,
     val gameDirectory: Path,
+    val librariesDirectory: Path,
     val assetsDirectory: Path,
     val nativesDirectory: Path,
 )
@@ -110,6 +111,7 @@ class MinecraftPreparationService(
             assetIndex = assetIndex,
             downloadResults = allResults,
             gameDirectory = layout.gameDir,
+            librariesDirectory = layout.librariesDir,
             assetsDirectory = layout.assetsDir,
             nativesDirectory = layout.versionNatives(version.id),
         )
