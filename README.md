@@ -2,7 +2,7 @@
 
 SyntaxLauncher is a modern Minecraft launcher from SyntaxDevTeam, written primarily in Kotlin and developed incrementally from a minimal vanilla launcher into a modular launcher with premium authentication, isolated instances, mod loaders, Modrinth integration, modpacks and diagnostics.
 
-The project is currently in **active v0.1 development**. The Kotlin/Gradle/Compose foundation, offline account model, Mojang version discovery/resolution, verified game-file preparation pipeline and managed Mojang Java Runtime Manager are now present in the repository.
+The project is currently in **active v0.1 development**. The Kotlin/Gradle/Compose foundation, offline account model, Mojang version discovery/resolution, verified game-file preparation pipeline, managed Mojang Java Runtime Manager and metadata-driven launch-plan builder are now present in the repository.
 
 ## Project philosophy
 
@@ -46,10 +46,17 @@ The current v0.1 implementation includes:
 - managed runtime reuse without a network request when a compatible verified installation already exists;
 - runtime staging, executable-bit handling, manifest link creation, completion markers and final `java -version` verification;
 - support for the macOS `jre.bundle/Contents/Home/bin/java` layout;
+- normalized `LaunchAuthentication` for offline sessions without coupling the launch builder to a raw nickname;
+- metadata-driven `LaunchPlanBuilder` for modern JVM/game arguments and legacy `minecraftArguments` fallback;
+- strict placeholder substitution for Mojang account/version/assets/natives/classpath/auth/launcher fields;
+- platform-aware classpath construction, RAM JVM arguments and downloaded logging-config injection;
+- structured `LaunchPlan` output containing runtime, working directory, main class, JVM args, game args and the final argument-vector command without shell concatenation;
+- typed launch-plan failures for missing artifacts and unresolved future placeholders;
+- deterministic launch-plan test sources covering modern and legacy argument construction, offline identity, logging, paths containing spaces and unknown-placeholder rejection;
 - initial unit/integration test sources using Ktor `MockEngine` rather than live Mojang services;
 - a lightweight Compose screen with nickname validation, release/snapshot selection, version selection, RAM control, loading state and retryable metadata errors.
 
-The remaining main v0.1 engineering work is final launch-command construction, Minecraft process management, persistence/cache polish, Compose preparation/progress wiring and complete build/manual launch verification. The UI intentionally does not expose a fake `Play` action before that final pipeline exists.
+The remaining main v0.1 engineering work is Minecraft process management, persistence/cache polish, Compose preparation/progress/Play wiring and complete build/manual launch verification. The UI intentionally does not expose a fake `Play` action before the real process pipeline exists.
 
 ## Technology
 
@@ -132,13 +139,15 @@ Available from v0.1.
 
 Offline accounts are intended for local play and servers configured to accept offline clients. SyntaxLauncher will not use offline accounts to bypass authentication on servers operating in online mode.
 
-The current implementation already provides a common account model, offline username validation and deterministic UUID generation using Minecraft's `OfflinePlayer:<username>` convention.
+The current implementation already provides a common account model, offline username validation and deterministic UUID generation using Minecraft's `OfflinePlayer:<username>` convention. The launch layer converts that account into normalized offline authentication/session placeholder values rather than embedding offline-specific branching throughout command construction.
 
 ### Microsoft / premium
 
 Planned for v0.3.
 
 Premium authentication will use the official Microsoft → Xbox Live → XSTS → Minecraft Services flow appropriate for a desktop application. SyntaxLauncher must never ask users to type their Microsoft password into the launcher itself.
+
+The v0.1 launch builder already consumes a normalized authentication payload so v0.3 can provide premium access token/profile values without introducing a second premium-only launch engine.
 
 ## Java runtime management
 
@@ -158,6 +167,28 @@ The selected Minecraft version's metadata supplies a Java component and major ve
 10. verifies it again and returns a normalized `JavaRuntime` descriptor to the launch layer.
 
 The runtime is selected from metadata, so support can follow Mojang runtime components such as Java 17, Java 21 and Java 25 without teaching Compose UI about Minecraft-to-Java version mappings.
+
+## Launch planning
+
+`LaunchPlanBuilder` consumes only resolved/prepared inputs:
+
+```text
+Account / LaunchAuthentication
+        +
+PreparedMinecraftVersion
+        +
+JavaRuntime
+        +
+LaunchOptions / platform / feature rules
+        ↓
+LaunchPlan
+```
+
+The builder resolves Mojang JVM/game arguments, substitutes supported `${...}` placeholders, applies platform-specific classpath separators, injects prepared assets/natives/libraries/game paths, supplies offline identity/session values, adds RAM and logging configuration arguments and produces one structured argument vector.
+
+It does **not** create one large shell command string. Paths containing spaces remain individual process arguments, which is safer and avoids platform-specific quoting problems. Legacy metadata without an explicit JVM argument list receives a small compatibility fallback for natives/classpath instead of a hardcoded per-version launch recipe.
+
+Unknown future placeholders fail explicitly during planning instead of being passed unresolved into Java. Process creation is intentionally a separate next layer.
 
 ## Instances
 
@@ -231,9 +262,9 @@ This is intended to prevent the project roadmap from drifting away from the real
 
 **v0.1 — Minimal Vanilla Launcher: in progress**
 
-Implemented so far: project/module foundation, offline account primitives, Mojang version discovery and full selected-version parsing, shared verified download infrastructure, client/library/native/assets preparation, platform-aware managed Mojang Java installation and the first lightweight Compose Desktop screen.
+Implemented so far: project/module foundation, offline account primitives, Mojang version discovery and full selected-version parsing, shared verified download infrastructure, client/library/native/assets preparation, platform-aware managed Mojang Java installation, metadata-driven final launch-plan construction and the first lightweight Compose Desktop screen.
 
-Still required before v0.1 can be considered functional: final placeholder substitution and launch-plan construction, Minecraft process management, persistence/settings behavior, Compose preparation/progress wiring, Gradle wrapper/full automated build verification and a real clean-machine vanilla Minecraft launch.
+Still required before v0.1 can be considered functional: Minecraft process start/monitoring/logging, persistence/settings behavior, Compose preparation/progress/Play wiring, Gradle wrapper/full automated build verification and a real clean-machine vanilla Minecraft launch.
 
 ## License
 
