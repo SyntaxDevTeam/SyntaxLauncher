@@ -67,7 +67,7 @@ class MinecraftPreparationService(
         listener(MinecraftPreparationEvent.StageChanged(MinecraftPreparationStage.CORE_FILES))
         val coreDownloads = buildList {
             filePlan.client?.let { add(it.toDownloadRequest()) }
-            addAll(filePlan.libraries.map(PlannedMinecraftDownload::toDownloadRequest))
+            addAll(filePlan.libraries.map { it.toDownloadRequest() })
             addAll(filePlan.natives.map { it.download.toDownloadRequest() })
             filePlan.assetIndex?.let { add(it.toDownloadRequest()) }
             filePlan.loggingConfig?.let { add(it.toDownloadRequest()) }
@@ -84,7 +84,7 @@ class MinecraftPreparationService(
         if (assetIndex != null) {
             listener(MinecraftPreparationEvent.StageChanged(MinecraftPreparationStage.ASSETS))
             val assets = filePlanner.planAssets(assetIndex, layout)
-                .map(PlannedMinecraftDownload::toDownloadRequest)
+                .map { it.toDownloadRequest() }
             allResults += downloadManager.downloadAll(assets, downloadListener)
         }
 
