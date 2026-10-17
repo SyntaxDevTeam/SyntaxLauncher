@@ -16,7 +16,7 @@ Agents and contributors MUST keep this file synchronized with actual repository 
 
 Goal: launch a selected vanilla Minecraft version using an offline account and an automatically resolved Java runtime.
 
-**Current status:** 🚧 Implementation in progress. The Kotlin/Compose foundation, offline account primitives, Mojang version catalog, selected-version metadata resolver, rule evaluation, file planning and a reusable verified download/preparation pipeline now exist. The core can plan and execute client/library/native/asset/logging downloads with cache verification, retries, bounded concurrency, progress events and safe native extraction. Managed Java installation, final launch-plan construction, process launch, persistence and full Gradle/manual verification remain open.
+**Current status:** 🚧 Implementation in progress. The Kotlin/Compose foundation, offline account primitives, Mojang version catalog, selected-version metadata resolver, rule evaluation, verified Minecraft-file preparation pipeline and automatic managed Mojang Java Runtime Manager now exist. The core can prepare game files, select the runtime component declared by Minecraft metadata, reuse or install the matching Mojang runtime, verify its complete manifest-backed payload and expose the resolved Java executable. Final launch-plan construction, process launch, persistence, Compose preparation/progress wiring and full Gradle/manual verification remain open.
 
 ## Project foundation
 
@@ -49,7 +49,7 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 - [ ] 🚧 IN PROGRESS — release filtering is implemented in the first Compose UI; full UI build/manual verification remains pending.
 - [ ] 🚧 IN PROGRESS — snapshots can be explicitly selected through the channel filter; full UI build/manual verification remains pending.
 - [ ] Cache version manifest safely.
-- [ ] 🚧 IN PROGRESS — version-catalog load failures produce a visible error and Retry action; typed download errors now exist but catalog-specific typed errors remain pending.
+- [ ] 🚧 IN PROGRESS — version-catalog load failures produce a visible error and Retry action; typed download/runtime errors now exist but catalog-specific typed errors remain pending.
 
 ## Version metadata resolver
 
@@ -60,7 +60,7 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 - [ ] 🚧 IN PROGRESS — asset-index metadata parsing implemented; Gradle tests remain pending.
 - [ ] 🚧 IN PROGRESS — main class parsing implemented; Gradle tests remain pending.
 - [ ] 🚧 IN PROGRESS — modern JVM/game arguments and legacy `minecraftArguments` parsing implemented; final launch substitution remains pending.
-- [ ] 🚧 IN PROGRESS — Java requirement/component metadata parsing implemented; managed runtime resolution remains pending.
+- [ ] 🚧 IN PROGRESS — Java requirement/component metadata parsing is implemented and consumed by the managed runtime manager; full build/live verification remains pending.
 - [ ] 🚧 IN PROGRESS — OS/version/architecture and feature rules parsed and normalized; Gradle tests remain pending.
 - [ ] Support metadata inheritance where required by supported versions.
 - [ ] 🚧 IN PROGRESS — deterministic ordered allow/disallow rule evaluation implemented with test sources; Gradle execution remains pending.
@@ -95,17 +95,20 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 
 ## Java Runtime Manager
 
-- [ ] 🚧 IN PROGRESS — Java requirement is parsed from selected Minecraft metadata; full version/runtime verification remains pending.
-- [ ] 🚧 IN PROGRESS — `JavaRuntime` model implemented; full build verification remains pending.
-- [ ] 🚧 IN PROGRESS — `JavaRuntimeManager` service boundary defined; managed installation implementation remains pending.
-- [ ] 🚧 IN PROGRESS — local runtime inspector can validate a Java home/executable and read its major version; managed-runtime inventory/reuse policy remains pending.
-- [ ] Resolve a supported runtime distribution/source.
-- [ ] Download missing runtime.
-- [ ] Verify runtime installation integrity sufficiently for launch.
-- [ ] 🚧 IN PROGRESS — platform-specific `bin/java` vs `bin/java.exe` discovery exists in the runtime inspector; installation integration remains pending.
-- [ ] 🚧 IN PROGRESS — runtime inspector executes `java -version` and parses modern/legacy version strings; full tests remain pending.
-- [ ] Return clear runtime installation/selection errors.
-- [ ] 🚧 IN PROGRESS — runtime models/services remain in `launcher-core` and independent from Compose UI; full build verification remains pending.
+- [ ] 🚧 IN PROGRESS — Java requirement (`component` + `majorVersion`) is parsed from Minecraft metadata and now drives runtime resolution; full Gradle/live verification remains pending.
+- [ ] 🚧 IN PROGRESS — `JavaRuntime` now records executable/home/version plus source/component/platform/release identity; full build verification remains pending.
+- [ ] 🚧 IN PROGRESS — `JavaRuntimeManager` service boundary and event stream are implemented; launch-pipeline consumption remains pending.
+- [ ] 🚧 IN PROGRESS — compatible launcher-managed runtimes are discovered and reused before any runtime-index network call; complete manifest-backed integrity and `java -version` checks guard reuse.
+- [ ] 🚧 IN PROGRESS — official Mojang runtime index is used as the distribution source and selected by the Minecraft-declared component plus detected platform; full live platform verification remains pending.
+- [ ] 🚧 IN PROGRESS — missing Mojang runtime manifests/files are downloaded through the shared verified `DownloadManager`, including retry/cancellation/progress behavior; Gradle/live execution remains pending.
+- [ ] 🚧 IN PROGRESS — runtime manifests and every installed file are checked by size/SHA-1; directories and symlinks are checked on reuse; corrupted/incomplete runtimes are rejected and reinstalled automatically.
+- [ ] 🚧 IN PROGRESS — Windows/Linux/macOS Java executable resolution is implemented, including `bin/java.exe`, `bin/java` and macOS `jre.bundle/Contents/Home/bin/java`; full platform execution remains pending.
+- [ ] 🚧 IN PROGRESS — staged and published runtimes are executed with `java -version`, parsed for modern/legacy version formats and rejected when the major version differs from Minecraft metadata.
+- [ ] 🚧 IN PROGRESS — typed runtime errors distinguish unsupported platform, metadata, manifest, install, verification and Java-version mismatch failures; Compose error mapping remains pending.
+- [ ] 🚧 IN PROGRESS — runtime installation uses a staging directory, safe manifest paths, manifest-declared executable flags/symlinks, a completion marker and atomic directory publication where supported.
+- [ ] 🚧 IN PROGRESS — controlled MockEngine tests cover target/manifest parsing, initial installation, no-network warm reuse and automatic repair after a managed runtime file is removed; `./gradlew test` execution remains pending.
+- [ ] 🚧 IN PROGRESS — runtime models/services remain entirely in `launcher-core` and independent from Compose UI; full build verification remains pending.
+- [ ] Document/finalize supported runtime platform matrix; current Mojang mapping covers Windows x86/x64/ARM64, Linux x86/x64 and macOS x64/ARM64 where the requested component exists, while unsupported official combinations fail explicitly.
 
 ## Launch planning
 
@@ -139,8 +142,8 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 - [ ] 🚧 IN PROGRESS — release/snapshot channel filter implemented; full build/manual verification remains pending.
 - [ ] 🚧 IN PROGRESS — RAM slider implemented; value is not yet persisted or wired into final launch options.
 - [ ] Play button.
-- [ ] 🚧 IN PROGRESS — core preparation/download stages and per-file progress events now exist; Compose presentation and user-triggered preparation remain pending.
-- [ ] 🚧 IN PROGRESS — catalog plus selected-version metadata loading/error/retry states are implemented and downloader has typed failures; download/runtime/launch error mapping in UI remains pending.
+- [ ] 🚧 IN PROGRESS — core preparation/download/runtime stages and typed progress events now exist; Compose presentation and user-triggered preparation remain pending.
+- [ ] 🚧 IN PROGRESS — catalog plus selected-version metadata loading/error/retry states are implemented and downloader/runtime layers have typed failures; download/runtime/launch error mapping in UI remains pending.
 - [ ] Disable conflicting controls during critical operations.
 - [ ] Remember last selected version/settings.
 

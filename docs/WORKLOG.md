@@ -8,6 +8,77 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-17 — Implement automatic managed Mojang Java Runtime Manager
+
+**Milestone:** v0.1 — Minimal Vanilla Launcher  
+**Author/Agent:** ChatGPT  
+**Status:** Partial
+
+### Completed
+
+- Implemented `MojangJavaRuntimeManager` as the concrete v0.1 `JavaRuntimeManager` implementation.
+- Confirmed and integrated Mojang's current official Java runtime index endpoint rather than hardcoding Minecraft-version-to-Java tables.
+- Added platform mapping for Mojang runtime ids: Windows x86/x64/ARM64, Linux x86/x64, macOS x64 and macOS ARM64; unsupported official combinations fail explicitly.
+- Added runtime target selection by Minecraft-declared component (`jre-legacy`, `java-runtime-*`) and release availability.
+- Added runtime-index and runtime-manifest parsing for files, directories, links, executable flags and raw download descriptors.
+- Added verified runtime-manifest caching using the common `DownloadManager` and Mojang-provided SHA-1/size metadata.
+- Added complete staged runtime installation into launcher-managed `runtimes/` storage instead of mutating the final runtime directory during download.
+- Reused the shared verified downloader for every runtime file, preserving retries, cancellation, bounded concurrency and progress events.
+- Added manifest-path validation preventing absolute/path-traversal writes outside the staging root.
+- Added manifest-declared directory creation, executable-bit handling and symbolic-link creation with safe target validation.
+- Added macOS Java-home detection for `jre.bundle/Contents/Home`, alongside Windows `bin/java.exe` and Linux/Unix `bin/java`.
+- Hardened `JavaRuntimeInspector` with a bounded `java -version` process timeout and modern/legacy Java-major parsing.
+- Added pre-publication and post-publication runtime verification against the Minecraft-required Java major.
+- Added atomic directory publication where supported plus a schema-versioned `.syntaxlauncher-runtime.json` completion marker.
+- Added warm-start reuse before any runtime-index network call.
+- Strengthened warm-start validation to verify the cached runtime manifest plus every managed runtime file by SHA-1/size, directory presence, symlink target and a working `java -version`; corrupt/incomplete installations are rejected and reinstalled automatically.
+- Extended `JavaRuntime` with source/component/platform/release identity for later launch diagnostics without coupling the launch layer to Mojang DTOs.
+- Added typed runtime failures for unsupported platform, metadata, manifest, installation, verification and major-version mismatch cases.
+- Added runtime lifecycle events (`checking`, metadata, downloads, installation, verification and ready) for later Compose progress/status presentation.
+- Added deterministic parser tests plus a `MockEngine` integration-style manager test covering initial installation, no-network warm reuse and automatic repair after deleting an installed runtime file.
+- Updated README and v0.1 roadmap to match the actual implementation state.
+
+### Changed files
+
+- `launcher-core/src/main/kotlin/.../java/JavaRuntime.kt` — managed-runtime identity/source fields.
+- `launcher-core/src/main/kotlin/.../java/JavaRuntimeManager.kt` — runtime events, probe boundary and hardened `JavaRuntimeInspector`.
+- `launcher-core/src/main/kotlin/.../java/JavaRuntimeExceptions.kt` — typed runtime failures.
+- `launcher-core/src/main/kotlin/.../java/MojangRuntimeMetadata.kt` — Mojang runtime index/manifest models, parser and platform mapping.
+- `launcher-core/src/main/kotlin/.../java/MojangJavaRuntimeManager.kt` — discovery, download, staging, verification, publication, reuse and repair pipeline.
+- `launcher-core/src/test/kotlin/.../java/MojangRuntimeMetadataParserTest.kt` — controlled runtime metadata parsing tests.
+- `launcher-core/src/test/kotlin/.../java/MojangJavaRuntimeManagerTest.kt` — controlled installation/reuse/repair test using Ktor `MockEngine` and a fake runtime probe.
+- `README.md` — documented implemented automatic Java runtime management.
+- `docs/ROADMAP.md` — synchronized Java Runtime Manager progress and remaining platform/build acceptance work.
+- `docs/WORKLOG.md` — this entry.
+
+### Verification
+
+- Official metadata verification — PASS: Mojang's current runtime index endpoint exposes component-specific manifests for supported platform keys and currently includes runtime components through `java-runtime-epsilon`/Java 25 where available.
+- Source/architecture review — PASS for metadata-driven selection, core/UI separation, staged publication, path safety, reuse-before-network and full warm-cache integrity checks.
+- Controlled tests added — parser coverage plus managed install/reuse/corruption-repair behavior using Ktor `MockEngine`; no live Mojang dependency in normal tests.
+- GitHub compare review — PASS; changes remain within v0.1 Java runtime management plus required documentation.
+- `./gradlew test` — NOT RUN; repository still lacks a committed Gradle wrapper and the execution container cannot resolve external Gradle/Maven/GitHub dependencies.
+- `./gradlew build` — NOT RUN for the same environment/tooling limitation.
+- Real Windows/Linux/macOS Mojang runtime installation — NOT RUN in this environment; roadmap items therefore remain `🚧 IN PROGRESS` rather than `[x]`.
+
+### Roadmap updates
+
+- Mojang runtime source/selection, managed reuse, download/install, integrity verification, executable resolution and typed errors are now marked `🚧 IN PROGRESS` with implementation present and execution acceptance pending.
+- Runtime manifest/file verification and automatic repair are explicitly tracked.
+- Supported runtime platform matrix finalization remains open because official Mojang component availability differs by OS/architecture/component.
+- v0.1 quality gates remain unchecked until full Gradle tests/build and a real clean-machine Minecraft launch pass.
+
+### Follow-ups / known issues
+
+- Build final placeholder substitution and `LaunchPlan` using `PreparedMinecraftVersion` plus the resolved managed `JavaRuntime`.
+- Add Minecraft process start/monitoring after launch-plan validation.
+- Wire Java/download/preparation events into the lightweight Compose launch progress state and only then expose the real `Play` action.
+- Add a Gradle wrapper and run the complete automated test/build suite.
+- Perform real runtime-install acceptance on the supported Windows/Linux/macOS architecture matrix.
+- Decide whether Linux ARM64 should remain explicitly unsupported when Mojang has no matching official runtime entry or receive a later alternate runtime-provider adapter.
+
+---
+
 ## 2026-10-17 — Add verified download and Minecraft preparation pipeline
 
 **Milestone:** v0.1 — Minimal Vanilla Launcher  
