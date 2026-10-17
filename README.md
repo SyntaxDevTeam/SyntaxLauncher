@@ -2,7 +2,7 @@
 
 SyntaxLauncher is a modern Minecraft launcher from SyntaxDevTeam, written primarily in Kotlin and developed incrementally from a minimal vanilla launcher into a modular launcher with premium authentication, isolated instances, mod loaders, Modrinth integration, modpacks and diagnostics.
 
-The project is currently in **active v0.1 development**. The initial Kotlin/Gradle/Compose foundation, offline account model, Mojang version catalog integration and first desktop UI are now present in the repository.
+The project is currently in **active v0.1 development**. The launcher already has its Kotlin/Gradle/Compose foundation, offline identity model, Mojang version resolution, metadata/rule handling and a verified game-file download/preparation pipeline. Managed Java installation, final launch-command construction and Minecraft process management are the next core stages.
 
 ## Project philosophy
 
@@ -22,7 +22,7 @@ Later features must extend that core rather than replace it.
 
 ## Current implementation
 
-The first v0.1 foundation currently includes:
+The current v0.1 implementation includes:
 
 - Gradle Kotlin DSL multi-module structure;
 - `launcher-core` separated from `launcher-desktop`;
@@ -34,12 +34,26 @@ The first v0.1 foundation currently includes:
 - offline username validation and deterministic Minecraft-compatible offline UUID generation;
 - Mojang version manifest DTOs, parser and catalog service;
 - release/snapshot classification;
-- centralized Ktor HTTP client configuration;
-- platform-aware launcher data/config/cache/log/runtime paths;
-- initial unit-test sources for offline identities, manifest parsing and platform paths;
-- a lightweight Compose screen with nickname validation, release/snapshot selection, version selection, RAM control, loading state and retryable version-catalog errors.
+- selected-version `version.json` download with manifest SHA-1 verification;
+- normalized Windows/Linux/macOS and architecture detection;
+- deterministic Mojang allow/disallow rule evaluation;
+- modern JVM/game argument parsing plus legacy `minecraftArguments` support;
+- client/library/native/asset-index/logging metadata resolution;
+- Java runtime requirement parsing plus an initial runtime model/inspector boundary;
+- platform-aware library/native selection and classpath planning;
+- platform-aware launcher/cache/game/runtime directory layout;
+- content-addressed Minecraft asset planning;
+- safe native extraction with `META-INF` filtering and Zip Slip protection;
+- centralized streaming `DownloadManager` with bounded concurrency, cancellation, retry/backoff, progress events and typed failures;
+- `.part` staging, SHA-1/size verification and atomic publication of downloaded artifacts;
+- verified cache reuse for existing launcher-managed files;
+- `MinecraftPreparationService` executing client, library, native, asset-index, asset-object and logging-config preparation;
+- deterministic test sources using Ktor `MockEngine` and temporary filesystem fixtures for download/cache/retry/integrity/preparation behavior;
+- a lightweight Compose screen with nickname validation, release/snapshot selection, version selection, RAM control, loading/error states and selected-version metadata readiness.
 
-The Java runtime manager, complete version metadata resolver, game-file preparation and actual Minecraft process launch are the next v0.1 implementation stages. The UI intentionally does not expose a fake `Play` action before that pipeline exists.
+The remaining critical v0.1 path is now: managed Java runtime discovery/download/install → final placeholder substitution and `LaunchPlan` → Minecraft process start/monitoring → Compose Play/progress flow → persistence and full clean-machine verification.
+
+The UI intentionally does not expose a fake `Play` action before that pipeline exists.
 
 ## Technology
 
@@ -88,7 +102,7 @@ Minecraft launcher core
 Metadata / downloads / Java / filesystem / authentication adapters
 ```
 
-The v0.1 implementation starts with:
+The v0.1 implementation currently follows:
 
 ```text
 SyntaxLauncher/
@@ -96,6 +110,8 @@ SyntaxLauncher/
 │   └── src/
 │       ├── main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/
 │       │   ├── account/
+│       │   ├── java/
+│       │   ├── launch/
 │       │   ├── minecraft/
 │       │   ├── network/
 │       │   └── storage/
@@ -140,9 +156,25 @@ The selected Minecraft version's metadata determines the Java requirement. The r
 4. verify it;
 5. provide its executable to the launch planner.
 
+The core already parses Minecraft's Java component/major requirement and includes a `JavaRuntime` model, `JavaRuntimeManager` boundary and local runtime inspector capable of locating `java`/`java.exe` and reading legacy/modern Java versions. Managed runtime source resolution, download, installation inventory and lifecycle are the remaining Java work for v0.1.
+
 The UI must not hardcode assumptions such as `Minecraft X = Java Y`.
 
-This system is part of the remaining v0.1 work and is not yet implemented.
+## Download and game-file preparation
+
+v0.1 now has shared infrastructure for launcher-managed artifacts rather than separate download code for every Minecraft component.
+
+The download pipeline:
+
+1. verifies an existing target by expected size/SHA-1 and reuses it when valid;
+2. streams missing/invalid content into a sibling `.part` file;
+3. reports progress and supports coroutine cancellation;
+4. retries explicitly classified transient failures with bounded backoff;
+5. verifies size and SHA-1 before publication;
+6. atomically moves the verified file into its cache target when supported;
+7. never treats a partial file as a completed artifact.
+
+`MinecraftPreparationService` applies that mechanism to the resolved version plan and prepares the client JAR, libraries, native archives, asset index, asset objects and client logging configuration before extracting verified natives.
 
 ## Instances
 
@@ -216,9 +248,9 @@ This is intended to prevent the project roadmap from drifting away from the real
 
 **v0.1 — Minimal Vanilla Launcher: in progress**
 
-Implemented so far: project/module foundation, offline account primitives, Mojang version discovery/parsing, shared HTTP setup, platform paths and the first lightweight Compose Desktop screen.
+Implemented so far: project/module foundation, offline account primitives, Mojang version discovery, selected-version metadata parsing and integrity verification, OS/architecture rules, libraries/natives/assets planning, verified concurrent download/cache infrastructure, game-file preparation, initial Java runtime boundary and the first lightweight Compose Desktop screen.
 
-Still required before v0.1 can be considered functional: selected-version metadata resolution, libraries/assets/natives preparation, managed Java installation, launch-plan construction, process management, persistence/cache behavior and full build/test/manual launch verification.
+Still required before v0.1 can be considered functional: managed Java runtime installation/reuse, final launch argument placeholder substitution, `LaunchPlan`, process management, Compose Play/progress integration, settings/manifest persistence, Gradle wrapper/full build-test execution and a real clean-machine vanilla launch.
 
 ## License
 
