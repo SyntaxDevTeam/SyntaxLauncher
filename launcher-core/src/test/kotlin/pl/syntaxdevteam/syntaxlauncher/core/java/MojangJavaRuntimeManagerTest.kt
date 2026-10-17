@@ -21,12 +21,14 @@ import pl.syntaxdevteam.syntaxlauncher.core.network.DownloadRetryPolicy
 
 class MojangJavaRuntimeManagerTest {
     @Test
-    fun `installs verified runtime and reuses it without second metadata request`() = runBlocking {
+    fun `installs verifies reuses and repairs managed runtime`() = runBlocking {
         val javaPayload = "fake-java-21".encodeToByteArray()
+        val libraryPayload = "runtime-library".encodeToByteArray()
         val manifestPayload = """
             {
               "files": {
                 "bin": {"type": "directory"},
+                "lib": {"type": "directory"},
                 "bin/java": {
                   "type": "file",
                   "executable": true,
@@ -35,6 +37,17 @@ class MojangJavaRuntimeManagerTest {
                       "sha1": "${sha1(javaPayload)}",
                       "size": ${javaPayload.size},
                       "url": "https://example.invalid/java"
+                    }
+                  }
+                },
+                "lib/runtime.dat": {
+                  "type": "file",
+                  "executable": false,
+                  "downloads": {
+                    "raw": {
+                      "sha1": "${sha1(libraryPayload)}",
+                      "size": ${libraryPayload.size},
+                      "url": "https://example.invalid/runtime.dat"
                     }
                   }
                 }
@@ -69,6 +82,7 @@ class MojangJavaRuntimeManagerTest {
                     MojangJavaRuntimeManager.RUNTIME_INDEX_URL -> respond(indexPayload)
                     "https://example.invalid/manifest.json" -> respond(manifestPayload)
                     "https://example.invalid/java" -> respond(javaPayload)
+                    "https://example.invalid/runtime.dat" -> respond(libraryPayload)
                     else -> error("Unexpected request: ${request.url}")
                 }
             },
@@ -104,9 +118,16 @@ class MojangJavaRuntimeManagerTest {
             assertEquals("linux", first.platformKey)
             assertEquals("21.0.7", first.releaseName)
             assertContentEquals(javaPayload, Files.readAllBytes(first.executable))
+            assertContentEquals(libraryPayload, Files.readAllBytes(first.home.resolve("lib/runtime.dat")))
             assertEquals(first.executable, second.executable)
             assertEquals(requestsAfterInstall, networkRequests.get())
-            assertEquals(3, requestsAfterInstall)
+            assertEquals(4, requestsAfterInstall)
+
+            Files.delete(first.home.resolve("lib/runtime.dat"))
+            val repaired = manager.resolve(requirement, platform)
+
+            assertContentEquals(libraryPayload, Files.readAllBytes(repaired.home.resolve("lib/runtime.dat")))
+            assertEquals(7, networkRequests.get())
         } finally {
             client.close()
             deleteRecursively(root)

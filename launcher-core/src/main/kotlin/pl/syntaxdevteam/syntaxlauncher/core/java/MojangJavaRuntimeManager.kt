@@ -6,6 +6,7 @@ import io.ktor.client.request.get
 import java.io.IOException
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
+import java.nio.file.LinkOption
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.nio.file.StandardOpenOption
@@ -26,6 +27,7 @@ import pl.syntaxdevteam.syntaxlauncher.core.minecraft.JavaRuntimeRequirement
 import pl.syntaxdevteam.syntaxlauncher.core.minecraft.MinecraftOperatingSystem
 import pl.syntaxdevteam.syntaxlauncher.core.minecraft.MinecraftPlatform
 import pl.syntaxdevteam.syntaxlauncher.core.network.DownloadEventListener
+import pl.syntaxdevteam.syntaxlauncher.core.network.DownloadIntegrityVerifier
 import pl.syntaxdevteam.syntaxlauncher.core.network.DownloadManager
 import pl.syntaxdevteam.syntaxlauncher.core.network.DownloadRequest
 
@@ -35,6 +37,7 @@ class MojangJavaRuntimeManager(
     private val runtimesRoot: Path,
     private val probe: JavaRuntimeProbe = JavaRuntimeInspector(),
     private val metadataParser: MojangRuntimeMetadataParser = MojangRuntimeMetadataParser(),
+    private val integrityVerifier: DownloadIntegrityVerifier = DownloadIntegrityVerifier(),
     private val json: Json = runtimeJson(),
 ) : JavaRuntimeManager {
     private val resolveMutex = Mutex()
@@ -49,7 +52,7 @@ class MojangJavaRuntimeManager(
 
         findInstalled(requirement, platform, platformKey)?.let { installed ->
             logger.info(
-                "Reusing managed Java {} ({}) for component {} on {}",
+                "Reusing verified managed Java {} ({}) for component {} on {}",
                 installed.majorVersion,
                 installed.versionString,
                 requirement.component,
@@ -109,10 +112,7 @@ class MojangJavaRuntimeManager(
         target: MojangRuntimeTarget,
         listener: JavaRuntimeEventListener,
     ): MojangRuntimeManifest {
-        val manifestPath = runtimesRoot
-            .resolve(".metadata")
-            .resolve("manifests")
-            .resolve("${target.manifest.sha1}.json")
+        val manifestPath = manifestCachePath(target.manifest.sha1)
         val downloadListener: DownloadEventListener = { event ->
             listener(JavaRuntimeEvent.Download(event))
         }
@@ -206,7 +206,7 @@ class MojangJavaRuntimeManager(
             }
 
             listener(JavaRuntimeEvent.Verifying(requirement.component, requirement.majorVersion))
-            val stagedRuntime = probe.inspect(payloadRoot, platform)
+            val stagedRuntime = withContext(Dispatchers.IO) { probe.inspect(payloadRoot, platform) }
                 ?: throw JavaRuntimeVerificationException(
                     "Installed Mojang runtime '${target.versionName}' does not contain a working Java executable.",
                 )
@@ -225,6 +225,7 @@ class MojangJavaRuntimeManager(
                 releaseName = target.versionName,
                 releasedAt = target.releasedAt.toString(),
                 manifestSha1 = target.manifest.sha1,
+                manifestSize = target.manifest.size,
                 majorVersion = stagedRuntime.majorVersion,
             )
             withContext(Dispatchers.IO) {
@@ -234,7 +235,7 @@ class MojangJavaRuntimeManager(
             }
 
             val publishedRoot = finalDirectory.resolve("runtime")
-            val verified = probe.inspect(publishedRoot, platform)
+            val verified = withContext(Dispatchers.IO) { probe.inspect(publishedRoot, platform) }
                 ?: throw JavaRuntimeVerificationException(
                     "Published Mojang runtime '${target.versionName}' failed final verification.",
                 )
@@ -278,42 +279,110 @@ class MojangJavaRuntimeManager(
         requirement: JavaRuntimeRequirement,
         platform: MinecraftPlatform,
         platformKey: String,
-    ): JavaRuntime? = withContext(Dispatchers.IO) {
+    ): JavaRuntime? {
         val base = runtimesRoot
             .resolve(safeSegment(requirement.component))
             .resolve(safeSegment(platformKey))
-        if (!Files.isDirectory(base)) return@withContext null
-
-        val candidates = Files.list(base).use { stream ->
-            stream
-                .filter(Files::isDirectory)
-                .map { directory -> directory to readMarker(directory) }
-                .filter { (_, marker) ->
-                    marker != null &&
-                        marker.schemaVersion == 1 &&
-                        marker.component == requirement.component &&
-                        marker.platformKey == platformKey &&
-                        marker.majorVersion == requirement.majorVersion
-                }
-                .toList()
-                .sortedByDescending { (_, marker) ->
-                    marker?.releasedAt?.let { value ->
-                        runCatching { Instant.parse(value) }.getOrDefault(Instant.EPOCH)
-                    } ?: Instant.EPOCH
-                }
+        val candidates = withContext(Dispatchers.IO) {
+            if (!Files.isDirectory(base)) return@withContext emptyList<Pair<Path, ManagedRuntimeMarker>>()
+            Files.list(base).use { stream ->
+                stream
+                    .filter(Files::isDirectory)
+                    .map { directory -> directory to readMarker(directory) }
+                    .filter { (_, marker) ->
+                        marker != null &&
+                            marker.schemaVersion == 1 &&
+                            marker.component == requirement.component &&
+                            marker.platformKey == platformKey &&
+                            marker.majorVersion == requirement.majorVersion
+                    }
+                    .map { (directory, marker) -> directory to requireNotNull(marker) }
+                    .toList()
+                    .sortedByDescending { (_, marker) ->
+                        runCatching { Instant.parse(marker.releasedAt) }.getOrDefault(Instant.EPOCH)
+                    }
+            }
         }
 
         for ((directory, marker) in candidates) {
-            val runtime = probe.inspect(directory.resolve("runtime"), platform) ?: continue
+            val payloadRoot = directory.resolve("runtime")
+            if (!verifyInstalledPayload(payloadRoot, marker)) {
+                logger.warn("Ignoring incomplete/corrupt managed runtime at {}", directory)
+                continue
+            }
+
+            val runtime = withContext(Dispatchers.IO) { probe.inspect(payloadRoot, platform) } ?: continue
             if (runtime.majorVersion != requirement.majorVersion) continue
-            return@withContext runtime.copy(
+            return runtime.copy(
                 source = JavaRuntimeSource.MANAGED_MOJANG,
                 component = requirement.component,
                 platformKey = platformKey,
-                releaseName = marker?.releaseName,
+                releaseName = marker.releaseName,
             )
         }
-        null
+        return null
+    }
+
+    private suspend fun verifyInstalledPayload(
+        payloadRoot: Path,
+        marker: ManagedRuntimeMarker,
+    ): Boolean {
+        val manifestPath = manifestCachePath(marker.manifestSha1)
+        val manifestValid = integrityVerifier.isValid(
+            DownloadRequest(
+                id = "cached-java-runtime-manifest:${marker.component}:${marker.platformKey}",
+                url = "cache://java-runtime-manifest/${marker.manifestSha1}",
+                target = manifestPath,
+                expectedSha1 = marker.manifestSha1,
+                expectedSize = marker.manifestSize,
+            ),
+        )
+        if (!manifestValid) return false
+
+        val manifest = runCatching {
+            val payload = withContext(Dispatchers.IO) { Files.readString(manifestPath) }
+            metadataParser.parseManifest(payload)
+        }.getOrElse { failure ->
+            logger.warn("Unable to validate cached runtime manifest {}: {}", manifestPath, failure.message)
+            return false
+        }
+
+        for (entry in manifest.entries) {
+            val target = runCatching { safeResolve(payloadRoot, entry.path) }.getOrElse { return false }
+            when (entry) {
+                is MojangRuntimeEntry.Directory -> {
+                    val valid = withContext(Dispatchers.IO) {
+                        Files.isDirectory(target, LinkOption.NOFOLLOW_LINKS)
+                    }
+                    if (!valid) return false
+                }
+                is MojangRuntimeEntry.Link -> {
+                    val valid = withContext(Dispatchers.IO) {
+                        if (!Files.isSymbolicLink(target) || !Files.exists(target)) {
+                            false
+                        } else {
+                            val actual = Files.readSymbolicLink(target).normalize()
+                            val expected = Path.of(entry.target.replace('\\', '/')).normalize()
+                            actual == expected
+                        }
+                    }
+                    if (!valid) return false
+                }
+                is MojangRuntimeEntry.File -> {
+                    val valid = integrityVerifier.isValid(
+                        DownloadRequest(
+                            id = "cached-java-runtime:${marker.component}:${entry.path}",
+                            url = entry.raw.url,
+                            target = target,
+                            expectedSha1 = entry.raw.sha1,
+                            expectedSize = entry.raw.size,
+                        ),
+                    )
+                    if (!valid) return false
+                }
+            }
+        }
+        return true
     }
 
     private fun runtimeDirectory(target: MojangRuntimeTarget): Path =
@@ -321,6 +390,12 @@ class MojangJavaRuntimeManager(
             .resolve(safeSegment(target.component))
             .resolve(safeSegment(target.platformKey))
             .resolve(safeSegment(target.versionName))
+
+    private fun manifestCachePath(sha1: String): Path =
+        runtimesRoot
+            .resolve(".metadata")
+            .resolve("manifests")
+            .resolve("$sha1.json")
 
     private fun safeResolve(
         root: Path,
@@ -437,6 +512,7 @@ class MojangJavaRuntimeManager(
         val releaseName: String,
         val releasedAt: String,
         val manifestSha1: String,
+        val manifestSize: Long,
         val majorVersion: Int,
     )
 
