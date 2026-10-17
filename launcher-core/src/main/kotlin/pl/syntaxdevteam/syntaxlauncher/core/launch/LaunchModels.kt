@@ -3,7 +3,7 @@ package pl.syntaxdevteam.syntaxlauncher.core.launch
 import pl.syntaxdevteam.syntaxlauncher.core.account.Account
 import pl.syntaxdevteam.syntaxlauncher.core.java.JavaRuntime
 import pl.syntaxdevteam.syntaxlauncher.core.minecraft.MinecraftPlatform
-import pl.syntaxdevteam.syntaxlauncher.core.minecraft.ResolvedMinecraftVersion
+import pl.syntaxdevteam.syntaxlauncher.core.minecraft.PreparedMinecraftVersion
 
 data class LaunchOptions(
     val minimumMemoryMiB: Int = 512,
@@ -18,10 +18,32 @@ data class LaunchOptions(
     }
 }
 
+data class LaunchAuthentication(
+    val accessToken: String,
+    val sessionId: String,
+    val userType: String,
+    val userPropertiesJson: String = "{}",
+    val clientId: String = "",
+    val xuid: String = "",
+) {
+    companion object {
+        fun offline(account: Account): LaunchAuthentication {
+            val compactUuid = account.uuid.toString().replace("-", "")
+            return LaunchAuthentication(
+                accessToken = "0",
+                sessionId = "token:0:$compactUuid",
+                userType = "legacy",
+            )
+        }
+    }
+}
+
 data class LaunchRequest(
     val account: Account,
-    val version: ResolvedMinecraftVersion,
+    val prepared: PreparedMinecraftVersion,
     val runtime: JavaRuntime,
     val platform: MinecraftPlatform,
     val options: LaunchOptions,
+    val authentication: LaunchAuthentication = LaunchAuthentication.offline(account),
+    val features: Map<String, Boolean> = emptyMap(),
 )
