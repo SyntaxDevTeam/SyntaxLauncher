@@ -8,6 +8,76 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-17 — Add verified download and Minecraft preparation pipeline
+
+**Milestone:** v0.1 — Minimal Vanilla Launcher  
+**Author/Agent:** ChatGPT  
+**Status:** Partial
+
+### Completed
+
+- Added a reusable `DownloadManager` around the shared Ktor client for streamed artifact downloads.
+- Added `.part` staging and atomic finalization so incomplete downloads are never published as valid launcher files.
+- Added SHA-1 and expected-size validation for both new downloads and existing cached files.
+- Added verified cache reuse: valid files skip the network while invalid files are replaced only after a successful new download.
+- Added bounded batch concurrency using coroutines and a configurable semaphore (default parallelism: 6).
+- Added structured cancellation behavior; cancelled/failed operations clean their partial files while already completed verified cache files remain reusable.
+- Added bounded retry/backoff for transient network failures, HTTP 408/425/429/5xx responses and integrity/size failures.
+- Added typed download failures for network, HTTP, checksum, size, filesystem and conflicting-target conditions.
+- Added typed download events for batch/file start, progress, retry, completion and failure, providing the future Compose progress UI with a core-level event source.
+- Added duplicate-target coalescing so identical requests for one cache artifact are executed only once and conflicting definitions fail explicitly.
+- Increased the shared HTTP request timeout to better accommodate binary artifact downloads while retaining separate connect/socket limits.
+- Added `MinecraftPreparationService`, which executes the existing file plan: client JAR, libraries, native archives, asset index, logging configuration and asset objects.
+- Added verified asset-index loading, content-addressed asset download planning and duplicate asset-hash de-duplication.
+- Added deterministic version-specific native-directory regeneration and extraction after native archives have been verified.
+- Added `PreparedMinecraftVersion` as the output boundary that carries the resolved version, file plan, parsed asset index, prepared directories and download results toward the future launch planner.
+- Added controlled `MockEngine` test sources for cache reuse, transient retry, failed-integrity publication safety and end-to-end Minecraft preparation from synthetic client/library/native/asset payloads.
+
+### Changed files
+
+- `launcher-core/src/main/kotlin/.../network/DownloadModels.kt` — download requests/results/events and retry policy.
+- `launcher-core/src/main/kotlin/.../network/DownloadExceptions.kt` — typed download failures.
+- `launcher-core/src/main/kotlin/.../network/DownloadIntegrityVerifier.kt` — cached-file size/SHA-1 verification.
+- `launcher-core/src/main/kotlin/.../network/DownloadManager.kt` — streaming downloads, cache reuse, retries, cancellation, bounded concurrency, progress and atomic publication.
+- `launcher-core/src/main/kotlin/.../network/LauncherHttpClientFactory.kt` — increased request timeout for artifact downloads.
+- `launcher-core/src/main/kotlin/.../minecraft/MinecraftPreparationService.kt` — executable game-file preparation pipeline and stage events.
+- `launcher-core/src/main/kotlin/.../minecraft/MinecraftFilePlan.kt` — de-duplicates asset objects by content hash.
+- `launcher-core/src/test/kotlin/.../network/DownloadManagerTest.kt` — controlled cache/retry/integrity tests.
+- `launcher-core/src/test/kotlin/.../minecraft/MinecraftPreparationServiceTest.kt` — controlled preparation integration test using `MockEngine` and temporary filesystem state.
+- `docs/ROADMAP.md` — synchronized download/game-file preparation progress.
+- `docs/WORKLOG.md` — this entry.
+
+### Verification
+
+- Architecture/source review — PASS for core/UI separation, shared download ownership, retry classification, partial-file lifecycle, integrity checks and preparation sequencing.
+- Ktor API review — PASS against current `bodyAsChannel`/`ByteReadChannel.readAvailable` and MockEngine response APIs used by the implementation.
+- GitHub compare review — PASS; implementation changes are scoped to download/preparation infrastructure and controlled tests.
+- Container repository clone/build attempt — BLOCKED; execution environment cannot resolve `github.com`, so the repository/dependencies cannot be fetched into the build container.
+- `./gradlew test` — NOT RUN; Gradle wrapper is still not committed and external Gradle/Maven dependency resolution is unavailable in the execution environment.
+- `./gradlew build` — NOT RUN for the same tooling/network reason.
+- New roadmap items therefore remain `🚧 IN PROGRESS` rather than `[x]` even where implementation/test sources are present.
+
+### Roadmap updates
+
+- Client/library/native/asset-index/asset-object download execution is now `🚧 IN PROGRESS` pending Gradle/integration execution.
+- Hash/size validation, verified cache reuse and partial-file publication safety are now `🚧 IN PROGRESS` with controlled test sources present.
+- Download cancellation, bounded concurrency, progress events, retry policy, atomic writes and typed failures are now `🚧 IN PROGRESS` pending test execution.
+- Native extraction lifecycle is now connected to verified downloads and remains `🚧 IN PROGRESS` pending execution.
+- Assets/natives/game-directory outputs are now exposed toward launch planning, but placeholder substitution and final `LaunchPlan` remain open.
+- Compose download/progress presentation remains only partially implemented because the core event stream is not yet wired to UI state.
+
+### Follow-ups / known issues
+
+- Implement managed Java runtime discovery/download/install and reuse the same verified downloader for runtime artifacts.
+- Build final placeholder substitution and `LaunchPlan` using the prepared classpath/assets/natives/game directories.
+- Add Minecraft process start/monitoring only after Java selection and launch-plan validation exist.
+- Wire preparation/download events into the lightweight Compose progress UI when a real Play flow is available.
+- Add persistence for launcher selections and manifest/settings cache.
+- Legacy asset indexes using `virtual` / `map_to_resources` still need materialized legacy views if those historical versions become part of the supported v0.1 matrix.
+- Add a Gradle wrapper and run full `test`/`build` plus a real clean-machine Minecraft launch before completing acceptance boxes.
+
+---
+
 ## 2026-10-16 — Resolve version metadata and plan Minecraft files
 
 **Milestone:** v0.1 — Minimal Vanilla Launcher  
@@ -220,7 +290,7 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 ### Verification
 
 - `./gradlew test` — NOT RUN; repository currently contains documentation only and no Gradle project yet.
-- `./gradlew build` — NOT RUN; repository currently contains documentation only and no Gradle project yet.
+- `./gradlew build` — NOT RUN; documentation-only change and the repository still has no Gradle implementation.
 - Manual verification — documentation structure and cross-document milestone ordering reviewed for consistency.
 
 ### Roadmap updates
