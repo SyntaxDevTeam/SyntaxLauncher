@@ -8,6 +8,39 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-18 — Introduce SyntaxLauncher premium-feel home UI
+
+**Milestone:** v0.1 — Vanilla Launcher UX polish  
+**Author/Agent:** ChatGPT  
+**Status:** Partial
+
+### Completed
+- Replaced the original two dense configuration cards with a visually distinct hero and streamlined right-side setup rail.
+- Created a minimal branded header/footer, focused mint-on-deep-slate palette, strong headline hierarchy and atmospheric gradient surface without remote image dependencies or constant animation.
+- Made Play the singular prominent action and kept download progress, cancellation, runtime state and stop behavior adjacent to it.
+- Kept nickname, release/snapshot channel, version selection and RAM controls with the existing persisted state, metadata validation and launch coordinator.
+- Reduced technical metadata during normal use; exposed failure details and logs conditionally.
+- Preserved async catalog/loading/retry handling and existing process lifecycle.
+
+### Changed files
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/SyntaxLauncherApp.kt`
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/SyntaxTheme.kt`
+- `docs/ROADMAP.md`
+- `docs/WORKLOG.md`
+- `README.md`
+
+### Verification
+- UI source reviewed for existing callback/state wiring; complete Gradle CI and actual desktop appearance/testing pending.
+- No core launch pipeline changes; previous CI green on v0.1 before redesign.
+- Manual multi-resolution/DPI keyboard/focus assessment pending.
+
+### Follow-ups
+- Fix any compiler errors reported by cross-platform GitHub CI.
+- Review screen visually on desktop at 1080×720 and narrow/min-size windows, keyboard navigation and scaling.
+- Consider logo/visual refinements only after GUI screenshots and feedback.
+
+---
+
 ## 2026-10-18 — Confirm all three v0.1 preview artifacts and green CI
 
 **Milestone:** v0.1 — Minimal Vanilla Launcher  

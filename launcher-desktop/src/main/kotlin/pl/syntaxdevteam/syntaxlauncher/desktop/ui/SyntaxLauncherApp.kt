@@ -1,6 +1,15 @@
 package pl.syntaxdevteam.syntaxlauncher.desktop.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,6 +49,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextOverflow
 import kotlinx.coroutines.CancellationException
 import pl.syntaxdevteam.syntaxlauncher.core.account.OfflineAccount
 import pl.syntaxdevteam.syntaxlauncher.core.launch.LaunchPhase
@@ -94,44 +105,69 @@ fun SyntaxLauncherApp(session: DesktopLauncherSession) {
         }
 
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-                .padding(horizontal = 32.dp, vertical = 26.dp),
-            verticalArrangement = Arrangement.spacedBy(22.dp),
+            modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth().height(88.dp).padding(horizontal = 36.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(13.dp),
+                ) {
+                    Box(
+                        modifier = Modifier.size(38.dp).background(
+                            MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp),
+                        ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text("S", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Black)
+                    }
+                    Column {
+                        Text("SYNTAX", fontWeight = FontWeight.Black, style = MaterialTheme.typography.titleMedium)
+                        Text("LAUNCHER", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall, letterSpacing = 2.sp)
+                    }
+                }
                 Text(
-                    "SyntaxLauncher",
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Text(
-                    "Minecraft, without the clutter.",
+                    "JAVA EDITION     /     PREVIEW 0.1",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelMedium,
+                    letterSpacing = 1.2.sp,
                 )
             }
-            when (val state = catalog) {
-                ManifestState.Loading -> InfoCard {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                        CircularProgressIndicator(modifier = Modifier.width(26.dp))
-                        Text("Loading official Minecraft versions...")
+            HorizontalDivider(color = Color.White.copy(alpha = 0.07f))
+            Box(modifier = Modifier.weight(1f).padding(28.dp)) {
+                when (val state = catalog) {
+                    ManifestState.Loading -> CenterMessage("Connecting to Minecraft", "Loading official versions…", true)
+                    is ManifestState.Error -> Column(
+                        modifier = Modifier.align(Alignment.Center),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
+                        Text("Could not load versions", style = MaterialTheme.typography.headlineMedium)
+                        Text(state.message, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Button(onClick = { reloadCatalog++ }) { Text("Try again") }
+                    }
+                    is ManifestState.Ready -> when {
+                        settingsError != null -> CenterMessage(
+                            "Settings need attention",
+                            settingsError.orEmpty() + " — your file was preserved.",
+                        )
+                        persisted == null -> CenterMessage("Loading profile", "Restoring your settings…", true)
+                        else -> LauncherPanel(state.manifest, session, persisted!!)
                     }
                 }
-                is ManifestState.Error -> InfoCard {
-                    Text("Version catalog unavailable", fontWeight = FontWeight.SemiBold)
-                    Text(state.message, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Button(onClick = { reloadCatalog++ }) { Text("Retry") }
-                }
-                is ManifestState.Ready -> when {
-                    settingsError != null -> InfoCard {
-                        Text("Settings file requires attention", color = MaterialTheme.colorScheme.error)
-                        Text(settingsError.orEmpty())
-                        Text("Your existing settings were preserved; please repair them before starting the launcher.")
-                    }
-                    persisted == null -> InfoCard { Text("Loading saved settings...") }
-                    else -> LauncherPanel(state.manifest, session, persisted!!)
-                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth().height(45.dp).padding(horizontal = 36.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("SYNTAXDEVTEAM   /   MINECRAFT LAUNCHER", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 0.7.sp)
+                Text("BUILT FOR THE ADVENTURE", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 0.7.sp)
             }
         }
     }
@@ -200,213 +236,275 @@ private fun LauncherPanel(
 
     Row(
         modifier = Modifier.fillMaxSize(),
-        horizontalArrangement = Arrangement.spacedBy(22.dp),
+        horizontalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        InfoCard(modifier = Modifier.weight(1f)) {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(20.dp),
+        Column(
+            modifier = Modifier.weight(1f).fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
+        ) {
+            Box(
+                modifier = Modifier.weight(1f).fillMaxWidth().background(
+                    Brush.linearGradient(
+                        colors = listOf(Color(0xFF172E2C), Color(0xFF122123), Color(0xFF161C28)),
+                    ),
+                    RoundedCornerShape(26.dp),
+                ),
             ) {
-                Heading(
-                    "Play profile",
-                    "Offline identity, vanilla Minecraft and a managed Java runtime.",
+                // Lightweight atmospheric shapes; no remote images or expensive effects.
+                Box(
+                    modifier = Modifier.size(230.dp).align(Alignment.TopEnd)
+                        .padding(24.dp).background(
+                            Color(0xFF65DCC0).copy(alpha = 0.075f), CircleShape,
+                        ),
                 )
-                OutlinedTextField(
-                    value = nickname,
-                    onValueChange = { nickname = it },
-                    label = { Text("Offline nickname") },
-                    supportingText = { Text("3–16 letters, digits or underscores. Offline servers only.") },
-                    isError = nickname.isNotBlank() && !validName,
-                    enabled = !locked,
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Version channel", style = MaterialTheme.typography.labelLarge)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(
-                            selected = !showSnapshots,
-                            enabled = !locked,
-                            onClick = {
-                                showSnapshots = false
-                                selected = manifest.versions.firstOrNull { it.id == manifest.latestRelease }
-                            },
-                            label = { Text("Releases") },
+                Column(
+                    modifier = Modifier.fillMaxSize().padding(36.dp),
+                    verticalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        SurfaceTag("VANILLA MINECRAFT", Color(0xFF86E3C9))
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "Your world.\nYour adventure.",
+                            style = MaterialTheme.typography.displayMedium,
+                            fontWeight = FontWeight.Bold,
+                            lineHeight = 57.sp,
+                            letterSpacing = (-1.5).sp,
+                            color = Color(0xFFF3F9F8),
                         )
-                        FilterChip(
-                            selected = showSnapshots,
-                            enabled = !locked,
-                            onClick = {
-                                showSnapshots = true
-                                selected = manifest.versions.firstOrNull { it.id == manifest.latestSnapshot }
-                            },
-                            label = { Text("Snapshots") },
+                        Text(
+                            "No distractions. Just you and Minecraft.",
+                            color = Color(0xFFBDD0CD),
+                            style = MaterialTheme.typography.bodyLarge,
                         )
                     }
-                    Box {
-                        OutlinedButton(
-                            onClick = { menuOpen = true },
-                            enabled = !locked,
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text("Minecraft  ${selected?.id ?: "Choose version"}")
-                        }
-                        DropdownMenu(
-                            expanded = menuOpen && !locked,
-                            onDismissRequest = { menuOpen = false },
-                        ) {
-                            manifest.versions
-                                .asSequence()
-                                .filter { it.type == if (showSnapshots) MinecraftVersionType.SNAPSHOT else MinecraftVersionType.RELEASE }
-                                .take(80)
-                                .forEach { version ->
-                                    DropdownMenuItem(
-                                        text = { VersionLabel(version, manifest) },
-                                        onClick = {
-                                            selected = version
-                                            menuOpen = false
-                                        },
-                                    )
-                                }
+                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        Text(
+                            "READY TO EXPLORE",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color(0xFF9CB8B3),
+                            letterSpacing = 2.sp,
+                        )
+                        Text(
+                            selected?.id ?: "Choose a Minecraft version",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.White,
+                        )
+                        HorizontalDivider(color = Color.White.copy(alpha = 0.13f))
+                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                            Text("JAVA EDITION", style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFFAEC7C1))
+                            Text("•", color = Color(0xFFAEC7C1))
+                            Text(if (showSnapshots) "SNAPSHOT CHANNEL" else "STABLE RELEASE",
+                                style = MaterialTheme.typography.labelSmall, color = Color(0xFFAEC7C1))
                         }
                     }
                 }
-                Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Text("Memory", style = MaterialTheme.typography.labelLarge)
-                        Text("${ramMiB.toInt()} MiB", color = MaterialTheme.colorScheme.primary)
+            }
+            Column(
+                modifier = Modifier.fillMaxWidth().background(
+                    MaterialTheme.colorScheme.surface, RoundedCornerShape(24.dp),
+                ).padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            when {
+                                isRunning -> "You're in the game"
+                                launch.isPreparing -> "Getting everything ready"
+                                launch.phase == LaunchPhase.FAILED -> "Preparation needs attention"
+                                process.state == MinecraftProcessState.CRASHED -> "Minecraft closed unexpectedly"
+                                else -> "Ready when you are",
+                            },
+                            style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            when {
+                                isRunning -> "Minecraft is running in a separate window."
+                                launch.isPreparing -> launch.detail
+                                launch.phase == LaunchPhase.FAILED -> launch.detail
+                                else -> "Your game files and Java are managed automatically.",
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                     }
-                    Slider(
-                        value = ramMiB,
-                        onValueChange = { ramMiB = it },
-                        valueRange = 1024f..16384f,
-                        steps = 14,
-                        enabled = !locked,
+                    SurfaceTag(
+                        when {
+                            isRunning -> "RUNNING"
+                            launch.isPreparing -> "PREPARING"
+                            launch.phase == LaunchPhase.FAILED -> "ERROR"
+                            else -> "OFFLINE",
+                        },
+                        if (launch.phase == LaunchPhase.FAILED) MaterialTheme.colorScheme.error
+                            else MaterialTheme.colorScheme.primary,
                     )
+                }
+                if (launch.isPreparing) {
+                    val fraction = launch.currentFileProgress
+                    if (fraction == null) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    else LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
+                    if (launch.totalFiles > 0) {
+                        Text("${launch.completedFiles} / ${launch.totalFiles} files",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                Button(
+                    onClick = { resolved?.let { session.play(it, nickname.trim(), ramMiB.toInt()) } },
+                    enabled = canPlay,
+                    modifier = Modifier.fillMaxWidth().height(58.dp),
+                    shape = RoundedCornerShape(16.dp),
+                ) {
                     Text(
-                        "Advanced JVM settings will remain separate from the main screen.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodySmall,
+                        when {
+                            launch.isPreparing -> "PREPARING MINECRAFT"
+                            isRunning -> "MINECRAFT IS RUNNING"
+                            else -> "▶     PLAY MINECRAFT",
+                        },
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp,
                     )
+                }
+                if (launch.isPreparing) {
+                    OutlinedButton(onClick = session::cancelPreparation, modifier = Modifier.fillMaxWidth()) {
+                        Text("Cancel preparation")
+                    }
+                } else if (isRunning) {
+                    OutlinedButton(onClick = session::stopGame, modifier = Modifier.fillMaxWidth()) {
+                        Text("Stop Minecraft")
+                    }
                 }
             }
         }
-
         Column(
-            modifier = Modifier.width(320.dp).verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            modifier = Modifier.width(320.dp).fillMaxSize().background(
+                MaterialTheme.colorScheme.surface, RoundedCornerShape(24.dp),
+            ).verticalScroll(rememberScrollState()).padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            InfoCard {
-                Heading("Launch readiness", "Everything needed for the selected version.")
-                Spacer(Modifier.height(12.dp))
-                StatusLine("Account", if (validName) "Offline · valid" else "Enter a nickname")
-                StatusLine("Catalog", "${manifest.versions.size} versions")
-                when (val state = metadata) {
-                    VersionMetadataState.Idle -> StatusLine("Metadata", "Choose a version")
-                    VersionMetadataState.Loading -> StatusLine("Metadata", "Verifying...")
-                    is VersionMetadataState.Ready -> {
-                        StatusLine("Metadata", if (resolved == null) "Version changed" else "Verified")
-                        StatusLine(
-                            "Java",
-                            state.metadata.javaRequirement?.let { "Java ${it.majorVersion}" }
-                                ?: "Not declared",
-                        )
-                        StatusLine("Libraries", "${state.metadata.libraries.size}")
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("YOUR SETUP", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary, letterSpacing = 2.sp)
+                Text("Make it yours.", style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.SemiBold)
+            }
+            HorizontalDivider(color = Color.White.copy(alpha = 0.07f))
+            Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                Text("PLAYER", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 1.2.sp)
+                OutlinedTextField(
+                    value = nickname, onValueChange = { nickname = it },
+                    label = { Text("Offline nickname") },
+                    supportingText = {
+                        Text(if (nickname.isNotBlank() && !validName)
+                            "Use 3–16 letters, numbers or underscores." else "For offline-compatible servers.")
+                    },
+                    isError = nickname.isNotBlank() && !validName,
+                    enabled = !locked, singleLine = true, modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                )
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("GAME VERSION", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 1.2.sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = !showSnapshots, enabled = !locked,
+                        onClick = {
+                            showSnapshots = false
+                            selected = manifest.versions.firstOrNull { it.id == manifest.latestRelease }
+                        }, label = { Text("Releases") },
+                    )
+                    FilterChip(
+                        selected = showSnapshots, enabled = !locked,
+                        onClick = {
+                            showSnapshots = true
+                            selected = manifest.versions.firstOrNull { it.id == manifest.latestSnapshot }
+                        }, label = { Text("Snapshots") },
+                    )
+                }
+                Box {
+                    OutlinedButton(
+                        onClick = { menuOpen = true }, enabled = !locked,
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                        shape = RoundedCornerShape(14.dp),
+                    ) { Text(selected?.id ?: "Select version") }
+                    DropdownMenu(
+                        expanded = menuOpen && !locked,
+                        onDismissRequest = { menuOpen = false },
+                    ) {
+                        manifest.versions.asSequence()
+                            .filter { it.type == if (showSnapshots)
+                                MinecraftVersionType.SNAPSHOT else MinecraftVersionType.RELEASE }
+                            .take(80)
+                            .forEach { version ->
+                                DropdownMenuItem(
+                                    text = { VersionLabel(version, manifest) },
+                                    onClick = { selected = version; menuOpen = false },
+                                )
+                            }
                     }
+                }
+                when (val state = metadata) {
+                    VersionMetadataState.Loading ->
+                        Text("Verifying version…", color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodySmall)
                     is VersionMetadataState.Error -> {
-                        StatusLine("Metadata", "Unavailable")
+                        Text(state.message, color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall)
+                        OutlinedButton(onClick = { reloadMetadata++ }, enabled = !locked) {
+                            Text("Retry")
+                        }
+                    }
+                    is VersionMetadataState.Ready ->
                         Text(
-                            state.message,
-                            color = MaterialTheme.colorScheme.error,
+                            "Verified   •   " +
+                                (state.metadata.javaRequirement?.let { "Java ${it.majorVersion}" }
+                                    ?: "Java not declared"),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.bodySmall,
                         )
-                        OutlinedButton(
-                            enabled = !locked,
-                            onClick = { reloadMetadata++ },
-                        ) { Text("Retry metadata") }
-                    }
-                }
-                val stateLabel = when (process.state) {
-                    MinecraftProcessState.RUNNING -> "Running · PID ${process.pid ?: "?"}"
-                    MinecraftProcessState.STARTING -> "Starting"
-                    MinecraftProcessState.STOPPED -> "Stopped · ${process.exitCode ?: "?"}"
-                    MinecraftProcessState.CRASHED -> "Crashed · ${process.exitCode ?: "?"}"
-                    MinecraftProcessState.DETACHED -> "Detached"
-                    MinecraftProcessState.IDLE -> if (launch.isPreparing) "Preparing" else "Not running"
-                }
-                StatusLine("Minecraft", stateLabel)
-                if (launch.phase != LaunchPhase.IDLE) {
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        launch.detail,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (launch.phase == LaunchPhase.FAILED) MaterialTheme.colorScheme.error
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    if (launch.isPreparing) {
-                        Spacer(Modifier.height(8.dp))
-                        val progress = launch.currentFileProgress
-                        if (progress != null) {
-                            LinearProgressIndicator(
-                                progress = { progress },
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        } else {
-                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                        }
-                        if (launch.totalFiles > 0) {
-                            Text(
-                                "${launch.completedFiles}/${launch.totalFiles} files",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                }
-                if (process.state == MinecraftProcessState.CRASHED) {
-                    Text(
-                        process.errorMessage ?: "Minecraft exited unexpectedly.",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-                process.stderrLog?.parent?.let { folder ->
-                    Text(
-                        "Process logs: $folder",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
+                    VersionMetadataState.Idle -> Unit
                 }
             }
-
-            Button(
-                onClick = {
-                    resolved?.let { session.play(it, nickname.trim(), ramMiB.toInt()) }
-                },
-                enabled = canPlay,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(if (launch.isPreparing) "Preparing..." else if (isRunning) "Playing" else "Play Minecraft")
-            }
-            if (launch.isPreparing) {
-                OutlinedButton(
-                    onClick = session::cancelPreparation,
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text("Cancel preparation") }
-            } else if (isRunning) {
-                OutlinedButton(
-                    onClick = session::stopGame,
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text("Stop Minecraft") }
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text("MEMORY", style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 1.2.sp)
+                    Text("${ramMiB.toInt() / 1024} GB", color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.labelLarge)
+                }
+                Slider(
+                    value = ramMiB, onValueChange = { ramMiB = it },
+                    valueRange = 1024f..16384f, steps = 14, enabled = !locked,
+                )
             }
+            HorizontalDivider(color = Color.White.copy(alpha = 0.07f))
             Text(
-                "Offline mode works with local play and servers accepting offline clients. Closing this launcher leaves a running game open.",
+                when (process.state) {
+                    MinecraftProcessState.RUNNING -> "Running · PID ${process.pid ?: "?"}"
+                    MinecraftProcessState.STOPPED -> "Last exit code: ${process.exitCode ?: "?"}"
+                    MinecraftProcessState.CRASHED -> process.errorMessage ?: "Minecraft crashed"
+                    else -> "Offline profile · Vanilla",
+                },
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall,
             )
+            if (process.state == MinecraftProcessState.CRASHED ||
+                launch.phase == LaunchPhase.FAILED) {
+                process.stderrLog?.parent?.let {
+                    Text("Logs: $it", style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
         }
     }
 }
@@ -453,5 +551,33 @@ private fun InfoCard(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             content = content,
         )
+    }
+}
+
+@Composable
+private fun SurfaceTag(label: String, color: Color) {
+    Box(
+        modifier = Modifier.background(color.copy(alpha = 0.14f), RoundedCornerShape(8.dp))
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+    ) {
+        Text(label, color = color, style = MaterialTheme.typography.labelSmall,
+            letterSpacing = 1.3.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+private fun CenterMessage(title: String, description: String, loading: Boolean = false) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        if (loading) {
+            CircularProgressIndicator()
+            Spacer(Modifier.height(18.dp))
+        }
+        Text(title, style = MaterialTheme.typography.headlineSmall)
+        Spacer(Modifier.height(8.dp))
+        Text(description, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

@@ -74,6 +74,9 @@ SyntaxLauncher stores only the selected offline nickname, Minecraft version/chan
 
 ## v0.1 test builds
 
+The desktop home UI now uses a branded hero, prominent Play CTA and compact setup sidebar instead of the prototype two-card form. The same Minecraft preparation/Java/process pipeline remains in use. Visual acceptance is still pending manual desktop review.
+
+
 The [2026-10-18 cross-platform CI run](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/39125171338) passed all four jobs, including core tests and Windows/Linux/macOS portable app packaging. These binaries are preview builds, not yet validated with a fresh actual Minecraft launch.
 
 

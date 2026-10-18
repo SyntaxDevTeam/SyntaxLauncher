@@ -142,6 +142,9 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 
 ## v0.1 UI
 
+- [ ] 🚧 IN PROGRESS — v0.1 Compose home redesigned around a high-contrast atmospheric hero, prominent contextual Play CTA, compact profile/version/RAM settings, branded header, semantic status and progressive error details; full platform CI and manual UX/accessibility review pending.
+- [ ] 🚧 IN PROGRESS — shared dark color roles, restrained mint accent, consistent 14–26 dp radii, typographic hierarchy and lighter surface grouping added; resizing, focus and DPI evaluation still pending.
+
 - [ ] 🚧 IN PROGRESS — offline nickname field validates username and feeds `OfflineAccount.create()` for the real Play pipeline; persistence/full UI verification remains pending.
 - [ ] 🚧 IN PROGRESS — Minecraft version selector and release/snapshot filters are driven by the official Mojang catalog, with selected metadata verified asynchronously; full Compose execution is pending.
 - [ ] 🚧 IN PROGRESS — RAM slider feeds `LaunchOptions(maximumMemoryMiB)` on Play; persistence/full UI verification remains pending.
