@@ -38,6 +38,7 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 - [ ] v0.1 / UI / premium hero, settings scroll and typography — pending CI plus visual accessibility acceptance.
 
 ### Follow-ups / known issues
+- The first CI attempt failed on a wrong import for `clip`; corrected in follow-up commit, verification rerun initiated.
 - Inspect text wrapping at compact widths and standard/high-DPI scaling.
 - Verify all three portable distributions and manually review the loaded/launching/error states.
 
