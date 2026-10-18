@@ -8,6 +8,47 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-18 — Fix desktop Ktor dependency and launch test interpolation; bootstrap wrapper
+
+**Milestone:** v0.1 — Minimal Vanilla Launcher  
+**Author/Agent:** ChatGPT  
+**Status:** Partial
+
+### Completed
+
+- Parsed Actions run `39123629786`: `launcher-core:compileKotlin` passed, while desktop compilation failed because `DesktopLauncherSession` references Ktor `HttpClient` and the desktop module lacked a direct dependency.
+- Added explicit desktop `ktor-client-core` implementation dependency.
+- Corrected two test strings in `MinecraftLaunchCoordinatorTest` to preserve literal Minecraft placeholders rather than using Kotlin variable interpolation.
+- Added restricted `bootstrap-gradle-wrapper.yml` job to generate the official Gradle 9.4.0 wrapper from a pinned distribution, verify it, and commit scripts/JAR/properties back to main as the GitHub Actions bot. The change only runs on main when the workflow itself is introduced or manually dispatched.
+- Kept shared GitHub Actions compile/test/portable packaging workflow separate from one-time wrapper bootstrap.
+
+### Changed files
+
+- `launcher-desktop/build.gradle.kts` — add Ktor core API to the desktop compile classpath.
+- `launcher-core/src/test/kotlin/.../launch/MinecraftLaunchCoordinatorTest.kt` — literal placeholder escaping.
+- `.github/workflows/bootstrap-gradle-wrapper.yml` — restricted official wrapper bootstrap.
+- `docs/ROADMAP.md` — updated build milestones.
+- `docs/WORKLOG.md` — this entry.
+
+### Verification
+
+- Actions `39123629786`: core compilation PASS, desktop compilation and core test source compilation FAIL with the diagnosed missing Ktor dependency/literal placeholder errors.
+- `./gradlew test` and `./gradlew build`: NOT RUN locally; awaiting wrapper/bootstrap and GitHub Actions rerun.
+- Native packaging/real Minecraft: NOT RUN.
+
+### Roadmap updates
+
+- Gradle wrapper generation in progress, all v0.1 build tests/packaging remain incomplete until successful Jobs.
+
+### Follow-ups / known issues
+
+- Inspect wrapper bootstrap execution and confirm official JAR is committed.
+- Repair any compiler/test errors from the next full CI run.
+- Verify portable artifacts for Linux, Windows and macOS.
+- Add version/nickname/RAM persistence and real-Minecraft acceptance testing.
+
+---
+
 ## 2026-10-18 — Fix Minecraft classpath Kotlin compilation
 
 **Milestone:** v0.1 — Minimal Vanilla Launcher  

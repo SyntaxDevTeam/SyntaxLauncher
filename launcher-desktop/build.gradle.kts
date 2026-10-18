@@ -12,6 +12,8 @@ kotlin {
 
 dependencies {
     implementation(project(":launcher-core"))
+    // Desktop itself owns HttpClient lifecycle and therefore needs this API directly.
+    implementation("io.ktor:ktor-client-core:3.6.0")
     implementation(compose.desktop.currentOs)
     implementation(compose.material3)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.11.0")
