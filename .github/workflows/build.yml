@@ -27,7 +27,7 @@ jobs:
           java-version: "25"
       - uses: gradle/actions/setup-gradle@v6
         with:
-          gradle-version: "9.4.0"
+          gradle-version: "9.8.1"
       - name: Compile and run tests
         run: gradle --no-daemon --stacktrace :launcher-core:test :launcher-desktop:compileKotlin
       - name: Upload test evidence
@@ -65,7 +65,7 @@ jobs:
           java-version: "25"
       - uses: gradle/actions/setup-gradle@v6
         with:
-          gradle-version: "9.4.0"
+          gradle-version: "9.8.1"
       - name: Build runnable native app directory
         run: gradle --no-daemon --stacktrace :launcher-desktop:createDistributable
       - name: Show jpackage diagnostics on failure
