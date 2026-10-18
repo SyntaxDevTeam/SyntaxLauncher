@@ -64,6 +64,10 @@ The current v0.1 implementation includes:
 
 The remaining v0.1 engineering work is full Gradle and cross-platform build verification, first real vanilla Minecraft launch, persistence for offline nickname/version/RAM, manifest cache and UI polish. The new Play action is functional in code but not yet validated against a real Mojang download and game startup.
 
+## Continuous integration
+
+The [Build and package SyntaxLauncher](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/workflows/build.yml) workflow runs on pushes to `main`, pull requests and manual dispatch. It verifies the core tests and desktop compilation on Java 21, then builds Compose `createDistributable` portable applications for Linux, Windows and macOS. Workflow artifacts contain the runnable app-directory output for each platform; they are not signed native installers. Gradle 9.4.0 is provisioned with `gradle/actions/setup-gradle` until an official committed wrapper is available. CI status must be green before a v0.1 test release is called build-verified.
+
 ## Technology
 
 - Kotlin/JVM

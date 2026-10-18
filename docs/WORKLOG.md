@@ -8,6 +8,50 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-18 — Introduce cross-platform build and packaging CI
+
+**Milestone:** v0.1 — Minimal Vanilla Launcher  
+**Author/Agent:** ChatGPT  
+**Status:** Partial
+
+### Completed
+
+- Added first GitHub Actions workflow running Kotlin core tests and desktop compilation with pinned Gradle 9.4.0 / Temurin JDK 21.
+- Added a Linux/Windows/macOS portable desktop distribution matrix using Compose `createDistributable`.
+- Added automatic upload of zipped portable application directories and test report artifacts for GitHub Actions build runs.
+- Preserved read-only workflow permissions and concurrency cancellation for duplicate runs.
+- Verified Kotlin 2.4.21 and Compose 1.12.1 plugin releases exist on official plugin portals; avoided speculative version changes.
+- Identified missing official Gradle wrapper as a separate reproducibility task; CI installs Gradle through a pinned trusted GitHub Action until the official wrapper jar can be generated.
+
+### Changed files
+
+- `.github/workflows/build.yml` — verify/tests and portable app matrix packaging workflow.
+- `docs/ROADMAP.md` — build/CI and acceptance tasks.
+- `docs/WORKLOG.md` — this entry.
+- `README.md` — CI workflow and artifacts instructions.
+
+### Verification
+
+- GitHub repository check — no prior workflows or workflow runs before this change.
+- Gradle plugin versions checked against official plugin registries.
+- `./gradlew test` — NOT RUN: repository did not contain a wrapper; this container cannot resolve GitHub/Maven URLs.
+- `./gradlew build` — NOT RUN: same blocker.
+- Workflow build/packaging — pending first GitHub Actions run; no verified distribution claimed.
+
+### Roadmap updates
+
+- CI and platform distributions `🚧 IN PROGRESS` pending real Actions job success.
+- Official Gradle wrapper generation and v0.1 real-game launch remain open.
+
+### Follow-ups / known issues
+
+- Inspect the first CI errors and fix compilation/test/runtime problems before marking jobs complete.
+- Generate and commit the official Gradle wrapper artifacts in a build-capable environment.
+- Run a full packaged-app launch and verify Minecraft gameplay.
+- Test platform-specific packaging/installers and verify executable resources included by jpackage.
+
+---
+
 ## 2026-10-18 — Wire complete Minecraft launch pipeline into Compose Desktop
 
 **Milestone:** v0.1 — Minimal Vanilla Launcher  
