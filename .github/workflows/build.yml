@@ -17,7 +17,7 @@ concurrency:
 jobs:
   verify:
     name: Verify core and desktop compilation
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
