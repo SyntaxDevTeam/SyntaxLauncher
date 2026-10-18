@@ -53,6 +53,8 @@ The current v0.1 implementation includes:
 - structured `LaunchPlan` output containing runtime, working directory, main class, JVM args, game args and the final argument-vector command without shell concatenation;
 - typed launch-plan failures for missing artifacts and unresolved future placeholders;
 - deterministic launch-plan test sources covering modern and legacy argument construction, offline identity, logging, paths containing spaces and unknown-placeholder rejection;
+- `MinecraftProcessManager` with native `ProcessBuilder` execution, per-run stdout/stderr log files, structured lifecycle/PID/exit status, duplicate-launch protection and explicit detach/terminate shutdown policy;
+- controlled process tests including a real local Java child and synthetic crash/force-stop/detach scenarios;
 - initial unit/integration test sources using Ktor `MockEngine` rather than live Mojang services;
 - a lightweight Compose screen with nickname validation, release/snapshot selection, version selection, RAM control, loading state and retryable metadata errors.
 
@@ -264,7 +266,7 @@ This is intended to prevent the project roadmap from drifting away from the real
 
 Implemented so far: project/module foundation, offline account primitives, Mojang version discovery and full selected-version parsing, shared verified download infrastructure, client/library/native/assets preparation, platform-aware managed Mojang Java installation, metadata-driven final launch-plan construction and the first lightweight Compose Desktop screen.
 
-Still required before v0.1 can be considered functional: Minecraft process start/monitoring/logging, persistence/settings behavior, Compose preparation/progress/Play wiring, Gradle wrapper/full automated build verification and a real clean-machine vanilla Minecraft launch.
+Still required before v0.1 can be considered functional: persistence/settings behavior, Compose preparation/progress/Play/process and shutdown wiring, Gradle wrapper/full automated build verification and a real clean-machine vanilla Minecraft launch.
 
 ## License
 

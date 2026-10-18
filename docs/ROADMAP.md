@@ -16,7 +16,7 @@ Agents and contributors MUST keep this file synchronized with actual repository 
 
 Goal: launch a selected vanilla Minecraft version using an offline account and an automatically resolved Java runtime.
 
-**Current status:** 🚧 Implementation in progress. The Kotlin/Compose foundation, offline account primitives, Mojang version catalog, selected-version metadata resolver, rule evaluation, verified Minecraft-file preparation pipeline, automatic managed Mojang Java Runtime Manager and metadata-driven `LaunchPlan` construction now exist. The core can prepare game files, select/verify Java, resolve modern or legacy Minecraft arguments and produce the exact structured command that the future process layer will execute. Process launch/monitoring, persistence, Compose preparation/progress wiring and full Gradle/manual verification remain open.
+**Current status:** 🚧 Implementation in progress. Kotlin/Compose foundation, offline account primitives, Mojang metadata/rules, verified game-file preparation, managed Java installation, metadata-driven LaunchPlan and MinecraftProcessManager now exist in launcher-core. The manager starts ProcessBuilder with separate session stdout/stderr logs, reports lifecycle/exit codes, blocks duplicate launches and supports explicit detach/terminate. Compose Play integration, settings persistence, Gradle wrapper/full tests, platform checks and a real clean-machine Minecraft launch remain open.
 
 ## Project foundation
 
@@ -129,13 +129,16 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 
 ## Process management
 
-- [ ] Start Minecraft using resolved Java runtime.
-- [ ] Capture process stdout/stderr.
-- [ ] Write Minecraft process log separately from launcher log where practical.
-- [ ] Expose running/stopped/crashed process state.
-- [ ] Capture exit code.
-- [ ] Prevent duplicate accidental launches from one launch action.
-- [ ] Handle launcher shutdown while game is running deliberately.
+- [ ] 🚧 IN PROGRESS — `MinecraftProcessManager` starts `LaunchPlan.command` with `ProcessBuilder` in the prepared game working directory; full Gradle and real Minecraft launch verification remain pending.
+- [ ] 🚧 IN PROGRESS — each launch creates a distinct Minecraft run directory under launcher logs with separate redirected `stdout.log` and `stderr.log`; POSIX log files use owner-only permissions and native redirects survive launcher detach.
+- [ ] 🚧 IN PROGRESS — `StateFlow<MinecraftProcessStatus>` exposes IDLE/STARTING/RUNNING/STOPPED/CRASHED/DETACHED, PID, start/end timestamps, log paths, actionable failure message and exit code; Compose presentation remains pending.
+- [ ] 🚧 IN PROGRESS — non-zero natural exits become CRASHED and zero exits STOPPED; requested termination becomes STOPPED even when the OS exit code is non-zero; full integration verification remains pending.
+- [ ] 🚧 IN PROGRESS — mutex-guarded process ownership rejects duplicate launches until the previous process exit is observed; controlled test source added.
+- [ ] 🚧 IN PROGRESS — explicit `terminate(gracePeriodMillis)` first requests graceful termination and then forces termination if necessary; cancellation and OS-specific edge cases still need live acceptance.
+- [ ] 🚧 IN PROGRESS — explicit `shutdown(DETACH | TERMINATE)` policy defines launcher close behavior; DETACH leaves Minecraft alive with stdout/stderr redirected to files; desktop window-close integration remains pending.
+- [ ] 🚧 IN PROGRESS — typed process startup, duplicate-launch, closed-manager and forced-termination failures are defined without logging a full launch command or authentication arguments; full Gradle execution remains pending.
+- [ ] 🚧 IN PROGRESS — five process-manager test scenarios cover a real JDK subprocess, separate stdout/stderr logs, duplicate protection, crashes and relaunch, force-stop, detach, and retry after startup failure; Gradle/JUnit execution remains pending.
+- [ ] Integrate process-manager state, log access and explicit shutdown policy into the actual Compose Play/window lifecycle.
 
 ## v0.1 UI
 
@@ -244,6 +247,8 @@ Goal: add official premium authentication without changing the fundamental Minec
 - [ ] Detect account/profile errors cleanly.
 
 ## Token lifecycle
+
+- [ ] Before enabling premium sessions, review and redact sensitive strings in Minecraft process stdout/stderr logs; v0.1 currently redirects raw game output to private per-session files.
 
 - [ ] Refresh expired/expiring sessions automatically when possible.
 - [ ] Store long-lived secrets/tokens using an appropriate secure OS mechanism.

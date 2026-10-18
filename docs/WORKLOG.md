@@ -8,6 +8,61 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-18 — Implement Minecraft process lifecycle management
+
+**Milestone:** v0.1 — Minimal Vanilla Launcher  
+**Author/Agent:** ChatGPT  
+**Status:** Partial
+
+### Completed
+
+- Added `MinecraftProcessManager` to launcher-core using the existing, already-resolved `LaunchPlan` without hardcoded Minecraft launch recipes.
+- Launched native child processes with `ProcessBuilder`, the resolved Java executable, structured command arguments, and the prepared game working directory.
+- Added distinct per-run Minecraft log directories under launcher logs, with separate operating-system redirected stdout/stderr files. POSIX files are created with owner-only permissions.
+- Added `StateFlow<MinecraftProcessStatus>` with IDLE, STARTING, RUNNING, STOPPED, CRASHED and DETACHED states, timestamps, PID, log paths, error summary and exit code.
+- Added mutex-guarded single-session ownership, rejecting accidental duplicate starts and releasing the slot after exit.
+- Added natural exit monitoring through `Process.onExit()`, distinguishing code-zero exits, unexpected nonzero exits and user-requested termination.
+- Added graceful termination with a configurable timeout and forced termination fallback.
+- Added explicit launcher-shutdown policy: `DETACH` preserves the child and native log redirects, `TERMINATE` stops the child.
+- Added typed start, duplicate, closed-manager and termination failures without logging the command line or any launch credentials.
+- Added a narrow injectable process-starter seam for deterministic tests; no Compose dependency.
+- Added five controlled process scenarios covering a real JDK subprocess, logs, duplicate protection, crash exit code, relaunch, forced stop, detach and startup-error recovery.
+
+### Changed files
+
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/launch/MinecraftProcessManager.kt` — process start/exit/stop/detach lifecycle, logging and typed status/errors.
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/launch/MinecraftProcessManagerTest.kt` — five lifecycle test cases, including an actual local Java subprocess.
+- `docs/ROADMAP.md` — precise process-management implementation status and premium-log redaction prerequisite.
+- `docs/WORKLOG.md` — this entry.
+- `README.md` — actual implementation status and remaining v0.1 tasks.
+
+### Verification
+
+- Isolated `kotlinc` compilation against installed JDK 21, coroutines JAR and minimal domain/logging stubs — PASS.
+- Five executable local smoke scenarios (using an actual Java subprocess plus controlled fake processes) — PASS.
+- Architecture review — PASS for Compose-independent process ownership and not printing command arguments.
+- `./gradlew test` — NOT RUN; the repository still lacks a committed Gradle wrapper and this container cannot resolve github.com/Maven dependencies.
+- `./gradlew build` — NOT RUN for the same infrastructure reasons.
+- Clean-machine vanilla Minecraft launch — NOT RUN; Compose Play wiring is not yet implemented.
+- Direct raw stdout/stderr redirection is suitable for offline v0.1; redaction must be revisited before introducing premium access tokens in v0.3.
+
+### Roadmap updates
+
+- All new process-start/state/log/exit-code/duplicate-protection/stop/shutdown/error/test items marked `🚧 IN PROGRESS` pending Gradle and real-game acceptance.
+- Explicit v0.3 dependency added for reviewing sensitive strings in Minecraft process logs.
+- Compose launch orchestration and window-close wiring remain unchecked; no fake Play control was added.
+- v0.1 test/build/real-launch quality gates remain unchecked.
+
+### Follow-ups / known issues
+
+- Connect metadata → game preparation → managed Java → LaunchPlan → ProcessManager into the real Compose Play action.
+- Map progress, errors and running/stopped/crashed states to a lightweight UI with conflict-safe controls.
+- Persist offline username, selected version and RAM; cache version catalog where appropriate.
+- Commit a Gradle wrapper, run full test/build, then verify a clean-machine vanilla launch and the supported OS matrix.
+- Before v0.3 Microsoft authentication, change raw Minecraft process log capture to guarantee token redaction without breaking detach behavior.
+
+---
+
 ## 2026-10-17 — Build metadata-driven Minecraft LaunchPlan
 
 **Milestone:** v0.1 — Minimal Vanilla Launcher  
