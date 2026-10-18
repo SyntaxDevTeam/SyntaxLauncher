@@ -55,7 +55,7 @@ class MinecraftFilePlanner(
                     artifact.path ?: deriveMavenPath(library.name),
                 )
                 libraryDownloads += artifact.toPlanned(MinecraftDownloadKind.LIBRARY, target)
-                classpath += target
+                classpath.add(target)
             }
 
             library.nativeArtifact?.let { artifact ->
@@ -74,7 +74,7 @@ class MinecraftFilePlanner(
             kind = MinecraftDownloadKind.CLIENT,
             target = layout.versionJar(version.id),
         )
-        client?.let { classpath += it.target }
+        client?.let { classpath.add(it.target) }
 
         val assetIndex = version.assetIndex?.let { index ->
             PlannedMinecraftDownload(

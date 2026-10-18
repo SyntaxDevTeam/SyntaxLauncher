@@ -8,6 +8,32 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-18 — Fix Minecraft classpath Kotlin compilation
+
+**Milestone:** v0.1 — Minimal Vanilla Launcher  
+**Author/Agent:** ChatGPT  
+**Status:** Partial
+
+### Completed
+- Read GitHub Actions run `39123484537` and isolated Kotlin compilation errors at `MinecraftFilePlan.kt:58` and `:77`.
+- Replaced ambiguous `MutableList<Path> += Path` with `MutableList.add(path)`, fixing Kotlin overload resolution where `Path` is also `Iterable<Path>`.
+
+### Changed files
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/minecraft/MinecraftFilePlan.kt` — classpath addition.
+- `docs/WORKLOG.md` — this entry.
+
+### Verification
+- Actions run `39123484537`: Gradle resolved external dependencies; Kotlin core compilation failed in two identified lines.
+- `./gradlew test` / `./gradlew build`: NOT RUN locally because wrapper/network access is unavailable.
+- New CI run: pending.
+
+### Roadmap updates
+- No acceptance box checked; compilation, tests and package readiness remain in progress.
+
+### Follow-ups / known issues
+- Examine next compiler/test failures and fix until the CI verification stage passes.
+- Verify native desktop packages and official wrapper.
+
 ## 2026-10-18 — Fix Compose dependency resolution in CI
 
 **Milestone:** v0.1 — Minimal Vanilla Launcher  
