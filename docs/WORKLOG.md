@@ -8,6 +8,19 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-18 — Fix Kotlin Compose when-expression compilation
+
+**Milestone:** v0.1 — UI polish  
+**Status:** Partial
+
+- CI run 39153778139: core tests passed; desktop compilation identified trailing commas after `else` expressions in the redesigned Compose home.
+- Removed invalid trailing commas from UI `when` expressions without changing launch/runtime behavior.
+- Changed `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/SyntaxLauncherApp.kt` and this worklog.
+- Verification: CI compiler diagnostics reviewed; follow-up run pending, no manual visual inspection yet.
+- Roadmap remains in progress until Gradle and visual smoke acceptance.
+
+---
+
 ## 2026-10-18 — Introduce SyntaxLauncher premium-feel home UI
 
 **Milestone:** v0.1 — Vanilla Launcher UX polish  

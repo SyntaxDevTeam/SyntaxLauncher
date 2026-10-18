@@ -317,7 +317,7 @@ private fun LauncherPanel(
                                 launch.isPreparing -> "Getting everything ready"
                                 launch.phase == LaunchPhase.FAILED -> "Preparation needs attention"
                                 process.state == MinecraftProcessState.CRASHED -> "Minecraft closed unexpectedly"
-                                else -> "Ready when you are",
+                                else -> "Ready when you are"
                             },
                             style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                         Text(
@@ -325,7 +325,7 @@ private fun LauncherPanel(
                                 isRunning -> "Minecraft is running in a separate window."
                                 launch.isPreparing -> launch.detail
                                 launch.phase == LaunchPhase.FAILED -> launch.detail
-                                else -> "Your game files and Java are managed automatically.",
+                                else -> "Your game files and Java are managed automatically."
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -338,7 +338,7 @@ private fun LauncherPanel(
                             isRunning -> "RUNNING"
                             launch.isPreparing -> "PREPARING"
                             launch.phase == LaunchPhase.FAILED -> "ERROR"
-                            else -> "OFFLINE",
+                            else -> "OFFLINE"
                         },
                         if (launch.phase == LaunchPhase.FAILED) MaterialTheme.colorScheme.error
                             else MaterialTheme.colorScheme.primary,
@@ -364,7 +364,7 @@ private fun LauncherPanel(
                         when {
                             launch.isPreparing -> "PREPARING MINECRAFT"
                             isRunning -> "MINECRAFT IS RUNNING"
-                            else -> "▶     PLAY MINECRAFT",
+                            else -> "▶     PLAY MINECRAFT"
                         },
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.sp,
@@ -493,7 +493,7 @@ private fun LauncherPanel(
                     MinecraftProcessState.RUNNING -> "Running · PID ${process.pid ?: "?"}"
                     MinecraftProcessState.STOPPED -> "Last exit code: ${process.exitCode ?: "?"}"
                     MinecraftProcessState.CRASHED -> process.errorMessage ?: "Minecraft crashed"
-                    else -> "Offline profile · Vanilla",
+                    else -> "Offline profile · Vanilla"
                 },
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall,
