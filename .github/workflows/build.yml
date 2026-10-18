@@ -32,7 +32,7 @@ jobs:
         run: gradle --no-daemon --stacktrace :launcher-core:test :launcher-desktop:compileKotlin
       - name: Upload test evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: syntaxlauncher-test-results
           path: |
@@ -79,7 +79,7 @@ jobs:
           fi
       - name: Upload jpackage diagnostic logs
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: syntaxlauncher-packaging-logs-${{ matrix.artifact }}-${{ github.sha }}
           path: launcher-desktop/build/compose/logs/
@@ -91,7 +91,7 @@ jobs:
           test -d launcher-desktop/build/compose/binaries/main/app
           tar -czf syntaxlauncher-${{ matrix.artifact }}.tar.gz -C launcher-desktop/build/compose/binaries/main/app .
       - name: Upload portable app
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: syntaxlauncher-${{ matrix.artifact }}-${{ github.sha }}
           path: syntaxlauncher-${{ matrix.artifact }}.tar.gz
