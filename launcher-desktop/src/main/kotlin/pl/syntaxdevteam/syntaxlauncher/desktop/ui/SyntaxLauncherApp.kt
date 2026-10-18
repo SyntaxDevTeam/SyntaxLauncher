@@ -1,5 +1,6 @@
 package pl.syntaxdevteam.syntaxlauncher.desktop.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.heightIn
@@ -51,6 +52,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
@@ -120,14 +122,11 @@ fun SyntaxLauncherApp(session: DesktopLauncherSession) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(13.dp),
                 ) {
-                    Box(
-                        modifier = Modifier.size(38.dp).background(
-                            MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp),
-                        ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text("S", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Black)
-                    }
+                    Image(
+                        painter = painterResource("branding/syntaxlauncher-icon.png"),
+                        contentDescription = "SyntaxLauncher logo",
+                        modifier = Modifier.size(52.dp),
+                    )
                     Column {
                         Text("SYNTAX", fontWeight = FontWeight.Black, style = MaterialTheme.typography.titleMedium)
                         Text("LAUNCHER", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall, letterSpacing = 2.sp)
@@ -140,7 +139,7 @@ fun SyntaxLauncherApp(session: DesktopLauncherSession) {
                     letterSpacing = 1.2.sp,
                 )
             }
-            HorizontalDivider(color = Color.White.copy(alpha = 0.07f))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f))
             Box(modifier = Modifier.weight(1f).padding(28.dp)) {
                 when (val state = catalog) {
                     ManifestState.Loading -> CenterMessage("Connecting to Minecraft", "Loading official versions…", true)
@@ -335,7 +334,7 @@ private fun LauncherPanel(
             Box(
                 modifier = Modifier.weight(1f).fillMaxWidth().background(
                     Brush.linearGradient(
-                        colors = listOf(Color(0xFF172E2C), Color(0xFF122123), Color(0xFF161C28)),
+                        colors = listOf(SyntaxBrand.heroStart, SyntaxBrand.heroMiddle, SyntaxBrand.heroEnd),
                     ),
                     RoundedCornerShape(26.dp),
                 ),
@@ -344,7 +343,7 @@ private fun LauncherPanel(
                 Box(
                     modifier = Modifier.size(230.dp).align(Alignment.TopEnd)
                         .padding(24.dp).background(
-                            Color(0xFF65DCC0).copy(alpha = 0.075f), CircleShape,
+                            SyntaxBrand.heroGlow.copy(alpha = 0.075f), CircleShape,
                         ),
                 )
                 Column(
@@ -352,7 +351,7 @@ private fun LauncherPanel(
                     verticalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        SurfaceTag("VANILLA MINECRAFT", Color(0xFF86E3C9))
+                        SurfaceTag("VANILLA MINECRAFT", MaterialTheme.colorScheme.tertiary)
                         Spacer(Modifier.height(8.dp))
                         Text(
                             "Your world.\nYour adventure.",
@@ -360,11 +359,11 @@ private fun LauncherPanel(
                             fontWeight = FontWeight.Bold,
                             lineHeight = 57.sp,
                             letterSpacing = (-1.5).sp,
-                            color = Color(0xFFF3F9F8),
+                            color = SyntaxBrand.heroText,
                         )
                         Text(
                             "No distractions. Just you and Minecraft.",
-                            color = Color(0xFFBDD0CD),
+                            color = SyntaxBrand.heroMuted,
                             style = MaterialTheme.typography.bodyLarge,
                         )
                     }
@@ -372,7 +371,7 @@ private fun LauncherPanel(
                         Text(
                             activeInstance?.name?.uppercase() ?: "LEGACY VANILLA PROFILE",
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF9CB8B3),
+                            color = SyntaxBrand.heroMuted,
                             letterSpacing = 2.sp,
                         )
                         Text(
@@ -381,13 +380,13 @@ private fun LauncherPanel(
                             fontWeight = FontWeight.SemiBold,
                             color = Color.White,
                         )
-                        HorizontalDivider(color = Color.White.copy(alpha = 0.13f))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.56f))
                         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                             Text("JAVA EDITION", style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFFAEC7C1))
-                            Text("•", color = Color(0xFFAEC7C1))
+                                color = SyntaxBrand.heroMuted)
+                            Text("•", color = SyntaxBrand.heroMuted)
                             Text(if (showSnapshots) "SNAPSHOT CHANNEL" else "STABLE RELEASE",
-                                style = MaterialTheme.typography.labelSmall, color = Color(0xFFAEC7C1))
+                                style = MaterialTheme.typography.labelSmall, color = SyntaxBrand.heroMuted)
                         }
                     }
                 }
@@ -427,11 +426,17 @@ private fun LauncherPanel(
                         when {
                             isRunning -> "RUNNING"
                             launch.isPreparing -> "PREPARING"
-                            launch.phase == LaunchPhase.FAILED -> "ERROR"
+                            launch.phase == LaunchPhase.FAILED ||
+                                process.state == MinecraftProcessState.CRASHED -> "ERROR"
                             else -> "OFFLINE"
                         },
-                        if (launch.phase == LaunchPhase.FAILED) MaterialTheme.colorScheme.error
-                            else MaterialTheme.colorScheme.primary,
+                        when {
+                            launch.phase == LaunchPhase.FAILED ||
+                                process.state == MinecraftProcessState.CRASHED -> MaterialTheme.colorScheme.error
+                            launch.isPreparing -> MaterialTheme.colorScheme.tertiary
+                            isRunning -> MaterialTheme.colorScheme.primary
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                     )
                 }
                 if (launch.isPreparing) {
@@ -501,14 +506,14 @@ private fun LauncherPanel(
                 instanceError?.let { Text(it, color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall) }
             }
-            HorizontalDivider(color = Color.White.copy(alpha = 0.07f))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f))
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("YOUR SETUP", style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary, letterSpacing = 2.sp)
                 Text("Make it yours.", style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.SemiBold)
             }
-            HorizontalDivider(color = Color.White.copy(alpha = 0.07f))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f))
             Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
                 Text("PLAYER", style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 1.2.sp)
@@ -602,7 +607,7 @@ private fun LauncherPanel(
                     valueRange = 1024f..16384f, steps = 14, enabled = !locked,
                 )
             }
-            HorizontalDivider(color = Color.White.copy(alpha = 0.07f))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f))
             Text(
                 when (process.state) {
                     MinecraftProcessState.RUNNING -> "Running · PID ${process.pid ?: "?"}"

@@ -142,6 +142,8 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 
 ## v0.1 UI
 
+- [ ] 🚧 IN PROGRESS — approved blue voxel/arrow mark integrated into desktop header and window; navy/cobalt/cyan Compose theme and Linux package icon configured. Cross-platform CI and manual UI visual review are pending.
+
 - [ ] 🚧 IN PROGRESS — v0.1 Compose home redesigned around a high-contrast atmospheric hero, prominent contextual Play CTA, compact profile/version/RAM settings, branded header, semantic status and progressive error details; full platform CI and manual UX/accessibility review pending.
 - [ ] 🚧 IN PROGRESS — shared dark color roles, restrained mint accent, consistent 14–26 dp radii, typographic hierarchy and lighter surface grouping added; resizing, focus and DPI evaluation still pending.
 

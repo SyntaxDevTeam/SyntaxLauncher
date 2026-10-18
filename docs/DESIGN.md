@@ -153,6 +153,25 @@ The final brand palette may evolve, but the application should never become visu
 
 ---
 
+### SyntaxLauncher blue identity (October 2026)
+
+The approved mark is a voxel dirt/grass block with a navy/cobalt/cyan top and an upward blue orbital arrow. It should appear in desktop branding and distribution artwork.
+
+| UI role | Token |
+| --- | --- |
+| Background | `#0A101C` |
+| Surface | `#131F31` |
+| Surface variant | `#203149` |
+| Primary / Play | `#48BEF5` |
+| Primary container | `#163C61` |
+| Secondary | `#91B5DB` |
+| Cyan detail | `#79DDF7` |
+| Main text | `#F0F6FF` |
+| Muted text | `#ACBFD6` |
+| Outline | `#49617D` |
+
+The hero gradient is `#102B50 → #0C203C → #0A1528`. Reserve vivid neon for the icon and small interactive accents. Do not reintroduce green/teal prototype UI colors or recolor semantic warnings and errors blue. Use the central `SyntaxTheme.kt` tokens instead of scattering color literals.
+
 ## 8. Typography
 
 Typography should carry a substantial part of the interface hierarchy.

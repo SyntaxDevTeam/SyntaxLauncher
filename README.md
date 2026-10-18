@@ -78,6 +78,12 @@ The [Build and package SyntaxLauncher](https://github.com/SyntaxDevTeam/SyntaxLa
 
 SyntaxLauncher stores only the selected offline nickname, Minecraft version/channel and RAM allocation in a schema-versioned `settings.properties` file inside the OS configuration directory. Writes use a temporary file and atomic publication where supported. Unknown property keys are preserved; an unsupported schema is rejected without erasing user settings. Microsoft credentials are not part of this storage format.
 
+## Visual identity
+
+The SyntaxLauncher product mark is a navy/cobalt/cyan voxel grass-and-dirt block with an upward orbital arrow. The launcher uses a matching dark-blue Compose UI with a bright blue Play accent, quiet secondary surfaces and semantic error colors.
+
+The optimized transparent icon is stored in `launcher-desktop/src/main/resources/branding/syntaxlauncher-icon.png` and is used in the window chrome, launcher header and Linux application package. The authoritative [color palette and UI rules](docs/DESIGN.md#syntaxlauncher-blue-identity-october-2026) cover future features.
+
 ## v0.1 test builds
 
 The desktop home UI now uses a branded hero, prominent Play CTA and compact setup sidebar instead of the prototype two-card form. The same Minecraft preparation/Java/process pipeline remains in use. Visual acceptance is still pending manual desktop review.

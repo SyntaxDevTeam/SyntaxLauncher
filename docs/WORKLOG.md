@@ -8,6 +8,43 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-18 — Apply blue SyntaxLauncher brand and application logo
+
+**Milestone:** v0.1 UI / shared v0.2 desktop shell  
+**Author/Agent:** ChatGPT  
+**Status:** Partial — CI and GUI review pending
+
+### Completed
+- Derived a small transparent launcher PNG from the approved blue Minecraft grass block / orbital arrow artwork.
+- Replaced the generic letter S in the title header with the logo, added a desktop window icon and configured Linux package icon.
+- Consolidated dark navy, cobalt and cyan accent colors in Material 3 theme and hero tokens.
+- Aligned the hero/background/labels/dividers, kept errors semantic and made offline status intentionally subdued.
+- Documented palette roles and asset usage.
+
+### Changed files
+- `launcher-desktop/src/main/resources/branding/syntaxlauncher-icon.png` — optimized product artwork.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/SyntaxTheme.kt` — design tokens.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/SyntaxLauncherApp.kt` — icon and blue UI.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/Main.kt` — window icon.
+- `launcher-desktop/build.gradle.kts` — Linux package icon.
+- `docs/DESIGN.md`, `docs/ROADMAP.md`, `README.md` — new brand rules and tracking.
+- `docs/WORKLOG.md` — this entry.
+
+### Verification
+- `./gradlew test` — NOT RUN, local Gradle dependency access unavailable.
+- `./gradlew build` — NOT RUN, local Gradle dependency access unavailable.
+- Manual desktop review — NOT RUN, pending test builds.
+- PNG Git blob SHA matched the locally generated optimized asset before integration.
+
+### Roadmap updates
+- [ ] v0.1 / UI / blue branding remains open until CI and manual screen review.
+
+### Follow-ups / known issues
+- Confirm cross-platform compilation and package startup in GitHub Actions.
+- Windows and macOS installer branding would need separate ICO/ICNS assets at release time; PNG is used for the Compose window on all platforms.
+
+---
+
 ## 2026-10-18 — Stage v0.2 instance isolation and management delivery
 
 **Milestone:** v0.2 — Instance Manager  

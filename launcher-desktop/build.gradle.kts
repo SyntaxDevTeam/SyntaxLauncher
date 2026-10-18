@@ -33,6 +33,9 @@ compose.desktop {
             packageVersion = "1.0.0"
             description = "A lightweight, modern Minecraft launcher by SyntaxDevTeam"
             vendor = "SyntaxDevTeam"
+            linux {
+                iconFile.set(project.file("src/main/resources/branding/syntaxlauncher-icon.png"))
+            }
         }
     }
 }
