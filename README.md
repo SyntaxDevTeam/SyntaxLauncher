@@ -2,7 +2,7 @@
 
 SyntaxLauncher is a modern Minecraft launcher from SyntaxDevTeam, written primarily in Kotlin and developed incrementally from a minimal vanilla launcher into a modular launcher with premium authentication, isolated instances, mod loaders, Modrinth integration, modpacks and diagnostics.
 
-The project is currently in **active v0.1 development**. The Kotlin/Gradle/Compose foundation, offline account model, Mojang version discovery/resolution, verified game-file preparation pipeline, managed Mojang Java Runtime Manager and metadata-driven launch-plan builder are now present in the repository.
+The project is currently in **active v0.1 development**. The Kotlin/Compose launcher now connects the offline account, Mojang metadata, verified game preparation, automatic Java runtime installation, metadata-driven LaunchPlan and MinecraftProcessManager to an actual desktop Play workflow. A real clean-machine Minecraft launch is not yet verified.
 
 ## Project philosophy
 
@@ -46,6 +46,10 @@ The current v0.1 implementation includes:
 - managed runtime reuse without a network request when a compatible verified installation already exists;
 - runtime staging, executable-bit handling, manifest link creation, completion markers and final `java -version` verification;
 - support for the macOS `jre.bundle/Contents/Home/bin/java` layout;
+- `MinecraftLaunchCoordinator` integrating verified selected-version metadata, game preparation, Java Runtime Manager, launch planning and ProcessManager, with cancellation and typed progress stages;
+- `DesktopLauncherSession` owning background launches independently of Compose recomposition and detaching from a running game on window close;
+- the real `Play Minecraft` and `Stop Minecraft` UI actions, download/Java stage progress, crash state, PID/exit code and separate game-process log paths;
+- controlled `MockEngine` pipeline test sources with fake Java manager and a local Java child process;
 - normalized `LaunchAuthentication` for offline sessions without coupling the launch builder to a raw nickname;
 - metadata-driven `LaunchPlanBuilder` for modern JVM/game arguments and legacy `minecraftArguments` fallback;
 - strict placeholder substitution for Mojang account/version/assets/natives/classpath/auth/launcher fields;
@@ -58,7 +62,7 @@ The current v0.1 implementation includes:
 - initial unit/integration test sources using Ktor `MockEngine` rather than live Mojang services;
 - a lightweight Compose screen with nickname validation, release/snapshot selection, version selection, RAM control, loading state and retryable metadata errors.
 
-The remaining main v0.1 engineering work is Minecraft process management, persistence/cache polish, Compose preparation/progress/Play wiring and complete build/manual launch verification. The UI intentionally does not expose a fake `Play` action before the real process pipeline exists.
+The remaining v0.1 engineering work is full Gradle and cross-platform build verification, first real vanilla Minecraft launch, persistence for offline nickname/version/RAM, manifest cache and UI polish. The new Play action is functional in code but not yet validated against a real Mojang download and game startup.
 
 ## Technology
 
@@ -266,7 +270,7 @@ This is intended to prevent the project roadmap from drifting away from the real
 
 Implemented so far: project/module foundation, offline account primitives, Mojang version discovery and full selected-version parsing, shared verified download infrastructure, client/library/native/assets preparation, platform-aware managed Mojang Java installation, metadata-driven final launch-plan construction and the first lightweight Compose Desktop screen.
 
-Still required before v0.1 can be considered functional: persistence/settings behavior, Compose preparation/progress/Play/process and shutdown wiring, Gradle wrapper/full automated build verification and a real clean-machine vanilla Minecraft launch.
+Still required before v0.1 can be considered accepted: Gradle wrapper/full automated build, real clean-machine vanilla Minecraft launch, cross-platform verification, settings persistence, version-manifest cache and manual UI validation.
 
 ## License
 

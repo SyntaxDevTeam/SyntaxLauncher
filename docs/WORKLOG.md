@@ -8,6 +8,62 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-18 — Wire complete Minecraft launch pipeline into Compose Desktop
+
+**Milestone:** v0.1 — Minimal Vanilla Launcher  
+**Author/Agent:** ChatGPT  
+**Status:** Partial
+
+### Completed
+
+- Added `MinecraftLaunchCoordinator` in launcher-core, sequentially performing prepared version → game files/asset index/assets/natives → required managed Java → structured LaunchPlan → ProcessBuilder launch.
+- The version metadata is already resolved and SHA-1 verified by the version picker before Play; pressing Play reuses this resolved metadata rather than performing an unnecessary second metadata request.
+- Added explicit phases IDLE/PREPARING_GAME/PREPARING_JAVA/BUILDING_PLAN/STARTING_GAME/STARTED/FAILED/CANCELLED and a StateFlow for current detail, download counts and per-file progress.
+- Mapped core MinecraftPreparationEvent, JavaRuntimeEvent and DownloadEvent into user-visible progress stages.
+- Guarded parallel Play requests with a core Mutex plus session ownership; missing Java requirement is reported before starting a large game download.
+- Added a narrow, dedicated `DesktopLauncherSession` owning the coroutine scope, shared HTTP lifecycle and cancellation independently of Compose recomposition.
+- On close, cancel and join any preparation job, detach from a running child process, then close the Ktor client and exit the app on the Swing dispatcher.
+- Updated the Compose main screen with a real enabled/disabled Play button and Stop action; nickname, Minecraft version and RAM are forwarded to the core pipeline.
+- The UI now displays preparation/Java file progress, retry for metadata fetch, process running/stopped/crashed status, PID, exit code, log path, cancellation and failure summaries.
+- Controls are disabled during preparation and when the game is running; existing offline-play warning and restrained dark visual identity were preserved.
+- Added controlled test sources covering a synthetic Mojang client download + offline LaunchPlan + fake Java provider + local Java child-process launch, and early failure when the Java requirement is absent.
+- Kept login/premium/mod features out of v0.1, and did not claim a real Minecraft launch before acceptance tests.
+
+### Changed files
+
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/launch/MinecraftLaunchCoordinator.kt` — launch orchestration and shared typed StateFlow progress.
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/launch/MinecraftLaunchCoordinatorTest.kt` — controlled end-to-end-style pipeline test sources.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/DesktopLauncherSession.kt` — coroutines, launch cancellation, process detachment and client shutdown.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/Main.kt` — composition root / dependency wiring.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/SyntaxLauncherApp.kt` — actual Play/Stop, progress/error/status UI and control locking.
+- `docs/ROADMAP.md` — v0.1 process/launch/UI tracker synchronized.
+- `docs/WORKLOG.md` — this entry.
+- `README.md` — project overview updated to describe the actual Compose pipeline.
+
+### Verification
+
+- GitHub file/API review — source interfaces for catalog, metadata, preparation, Java Manager, LaunchPlan, ProcessManager, downloader and Compose dependencies checked before integration.
+- Source/static review — phase ordering, cancellation lifecycle, no Compose dependency inside launcher-core, stable session ownership and supported offline scope reviewed.
+- Deterministic integration-style test sources added with Ktor MockEngine and local Java child process; actual Gradle/JUnit execution NOT RUN.
+- `./gradlew test` — NOT RUN; no Gradle wrapper is committed and container DNS/dependency resolution is unavailable.
+- `./gradlew build` — NOT RUN for the same reason.
+- Real Minecraft/Compose GUI manual launch — NOT RUN. Play exists in the source but may require fixes after first full build and live test.
+
+### Roadmap updates
+
+- Compose Play, Stop, runtime/download status, progress, cancellation, control locking, process status and close lifecycle now `🚧 IN PROGRESS` pending build and live acceptance.
+- UI RAM now feeds actual LaunchOptions; process and Java stages are wired to desktop through a core coordinator.
+- v0.1 quality gates remain unchecked; persistence, manifest caching, first real-game launch and supported-platform checks remain open.
+
+### Follow-ups / known issues
+
+- Commit a Gradle wrapper, run test/build and resolve any Kotlin/Compose library API mismatches identified by a real build.
+- Perform a fresh Mojang vanilla install and launch on supported desktop platforms; verify current official Java runtime metadata/downloads and stdout/stderr behavior.
+- Persist nickname, selected Minecraft version and RAM, and cache version manifest with safe fallback/error recovery.
+- Before v0.3 premium authentication, replace raw child-process log redirection with a token-safe logging design.
+
+---
+
 ## 2026-10-18 — Implement Minecraft process lifecycle management
 
 **Milestone:** v0.1 — Minimal Vanilla Launcher  

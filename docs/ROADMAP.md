@@ -16,7 +16,7 @@ Agents and contributors MUST keep this file synchronized with actual repository 
 
 Goal: launch a selected vanilla Minecraft version using an offline account and an automatically resolved Java runtime.
 
-**Current status:** 🚧 Implementation in progress. Kotlin/Compose foundation, offline account primitives, Mojang metadata/rules, verified game-file preparation, managed Java installation, metadata-driven LaunchPlan and MinecraftProcessManager now exist in launcher-core. The manager starts ProcessBuilder with separate session stdout/stderr logs, reports lifecycle/exit codes, blocks duplicate launches and supports explicit detach/terminate. Compose Play integration, settings persistence, Gradle wrapper/full tests, platform checks and a real clean-machine Minecraft launch remain open.
+**Current status:** 🚧 Implementation in progress. The offline identity, Mojang catalog/metadata resolver, verified game preparation, Java manager, launch planner and process manager are now composed into a desktop launch pipeline. Compose exposes a real Play action, per-stage and per-file progress, cancellation, process status/exit code/log paths and a stop action. Window close cancels ongoing preparation and detaches from an already running Minecraft process. Full Gradle build/tests, live Minecraft acceptance, persistence and manifest cache remain open.
 
 ## Project foundation
 
@@ -97,7 +97,7 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 
 - [ ] 🚧 IN PROGRESS — Java requirement (`component` + `majorVersion`) is parsed from Minecraft metadata and now drives runtime resolution; full Gradle/live verification remains pending.
 - [ ] 🚧 IN PROGRESS — `JavaRuntime` now records executable/home/version plus source/component/platform/release identity; full build verification remains pending.
-- [ ] 🚧 IN PROGRESS — `JavaRuntimeManager` service boundary and event stream are implemented and its resolved runtime is consumed by `LaunchRequest`; process execution remains pending.
+- [ ] 🚧 IN PROGRESS — `JavaRuntimeManager` is wired into `MinecraftLaunchCoordinator`; returned runtime feeds `LaunchRequest` before `ProcessBuilder`. Full live/Gradle verification is pending.
 - [ ] 🚧 IN PROGRESS — compatible launcher-managed runtimes are discovered and reused before any runtime-index network call; complete manifest-backed integrity and `java -version` checks guard reuse.
 - [ ] 🚧 IN PROGRESS — official Mojang runtime index is used as the distribution source and selected by the Minecraft-declared component plus detected platform; full live platform verification remains pending.
 - [ ] 🚧 IN PROGRESS — missing Mojang runtime manifests/files are downloaded through the shared verified `DownloadManager`, including retry/cancellation/progress behavior; Gradle/live execution remains pending.
@@ -112,7 +112,7 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 
 ## Launch planning
 
-- [ ] 🚧 IN PROGRESS — `LaunchOptions` memory bounds and extra JVM args are now consumed directly by `LaunchPlanBuilder`; Compose RAM state still needs final Play-flow wiring and full Gradle verification.
+- [ ] 🚧 IN PROGRESS — `LaunchOptions` memory bounds are now passed from the Compose RAM control into the real Play pipeline and consumed by `LaunchPlanBuilder`; Gradle/live acceptance remains pending.
 - [ ] 🚧 IN PROGRESS — `LaunchRequest` now binds common `Account`, verified `PreparedMinecraftVersion`, resolved `JavaRuntime`, platform, features, options and normalized `LaunchAuthentication`; process-layer integration remains pending.
 - [ ] 🚧 IN PROGRESS — classpath is assembled from prepared libraries plus client JAR and substituted with the target platform classpath separator; full Gradle/real-launch verification remains pending.
 - [ ] 🚧 IN PROGRESS — Mojang placeholders are substituted explicitly for account/version/game/assets/natives/classpath/library/auth/launcher fields; unknown placeholders fail with a typed launch-plan error instead of reaching Java unresolved.
@@ -124,7 +124,7 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 - [ ] 🚧 IN PROGRESS — offline username/UUID/session/access token/user type are normalized through `LaunchAuthentication.offline()` without hardwiring raw nickname handling throughout the builder; premium credentials can later use the same boundary.
 - [ ] 🚧 IN PROGRESS — metadata logging argument `${path}` is bound to the verified downloaded logging configuration when present.
 - [ ] 🚧 IN PROGRESS — legacy versions without metadata JVM arguments receive explicit natives path and classpath fallback arguments rather than a version-specific hardcoded launch recipe.
-- [ ] 🚧 IN PROGRESS — `LaunchPlan` now contains runtime, working directory, main class, JVM arguments, game arguments and a structured final command list without starting a process; process execution remains the next stage.
+- [ ] 🚧 IN PROGRESS — structured `LaunchPlan` now directly feeds `MinecraftProcessManager` through `MinecraftLaunchCoordinator`; compilation/full real-Minecraft launch acceptance remains pending.
 - [ ] 🚧 IN PROGRESS — deterministic unit-test sources cover modern placeholder construction, memory/logging/classpath/offline identity, legacy JVM fallback, arguments containing spaces and rejection of unknown placeholders; `./gradlew test` execution remains pending.
 
 ## Process management
@@ -138,19 +138,23 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 - [ ] 🚧 IN PROGRESS — explicit `shutdown(DETACH | TERMINATE)` policy defines launcher close behavior; DETACH leaves Minecraft alive with stdout/stderr redirected to files; desktop window-close integration remains pending.
 - [ ] 🚧 IN PROGRESS — typed process startup, duplicate-launch, closed-manager and forced-termination failures are defined without logging a full launch command or authentication arguments; full Gradle execution remains pending.
 - [ ] 🚧 IN PROGRESS — five process-manager test scenarios cover a real JDK subprocess, separate stdout/stderr logs, duplicate protection, crashes and relaunch, force-stop, detach, and retry after startup failure; Gradle/JUnit execution remains pending.
-- [ ] Integrate process-manager state, log access and explicit shutdown policy into the actual Compose Play/window lifecycle.
+- [ ] 🚧 IN PROGRESS — Compose observes process `StateFlow` and displays PID, exit code, errors and process log directory; Stop calls `terminate()`. Window close uses DETACH after canceling ongoing downloads; full UI lifecycle testing pending.
 
 ## v0.1 UI
 
-- [ ] 🚧 IN PROGRESS — offline nickname input and validation state implemented; persistence remains pending.
-- [ ] 🚧 IN PROGRESS — Minecraft version selector backed by the Mojang manifest implemented; full build/manual verification remains pending.
-- [ ] 🚧 IN PROGRESS — release/snapshot channel filter implemented; full build/manual verification remains pending.
-- [ ] 🚧 IN PROGRESS — RAM slider implemented; value can now feed `LaunchOptions` but is not yet wired into the final Play flow or persisted.
-- [ ] Play button.
-- [ ] 🚧 IN PROGRESS — core preparation/download/runtime stages and typed progress events now exist; Compose presentation and user-triggered preparation remain pending.
-- [ ] 🚧 IN PROGRESS — catalog plus selected-version metadata loading/error/retry states are implemented and downloader/runtime/launch-plan layers have typed failures; final Play/process error mapping remains pending.
-- [ ] Disable conflicting controls during critical operations.
-- [ ] Remember last selected version/settings.
+- [ ] 🚧 IN PROGRESS — offline nickname field validates username and feeds `OfflineAccount.create()` for the real Play pipeline; persistence/full UI verification remains pending.
+- [ ] 🚧 IN PROGRESS — Minecraft version selector and release/snapshot filters are driven by the official Mojang catalog, with selected metadata verified asynchronously; full Compose execution is pending.
+- [ ] 🚧 IN PROGRESS — RAM slider feeds `LaunchOptions(maximumMemoryMiB)` on Play; persistence/full UI verification remains pending.
+- [ ] 🚧 IN PROGRESS — real `Play Minecraft` action now runs prepared metadata → verified game downloads/assets/natives → managed Java → `LaunchPlanBuilder` → `MinecraftProcessManager`; live vanilla launch acceptance is pending.
+- [ ] 🚧 IN PROGRESS — `MinecraftLaunchCoordinator` exposes preparation phases, per-file progress and completion counts through `StateFlow`; Compose displays status and progress and offers cancellation.
+- [ ] 🚧 IN PROGRESS — catalog/metadata errors have retry actions; pipeline preparation/Java/launch errors and process crashes display human-oriented messages and log paths; detailed error mapping/manual verification remain open.
+- [ ] 🚧 IN PROGRESS — nickname/version/channel/RAM controls and Play are disabled during preparation or while the game runs; duplicate launch is also guarded in the session/core.
+- [ ] 🚧 IN PROGRESS — `DesktopLauncherSession` owns application-scope jobs, cancels outstanding preparation on window close, shuts down process manager with DETACH and closes the shared Ktor client; cross-platform close acceptance is pending.
+- [ ] 🚧 IN PROGRESS — the UI exposes a `Stop Minecraft` action and running/stopped/crashed/exit-code indicators from ProcessManager; real-game/manual verification remains pending.
+- [ ] Remember last selected version, offline nickname and RAM settings safely across restarts.
+- [ ] Cache version manifest to support startup when Mojang is unreachable.
+- [ ] Verify launcher UI layout, long progress text and keyboard/focus behavior at supported window sizes and scaling.
+
 
 ## v0.1 quality gate
 
