@@ -8,6 +8,47 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-18 — Stage v0.2 instance isolation and management delivery
+
+**Milestone:** v0.2 — Instance Manager  
+**Author/Agent:** ChatGPT  
+**Status:** Completed (planning/documentation only; implementation gates remain open)
+
+### Completed
+
+- Reviewed the current v0.2 repository, tests, LaunchCoordinator integration and Compose instance manager against AGENTS.md, milestone scope, design rules and previous CI evidence.
+- Created a single, concrete two-track implementation plan: Track A for separate Minecraft instances (identity, isolated game storage, shared cache, legacy import and safety); Track B for instance management (creation/selection, per-instance settings, clone/trash/restore and a usable Compose workspace).
+- Defined phase dependencies, P0/P1 priorities, in-code baseline versus missing behavior, acceptance tests, file/data safety invariants and intentionally deferred features.
+- Identified remaining gaps without claiming they exist already: automatic import copy progress/cancellation, safety around active/detached processes, in-app trash restore, fully editable JVM settings, duplicate-name disambiguation and UI acceptance testing.
+- Preserved existing implementation and recorded the real-game isolation gate separately from the previously green 4/4 CI results.
+
+### Changed files
+
+- `docs/INSTANCE_MANAGER_PHASES.md` — detailed two-track phased plan, criteria and completion gates.
+- `docs/ROADMAP.md` — new prioritized v0.2 checklist linked to the plan.
+- `README.md` — direct link to phased v0.2 plan.
+- `docs/WORKLOG.md` — this entry.
+
+### Verification
+
+- Existing GitHub Actions run `39157681455` — historical PASS, 4/4 jobs for the current v0.2 implementation baseline; no new code was added in this change.
+- `./gradlew test` — NOT RUN; documentation-only change.
+- `./gradlew build` — NOT RUN; documentation-only change.
+- Manual gameplay acceptance — NOT RUN; two-world isolation/clone/legacy import remain separate open gates.
+
+### Roadmap updates
+
+- Added track A/B scoped, ordered tasks with P0/P1 and specific practical release gates; no newly completed boxes were checked.
+- Existing implemented code/test milestones retain their verified status and v0.2 remains in progress.
+
+### Follow-ups / known issues
+
+- Start with A2's real two-world acceptance and B2's complete instance settings editor, then harden A3/A4's non-destructive operations.
+- Implement in-app restore and a dedicated Instances UI before release.
+- Update the roadmap/worklog and retain red/green evidence as each implementation phase is finished.
+
+---
+
 ## 2026-10-18 — Confirm green v0.2 build and publish manual acceptance checklist
 
 **Milestone:** v0.2 — Instance Manager  

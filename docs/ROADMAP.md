@@ -187,6 +187,21 @@ Goal: separate user installations into isolated, manageable Minecraft instances 
 
 **Status:** 🚧 IN PROGRESS — schema-versioned instance repository, CRUD, non-destructive clone/trash/import, Compose manager and per-instance launch integration compile and pass the core test suite. Cross-platform CI 39157681455 PASSED (4/4). Real two-world, legacy import and clone acceptance remain pending.
 
+**Detailed execution phases and acceptance criteria:** [INSTANCE_MANAGER_PHASES.md](INSTANCE_MANAGER_PHASES.md) — Track A (separate game instances) and Track B (instance management).
+
+## v0.2 delivery phases — prioritized work remaining
+
+- [ ] **A2 / P0 — Real-world isolation:** demonstrate two same-version instances with different worlds/options, shared verified Mojang caches and working restart persistence. The filesystem assertions already pass CI; real Minecraft acceptance is outstanding.
+- [ ] **A3 / P0 — Legacy import completion:** add size/progress/cancel/error handling and demonstrate that importing v0.1 worlds never modifies their source.
+- [ ] **A4 / P0 — Data protection:** enforce active-game safety before clone/trash/edit, robust copy/staging rollback, symlink/path protection and disk-space/permissions diagnostics.
+- [ ] **B1 / P0 — Selection UX acceptance:** make duplicate names distinguishable, verify saved selection after restart and handle missing/corrupt instance explicitly.
+- [ ] **B2 / P0 — Settings editor:** complete explicit Save/Cancel for version, memory and JVM options, with downgrade warnings and no unintended writes.
+- [ ] **B3 / P0 — Safe clone/trash/restore:** report long-copy progress and implement in-app trash restore with verified world recovery.
+- [ ] **B4 / P1 — Instance workspace:** replace the dense prototype dialog with a focused, accessible Instances view; keep Play the home screen's primary action.
+- [ ] **Final acceptance / P0:** automated regression suite, three platform distributions, real A/B world isolation, non-destructive legacy import, clone/restore and v0.1 compatibility.
+
+
+
 ## Instance model
 
 - [x] `MinecraftInstance` domain model with canonical UUID and validated display name; verified in core tests.
