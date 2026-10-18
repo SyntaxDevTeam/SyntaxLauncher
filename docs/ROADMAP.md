@@ -158,19 +158,18 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 
 ## Build and CI validation
 
-- [ ] 🚧 IN PROGRESS — GitHub Actions runs Kotlin core tests and desktop compilation on Linux with a pinned Gradle 9.4.0 and Temurin JDK 21; CI core tests and desktop compilation PASSED (39123949155) after dependency/test repairs.
-- [ ] 🚧 IN PROGRESS — GitHub Actions builds and publishes runnable Compose Desktop app-directory artifacts on Linux, Windows and macOS; Linux/Windows/macOS Compose createDistributable jobs PASSED (39124788473); preserving Unix executable bits/symlinks by packing app directories into tar.gz before upload is now implemented and awaiting verification.
-- [ ] Commit official Gradle 9.4.0 wrapper GENERATED and COMMITTED by restricted bootstrap workflow (03d2650); local ./gradlew verification outside Actions remains pending.
-- [ ] Investigate/fix failing Gradle compilation, test suite, native packaging and runtime behavior from CI logs.
-- [ ] Validate a clean-machine vanilla launch and documented OS/architecture matrix before publishing v0.1 test release.
-
-- [ ] 🚧 IN PROGRESS — portable native-image artifacts now use tar.gz wrappers to preserve Linux/macOS executable bits and symlinks; full artifact extraction/launch verification pending.
-- [ ] 🚧 IN PROGRESS — explicit jlink jdk.crypto.ec module included so packaged HTTPS downloads retain required JSSE EC provider; cross-platform package verification pending.
+- [x] GitHub Actions run 39125171338 passed `:launcher-core:test` and desktop Kotlin compilation with pinned Gradle 9.4.0 and Temurin JDK 21 on Linux.
+- [x] GitHub Actions run 39125171338 built Compose portable app images for Linux x64, Windows x64 and macOS ARM64, and published permission-preserving platform tar.gz preview artifacts.
+- [x] Official Gradle wrapper 9.4.0 (`gradlew`, `gradlew.bat`, properties, official JAR) generated, executed and committed by a restricted bootstrap GitHub Actions workflow (03d2650).
+- [x] Identified and repaired initial CI blockers: missing Google Maven repositories, Kotlin Path classpath concatenation, desktop Ktor dependency, malformed test fixtures, and macOS app-version jpackage constraint.
+- [ ] 🚧 IN PROGRESS — portable artifacts have CI-proven packaging but await manual extraction, startup/operation and signed native installer packaging where appropriate.
+- [ ] Validate a clean-machine vanilla launch and documented OS/architecture matrix before declaring v0.1 usable as a public release.
+- [ ] Verify the packaged launcher can connect to Mojang over HTTPS using the explicitly included `jdk.crypto.ec` runtime module.
 
 ## v0.1 quality gate
 
-- [ ] `./gradlew test` passes.
-- [ ] `./gradlew build` passes.
+- [ ] 🚧 IN PROGRESS — GitHub Actions passes `:launcher-core:test`; full `./gradlew test` on development/supported OS hosts is still pending.
+- [ ] 🚧 IN PROGRESS — desktop compilation and portable packaging passed in CI; full project `./gradlew build` and local reproduction are still pending.
 - [ ] Fresh launcher state can download prerequisites and start a supported vanilla Minecraft release.
 - [ ] Second launch reuses valid cached data instead of redownloading everything.
 - [ ] Offline identity remains stable for the same username.

@@ -8,6 +8,45 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-18 — Confirm all three v0.1 preview artifacts and green CI
+
+**Milestone:** v0.1 — Minimal Vanilla Launcher  
+**Author/Agent:** ChatGPT  
+**Status:** Partial
+
+### Completed
+
+- Confirmed GitHub Actions run `39125171338` finished with all four jobs SUCCESS: core tests plus desktop compile, Linux x64, Windows x64, macOS ARM64 `createDistributable` packaging.
+- Verified Actions uploaded archive-wrapped preview app images, preserving Unix executable bits/symlinks: Windows artifact `12135981958`, Linux `12136131266`, macOS `12136425435`; also test-results artifact `12135961632`.
+- Confirmed official Gradle wrapper commit `03d2650`, Kotlin compile/test repairs and schema-versioned preferences sources are on main.
+- Synchronized roadmap acceptance status and documented the difference between CI-verifiable packages and an actual clean-machine Minecraft launch.
+
+### Changed files
+
+- `docs/ROADMAP.md` — mark CI build/packaging and official Gradle wrapper complete, keep full v0.1 game-run quality gates open.
+- `docs/WORKLOG.md` — this verification entry.
+- `README.md` — links to the verified packaging run and preview test instructions.
+
+### Verification
+
+- GitHub Actions `39125171338`: 4/4 jobs PASS, `:launcher-core:test` PASS, desktop Kotlin compile PASS, Windows/Linux/macOS portable app packaging PASS.
+- Official wrapper generation `39123801774`: PASS.
+- Actual game launch, fresh Mojang Java install, second-run cache test and GUI smoke on users' operating systems: NOT RUN.
+- Full `./gradlew build` and local `./gradlew test` not executed in this network-isolated container; equivalent CI Gradle tasks reported above are PASS.
+
+### Roadmap updates
+
+- CI test, package matrix, official wrapper and identified compiler/build blockers checked complete.
+- Full v0.1 release acceptance remains `🚧` until a real vanilla launch, platform smoke and cache reuse are demonstrated.
+
+### Follow-ups / known issues
+
+- Have a tester extract a preview build and complete `docs/TESTING_V0.1.md` with real-world game launch evidence and sanitized logs.
+- Address any runtime, Java-provider, account/profile or packaging issues identified during the first Minecraft launch.
+- Later add signed native installers, offline catalog caching and expanded platform acceptance.
+
+---
+
 ## 2026-10-18 — Harden portable artifacts and document v0.1 preview testing
 
 **Milestone:** v0.1 — Minimal Vanilla Launcher  

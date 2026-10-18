@@ -74,6 +74,9 @@ SyntaxLauncher stores only the selected offline nickname, Minecraft version/chan
 
 ## v0.1 test builds
 
+The [2026-10-18 cross-platform CI run](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/39125171338) passed all four jobs, including core tests and Windows/Linux/macOS portable app packaging. These binaries are preview builds, not yet validated with a fresh actual Minecraft launch.
+
+
 Read [the v0.1 manual testing guide](docs/TESTING_V0.1.md) before testing a downloaded preview build. Extract the GitHub Actions artifact ZIP, then extract the inner `syntaxlauncher-<platform>.tar.gz` to preserve Unix permissions. Test builds do not yet have a signed release installer or a successful documented clean-machine vanilla Minecraft launch.
 
 ## Technology
