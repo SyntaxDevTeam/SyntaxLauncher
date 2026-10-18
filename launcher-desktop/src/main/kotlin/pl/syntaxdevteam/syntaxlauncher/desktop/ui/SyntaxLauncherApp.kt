@@ -214,10 +214,20 @@ private fun LauncherPanel(
     val unsavedInstanceSettings = activeInstance != null &&
         (activeInstance.minecraftVersionId != selected?.id ||
             activeInstance.maximumMemoryMiB != ramMiB.toInt())
-    val canPlay = !locked && validName && resolved != null && !unsavedInstanceSettings
+    val missingInstance = inventory != null && instanceId.isNotBlank() && activeInstance == null
+    val canPlay = !locked && validName && resolved != null &&
+        !unsavedInstanceSettings && !missingInstance
 
     LaunchedEffect(session) {
-        try { inventory = session.instances.list() }
+        try {
+            inventory = session.instances.list()
+            inventory?.instances?.firstOrNull { it.id == instanceId }?.let { profile ->
+                selected = manifest.versions.firstOrNull { it.id == profile.minecraftVersionId }
+                ramMiB = profile.maximumMemoryMiB.toFloat()
+                showSnapshots = selected?.type == MinecraftVersionType.SNAPSHOT
+            }
+            instanceError = inventory?.problems?.takeIf { it.isNotEmpty() }?.joinToString("; ")
+        }
         catch (error: Exception) { instanceError = error.message ?: "Cannot load instances" }
     }
 
@@ -477,6 +487,11 @@ private fun LauncherPanel(
                 OutlinedButton(onClick = { managerOpen = true }, enabled = !locked,
                     modifier = Modifier.fillMaxWidth()) {
                     Text("Manage instances (${inventory?.instances?.size ?: 0})")
+                }
+                if (missingInstance) {
+                    Text("Selected instance is unavailable. Choose a valid instance or Legacy Vanilla.",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall)
                 }
                 if (unsavedInstanceSettings) {
                     Text("Save version / RAM in Manage instances before playing.",

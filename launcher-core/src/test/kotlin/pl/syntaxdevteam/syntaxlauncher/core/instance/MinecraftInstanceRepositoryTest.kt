@@ -56,7 +56,12 @@ class MinecraftInstanceRepositoryTest {
         val originalWorld = repo.gameDirectory(original).resolve("saves/world/level.dat")
         Files.createDirectories(originalWorld.parent)
         Files.writeString(originalWorld, "initial")
+        val originalMetadata = repo.gameDirectory(original).parent.resolve("instance.json")
+        Files.writeString(originalMetadata,
+            Files.readString(originalMetadata).replaceFirst("{", """{ "futureInfo": "preserved","""))
         val clone = repo.cloneInstance(original.id, "Cloned")
+        assertTrue(Files.readString(repo.gameDirectory(clone).parent.resolve("instance.json"))
+            .contains("futureInfo"))
         assertNotEquals(original.id, clone.id)
         assertEquals(8192, clone.maximumMemoryMiB)
         assertEquals(listOf("-Dtest=ok"), clone.extraJvmArguments)

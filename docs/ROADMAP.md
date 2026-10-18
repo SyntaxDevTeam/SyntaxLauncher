@@ -201,7 +201,7 @@ Goal: separate user installations into isolated, manageable Minecraft instances 
 - [ ] 🚧 IN PROGRESS — per-instance `instance.json` persisted through temporary file + atomic publication; metadata errors are surfaced without deleting data.
 - [ ] 🚧 IN PROGRESS — schema 1 read/write supports unknown-field preservation; later schema migrations remain to be designed/tested.
 - [ ] 🚧 IN PROGRESS — explicit non-destructive import copies the v0.1 game folder while leaving source untouched.
-- [ ] 🚧 IN PROGRESS — cloning refuses symlinks and stages files before making a clone visible; extraction/manual tests pending.
+- [ ] 🚧 IN PROGRESS — cloning refuses symlinks, stages files before publishing and preserves unknown JSON metadata fields; real-world clone/manual tests pending.
 
 ## Instance management
 
@@ -211,7 +211,7 @@ Goal: separate user installations into isolated, manageable Minecraft instances 
 
 ## Launch integration
 
-- [ ] 🚧 IN PROGRESS — selected instance changes only the game directory passed to the existing preparation/launch pipeline.
+- [ ] 🚧 IN PROGRESS — selected instance changes only the game directory passed to the existing preparation/launch pipeline; coordinator integration test now checks this path.
 - [ ] 🚧 IN PROGRESS — per-instance min/max RAM and extra JVM arguments override launcher defaults when an instance is active.
 - [ ] 🚧 IN PROGRESS — the v0.1 Legacy Vanilla profile remains available with its original game folder.
 - [ ] Manual acceptance: launch two profiles with the same Minecraft version and confirm independent worlds/configurations.
@@ -220,7 +220,7 @@ Goal: separate user installations into isolated, manageable Minecraft instances 
 
 - [ ] 🚧 IN PROGRESS — instance selector/manager added to Compose home without changing primary Play CTA.
 - [ ] 🚧 IN PROGRESS — create, rename, clone, explicit legacy import, save version/RAM and confirm delete actions.
-- [ ] 🚧 IN PROGRESS — error state lists corrupt instance metadata instead of silently dropping it.
+- [ ] 🚧 IN PROGRESS — corrupt/missing saved instances are explicitly reported and cannot silently redirect Play to Legacy Vanilla.
 - [ ] Preview UX review (window size, instance manager dialog, large folders and keyboard focus) pending.
 
 ## v0.2 quality gate

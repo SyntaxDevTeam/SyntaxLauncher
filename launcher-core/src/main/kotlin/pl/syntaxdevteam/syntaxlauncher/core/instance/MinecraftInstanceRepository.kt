@@ -41,7 +41,7 @@ data class MinecraftInstance(
             "Invalid Minecraft version id"
         }
         require(minimumMemoryMiB in 256..16384 &&
-            maximumMemoryMiB in minimumMemoryMiB..32768) { "Invalid instance RAM settings" }
+            maximumMemoryMiB in minimumMemoryMiB..16384) { "Invalid instance RAM settings" }
         require(extraJvmArguments.size <= 32 && extraJvmArguments.all {
             it.isNotBlank() && it.length <= 512 && it.none { ch -> ch.code in 0..31 }
         }) { "Invalid extra JVM arguments" }
@@ -126,7 +126,7 @@ class MinecraftInstanceRepository(
         mutex.withLock {
             val existing = read(instanceDirectory(id))
             val copy = existing.copy(id = UUID.randomUUID().toString(), name = name.trim())
-            publishNew(copy, gameDirectory(existing))
+            publishNew(copy, gameDirectory(existing), instanceDirectory(id).resolve("instance.json"))
             copy
         }
     }
@@ -158,7 +158,11 @@ class MinecraftInstanceRepository(
         }
     }
 
-    private fun publishNew(value: MinecraftInstance, sourceGame: Path? = null) {
+    private fun publishNew(
+        value: MinecraftInstance,
+        sourceGame: Path? = null,
+        sourceMetadata: Path? = null,
+    ) {
         Files.createDirectories(root)
         val temporary = root.resolve(".creating-" + value.id)
         val destination = instanceDirectory(value.id)
@@ -166,6 +170,7 @@ class MinecraftInstanceRepository(
         try {
             Files.createDirectories(temporary.resolve("game"))
             if (sourceGame != null) copyGameFiles(sourceGame, temporary.resolve("game"))
+            if (sourceMetadata != null) Files.copy(sourceMetadata, temporary.resolve("instance.json"))
             write(temporary, value)
             move(temporary, destination)
         } finally {

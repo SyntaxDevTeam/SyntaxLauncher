@@ -51,6 +51,7 @@ class MinecraftLaunchCoordinatorTest {
                 .start()
         }
         val layout = makeLayout(root)
+        val instanceLayout = layout.copy(gameDir = root.resolve("instances/isolated-game"))
         val coordinator = MinecraftLaunchCoordinator(
             preparation = MinecraftPreparationService(
                 DownloadManager(http, retryPolicy = DownloadRetryPolicy(maxAttempts = 1))),
@@ -62,13 +63,17 @@ class MinecraftLaunchCoordinatorTest {
         )
         try {
             val status = coordinator.launch(version(client),
-                OfflineAccount.create("SyntaxTest"), LaunchOptions(maximumMemoryMiB = 3072))
+                OfflineAccount.create("SyntaxTest"), LaunchOptions(maximumMemoryMiB = 3072),
+                instanceLayout = instanceLayout)
             assertEquals(LaunchPhase.STARTED, status.phase)
             assertTrue(Files.exists(layout.versionJar("test-release")))
             val plan = assertNotNull(captured)
             assertTrue("-Xmx3072M" in plan.jvmArguments)
             assertTrue("SyntaxTest" in plan.gameArguments)
             assertEquals(runtime.executable, plan.runtime.executable)
+            assertEquals(instanceLayout.gameDir, plan.workingDirectory)
+            assertTrue(Files.isDirectory(instanceLayout.gameDir))
+            assertTrue(Files.isDirectory(layout.versionsDir))
             assertNotNull(process.status.value.stderrLog)
         } finally {
             process.shutdown(MinecraftShutdownPolicy.DETACH)

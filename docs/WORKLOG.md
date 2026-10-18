@@ -8,6 +8,41 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-18 — Harden restored instance selection, clone metadata and launch tests
+
+**Milestone:** v0.2 — Instance Manager  
+**Author/Agent:** ChatGPT  
+**Status:** Partial
+
+### Completed
+- CI run `39157356664` successfully compiled the new instance core/desktop implementation and passed launcher-core tests; platform packages were still in progress.
+- Prevented silently launching Legacy Vanilla if a saved selected instance cannot be found.
+- Restored the selected instance's Minecraft version and RAM settings after asynchronous inventory loading.
+- Preserved unknown schema-1 JSON properties while cloning an instance, in addition to updates.
+- Added an integration assertion for the actual LaunchPlan working directory when a per-instance layout is supplied.
+
+### Changed files
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/instance/MinecraftInstanceRepository.kt` — copy unknown instance metadata during clone.
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/instance/MinecraftInstanceRepositoryTest.kt` — verify copied unknown JSON field.
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/launch/MinecraftLaunchCoordinatorTest.kt` — assert instance-specific working directory and shared cache layout.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/SyntaxLauncherApp.kt` — restore profile settings and reject missing-profile fallback.
+- `docs/ROADMAP.md` and `docs/WORKLOG.md` — track changes and verification.
+
+### Verification
+- Prior CI verification for initial v0.2 commit: PASS (core tests + desktop Kotlin compile).
+- `./gradlew test` — follow-up CI pending, not run locally.
+- `./gradlew build` — follow-up CI packaging pending, not run locally.
+- Manual Minecraft two-instance isolation: NOT RUN.
+
+### Roadmap updates
+- Instance launch and persistence improvements still in progress pending follow-up CI and live user testing.
+
+### Follow-ups / known issues
+- Inspect full CI results, fix any Kotlin/UI/test problems.
+- Confirm world isolation, import and trash behavior in actual Minecraft sessions.
+
+---
+
 ## 2026-10-18 — Implement first v0.2 Instance Manager vertical slice
 
 **Milestone:** v0.2 — Instance Manager  
