@@ -8,6 +8,41 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-18 — Fix Compose dependency resolution in CI
+
+**Milestone:** v0.1 — Minimal Vanilla Launcher  
+**Author/Agent:** ChatGPT  
+**Status:** Partial
+
+### Completed
+
+- Read first GitHub Actions build `39123291984` failure: eleven unresolved `androidx.*` dependencies, including lifecycle, savedstate, runtime and annotations.
+- Root cause was missing Google Maven in Gradle dependency and plugin repositories.
+- Added `google()` to both dependency and plugin repository declarations; no speculative Kotlin or Compose version downgrade.
+
+### Changed files
+
+- `settings.gradle.kts` — Google Maven resolution.
+- `docs/ROADMAP.md` — running build/CI progress and blocker recorded.
+- `docs/WORKLOG.md` — this entry.
+
+### Verification
+
+- Original Actions log — FAIL: module resolution due to missing Google Maven.
+- `./gradlew test` and `./gradlew build` — NOT RUN locally (no wrapper/network); subsequent GitHub Actions rerun is pending.
+- Real Minecraft launch — NOT RUN.
+
+### Roadmap updates
+
+- CI stays `🚧 IN PROGRESS`, dependency resolution fix requires Actions verification.
+
+### Follow-ups / known issues
+
+- Recheck CI logs for compiler and test errors after Maven repository resolution.
+- Continue platform packaging and official wrapper generation.
+
+---
+
 ## 2026-10-18 — Introduce cross-platform build and packaging CI
 
 **Milestone:** v0.1 — Minimal Vanilla Launcher  
