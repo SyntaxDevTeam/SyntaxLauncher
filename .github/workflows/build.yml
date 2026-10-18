@@ -68,6 +68,23 @@ jobs:
           gradle-version: "9.4.0"
       - name: Build runnable native app directory
         run: gradle --no-daemon --stacktrace :launcher-desktop:createDistributable
+      - name: Show jpackage diagnostics on failure
+        if: failure()
+        shell: bash
+        run: |
+          if [ -d launcher-desktop/build/compose/logs ]; then
+            find launcher-desktop/build/compose/logs -type f -name "*.txt" -print -exec tail -n 100 {} \;
+          else
+            echo "No Compose packaging logs found"
+          fi
+      - name: Upload jpackage diagnostic logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: syntaxlauncher-packaging-logs-${{ matrix.artifact }}-${{ github.sha }}
+          path: launcher-desktop/build/compose/logs/
+          if-no-files-found: warn
+          retention-days: 14
       - name: Upload portable app
         uses: actions/upload-artifact@v4
         with:

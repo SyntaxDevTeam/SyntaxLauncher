@@ -66,7 +66,7 @@ The remaining v0.1 engineering work is full Gradle and cross-platform build veri
 
 ## Continuous integration
 
-The [Build and package SyntaxLauncher](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/workflows/build.yml) workflow runs on pushes to `main`, pull requests and manual dispatch. It verifies the core tests and desktop compilation on Java 21, then builds Compose `createDistributable` portable applications for Linux, Windows and macOS. Workflow artifacts contain the runnable app-directory output for each platform; they are not signed native installers. Gradle 9.4.0 is provisioned with `gradle/actions/setup-gradle` until an official committed wrapper is available. CI status must be green before a v0.1 test release is called build-verified.
+The [Build and package SyntaxLauncher](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/workflows/build.yml) workflow runs on pushes to `main`, pull requests and manual dispatch. It verifies the core tests and desktop compilation on Java 21, then builds Compose `createDistributable` portable applications for Linux, Windows and macOS. Workflow artifacts contain the runnable app-directory output for each platform; they are not signed native installers. Gradle 9.4.0 is provisioned with `gradle/actions/setup-gradle` until an official committed wrapper is available. CI status must be green before a v0.1 test release is called build-verified. Local developers can use the official committed `./gradlew :launcher-core:test :launcher-desktop:run` (on Windows use `gradlew.bat`). Platform builds use `./gradlew :launcher-desktop:createDistributable`; output is under `launcher-desktop/build/compose/binaries/main/app/`.
 
 ## Technology
 

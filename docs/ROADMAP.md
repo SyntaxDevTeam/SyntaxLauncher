@@ -158,9 +158,9 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 
 ## Build and CI validation
 
-- [ ] 🚧 IN PROGRESS — GitHub Actions runs Kotlin core tests and desktop compilation on Linux with a pinned Gradle 9.4.0 and Temurin JDK 21; CI now resolves dependencies and compiles launcher-core; fixing desktop Ktor compile classpath and literal placeholder strings in integration tests.
-- [ ] 🚧 IN PROGRESS — GitHub Actions builds and publishes runnable Compose Desktop app-directory artifacts on Linux, Windows and macOS; first successful packaging run pending.
-- [ ] Commit official Gradle wrapper via a restricted bootstrap GitHub Actions workflow that generates Gradle 9.4.0 scripts/properties/JAR and commits them as github-actions[bot]; awaiting Actions success.
+- [ ] 🚧 IN PROGRESS — GitHub Actions runs Kotlin core tests and desktop compilation on Linux with a pinned Gradle 9.4.0 and Temurin JDK 21; CI core tests and desktop compilation PASSED (39123949155) after dependency/test repairs.
+- [ ] 🚧 IN PROGRESS — GitHub Actions builds and publishes runnable Compose Desktop app-directory artifacts on Linux, Windows and macOS; Linux and Windows createDistributable jobs PASSED (39123949155); macOS compiled but failed at jpackage. Publishing diagnostic logs and repairing macOS remain pending.
+- [ ] Commit official Gradle 9.4.0 wrapper GENERATED and COMMITTED by restricted bootstrap workflow (03d2650); local ./gradlew verification outside Actions remains pending.
 - [ ] Investigate/fix failing Gradle compilation, test suite, native packaging and runtime behavior from CI logs.
 - [ ] Validate a clean-machine vanilla launch and documented OS/architecture matrix before publishing v0.1 test release.
 

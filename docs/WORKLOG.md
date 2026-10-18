@@ -8,6 +8,49 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-18 — Confirm test and Windows/Linux packages; capture macOS jpackage logs
+
+**Milestone:** v0.1 — Minimal Vanilla Launcher  
+**Author/Agent:** ChatGPT  
+**Status:** Partial
+
+### Completed
+
+- Verified Actions run `39123949155` completed the core tests and desktop Kotlin compilation successfully.
+- Confirmed Windows and Linux Compose `createDistributable` job success and published platform-specific portable distribution artifacts.
+- Confirmed the restricted wrapper bootstrap workflow `39123801774` succeeded and committed `gradlew`, `gradlew.bat`, official `gradle-wrapper.jar` and properties to main as commit `03d2650`.
+- Identified remaining macOS failure at `:launcher-desktop:createDistributable` after both core and desktop Kotlin compiled; the underlying jpackage output was written to a local build log not included in the original Actions job output.
+- Updated packaging workflow to print and attach Compose/jpackage logs when packaging fails.
+- Updated README to document local test/run commands and portable distribution outputs.
+
+### Changed files
+
+- `.github/workflows/build.yml` — jpackage diagnostic log printing and upload on failure.
+- `README.md` — verified wrapper and build instructions.
+- `docs/ROADMAP.md` — reflect green verify/Windows/Linux jobs, wrapper and macOS packaging pending.
+- `docs/WORKLOG.md` — this entry.
+
+### Verification
+
+- GitHub Actions run `39123949155`: core tests PASS; desktop Kotlin compile PASS; portable Linux/Windows app creation PASS; macOS app creation FAIL at jpackage.
+- Official Gradle wrapper generation workflow `39123801774`: PASS; all expected wrapper files confirmed on main.
+- `./gradlew test` / `./gradlew build`: not executed locally in the network-isolated container. Actions executes equivalent Gradle test and distribution tasks.
+- Actual Minecraft game start on a desktop machine: NOT RUN.
+- macOS jpackage diagnostic rerun: pending new CI run.
+
+### Roadmap updates
+
+- CI verification and Windows/Linux packaging now source-verified passing; remaining macOS/real-game acceptance open.
+- Wrapper exists; remaining quality gates not marked complete until full build and real-game verification.
+
+### Follow-ups / known issues
+
+- Read jpackage error log from the next macOS packaging job and implement a targeted fix.
+- Complete v0.1 settings persistence and manual launch instructions.
+- Verify packaged app starts Minecraft and runs on supported platforms.
+
+---
+
 ## 2026-10-18 — Repair malformed launch integration test source
 
 **Milestone:** v0.1 — Minimal Vanilla Launcher  
