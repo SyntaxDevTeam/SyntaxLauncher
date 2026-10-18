@@ -85,10 +85,15 @@ jobs:
           path: launcher-desktop/build/compose/logs/
           if-no-files-found: warn
           retention-days: 14
+      - name: Archive portable application preserving POSIX permissions
+        shell: bash
+        run: |
+          test -d launcher-desktop/build/compose/binaries/main/app
+          tar -czf syntaxlauncher-${{ matrix.artifact }}.tar.gz -C launcher-desktop/build/compose/binaries/main/app .
       - name: Upload portable app
         uses: actions/upload-artifact@v4
         with:
           name: syntaxlauncher-${{ matrix.artifact }}-${{ github.sha }}
-          path: launcher-desktop/build/compose/binaries/main/app/
+          path: syntaxlauncher-${{ matrix.artifact }}.tar.gz
           if-no-files-found: error
           retention-days: 14

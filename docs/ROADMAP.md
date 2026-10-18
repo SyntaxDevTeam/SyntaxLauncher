@@ -159,10 +159,13 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 ## Build and CI validation
 
 - [ ] 🚧 IN PROGRESS — GitHub Actions runs Kotlin core tests and desktop compilation on Linux with a pinned Gradle 9.4.0 and Temurin JDK 21; CI core tests and desktop compilation PASSED (39123949155) after dependency/test repairs.
-- [ ] 🚧 IN PROGRESS — GitHub Actions builds and publishes runnable Compose Desktop app-directory artifacts on Linux, Windows and macOS; Linux and Windows createDistributable jobs PASSED (39123949155). macOS jpackage log showed packageVersion=0.1.0 is invalid; native packageVersion adjusted to 1.0.0 (product milestone remains v0.1); rerun pending.
+- [ ] 🚧 IN PROGRESS — GitHub Actions builds and publishes runnable Compose Desktop app-directory artifacts on Linux, Windows and macOS; Linux/Windows/macOS Compose createDistributable jobs PASSED (39124788473); preserving Unix executable bits/symlinks by packing app directories into tar.gz before upload is now implemented and awaiting verification.
 - [ ] Commit official Gradle 9.4.0 wrapper GENERATED and COMMITTED by restricted bootstrap workflow (03d2650); local ./gradlew verification outside Actions remains pending.
 - [ ] Investigate/fix failing Gradle compilation, test suite, native packaging and runtime behavior from CI logs.
 - [ ] Validate a clean-machine vanilla launch and documented OS/architecture matrix before publishing v0.1 test release.
+
+- [ ] 🚧 IN PROGRESS — portable native-image artifacts now use tar.gz wrappers to preserve Linux/macOS executable bits and symlinks; full artifact extraction/launch verification pending.
+- [ ] 🚧 IN PROGRESS — explicit jlink jdk.crypto.ec module included so packaged HTTPS downloads retain required JSSE EC provider; cross-platform package verification pending.
 
 ## v0.1 quality gate
 

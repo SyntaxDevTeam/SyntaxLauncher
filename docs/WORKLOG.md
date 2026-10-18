@@ -8,6 +8,48 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-18 — Harden portable artifacts and document v0.1 preview testing
+
+**Milestone:** v0.1 — Minimal Vanilla Launcher  
+**Author/Agent:** ChatGPT  
+**Status:** Partial
+
+### Completed
+
+- Confirmed GitHub Actions run `39124788473` passed core tests, desktop compile and platform Compose app-image creation on Linux and macOS; Windows job passed its build and entered cleanup.
+- Changed CI to put the complete Compose app image into a platform-specific tar.gz archive before uploading GitHub Actions artifacts, retaining POSIX executable bits and macOS symlinks that upload-artifact ZIP would otherwise normalize.
+- Included the JDK `jdk.crypto.ec` module explicitly in the jlinked native distribution for JSSE HTTPS/TLS elliptic curve support.
+- Added v0.1 manual test guide for Windows/Linux/macOS preview artifacts, cache behavior, Java auto-install, game launch, logs, known limitations and bug reporting.
+- Clarified README instructions for extraction and unsigned preview-build status.
+
+### Changed files
+
+- `.github/workflows/build.yml` — create permission-preserving platform archives before artifact upload.
+- `launcher-desktop/build.gradle.kts` — include jdk.crypto.ec in native app runtime.
+- `docs/TESTING_V0.1.md` — manual acceptance/test guide.
+- `README.md` — preview artifact extraction and testing links.
+- `docs/ROADMAP.md` — portability/crypto task tracking.
+- `docs/WORKLOG.md` — this entry.
+
+### Verification
+
+- Previous CI `39124788473`: core tests PASS, desktop compile PASS, Linux/macOS image creation PASS, Windows image creation PASS; archive-format changes pending next run.
+- `./gradlew test` / `./gradlew build` — not executed locally in isolated container; CI runs equivalent test/build tasks.
+- Manual clean-machine vanilla Minecraft launch — NOT RUN; no complete v0.1 release acceptance claim.
+
+### Roadmap updates
+
+- Portable artifact archive integrity and jlink TLS module task marked `🚧 IN PROGRESS` pending final CI and manual run.
+- v0.1 quality gate remains open.
+
+### Follow-ups / known issues
+
+- Verify all three CI tar.gz preview artifacts can be extracted and launched.
+- Real Minecraft launch and second-launch cache test required.
+- Add native signed installers only after portability/game acceptance.
+
+---
+
 ## 2026-10-18 — Repair macOS jpackage version and add v0.1 settings persistence
 
 **Milestone:** v0.1 — Minimal Vanilla Launcher  

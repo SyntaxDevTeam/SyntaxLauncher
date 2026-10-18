@@ -26,6 +26,8 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+            // Keep JSSE elliptic-curve TLS support in the trimmed jlink runtime.
+            modules("jdk.crypto.ec")
             packageName = "SyntaxLauncher"
             // macOS jpackage forbids a leading zero in app-version; product milestone remains v0.1.
             packageVersion = "1.0.0"
