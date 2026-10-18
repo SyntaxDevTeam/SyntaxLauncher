@@ -8,6 +8,41 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-18 — Refine desktop hero and correct UI readability
+
+**Milestone:** v0.1 UI polish / v0.2 shared desktop shell  
+**Author/Agent:** ChatGPT  
+**Status:** Partial — CI and visual desktop review pending
+
+### Completed
+- Replaced the decorative empty circle with a layered night-sky voxel landscape and enlarged branded grass-block/arrow mark.
+- Added restrained gradient scrims behind text; split hero title into high-contrast white and blue lines.
+- Fixed dark-on-dark labels throughout the launcher by setting app-level Material Surface content color.
+- Restyled the header, launch card, Play action and instance panel with deliberate borders, spacing and the approved navy/cyan palette.
+- Made the initial window size respect the user's desktop work area and added a visible scrollbar plus compact settings spacing and RAM range labels.
+- Preserved profile, version, Java, memory, launch, stop and download logic.
+
+### Changed files
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/HeroAtmosphere.kt` — deterministic Compose voxel landscape.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/SyntaxLauncherApp.kt` — hero, header, contrast and instance sidebar.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/Main.kt` — work-area-aware window size.
+- `docs/DESIGN.md`, `README.md` — current visual design and responsive behavior.
+- `docs/ROADMAP.md`, `docs/WORKLOG.md` — progress tracking and verification.
+
+### Verification
+- `./gradlew test` — NOT RUN locally (no network access to Gradle dependencies).
+- `./gradlew build` — NOT RUN locally (no network access to Gradle dependencies).
+- Cross-platform GitHub Actions and manual screenshot review — pending.
+
+### Roadmap updates
+- [ ] v0.1 / UI / premium hero, settings scroll and typography — pending CI plus visual accessibility acceptance.
+
+### Follow-ups / known issues
+- Inspect text wrapping at compact widths and standard/high-DPI scaling.
+- Verify all three portable distributions and manually review the loaded/launching/error states.
+
+---
+
 ## 2026-10-18 — Apply blue SyntaxLauncher brand and application logo
 
 **Milestone:** v0.1 UI / shared v0.2 desktop shell  

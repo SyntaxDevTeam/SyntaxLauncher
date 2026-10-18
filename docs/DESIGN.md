@@ -172,6 +172,16 @@ The approved mark is a voxel dirt/grass block with a navy/cobalt/cyan top and an
 
 The hero gradient is `#102B50 → #0C203C → #0A1528`. Reserve vivid neon for the icon and small interactive accents. Do not reintroduce green/teal prototype UI colors or recolor semantic warnings and errors blue. Use the central `SyntaxTheme.kt` tokens instead of scattering color literals.
 
+### Desktop hero and responsive shell (October 2026)
+
+- The hero contains a static, local, voxel-inspired night landscape drawn in Compose Canvas and the approved transparent launcher mark on the right.
+- Preserve a left-to-right dark scrim. Text and the Minecraft version must stay readable independent of background artwork.
+- Use the bright logo and a cyan secondary line in the heading as the focal detail. Do not replicate glow throughout all controls.
+- Use an application-wide Material `Surface` for proper light text over the dark theme. Do not depend on default `Text` content colors after drawing raw backgrounds.
+- The main window chooses an initial size constrained by the desktop work area. The instance panel is vertically scrollable, with a visible scrollbar; crucial controls should be visible without scrolling on typical full-HD screens.
+- A compact hero typography variant avoids text collisions when the user resizes the window. Never make unsupported future features appear as active navigation.
+- The vector-like background is generated locally without costly blur, frame animations or remote image requests.
+
 ## 8. Typography
 
 Typography should carry a substantial part of the interface hierarchy.

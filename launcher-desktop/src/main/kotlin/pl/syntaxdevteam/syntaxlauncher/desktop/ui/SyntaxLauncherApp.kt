@@ -1,6 +1,10 @@
 package pl.syntaxdevteam.syntaxlauncher.desktop.ui
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.VerticalScrollbar
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clip
+import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.heightIn
@@ -15,9 +19,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -37,6 +43,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -48,6 +55,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -110,11 +119,14 @@ fun SyntaxLauncherApp(session: DesktopLauncherSession) {
             }
         }
 
-        Column(
-            modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background,
+            contentColor = MaterialTheme.colorScheme.onBackground,
         ) {
+            Column(modifier = Modifier.fillMaxSize()) {
             Row(
-                modifier = Modifier.fillMaxWidth().height(88.dp).padding(horizontal = 36.dp),
+                modifier = Modifier.fillMaxWidth().height(80.dp).padding(horizontal = 30.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
@@ -124,12 +136,20 @@ fun SyntaxLauncherApp(session: DesktopLauncherSession) {
                 ) {
                     Image(
                         painter = painterResource("branding/syntaxlauncher-icon.png"),
-                        contentDescription = "SyntaxLauncher logo",
-                        modifier = Modifier.size(52.dp),
+                        contentDescription = "SyntaxLauncher",
+                        modifier = Modifier.size(55.dp),
                     )
-                    Column {
-                        Text("SYNTAX", fontWeight = FontWeight.Black, style = MaterialTheme.typography.titleMedium)
-                        Text("LAUNCHER", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall, letterSpacing = 2.sp)
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            "SYNTAX", color = MaterialTheme.colorScheme.onBackground,
+                            fontWeight = FontWeight.Black,
+                            style = MaterialTheme.typography.titleLarge,
+                            letterSpacing = 0.5.sp,
+                        )
+                        Text(
+                            "L A U N C H E R", color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.labelSmall,
+                        )
                     }
                 }
                 Text(
@@ -140,7 +160,7 @@ fun SyntaxLauncherApp(session: DesktopLauncherSession) {
                 )
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f))
-            Box(modifier = Modifier.weight(1f).padding(28.dp)) {
+            Box(modifier = Modifier.weight(1f).padding(horizontal = 22.dp, vertical = 18.dp)) {
                 when (val state = catalog) {
                     ManifestState.Loading -> CenterMessage("Connecting to Minecraft", "Loading official versions…", true)
                     is ManifestState.Error -> Column(
@@ -163,7 +183,7 @@ fun SyntaxLauncherApp(session: DesktopLauncherSession) {
                 }
             }
             Row(
-                modifier = Modifier.fillMaxWidth().height(45.dp).padding(horizontal = 36.dp),
+                modifier = Modifier.fillMaxWidth().height(42.dp).padding(horizontal = 30.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -171,6 +191,7 @@ fun SyntaxLauncherApp(session: DesktopLauncherSession) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 0.7.sp)
                 Text("BUILT FOR THE ADVENTURE", style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 0.7.sp)
+            }
             }
         }
     }
@@ -323,65 +344,92 @@ private fun LauncherPanel(
         )
     }
 
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+    val narrowLayout = maxWidth < 1050.dp
+    val sidebarWidth = if (narrowLayout) 306.dp else 342.dp
     Row(
         modifier = Modifier.fillMaxSize(),
-        horizontalArrangement = Arrangement.spacedBy(20.dp),
+        horizontalArrangement = Arrangement.spacedBy(if (narrowLayout) 14.dp else 18.dp),
     ) {
         Column(
             modifier = Modifier.weight(1f).fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Box(
-                modifier = Modifier.weight(1f).fillMaxWidth().background(
-                    Brush.linearGradient(
-                        colors = listOf(SyntaxBrand.heroStart, SyntaxBrand.heroMiddle, SyntaxBrand.heroEnd),
-                    ),
-                    RoundedCornerShape(26.dp),
-                ),
+            BoxWithConstraints(
+                modifier = Modifier.weight(1f).fillMaxWidth()
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(SyntaxBrand.heroEnd)
+                    .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
+                        RoundedCornerShape(24.dp)),
             ) {
-                // Lightweight atmospheric shapes; no remote images or expensive effects.
-                Box(
-                    modifier = Modifier.size(230.dp).align(Alignment.TopEnd)
-                        .padding(24.dp).background(
-                            SyntaxBrand.heroGlow.copy(alpha = 0.075f), CircleShape,
-                        ),
+                val compactHero = maxHeight < 405.dp || maxWidth < 650.dp
+                HeroAtmosphere(Modifier.matchParentSize())
+                // The artwork stays subordinate to the text, even when the window is narrow.
+                Box(Modifier.matchParentSize().background(Brush.horizontalGradient(
+                    0f to Color(0xF2071225),
+                    0.55f to Color(0xDB0A1C34),
+                    1f to Color(0x66071C36),
+                )))
+                Box(Modifier.matchParentSize().background(Brush.verticalGradient(
+                    0f to Color(0x20081226),
+                    0.65f to Color.Transparent,
+                    1f to Color(0xDB071326),
+                )))
+                Image(
+                    painter = painterResource("branding/syntaxlauncher-icon.png"),
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.align(Alignment.CenterEnd)
+                        .padding(end = if (compactHero) 12.dp else 30.dp)
+                        .size(if (compactHero) 168.dp else 245.dp)
+                        .alpha(if (compactHero) 0.69f else 0.85f),
                 )
                 Column(
-                    modifier = Modifier.fillMaxSize().padding(36.dp),
+                    modifier = Modifier.fillMaxSize().padding(if (compactHero) 24.dp else 34.dp),
                     verticalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(if (compactHero) 6.dp else 12.dp)) {
                         SurfaceTag("VANILLA MINECRAFT", MaterialTheme.colorScheme.tertiary)
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(if (compactHero) 2.dp else 8.dp))
                         Text(
-                            "Your world.\nYour adventure.",
-                            style = MaterialTheme.typography.displayMedium,
-                            fontWeight = FontWeight.Bold,
-                            lineHeight = 57.sp,
-                            letterSpacing = (-1.5).sp,
+                            "Your world.",
+                            fontSize = if (compactHero) 33.sp else 43.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            lineHeight = if (compactHero) 39.sp else 52.sp,
+                            letterSpacing = (-1.2).sp,
                             color = SyntaxBrand.heroText,
+                        )
+                        Text(
+                            "Your adventure.",
+                            fontSize = if (compactHero) 33.sp else 43.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            lineHeight = if (compactHero) 39.sp else 52.sp,
+                            letterSpacing = (-1.2).sp,
+                            color = Color(0xFF69CCFA),
                         )
                         Text(
                             "No distractions. Just you and Minecraft.",
                             color = SyntaxBrand.heroMuted,
-                            style = MaterialTheme.typography.bodyLarge,
+                            style = if (compactHero) MaterialTheme.typography.bodyMedium
+                                else MaterialTheme.typography.bodyLarge,
                         )
                     }
-                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(if (compactHero) 8.dp else 12.dp)) {
                         Text(
                             activeInstance?.name?.uppercase() ?: "LEGACY VANILLA PROFILE",
                             style = MaterialTheme.typography.labelSmall,
                             color = SyntaxBrand.heroMuted,
-                            letterSpacing = 2.sp,
+                            letterSpacing = 1.6.sp,
                         )
                         Text(
                             selected?.id ?: "Choose a Minecraft version",
-                            style = MaterialTheme.typography.headlineMedium,
+                            style = if (compactHero) MaterialTheme.typography.titleLarge
+                                else MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = Color.White,
                         )
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.56f))
-                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        HorizontalDivider(color = Color(0xFF72B4E6).copy(alpha = 0.32f))
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Text("JAVA EDITION", style = MaterialTheme.typography.labelSmall,
                                 color = SyntaxBrand.heroMuted)
                             Text("•", color = SyntaxBrand.heroMuted)
@@ -392,10 +440,13 @@ private fun LauncherPanel(
                 }
             }
             Column(
-                modifier = Modifier.fillMaxWidth().background(
-                    MaterialTheme.colorScheme.surface, RoundedCornerShape(24.dp),
-                ).padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth()
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f),
+                        RoundedCornerShape(22.dp))
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(11.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth()) {
@@ -454,8 +505,9 @@ private fun LauncherPanel(
                         session.play(it, nickname.trim(), ramMiB.toInt(), activeInstance)
                     } },
                     enabled = canPlay,
-                    modifier = Modifier.fillMaxWidth().height(58.dp),
-                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth().height(60.dp)
+                        .border(1.dp, Color(0xFF87E4FF), RoundedCornerShape(15.dp)),
+                    shape = RoundedCornerShape(15.dp),
                 ) {
                     Text(
                         when {
@@ -478,13 +530,20 @@ private fun LauncherPanel(
                 }
             }
         }
-        Column(
-            modifier = Modifier.width(320.dp).fillMaxSize().background(
-                MaterialTheme.colorScheme.surface, RoundedCornerShape(24.dp),
-            ).verticalScroll(rememberScrollState()).padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
+        val sidebarScroll = rememberScrollState()
+        Box(
+            modifier = Modifier.width(sidebarWidth).fillMaxSize()
+                .clip(RoundedCornerShape(22.dp))
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f),
+                    RoundedCornerShape(22.dp)),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(
+            modifier = Modifier.fillMaxSize().verticalScroll(sidebarScroll)
+                .padding(start = 22.dp, top = 20.dp, end = 28.dp, bottom = 22.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
                 Text("INSTANCE", style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary, letterSpacing = 2.sp)
                 Text(activeInstance?.name ?: "Legacy Vanilla",
@@ -510,7 +569,7 @@ private fun LauncherPanel(
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("YOUR SETUP", style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary, letterSpacing = 2.sp)
-                Text("Make it yours.", style = MaterialTheme.typography.headlineSmall,
+                Text("Make it yours.", style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold)
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f))
@@ -606,6 +665,15 @@ private fun LauncherPanel(
                     value = ramMiB, onValueChange = { ramMiB = it },
                     valueRange = 1024f..16384f, steps = 14, enabled = !locked,
                 )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text("1 GB", style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("16 GB", style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f))
             Text(
@@ -626,6 +694,13 @@ private fun LauncherPanel(
                 }
             }
         }
+        VerticalScrollbar(
+            adapter = rememberScrollbarAdapter(sidebarScroll),
+            modifier = Modifier.align(Alignment.CenterEnd)
+                .fillMaxHeight().width(9.dp).padding(vertical = 15.dp, horizontal = 2.dp),
+        )
+        }
+    }
     }
 }
 
