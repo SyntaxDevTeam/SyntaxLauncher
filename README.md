@@ -2,7 +2,7 @@
 
 SyntaxLauncher is a modern Minecraft launcher from SyntaxDevTeam, written primarily in Kotlin and developed incrementally from a minimal vanilla launcher into a modular launcher with premium authentication, isolated instances, mod loaders, Modrinth integration, modpacks and diagnostics.
 
-The project is currently in **active v0.1 development**. The Kotlin/Compose launcher now connects the offline account, Mojang metadata, verified game preparation, automatic Java runtime installation, metadata-driven LaunchPlan and MinecraftProcessManager to an actual desktop Play workflow. A real clean-machine Minecraft launch is not yet verified.
+The project has a working v0.1 vanilla launch pipeline and is now in **active v0.2 Instance Manager development**. The Kotlin/Compose launcher now connects the offline account, Mojang metadata, verified game preparation, automatic Java runtime installation, metadata-driven LaunchPlan and MinecraftProcessManager to an actual desktop Play workflow. A real clean-machine Minecraft launch is not yet verified.
 
 ## Project philosophy
 
@@ -19,6 +19,10 @@ The first release will **not** try to compete with mature launchers by implement
 - exposing a small Compose Desktop interface.
 
 Later features must extend that core rather than replace it.
+
+## v0.2 — Instance Manager (work in progress)
+
+Instances now provide stable UUID identities and separate game directories for worlds/configs/resource packs, with shared immutable Mojang caches. The desktop manager supports creating, selecting, renaming, cloning, setting version/RAM and moving instances to a recoverable trash directory. Legacy Vanilla remains playable with the original v0.1 game directory; an explicit import copies existing legacy worlds without deleting the source. Instance metadata is versioned, written atomically and preserves unknown properties. Tests and real two-profile isolation acceptance are required before declaring v0.2 complete.
 
 ## Current implementation
 

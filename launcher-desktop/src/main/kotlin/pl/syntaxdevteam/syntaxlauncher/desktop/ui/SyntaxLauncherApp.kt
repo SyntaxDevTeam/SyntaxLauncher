@@ -44,6 +44,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,6 +53,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.style.TextOverflow
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
+import pl.syntaxdevteam.syntaxlauncher.core.instance.InstanceInventory
+import pl.syntaxdevteam.syntaxlauncher.core.instance.MinecraftInstance
 import pl.syntaxdevteam.syntaxlauncher.core.account.OfflineAccount
 import pl.syntaxdevteam.syntaxlauncher.core.launch.LaunchPhase
 import pl.syntaxdevteam.syntaxlauncher.core.launch.MinecraftProcessState
@@ -191,18 +195,57 @@ private fun LauncherPanel(
     var ramMiB by remember { mutableStateOf(saved.maximumMemoryMiB.toFloat()) }
     var reloadMetadata by remember { mutableIntStateOf(0) }
     var metadata by remember { mutableStateOf<VersionMetadataState>(VersionMetadataState.Idle) }
+    val scope = rememberCoroutineScope()
+    var inventory by remember(session) { mutableStateOf<InstanceInventory?>(null) }
+    var instanceId by remember { mutableStateOf(saved.selectedInstanceId) }
+    var managerOpen by remember { mutableStateOf(false) }
+    var mutationBusy by remember { mutableStateOf(false) }
+    var instanceError by remember { mutableStateOf<String?>(null) }
+    val activeInstance = inventory?.instances?.firstOrNull { it.id == instanceId }
     val launch by session.coordinator.status.collectAsState()
     val process by session.processManager.status.collectAsState()
 
     val isRunning = process.state == MinecraftProcessState.RUNNING ||
         process.state == MinecraftProcessState.STARTING
-    val locked = isRunning || launch.isPreparing
+    val locked = isRunning || launch.isPreparing || mutationBusy
     val validName = nickname.isNotBlank() && OfflineAccount.isValidUsername(nickname.trim())
     val resolved = (metadata as? VersionMetadataState.Ready)?.metadata
         ?.takeIf { it.id == selected?.id }
-    val canPlay = !locked && validName && resolved != null
+    val unsavedInstanceSettings = activeInstance != null &&
+        (activeInstance.minecraftVersionId != selected?.id ||
+            activeInstance.maximumMemoryMiB != ramMiB.toInt())
+    val canPlay = !locked && validName && resolved != null && !unsavedInstanceSettings
 
-    LaunchedEffect(nickname, selected?.id, showSnapshots, ramMiB) {
+    LaunchedEffect(session) {
+        try { inventory = session.instances.list() }
+        catch (error: Exception) { instanceError = error.message ?: "Cannot load instances" }
+    }
+
+    fun chooseInstance(id: String) {
+        instanceId = id
+        inventory?.instances?.firstOrNull { it.id == id }?.let { instance ->
+            selected = manifest.versions.firstOrNull { it.id == instance.minecraftVersionId }
+            ramMiB = instance.maximumMemoryMiB.toFloat()
+            showSnapshots = selected?.type == MinecraftVersionType.SNAPSHOT
+        }
+    }
+
+    fun modifyInstance(action: suspend () -> MinecraftInstance?) {
+        if (locked) return
+        scope.launch {
+            mutationBusy = true
+            try {
+                val newSelection = action()
+                inventory = session.instances.list()
+                instanceError = inventory?.problems?.takeIf { it.isNotEmpty() }?.joinToString("; ")
+                if (newSelection != null) chooseInstance(newSelection.id)
+            } catch (error: Exception) {
+                instanceError = error.message ?: "Instance operation failed"
+            } finally { mutationBusy = false }
+        }
+    }
+
+    LaunchedEffect(nickname, selected?.id, showSnapshots, ramMiB, instanceId) {
         if (nickname.isBlank() || OfflineAccount.isValidUsername(nickname.trim())) {
             session.rememberPreferences(
                 LauncherPreferences(
@@ -210,6 +253,7 @@ private fun LauncherPanel(
                     selectedVersionId = selected?.id.orEmpty(),
                     snapshots = showSnapshots,
                     maximumMemoryMiB = ramMiB.toInt(),
+                    selectedInstanceId = instanceId,
                 ),
             )
         }
@@ -232,6 +276,42 @@ private fun LauncherPanel(
     }
     LaunchedEffect(locked) {
         if (locked) menuOpen = false
+    }
+
+    if (managerOpen) {
+        InstanceManagerDialog(
+            instances = inventory?.instances.orEmpty(),
+            selected = activeInstance,
+            canModify = !locked,
+            hasLegacyGame = session.instances.legacyGameAvailable(),
+            onSelect = ::chooseInstance,
+            onCreate = { name -> modifyInstance {
+                session.instances.create(name, selected?.id ?: manifest.latestRelease,
+                    maximumMemoryMiB = ramMiB.toInt())
+            } },
+            onRename = { instance, name -> modifyInstance {
+                session.instances.update(instance.copy(name = name))
+            } },
+            onClone = { instance, name -> modifyInstance {
+                session.instances.cloneInstance(instance.id, name)
+            } },
+            onSaveSettings = { instance -> modifyInstance {
+                session.instances.update(instance.copy(
+                    minecraftVersionId = selected?.id ?: instance.minecraftVersionId,
+                    maximumMemoryMiB = ramMiB.toInt(),
+                ))
+            } },
+            onDelete = { instance -> modifyInstance {
+                session.instances.moveToTrash(instance.id)
+                if (instanceId == instance.id) instanceId = ""
+                null
+            } },
+            onImportLegacy = { name -> modifyInstance {
+                session.instances.importLegacy(name, selected?.id ?: manifest.latestRelease,
+                    maximumMemoryMiB = ramMiB.toInt())
+            } },
+            onDismiss = { managerOpen = false },
+        )
     }
 
     Row(
@@ -280,7 +360,7 @@ private fun LauncherPanel(
                     }
                     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                         Text(
-                            "READY TO EXPLORE",
+                            activeInstance?.name?.uppercase() ?: "LEGACY VANILLA PROFILE",
                             style = MaterialTheme.typography.labelSmall,
                             color = Color(0xFF9CB8B3),
                             letterSpacing = 2.sp,
@@ -355,7 +435,9 @@ private fun LauncherPanel(
                     }
                 }
                 Button(
-                    onClick = { resolved?.let { session.play(it, nickname.trim(), ramMiB.toInt()) } },
+                    onClick = { resolved?.let {
+                        session.play(it, nickname.trim(), ramMiB.toInt(), activeInstance)
+                    } },
                     enabled = canPlay,
                     modifier = Modifier.fillMaxWidth().height(58.dp),
                     shape = RoundedCornerShape(16.dp),
@@ -387,6 +469,24 @@ private fun LauncherPanel(
             ).verticalScroll(rememberScrollState()).padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("INSTANCE", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary, letterSpacing = 2.sp)
+                Text(activeInstance?.name ?: "Legacy Vanilla",
+                    style = MaterialTheme.typography.titleMedium)
+                OutlinedButton(onClick = { managerOpen = true }, enabled = !locked,
+                    modifier = Modifier.fillMaxWidth()) {
+                    Text("Manage instances (${inventory?.instances?.size ?: 0})")
+                }
+                if (unsavedInstanceSettings) {
+                    Text("Save version / RAM in Manage instances before playing.",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall)
+                }
+                instanceError?.let { Text(it, color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall) }
+            }
+            HorizontalDivider(color = Color.White.copy(alpha = 0.07f))
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("YOUR SETUP", style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary, letterSpacing = 2.sp)

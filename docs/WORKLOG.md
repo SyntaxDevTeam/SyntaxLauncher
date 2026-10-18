@@ -8,6 +8,58 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-18 — Implement first v0.2 Instance Manager vertical slice
+
+**Milestone:** v0.2 — Instance Manager  
+**Author/Agent:** ChatGPT  
+**Status:** Partial
+
+### Completed
+
+- Added `MinecraftInstance` with immutable UUID, schema version, display name, resolved Minecraft version, RAM and optional JVM arguments.
+- Added a core repository with atomic JSON writes, unknown metadata field preservation, strict schema checks and per-profile error inventory.
+- Each instance stores mutable worlds/config/resources under a private UUID-named game directory; Mojang libraries/assets/versions and Java remain in existing shared cache directories.
+- Added create/list/update/rename/clone/trash and explicit non-destructive v0.1 legacy game import operations.
+- Clone stages worlds and settings before publication, rejects symlink entries and never deletes the source. Delete moves instance directory into recoverable `instance-trash`.
+- Added a per-call instance layout to the existing MinecraftLaunchCoordinator, preserving default legacy behavior.
+- Extended desktop session's Play to use an optional instance and per-instance JVM/RAM options with the same core launch pipeline.
+- Added selected-instance UUID to existing launcher preferences with a backwards-compatible optional field.
+- Added a simple Compose Instance Manager dialog for selecting, creating, renaming, cloning, updating, importing v0.1 worlds and confirming trash operations.
+- Added five repository test cases for isolation/shared caches, clone/restore, metadata changes/unknown fields, legacy import and invalid paths.
+
+### Changed files
+
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/instance/MinecraftInstanceRepository.kt` — domain model and storage.
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/instance/MinecraftInstanceRepositoryTest.kt` — storage/isolated worlds tests.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/launch/MinecraftLaunchCoordinator.kt` — optional per-instance game layout.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/storage/LauncherPreferencesStore.kt` — selected-instance UUID persistence.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/Main.kt` — repository dependency wiring.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/DesktopLauncherSession.kt` — per-instance game launch.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/InstanceManagerDialog.kt` — CRUD Compose dialog.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/SyntaxLauncherApp.kt` — selection/management and primary Play target.
+- `docs/ROADMAP.md`, `docs/WORKLOG.md`, `README.md` — status, changelog and user notes.
+
+### Verification
+
+- Source review completed for instance-specific mutable game directories and non-destructive operations.
+- `./gradlew test` — awaiting CI run of new tests.
+- `./gradlew build` — awaiting CI compile and platform distributable matrix.
+- Manual two-instance Minecraft world test — NOT RUN; user acceptance required.
+
+### Roadmap updates
+
+- Core, storage, management, UI and launch integration marked `🚧 IN PROGRESS` until CI and manual verification.
+- v0.2 quality gates remain open; no claim that v0.2 is already a stable completed release.
+
+### Follow-ups / known issues
+
+- Confirm CI build/test and fix any compiler/test errors before providing preview.
+- Perform real-world clone, trash, legacy import and cache-sharing acceptance tests.
+- Provide in-app trash restore and schema migration when a new schema is actually introduced.
+- Maintain the old v0.1 game folder until explicit import, never remove it during this milestone.
+
+---
+
 ## 2026-10-18 — Fix Kotlin Compose when-expression compilation
 
 **Milestone:** v0.1 — UI polish  

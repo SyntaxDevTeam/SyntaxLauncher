@@ -57,6 +57,7 @@ class MinecraftLaunchCoordinator(
         version: ResolvedMinecraftVersion,
         account: Account,
         options: LaunchOptions,
+        instanceLayout: MinecraftInstallationLayout = layout,
     ): LaunchPipelineStatus {
         if (!launchMutex.tryLock()) return mutableStatus.value
         try {
@@ -66,7 +67,7 @@ class MinecraftLaunchCoordinator(
                     "Minecraft does not declare a supported Java runtime.",
                 )
             stage(LaunchPhase.PREPARING_GAME, "Preparing Minecraft ${version.id}")
-            val prepared = preparation.prepare(version, platform, layout) { event ->
+            val prepared = preparation.prepare(version, platform, instanceLayout) { event ->
                 when (event) {
                     is MinecraftPreparationEvent.StageChanged -> {
                         val name = when (event.stage) {

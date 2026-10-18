@@ -17,6 +17,7 @@ data class LauncherPreferences(
     val selectedVersionId: String = "",
     val snapshots: Boolean = false,
     val maximumMemoryMiB: Int = 4096,
+    val selectedInstanceId: String = "",
 ) {
     init {
         require(nickname.isBlank() || OfflineAccount.isValidUsername(nickname)) {
@@ -25,6 +26,10 @@ data class LauncherPreferences(
         require(selectedVersionId.length <= 100 &&
             selectedVersionId.none { it.code in 0..31 || it.code == 127 }) {
             "Invalid Minecraft version id."
+        }
+        require(selectedInstanceId.isBlank() ||
+            runCatching { java.util.UUID.fromString(selectedInstanceId).toString() == selectedInstanceId }.getOrDefault(false)) {
+            "Invalid selected instance identifier."
         }
         require(maximumMemoryMiB in 1024..16384) {
             "Saved RAM setting must be between 1024 and 16384 MiB."
@@ -57,6 +62,7 @@ class LauncherPreferencesStore(private val file: Path) {
             properties.setProperty("minecraft_version", preferences.selectedVersionId)
             properties.setProperty("snapshots", preferences.snapshots.toString())
             properties.setProperty("ram_mib", preferences.maximumMemoryMiB.toString())
+            properties.setProperty("selected_instance_id", preferences.selectedInstanceId)
             Files.createDirectories(file.parent)
             val temp = file.resolveSibling("." + file.fileName + "." + UUID.randomUUID() + ".part")
             try {
@@ -92,6 +98,7 @@ class LauncherPreferencesStore(private val file: Path) {
             selectedVersionId = properties.getProperty("minecraft_version", ""),
             snapshots = properties.getProperty("snapshots", "false").toBooleanStrict(),
             maximumMemoryMiB = properties.getProperty("ram_mib", "4096").toInt(),
+            selectedInstanceId = properties.getProperty("selected_instance_id", ""),
         )
     }
 }

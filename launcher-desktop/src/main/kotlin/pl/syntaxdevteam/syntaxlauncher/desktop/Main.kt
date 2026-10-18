@@ -5,6 +5,7 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.application
 import pl.syntaxdevteam.syntaxlauncher.core.java.MojangJavaRuntimeManager
+import pl.syntaxdevteam.syntaxlauncher.core.instance.MinecraftInstanceRepository
 import pl.syntaxdevteam.syntaxlauncher.core.launch.LaunchPlanBuilder
 import pl.syntaxdevteam.syntaxlauncher.core.launch.MinecraftLaunchCoordinator
 import pl.syntaxdevteam.syntaxlauncher.core.launch.MinecraftProcessManager
@@ -38,6 +39,12 @@ fun main() {
         ),
         processManager = processManager,
         preferences = LauncherPreferencesStore(paths.configDir.resolve("settings.properties")),
+        legacyLayout = MinecraftInstallationLayout.from(paths),
+        instances = MinecraftInstanceRepository(
+            root = paths.dataDir.resolve("instances"),
+            trash = paths.dataDir.resolve("instance-trash"),
+            sharedLayout = MinecraftInstallationLayout.from(paths),
+        ),
         httpClient = httpClient,
     )
 

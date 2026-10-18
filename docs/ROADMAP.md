@@ -185,56 +185,51 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 
 Goal: separate user installations into isolated, manageable Minecraft instances before introducing mods.
 
+**Status:** 🚧 IN PROGRESS — instance model, schema-versioned JSON repository, non-destructive clone/trash/import and Compose management are implemented. Build and real-world isolation testing pending.
+
 ## Instance model
 
-- [ ] Add `MinecraftInstance` domain model.
-- [ ] Add stable instance id independent of display name.
-- [ ] Add instance schema version.
-- [ ] Store Minecraft version in instance metadata.
-- [ ] Store RAM/JVM options per instance.
-- [ ] Store game directory reference/derivation.
-- [ ] Add serialization/deserialization tests.
+- [ ] 🚧 IN PROGRESS — `MinecraftInstance` domain model with canonical UUID and validated display name.
+- [ ] 🚧 IN PROGRESS — instance schema v1 and stored Minecraft version, RAM and optional JVM arguments.
+- [ ] 🚧 IN PROGRESS — derived instance game path; never interpolate user-provided display names into paths.
+- [ ] 🚧 IN PROGRESS — five unit tests cover metadata persistence, invalid/schema handling, cloning, per-game isolation and legacy import; CI execution pending.
 
 ## Instance storage
 
-- [ ] Create isolated game directory per instance.
-- [ ] Keep saves/config/resource packs/screenshots isolated.
-- [ ] Continue reusing safe shared immutable caches.
-- [ ] Add instance configuration persistence.
-- [ ] Handle malformed instance metadata without deleting user data.
-- [ ] Define migration mechanism for future schema changes.
+- [ ] 🚧 IN PROGRESS — separate `data/instances/<uuid>/game` directories for saves, configuration, resource packs and screenshots.
+- [ ] 🚧 IN PROGRESS — shared immutable versions/libraries/assets/native download cache and managed Java reused via existing `MinecraftInstallationLayout`.
+- [ ] 🚧 IN PROGRESS — per-instance `instance.json` persisted through temporary file + atomic publication; metadata errors are surfaced without deleting data.
+- [ ] 🚧 IN PROGRESS — schema 1 read/write supports unknown-field preservation; later schema migrations remain to be designed/tested.
+- [ ] 🚧 IN PROGRESS — explicit non-destructive import copies the v0.1 game folder while leaving source untouched.
+- [ ] 🚧 IN PROGRESS — cloning refuses symlinks and stages files before making a clone visible; extraction/manual tests pending.
 
 ## Instance management
 
-- [ ] Create instance.
-- [ ] Rename instance.
-- [ ] Edit instance settings.
-- [ ] Delete instance with explicit user-data behavior.
-- [ ] Clone instance.
-- [ ] List/sort instances.
-- [ ] Select default/last-used instance.
+- [ ] 🚧 IN PROGRESS — create, rename, edit instance version/RAM/JVM settings, list alphabetically, clone worlds and move to recoverable trash.
+- [ ] 🚧 IN PROGRESS — selected instance UUID is stored in existing versioned launcher preferences, with backward compatibility for v0.1 settings.
+- [ ] 🚧 IN PROGRESS — deletion goes to `data/instance-trash/`; in-app trash recovery is not implemented yet.
 
 ## Launch integration
 
-- [ ] Launch selected instance through existing launch pipeline.
-- [ ] Remove global mutable game-directory assumptions.
-- [ ] Make per-instance settings override launcher defaults where defined.
+- [ ] 🚧 IN PROGRESS — selected instance changes only the game directory passed to the existing preparation/launch pipeline.
+- [ ] 🚧 IN PROGRESS — per-instance min/max RAM and extra JVM arguments override launcher defaults when an instance is active.
+- [ ] 🚧 IN PROGRESS — the v0.1 Legacy Vanilla profile remains available with its original game folder.
+- [ ] Manual acceptance: launch two profiles with the same Minecraft version and confirm independent worlds/configurations.
 
 ## v0.2 UI
 
-- [ ] Instance list/grid.
-- [ ] Create-instance flow.
-- [ ] Instance settings screen.
-- [ ] Clone/delete actions.
-- [ ] Selected instance becomes primary Play target.
+- [ ] 🚧 IN PROGRESS — instance selector/manager added to Compose home without changing primary Play CTA.
+- [ ] 🚧 IN PROGRESS — create, rename, clone, explicit legacy import, save version/RAM and confirm delete actions.
+- [ ] 🚧 IN PROGRESS — error state lists corrupt instance metadata instead of silently dropping it.
+- [ ] Preview UX review (window size, instance manager dialog, large folders and keyboard focus) pending.
 
 ## v0.2 quality gate
 
-- [ ] Existing v0.1 vanilla launching remains functional.
+- [ ] Existing v0.1 vanilla launching remains functional after v0.2 integration.
 - [ ] Two instances of the same Minecraft version keep mutable game state isolated.
-- [ ] Instance clone preserves intended data/settings.
-- [ ] Instance metadata round-trip tests pass.
-- [ ] Migration/versioning mechanism exists before later fields are added.
+- [ ] Instance clone preserves intended data/settings, including real worlds.
+- [ ] Instance metadata round-trip tests pass in CI.
+- [ ] Schema migration mechanism beyond v1 exists before adding incompatible fields.
 
 ---
 

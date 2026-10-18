@@ -13,6 +13,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.swing.Swing
 import kotlinx.coroutines.withContext
 import pl.syntaxdevteam.syntaxlauncher.core.account.OfflineAccount
+import pl.syntaxdevteam.syntaxlauncher.core.instance.MinecraftInstance
+import pl.syntaxdevteam.syntaxlauncher.core.instance.MinecraftInstanceRepository
 import pl.syntaxdevteam.syntaxlauncher.core.launch.LaunchOptions
 import pl.syntaxdevteam.syntaxlauncher.core.launch.MinecraftLaunchCoordinator
 import pl.syntaxdevteam.syntaxlauncher.core.launch.MinecraftProcessManager
@@ -21,6 +23,7 @@ import pl.syntaxdevteam.syntaxlauncher.core.launch.MinecraftShutdownPolicy
 import pl.syntaxdevteam.syntaxlauncher.core.minecraft.MinecraftVersionCatalog
 import pl.syntaxdevteam.syntaxlauncher.core.minecraft.MinecraftVersionResolver
 import pl.syntaxdevteam.syntaxlauncher.core.minecraft.ResolvedMinecraftVersion
+import pl.syntaxdevteam.syntaxlauncher.core.storage.MinecraftInstallationLayout
 import pl.syntaxdevteam.syntaxlauncher.core.storage.LauncherPreferences
 import pl.syntaxdevteam.syntaxlauncher.core.storage.LauncherPreferencesStore
 
@@ -34,6 +37,8 @@ class DesktopLauncherSession(
     val coordinator: MinecraftLaunchCoordinator,
     val processManager: MinecraftProcessManager,
     val preferences: LauncherPreferencesStore,
+    val instances: MinecraftInstanceRepository,
+    private val legacyLayout: MinecraftInstallationLayout,
     private val httpClient: HttpClient,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -55,7 +60,12 @@ class DesktopLauncherSession(
         }
     }
 
-    fun play(version: ResolvedMinecraftVersion, nickname: String, maximumMemoryMiB: Int): Boolean {
+    fun play(
+        version: ResolvedMinecraftVersion,
+        nickname: String,
+        maximumMemoryMiB: Int,
+        instance: MinecraftInstance? = null,
+    ): Boolean {
         synchronized(lock) {
             if (closing.get() || launchJob?.isActive == true ||
                 processManager.status.value.state in setOf(
@@ -68,9 +78,11 @@ class DesktopLauncherSession(
                     version = version,
                     account = account,
                     options = LaunchOptions(
-                        minimumMemoryMiB = 512,
+                        minimumMemoryMiB = instance?.minimumMemoryMiB ?: 512,
                         maximumMemoryMiB = maximumMemoryMiB,
+                        extraJvmArguments = instance?.extraJvmArguments.orEmpty(),
                     ),
+                    instanceLayout = instance?.let(instances::layoutFor) ?: legacyLayout,
                 )
             }
             return true
