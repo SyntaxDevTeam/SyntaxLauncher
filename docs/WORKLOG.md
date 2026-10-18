@@ -8,6 +8,43 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-18 — Confirm green v0.2 build and publish manual acceptance checklist
+
+**Milestone:** v0.2 — Instance Manager  
+**Author/Agent:** ChatGPT  
+**Status:** Partial
+
+### Completed
+- Verified GitHub Actions run `39157681455` at commit `7aa5605`: all four jobs PASS (core unit/integration tests, desktop compilation, Linux, Windows and macOS application distributions).
+- Verified successful upload of three platform-specific preview archives and a test-results artifact.
+- Recorded newly verified v0.2 repository, schema, per-instance directories and launch layout integration tasks in the canonical roadmap.
+- Added explicit two-world isolation, clone/rename/trash, legacy import and restart-persistence manual testing checklist.
+- Updated README with CI and v0.2 test guide links.
+
+### Changed files
+- `docs/ROADMAP.md` — checked only CI-tested individual items; manual acceptance remains open.
+- `docs/WORKLOG.md` — this verification entry.
+- `docs/TESTING_V0.2.md` — manual test guide.
+- `README.md` — test guide and CI link.
+
+### Verification
+- GitHub Actions `39157681455` — PASS 4/4 jobs.
+- `:launcher-core:test` / `:launcher-desktop:compileKotlin` — PASS in CI.
+- `:launcher-desktop:createDistributable` — PASS on Linux x64, Windows x64 and macOS ARM64.
+- `./gradlew build` — NOT RUN locally, full aggregate build task not requested by CI.
+- Manual Minecraft game-state isolation, large-world cloning, legacy import and trash recovery — NOT RUN in this environment.
+
+### Roadmap updates
+- Tested v0.2 domain, schema storage, per-instance paths, preferences and launch layout items marked `[x]`.
+- UI usability and v0.2 real-game quality gates remain `🚧` until manual validation.
+
+### Follow-ups / known issues
+- Test two instances with the same Minecraft version and separate worlds using the downloadable preview.
+- Verify existing v0.1 game directory is preserved across import.
+- Add an in-app trash restore path and explicit schema migration when the schema evolves.
+
+---
+
 ## 2026-10-18 — Harden restored instance selection, clone metadata and launch tests
 
 **Milestone:** v0.2 — Instance Manager  

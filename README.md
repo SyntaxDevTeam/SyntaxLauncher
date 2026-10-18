@@ -22,7 +22,7 @@ Later features must extend that core rather than replace it.
 
 ## v0.2 — Instance Manager (work in progress)
 
-Instances now provide stable UUID identities and separate game directories for worlds/configs/resource packs, with shared immutable Mojang caches. The desktop manager supports creating, selecting, renaming, cloning, setting version/RAM and moving instances to a recoverable trash directory. Legacy Vanilla remains playable with the original v0.1 game directory; an explicit import copies existing legacy worlds without deleting the source. Instance metadata is versioned, written atomically and preserves unknown properties. Tests and real two-profile isolation acceptance are required before declaring v0.2 complete.
+Instances now provide stable UUID identities and separate game directories for worlds/configs/resource packs, with shared immutable Mojang caches. Core instance tests, desktop compilation and Linux/Windows/macOS packaging passed in [GitHub Actions 39157681455](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/39157681455). Real two-world isolation remains to be checked manually. The desktop manager supports creating, selecting, renaming, cloning, setting version/RAM and moving instances to a recoverable trash directory. Legacy Vanilla remains playable with the original v0.1 game directory; an explicit import copies existing legacy worlds without deleting the source. Instance metadata is versioned, written atomically and preserves unknown properties. Follow the [v0.2 Instance Manager test checklist](docs/TESTING_V0.2.md) before declaring the milestone complete; code compilation alone does not prove the game-state isolation acceptance gate.
 
 ## Current implementation
 

@@ -185,20 +185,20 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 
 Goal: separate user installations into isolated, manageable Minecraft instances before introducing mods.
 
-**Status:** 🚧 IN PROGRESS — instance model, schema-versioned JSON repository, non-destructive clone/trash/import and Compose management are implemented. Build and real-world isolation testing pending.
+**Status:** 🚧 IN PROGRESS — schema-versioned instance repository, CRUD, non-destructive clone/trash/import, Compose manager and per-instance launch integration compile and pass the core test suite. Cross-platform CI 39157681455 PASSED (4/4). Real two-world, legacy import and clone acceptance remain pending.
 
 ## Instance model
 
-- [ ] 🚧 IN PROGRESS — `MinecraftInstance` domain model with canonical UUID and validated display name.
-- [ ] 🚧 IN PROGRESS — instance schema v1 and stored Minecraft version, RAM and optional JVM arguments.
-- [ ] 🚧 IN PROGRESS — derived instance game path; never interpolate user-provided display names into paths.
-- [ ] 🚧 IN PROGRESS — five unit tests cover metadata persistence, invalid/schema handling, cloning, per-game isolation and legacy import; CI execution pending.
+- [x] `MinecraftInstance` domain model with canonical UUID and validated display name; verified in core tests.
+- [x] Schema-v1 instance metadata stores Minecraft version, RAM and optional JVM arguments; tested.
+- [x] Instance game path derives from canonical UUID instead of user name; tested.
+- [x] Five repository tests for persistence/invalid metadata, cloning, isolation and legacy import passed in CI 39157681455.
 
 ## Instance storage
 
-- [ ] 🚧 IN PROGRESS — separate `data/instances/<uuid>/game` directories for saves, configuration, resource packs and screenshots.
-- [ ] 🚧 IN PROGRESS — shared immutable versions/libraries/assets/native download cache and managed Java reused via existing `MinecraftInstallationLayout`.
-- [ ] 🚧 IN PROGRESS — per-instance `instance.json` persisted through temporary file + atomic publication; metadata errors are surfaced without deleting data.
+- [x] Separate UUID-scoped `game` directories for mutable saves/configurations/resource packs; filesystem tests passed.
+- [x] Shared versions, libraries and assets cache paths are preserved by the per-instance layout; unit assertions passed.
+- [x] Atomic per-instance `instance.json` publication with explicit errors for corrupt/newer metadata; CI tests passed.
 - [ ] 🚧 IN PROGRESS — schema 1 read/write supports unknown-field preservation; later schema migrations remain to be designed/tested.
 - [ ] 🚧 IN PROGRESS — explicit non-destructive import copies the v0.1 game folder while leaving source untouched.
 - [ ] 🚧 IN PROGRESS — cloning refuses symlinks, stages files before publishing and preserves unknown JSON metadata fields; real-world clone/manual tests pending.
@@ -206,12 +206,12 @@ Goal: separate user installations into isolated, manageable Minecraft instances 
 ## Instance management
 
 - [ ] 🚧 IN PROGRESS — create, rename, edit instance version/RAM/JVM settings, list alphabetically, clone worlds and move to recoverable trash.
-- [ ] 🚧 IN PROGRESS — selected instance UUID is stored in existing versioned launcher preferences, with backward compatibility for v0.1 settings.
+- [x] Selected instance UUID persists as an optional schema-1 preferences key, compatible with older settings; CI suite passed.
 - [ ] 🚧 IN PROGRESS — deletion goes to `data/instance-trash/`; in-app trash recovery is not implemented yet.
 
 ## Launch integration
 
-- [ ] 🚧 IN PROGRESS — selected instance changes only the game directory passed to the existing preparation/launch pipeline; coordinator integration test now checks this path.
+- [x] Selected instance overrides the existing launch pipeline's game directory without duplicating the launch engine; integration test passed.
 - [ ] 🚧 IN PROGRESS — per-instance min/max RAM and extra JVM arguments override launcher defaults when an instance is active.
 - [ ] 🚧 IN PROGRESS — the v0.1 Legacy Vanilla profile remains available with its original game folder.
 - [ ] Manual acceptance: launch two profiles with the same Minecraft version and confirm independent worlds/configurations.
@@ -228,7 +228,7 @@ Goal: separate user installations into isolated, manageable Minecraft instances 
 - [ ] Existing v0.1 vanilla launching remains functional after v0.2 integration.
 - [ ] Two instances of the same Minecraft version keep mutable game state isolated.
 - [ ] Instance clone preserves intended data/settings, including real worlds.
-- [ ] Instance metadata round-trip tests pass in CI.
+- [x] Instance metadata round-trip tests pass in CI 39157681455.
 - [ ] Schema migration mechanism beyond v1 exists before adding incompatible fields.
 
 ---
