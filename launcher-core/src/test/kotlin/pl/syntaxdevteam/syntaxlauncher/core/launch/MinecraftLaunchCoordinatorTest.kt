@@ -124,78 +124,8 @@ class MinecraftLaunchCoordinatorTest {
         ),
         libraries = emptyList(),
         arguments = MinecraftArguments(
-            jvm = listOf(MinecraftArgument(listOf("-cp", "${'"))),
-            game = listOf(MinecraftArgument(listOf("--username", "${'"))),
-        ),
-        javaRequirement = JavaRuntimeRequirement("java-runtime-delta", 21),
-        logging = null,
-    )
-
-    private fun makeLayout(root: Path) = MinecraftInstallationLayout(
-        gameDir = root.resolve("game"),
-        versionsDir = root.resolve("cache/versions"),
-        librariesDir = root.resolve("cache/libraries"),
-        assetsDir = root.resolve("cache/assets"),
-        assetIndexesDir = root.resolve("cache/assets/indexes"),
-        assetObjectsDir = root.resolve("cache/assets/objects"),
-        loggingConfigsDir = root.resolve("cache/assets/log_configs"),
-        nativesDir = root.resolve("cache/natives"),
-    )
-}
-}{classpath}"))),
-            game = listOf(MinecraftArgument(listOf("--username", "${auth_player_name}"))),
-        ),
-        javaRequirement = JavaRuntimeRequirement("java-runtime-delta", 21),
-        logging = null,
-    )
-
-    private fun makeLayout(root: Path) = MinecraftInstallationLayout(
-        gameDir = root.resolve("game"),
-        versionsDir = root.resolve("cache/versions"),
-        librariesDir = root.resolve("cache/libraries"),
-        assetsDir = root.resolve("cache/assets"),
-        assetIndexesDir = root.resolve("cache/assets/indexes"),
-        assetObjectsDir = root.resolve("cache/assets/objects"),
-        loggingConfigsDir = root.resolve("cache/assets/log_configs"),
-        nativesDir = root.resolve("cache/natives"),
-    )
-}
-}{auth_player_name}"))),
-        ),
-        javaRequirement = JavaRuntimeRequirement("java-runtime-delta", 21),
-        logging = null,
-    )
-
-    private fun makeLayout(root: Path) = MinecraftInstallationLayout(
-        gameDir = root.resolve("game"),
-        versionsDir = root.resolve("cache/versions"),
-        librariesDir = root.resolve("cache/libraries"),
-        assetsDir = root.resolve("cache/assets"),
-        assetIndexesDir = root.resolve("cache/assets/indexes"),
-        assetObjectsDir = root.resolve("cache/assets/objects"),
-        loggingConfigsDir = root.resolve("cache/assets/log_configs"),
-        nativesDir = root.resolve("cache/natives"),
-    )
-}
-}{classpath}"))),
-            game = listOf(MinecraftArgument(listOf("--username", "${'"))),
-        ),
-        javaRequirement = JavaRuntimeRequirement("java-runtime-delta", 21),
-        logging = null,
-    )
-
-    private fun makeLayout(root: Path) = MinecraftInstallationLayout(
-        gameDir = root.resolve("game"),
-        versionsDir = root.resolve("cache/versions"),
-        librariesDir = root.resolve("cache/libraries"),
-        assetsDir = root.resolve("cache/assets"),
-        assetIndexesDir = root.resolve("cache/assets/indexes"),
-        assetObjectsDir = root.resolve("cache/assets/objects"),
-        loggingConfigsDir = root.resolve("cache/assets/log_configs"),
-        nativesDir = root.resolve("cache/natives"),
-    )
-}
-}{auth_player_name}"))),
+            jvm = listOf(MinecraftArgument(listOf("-cp", "\${classpath}"))),
+            game = listOf(MinecraftArgument(listOf("--username", "\${auth_player_name}"))),
         ),
         javaRequirement = JavaRuntimeRequirement("java-runtime-delta", 21),
         logging = null,

@@ -8,6 +8,34 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-18 — Repair malformed launch integration test source
+
+**Milestone:** v0.1 — Minimal Vanilla Launcher  
+**Author/Agent:** ChatGPT  
+**Status:** Partial
+
+### Completed
+- Analyzed GitHub Actions run `39123801750`: production launcher-core and launcher-desktop code compiled, but integration test source was corrupted by a string replacement.
+- Recreated `MinecraftLaunchCoordinatorTest.kt` from the last known intact revision, retaining actual Kotlin literal placeholder escaping via `\$` characters.
+- Removed the malformed duplicated source fragments rather than attempting incremental repairs.
+
+### Changed files
+- `launcher-core/src/test/kotlin/.../launch/MinecraftLaunchCoordinatorTest.kt` — restore tests and valid literal Minecraft arguments.
+- `docs/WORKLOG.md` — this entry.
+
+### Verification
+- Previous Actions run: production core and desktop Kotlin compiled; test source compilation failed due malformed placeholder string.
+- Tests/build: awaiting full CI rerun with corrected source.
+- Live Minecraft: NOT RUN.
+
+### Roadmap updates
+- CI remains IN PROGRESS pending test and packaging pass.
+
+### Follow-ups / known issues
+- Inspect JUnit results after source is compiled.
+- Verify platform app package jobs.
+- Verify official Gradle wrapper bootstrapped by workflow.
+
 ## 2026-10-18 — Fix desktop Ktor dependency and launch test interpolation; bootstrap wrapper
 
 **Milestone:** v0.1 — Minimal Vanilla Launcher  
