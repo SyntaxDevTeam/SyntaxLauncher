@@ -62,11 +62,15 @@ The current v0.1 implementation includes:
 - initial unit/integration test sources using Ktor `MockEngine` rather than live Mojang services;
 - a lightweight Compose screen with nickname validation, release/snapshot selection, version selection, RAM control, loading state and retryable metadata errors.
 
-The remaining v0.1 engineering work is full Gradle and cross-platform build verification, first real vanilla Minecraft launch, persistence for offline nickname/version/RAM, manifest cache and UI polish. The new Play action is functional in code but not yet validated against a real Mojang download and game startup.
+The remaining v0.1 engineering work is complete cross-platform artifact verification, first real vanilla Minecraft launch, manifest cache and UI polish. Schema-versioned preferences for offline nickname/version/channel/RAM are now implemented but need desktop acceptance. The new Play action is functional in code but not yet validated against a real Mojang download and game startup.
 
 ## Continuous integration
 
-The [Build and package SyntaxLauncher](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/workflows/build.yml) workflow runs on pushes to `main`, pull requests and manual dispatch. It verifies the core tests and desktop compilation on Java 21, then builds Compose `createDistributable` portable applications for Linux, Windows and macOS. Workflow artifacts contain the runnable app-directory output for each platform; they are not signed native installers. Gradle 9.4.0 is provisioned with `gradle/actions/setup-gradle` until an official committed wrapper is available. CI status must be green before a v0.1 test release is called build-verified. Local developers can use the official committed `./gradlew :launcher-core:test :launcher-desktop:run` (on Windows use `gradlew.bat`). Platform builds use `./gradlew :launcher-desktop:createDistributable`; output is under `launcher-desktop/build/compose/binaries/main/app/`.
+The [Build and package SyntaxLauncher](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/workflows/build.yml) workflow runs on pushes to `main`, pull requests and manual dispatch. It verifies the core tests and desktop compilation on Java 21, then builds Compose `createDistributable` portable applications for Linux, Windows and macOS. Workflow artifacts contain the runnable app-directory output for each platform; they are not signed native installers. Gradle 9.4.0 is provisioned with `gradle/actions/setup-gradle` until an official committed wrapper is available. CI status must be green before a v0.1 test release is called build-verified. The macOS jpackage bundle uses app-version 1.0.0 because macOS rejects leading-zero versions; the SyntaxLauncher project release milestone remains v0.1. Local developers can use the official committed `./gradlew :launcher-core:test :launcher-desktop:run` (on Windows use `gradlew.bat`). Platform builds use `./gradlew :launcher-desktop:createDistributable`; output is under `launcher-desktop/build/compose/binaries/main/app/`.
+
+## Preferences
+
+SyntaxLauncher stores only the selected offline nickname, Minecraft version/channel and RAM allocation in a schema-versioned `settings.properties` file inside the OS configuration directory. Writes use a temporary file and atomic publication where supported. Unknown property keys are preserved; an unsupported schema is rejected without erasing user settings. Microsoft credentials are not part of this storage format.
 
 ## Technology
 

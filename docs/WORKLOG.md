@@ -8,6 +8,54 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-18 — Repair macOS jpackage version and add v0.1 settings persistence
+
+**Milestone:** v0.1 — Minimal Vanilla Launcher  
+**Author/Agent:** ChatGPT  
+**Status:** Partial
+
+### Completed
+
+- Parsed detailed macOS jpackage error from Actions run `39124386892`: macOS app bundle rejects app-version with leading zero in first component.
+- Set the technical native packageVersion to 1.0.0 to satisfy jpackage while retaining the product milestone v0.1; documented the difference.
+- Implemented `LauncherPreferencesStore` with schema 1, atomic writes, safe validation, retention of unknown property keys and rejection of future-schema files without overwriting.
+- Saved v0.1 non-sensitive settings only: offline nickname, selected Minecraft version, release/snapshot filter and RAM allocation.
+- Connected preferences to desktop session and Compose state restoration. Debounced writes occur outside Compose, and window close attempts to flush the last pending settings.
+- Added tests for settings round-trip, forward unknown-property retention and newer-schema preservation.
+
+### Changed files
+
+- `launcher-desktop/build.gradle.kts` — technical macOS-compatible package version.
+- `launcher-core/src/main/kotlin/.../storage/LauncherPreferencesStore.kt` — settings persistence.
+- `launcher-core/src/test/kotlin/.../storage/LauncherPreferencesStoreTest.kt` — settings validation tests.
+- `launcher-desktop/src/main/kotlin/.../desktop/DesktopLauncherSession.kt` — debounced saves and close flushing.
+- `launcher-desktop/src/main/kotlin/.../desktop/Main.kt` — storage wiring.
+- `launcher-desktop/src/main/kotlin/.../desktop/ui/SyntaxLauncherApp.kt` — startup restore and persistence.
+- `docs/ROADMAP.md` — settings/packaging status.
+- `docs/WORKLOG.md` — this entry.
+- `README.md` — settings format and jpackage note.
+
+### Verification
+
+- macOS jpackage failure: CONFIRMED from workflow error log, quoting the leading-zero version restriction.
+- Linux/Windows packages and core tests: PASS in previous Actions run, before these changes.
+- New v0.1 settings test sources added; `./gradlew test` and `./gradlew build` not executed in network-isolated local container. New CI run pending.
+- Real GUI/Minecraft manual launch: NOT RUN.
+
+### Roadmap updates
+
+- Preferences and macOS packaging fix now `🚧 IN PROGRESS` pending CI and real platform acceptance.
+- v0.1 acceptance gates remain open until a real Minecraft launch is verified.
+
+### Follow-ups / known issues
+
+- Verify Gradle tests and all three portable Compose distributions succeed with the corrected macOS app version.
+- Run a real new-install Minecraft start using a generated app distribution.
+- Test fresh start/restart persistence and cached second launch on supported desktop platforms.
+- Add reliable manifest caching and improve first-run offline/error recovery.
+
+---
+
 ## 2026-10-18 — Confirm test and Windows/Linux packages; capture macOS jpackage logs
 
 **Milestone:** v0.1 — Minimal Vanilla Launcher  

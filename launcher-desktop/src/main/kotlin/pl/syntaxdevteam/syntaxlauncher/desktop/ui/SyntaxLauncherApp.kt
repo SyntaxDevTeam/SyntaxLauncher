@@ -49,6 +49,7 @@ import pl.syntaxdevteam.syntaxlauncher.core.minecraft.MinecraftVersionManifest
 import pl.syntaxdevteam.syntaxlauncher.core.minecraft.MinecraftVersionType
 import pl.syntaxdevteam.syntaxlauncher.core.minecraft.ResolvedMinecraftVersion
 import pl.syntaxdevteam.syntaxlauncher.desktop.DesktopLauncherSession
+import pl.syntaxdevteam.syntaxlauncher.core.storage.LauncherPreferences
 
 private sealed interface ManifestState {
     data object Loading : ManifestState
@@ -68,6 +69,18 @@ fun SyntaxLauncherApp(session: DesktopLauncherSession) {
     SyntaxTheme {
         var catalog by remember { mutableStateOf<ManifestState>(ManifestState.Loading) }
         var reloadCatalog by remember { mutableIntStateOf(0) }
+        var persisted by remember(session) { mutableStateOf<LauncherPreferences?>(null) }
+        var settingsError by remember(session) { mutableStateOf<String?>(null) }
+
+        LaunchedEffect(session) {
+            try {
+                persisted = session.preferences.load()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                settingsError = error.message ?: "Cannot read launcher settings."
+            }
+        }
 
         LaunchedEffect(reloadCatalog) {
             catalog = ManifestState.Loading
@@ -110,21 +123,36 @@ fun SyntaxLauncherApp(session: DesktopLauncherSession) {
                     Text(state.message, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Button(onClick = { reloadCatalog++ }) { Text("Retry") }
                 }
-                is ManifestState.Ready -> LauncherPanel(state.manifest, session)
+                is ManifestState.Ready -> when {
+                    settingsError != null -> InfoCard {
+                        Text("Settings file requires attention", color = MaterialTheme.colorScheme.error)
+                        Text(settingsError.orEmpty())
+                        Text("Your existing settings were preserved; please repair them before starting the launcher.")
+                    }
+                    persisted == null -> InfoCard { Text("Loading saved settings...") }
+                    else -> LauncherPanel(state.manifest, session, persisted!!)
+                }
             }
         }
     }
 }
 
 @Composable
-private fun LauncherPanel(manifest: MinecraftVersionManifest, session: DesktopLauncherSession) {
-    var nickname by remember { mutableStateOf("") }
-    var showSnapshots by remember { mutableStateOf(false) }
+private fun LauncherPanel(
+    manifest: MinecraftVersionManifest,
+    session: DesktopLauncherSession,
+    saved: LauncherPreferences,
+) {
+    var nickname by remember { mutableStateOf(saved.nickname) }
+    var showSnapshots by remember { mutableStateOf(saved.snapshots) }
     var selected by remember(manifest) {
-        mutableStateOf(manifest.versions.firstOrNull { it.id == manifest.latestRelease })
+        mutableStateOf(manifest.versions.firstOrNull { it.id == saved.selectedVersionId }
+            ?: manifest.versions.firstOrNull {
+                it.id == if (saved.snapshots) manifest.latestSnapshot else manifest.latestRelease
+            })
     }
     var menuOpen by remember { mutableStateOf(false) }
-    var ramMiB by remember { mutableStateOf(4096f) }
+    var ramMiB by remember { mutableStateOf(saved.maximumMemoryMiB.toFloat()) }
     var reloadMetadata by remember { mutableIntStateOf(0) }
     var metadata by remember { mutableStateOf<VersionMetadataState>(VersionMetadataState.Idle) }
     val launch by session.coordinator.status.collectAsState()
@@ -137,6 +165,19 @@ private fun LauncherPanel(manifest: MinecraftVersionManifest, session: DesktopLa
     val resolved = (metadata as? VersionMetadataState.Ready)?.metadata
         ?.takeIf { it.id == selected?.id }
     val canPlay = !locked && validName && resolved != null
+
+    LaunchedEffect(nickname, selected?.id, showSnapshots, ramMiB) {
+        if (nickname.isBlank() || OfflineAccount.isValidUsername(nickname.trim())) {
+            session.rememberPreferences(
+                LauncherPreferences(
+                    nickname = nickname.trim(),
+                    selectedVersionId = selected?.id.orEmpty(),
+                    snapshots = showSnapshots,
+                    maximumMemoryMiB = ramMiB.toInt(),
+                ),
+            )
+        }
+    }
 
     LaunchedEffect(selected?.id, reloadMetadata) {
         val version = selected

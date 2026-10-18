@@ -15,6 +15,7 @@ import pl.syntaxdevteam.syntaxlauncher.core.minecraft.MinecraftVersionResolver
 import pl.syntaxdevteam.syntaxlauncher.core.network.DownloadManager
 import pl.syntaxdevteam.syntaxlauncher.core.network.LauncherHttpClientFactory
 import pl.syntaxdevteam.syntaxlauncher.core.storage.LauncherPaths
+import pl.syntaxdevteam.syntaxlauncher.core.storage.LauncherPreferencesStore
 import pl.syntaxdevteam.syntaxlauncher.core.storage.MinecraftInstallationLayout
 import pl.syntaxdevteam.syntaxlauncher.desktop.ui.SyntaxLauncherApp
 
@@ -36,6 +37,7 @@ fun main() {
             platform = platform,
         ),
         processManager = processManager,
+        preferences = LauncherPreferencesStore(paths.configDir.resolve("settings.properties")),
         httpClient = httpClient,
     )
 

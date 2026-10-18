@@ -38,7 +38,7 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 - [ ] 🚧 IN PROGRESS — `OfflineAccount` implementation added; full project verification remains pending.
 - [ ] 🚧 IN PROGRESS — Minecraft-style offline username validation implemented and test source added; Gradle tests remain pending.
 - [ ] 🚧 IN PROGRESS — deterministic `OfflinePlayer:<username>` UUID generation implemented and test source added; Gradle tests remain pending.
-- [ ] Persist last-used offline username without storing unnecessary sensitive data.
+- [ ] 🚧 IN PROGRESS — versioned atomic preferences store now persists the offline nickname without credentials, with unknown-key retention; first full Gradle/GUI acceptance pending.
 - [ ] 🚧 IN PROGRESS — offline nickname field and explanatory text are present in the v0.1 UI; final account-state integration remains pending.
 
 ## Minecraft version discovery
@@ -151,7 +151,7 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 - [ ] 🚧 IN PROGRESS — nickname/version/channel/RAM controls and Play are disabled during preparation or while the game runs; duplicate launch is also guarded in the session/core.
 - [ ] 🚧 IN PROGRESS — `DesktopLauncherSession` owns application-scope jobs, cancels outstanding preparation on window close, shuts down process manager with DETACH and closes the shared Ktor client; cross-platform close acceptance is pending.
 - [ ] 🚧 IN PROGRESS — the UI exposes a `Stop Minecraft` action and running/stopped/crashed/exit-code indicators from ProcessManager; real-game/manual verification remains pending.
-- [ ] Remember last selected version, offline nickname and RAM settings safely across restarts.
+- [ ] 🚧 IN PROGRESS — Compose restores and debounces storage of nickname, selected version, release/snapshot channel and RAM via atomic schema-versioned properties; tests and desktop acceptance pending.
 - [ ] Cache version manifest to support startup when Mojang is unreachable.
 - [ ] Verify launcher UI layout, long progress text and keyboard/focus behavior at supported window sizes and scaling.
 
@@ -159,7 +159,7 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 ## Build and CI validation
 
 - [ ] 🚧 IN PROGRESS — GitHub Actions runs Kotlin core tests and desktop compilation on Linux with a pinned Gradle 9.4.0 and Temurin JDK 21; CI core tests and desktop compilation PASSED (39123949155) after dependency/test repairs.
-- [ ] 🚧 IN PROGRESS — GitHub Actions builds and publishes runnable Compose Desktop app-directory artifacts on Linux, Windows and macOS; Linux and Windows createDistributable jobs PASSED (39123949155); macOS compiled but failed at jpackage. Publishing diagnostic logs and repairing macOS remain pending.
+- [ ] 🚧 IN PROGRESS — GitHub Actions builds and publishes runnable Compose Desktop app-directory artifacts on Linux, Windows and macOS; Linux and Windows createDistributable jobs PASSED (39123949155). macOS jpackage log showed packageVersion=0.1.0 is invalid; native packageVersion adjusted to 1.0.0 (product milestone remains v0.1); rerun pending.
 - [ ] Commit official Gradle 9.4.0 wrapper GENERATED and COMMITTED by restricted bootstrap workflow (03d2650); local ./gradlew verification outside Actions remains pending.
 - [ ] Investigate/fix failing Gradle compilation, test suite, native packaging and runtime behavior from CI logs.
 - [ ] Validate a clean-machine vanilla launch and documented OS/architecture matrix before publishing v0.1 test release.

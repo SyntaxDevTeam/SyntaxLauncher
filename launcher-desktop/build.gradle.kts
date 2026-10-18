@@ -27,7 +27,8 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "SyntaxLauncher"
-            packageVersion = "0.1.0"
+            // macOS jpackage forbids a leading zero in app-version; product milestone remains v0.1.
+            packageVersion = "1.0.0"
             description = "A lightweight, modern Minecraft launcher by SyntaxDevTeam"
             vendor = "SyntaxDevTeam"
         }
