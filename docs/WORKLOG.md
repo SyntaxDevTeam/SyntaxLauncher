@@ -8,6 +8,40 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-19 — Protect instances across launcher detach and restart
+
+**Milestone:** v0.2 / A4  
+**Author/Agent:** ChatGPT  
+**Status:** Partial — cross-process manual acceptance pending
+
+### Completed
+- Added a PID/start-time activity marker stored outside mutable game worlds with fail-closed handling of unreadable markers.
+- Claim a profile before Minecraft preparation, atomically hand the lease to the game PID and retain it across launcher close/detach.
+- Refuse rename/edit, clone, trash, restore and legacy import when the matching profile is active.
+- Surface lease errors in the desktop UI and terminate a newly started game if its lease could not be handed off.
+- Added regression checks for active preparation, blocked operations and release on cancellation.
+
+### Changed files
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/instance/InstanceActivityGuard.kt` — process markers.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/instance/MinecraftInstanceRepository.kt` — gate mutation and expose launch lease operations.
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/instance/MinecraftInstanceRepositoryTest.kt` — active-state tests.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/DesktopLauncherSession.kt` — lease lifecycle.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/SyntaxLauncherApp.kt` — error feedback.
+- `docs/ROADMAP.md`, `docs/INSTANCE_MANAGER_PHASES.md`, `docs/TESTING_V0.2.md`, `docs/WORKLOG.md` — evidence and next steps.
+
+### Verification
+- `./gradlew test` and `./gradlew build` — NOT RUN locally, CI pending.
+- Detached game / restart scenario — NOT RUN manually.
+
+### Roadmap updates
+- [ ] v0.2 / A4 — process-activity protection implemented, manual real-game/multiple-launcher acceptance pending.
+
+### Follow-ups / known issues
+- PID leases are conservative rather than a kernel-held game process lock. Verify cross-launcher races, unusual process sandbox environments and abrupt termination.
+- If a marker is corrupt, recover it manually after confirming the game has exited; do not discard it automatically.
+
+---
+
 ## 2026-10-19 — Cancellable staged game data copying (A3/A4 core)
 
 **Milestone:** v0.2 / A3 and A4  

@@ -69,6 +69,24 @@ class MinecraftInstanceRepository(
     private val json: Json = Json { ignoreUnknownKeys = true; prettyPrint = true; encodeDefaults = true },
 ) {
     private val mutex = Mutex()
+    private val activity = InstanceActivityGuard(root.resolve(".activity"))
+
+    /** The launcher claims a profile before preparation and transfers its lease to the child game PID. */
+    suspend fun beginLaunch(id: String?) = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            if (id != null) read(instanceDirectory(id))
+            activity.begin(id ?: "legacy")
+        }
+    }
+
+    suspend fun markGameStarted(id: String?, pid: Long) = withContext(Dispatchers.IO) {
+        activity.launched(id ?: "legacy", pid)
+    }
+
+    suspend fun endPreparation(id: String?) = withContext(Dispatchers.IO) {
+        activity.releasePreparation(id ?: "legacy")
+    }
+
 
     fun gameDirectory(instance: MinecraftInstance): Path =
         instanceDirectory(instance.id).resolve("game")
@@ -153,6 +171,7 @@ class MinecraftInstanceRepository(
     suspend fun update(instance: MinecraftInstance): MinecraftInstance = withContext(Dispatchers.IO) {
         mutex.withLock {
             val directory = instanceDirectory(instance.id)
+            activity.assertInactive(instance.id)
             read(directory)
             write(directory, instance)
             instance
@@ -161,12 +180,14 @@ class MinecraftInstanceRepository(
 
     suspend fun estimateClone(id: String): InstanceCopyEstimate = withContext(Dispatchers.IO) {
         mutex.withLock {
-            read(instanceDirectory(id))
-            InstanceFileCopy.estimate(gameDirectory(read(instanceDirectory(id))))
+            activity.assertInactive(id)
+            val selected = read(instanceDirectory(id))
+            InstanceFileCopy.estimate(gameDirectory(selected))
         }
     }
 
     suspend fun estimateLegacyImport(): InstanceCopyEstimate = withContext(Dispatchers.IO) {
+        activity.assertInactive("legacy")
         InstanceFileCopy.estimate(sharedLayout.gameDir)
     }
 
@@ -176,6 +197,7 @@ class MinecraftInstanceRepository(
         onProgress: (InstanceCopyProgress) -> Unit = {},
     ): MinecraftInstance = withContext(Dispatchers.IO) {
         mutex.withLock {
+            activity.assertInactive(id)
             val existing = read(instanceDirectory(id))
             val copy = existing.copy(id = UUID.randomUUID().toString(), name = name.trim())
             publishNew(copy, gameDirectory(existing), instanceDirectory(id).resolve("instance.json"), onProgress)
@@ -187,6 +209,7 @@ class MinecraftInstanceRepository(
     suspend fun moveToTrash(id: String): Path = withContext(Dispatchers.IO) {
         mutex.withLock {
             val source = instanceDirectory(id)
+            activity.assertInactive(id)
             read(source)
             Files.createDirectories(trash)
             require(Files.isDirectory(trash, LinkOption.NOFOLLOW_LINKS)) {
@@ -206,6 +229,7 @@ class MinecraftInstanceRepository(
         mutex.withLock {
             val source = trashDirectory(entryName)
             val recovered = read(source, fromTrash = true)
+            activity.assertInactive(recovered.id)
             Files.createDirectories(root)
             val destination = instanceDirectory(recovered.id)
             check(!Files.exists(destination, LinkOption.NOFOLLOW_LINKS)) {
@@ -222,6 +246,7 @@ class MinecraftInstanceRepository(
         onProgress: (InstanceCopyProgress) -> Unit = {},
     ): MinecraftInstance = withContext(Dispatchers.IO) {
         mutex.withLock {
+            activity.assertInactive("legacy")
             check(legacyGameAvailable()) { "No legacy game directory available" }
             val instance = MinecraftInstance(
                 id = UUID.randomUUID().toString(), name = name.trim(),

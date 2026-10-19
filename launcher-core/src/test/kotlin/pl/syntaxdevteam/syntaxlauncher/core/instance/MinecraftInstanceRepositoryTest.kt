@@ -210,6 +210,26 @@ class MinecraftInstanceRepositoryTest {
         }
     }
 
+    @Test fun preparingInstanceCannotBeModifiedClonedOrTrashed() = runBlocking {
+        val (repo, layout) = fixture()
+        val profile = repo.create("Active", "26.3")
+        repo.beginLaunch(profile.id)
+        assertFailsWith<InstanceInUseException> { repo.update(profile.copy(name = "Unsafe")) }
+        assertFailsWith<InstanceInUseException> { repo.cloneInstance(profile.id, "Unsafe clone") }
+        assertFailsWith<InstanceInUseException> { repo.moveToTrash(profile.id) }
+        assertFailsWith<InstanceInUseException> { repo.beginLaunch(profile.id) }
+        assertEquals("Active", repo.list().instances.single().name)
+        repo.endPreparation(profile.id)
+        assertEquals("Safe", repo.update(profile.copy(name = "Safe")).name)
+        val legacyWorld = layout.gameDir.resolve("saves/legacy.dat")
+        Files.createDirectories(legacyWorld.parent)
+        Files.writeString(legacyWorld, "original")
+        repo.beginLaunch(null)
+        assertFailsWith<InstanceInUseException> { repo.importLegacy("Unsafe import", "26.3") }
+        repo.endPreparation(null)
+        assertEquals("original", Files.readString(legacyWorld))
+    }
+
     @Test fun invalidMetadataCannotEscapeInstancesRoot() = runBlocking {
         val (repo, _) = fixture()
         assertFailsWith<IllegalArgumentException> { repo.create("Danger", "../outside") }

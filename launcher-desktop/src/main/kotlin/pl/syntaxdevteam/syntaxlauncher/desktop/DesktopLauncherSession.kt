@@ -10,6 +10,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.swing.Swing
 import kotlinx.coroutines.withContext
 import pl.syntaxdevteam.syntaxlauncher.core.account.OfflineAccount
@@ -47,6 +49,8 @@ class DesktopLauncherSession(
     private var launchJob: Job? = null
     private var settingsJob: Job? = null
     private var pendingPreferences: LauncherPreferences? = null
+    private val mutableLaunchIssue = MutableStateFlow<String?>(null)
+    val launchIssue = mutableLaunchIssue.asStateFlow()
 
     fun rememberPreferences(value: LauncherPreferences) {
         synchronized(lock) {
@@ -73,17 +77,43 @@ class DesktopLauncherSession(
                 )
             ) return false
             val account = OfflineAccount.create(nickname)
+            mutableLaunchIssue.value = null
             launchJob = scope.launch {
-                coordinator.launch(
-                    version = version,
-                    account = account,
-                    options = LaunchOptions(
-                        minimumMemoryMiB = instance?.minimumMemoryMiB ?: 512,
-                        maximumMemoryMiB = maximumMemoryMiB,
-                        extraJvmArguments = instance?.extraJvmArguments.orEmpty(),
-                    ),
-                    instanceLayout = instance?.let(instances::layoutFor) ?: legacyLayout,
-                )
+                var leased = false
+                try {
+                    instances.beginLaunch(instance?.id)
+                    leased = true
+                    coordinator.launch(
+                        version = version,
+                        account = account,
+                        options = LaunchOptions(
+                            minimumMemoryMiB = instance?.minimumMemoryMiB ?: 512,
+                            maximumMemoryMiB = maximumMemoryMiB,
+                            extraJvmArguments = instance?.extraJvmArguments.orEmpty(),
+                        ),
+                        instanceLayout = instance?.let(instances::layoutFor) ?: legacyLayout,
+                    )
+                    val running = processManager.status.value
+                    if (running.state == MinecraftProcessState.RUNNING && running.pid != null) {
+                        // A game may survive launcher shutdown: persist its actual PID/start instant.
+                        instances.markGameStarted(instance?.id, running.pid)
+                    }
+                } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                    throw cancelled
+                } catch (error: Exception) {
+                    mutableLaunchIssue.value = error.message ?: "Could not protect the active instance."
+                    // Never leave a launched game untracked after a lease hand-off error.
+                    if (processManager.status.value.state == MinecraftProcessState.RUNNING) {
+                        runCatching { processManager.terminate() }
+                    }
+                } finally {
+                    if (leased) {
+                        // After a successful hand-off the game lease remains until the child PID exits.
+                        kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+                            runCatching { instances.endPreparation(instance?.id) }
+                        }
+                    }
+                }
             }
             return true
         }

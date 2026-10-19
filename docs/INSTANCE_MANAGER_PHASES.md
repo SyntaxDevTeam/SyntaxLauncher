@@ -102,7 +102,7 @@ This document divides v0.2 into two **ordered implementation tracks**, not a new
 
 - Centralize real-path validation and detect source/destination symlink escapes, hard-link surprises where relevant, and overlapping roots.
 - Add copy verification/error categorization, disk-space checks, cancellation/rollback and interruption recovery for large worlds. Core now has scanned size estimates, cooperative chunk cancellation, disk checks and staged rollback; desktop controls and interrupted-process recovery policy require acceptance.
-- Prevent rename/version change/clone/trash/import of an active instance while Minecraft is running; account for detached game processes or explain and enforce conservative restrictions.
+- Prevent rename/version change/clone/trash/import of an active instance while Minecraft is running; account for detached game processes or explain and enforce conservative restrictions. PID/start-time activity markers now block mutations during launcher-managed preparation and detached Minecraft gameplay; complete manual multi-launch race verification before release.
 - Ensure cleanup only touches the operation's own private staging area, never the original game or unknown folders.
 - Add tests for interrupted staging, inaccessible files, malicious JSON paths, symlink trees, and partial copy failures.
 

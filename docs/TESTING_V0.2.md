@@ -36,6 +36,14 @@ The initial v0.2 functionality is a preview. Automated core tests validate file 
 - Simulate insufficient disk space/permissions with a disposable test directory. Confirm an actionable failure and no partial published profile.
 - Place a symbolic link in a disposable source game folder and confirm import refuses the unsafe copy rather than following that link.
 
+## Process activity protection
+
+1. Launch an instance, leave Minecraft running, close SyntaxLauncher (detach), and start SyntaxLauncher again.
+2. Attempt to rename, clone, edit or move that instance to trash. All mutations must fail without changing the profile or its worlds. The failure should name the active PID.
+3. Quit Minecraft and retry. Operations should become possible without deleting worlds or manually removing a lock.
+4. Launch Legacy Vanilla and verify an attempt to import it while the game is running is rejected. Reattempt once it exits.
+5. Verify a failed or cancelled game preparation does not leave a live lock permanently blocking editing.
+
 ## Failure handling and migration
 
 - A malformed or newer-than-supported `instance.json` should not be deleted or overwritten by routine list/update actions.

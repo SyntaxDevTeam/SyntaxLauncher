@@ -254,6 +254,7 @@ private fun LauncherPanel(
     val activeInstance = inventory?.instances?.firstOrNull { it.id == instanceId }
     val launch by session.coordinator.status.collectAsState()
     val process by session.processManager.status.collectAsState()
+    val processProtectionError by session.launchIssue.collectAsState()
 
     val isRunning = process.state == MinecraftProcessState.RUNNING ||
         process.state == MinecraftProcessState.STARTING
@@ -614,7 +615,7 @@ private fun LauncherPanel(
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall)
                 }
-                instanceError?.let { Text(it, color = MaterialTheme.colorScheme.error,
+                (processProtectionError ?: instanceError)?.let { Text(it, color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall) }
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f))
