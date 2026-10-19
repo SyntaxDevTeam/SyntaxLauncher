@@ -128,7 +128,7 @@ object FabricProfileParser {
         if (providedPath != null && providedPath != path) {
             throw ModLoaderException("Unexpected Fabric artifact path for $name")
         }
-        val root = entry["url"]?.jsonPrimitive?.content ?: "https://maven.fabricmc.net/"
+        val root = entry["url"]?.jsonPrimitive?.content ?: if (name.startsWith("net.minecraft:")) "https://libraries.minecraft.net/" else "https://maven.fabricmc.net/"
         val url = explicit?.get("url")?.jsonPrimitive?.contentOrNull ?: root.trimEnd('/') + "/" + path
         val source = runCatching { URI(url) }.getOrNull()
         if (source == null || source.scheme != "https" || source.host !in allowedHosts ||
@@ -136,11 +136,13 @@ object FabricProfileParser {
             source.rawFragment != null || source.path.contains("..")) {
             throw ModLoaderException("Fabric metadata contains an untrusted Maven source.")
         }
-        val sha1 = explicit?.get("sha1")?.jsonPrimitive?.contentOrNull ?: ""
+        val sha1 = explicit?.get("sha1")?.jsonPrimitive?.contentOrNull
+            ?: entry["sha1"]?.jsonPrimitive?.contentOrNull ?: ""
         if (sha1.isNotEmpty() && !sha1.matches(Regex("""[a-fA-F0-9]{40}"""))) {
             throw ModLoaderException("Fabric Maven SHA-1 is invalid.")
         }
-        val size = explicit?.get("size")?.jsonPrimitive?.contentOrNull?.toLongOrNull() ?: -1L
+        val size = (explicit?.get("size") ?: entry["size"])?.jsonPrimitive?.contentOrNull?.toLongOrNull() ?: -1L
+        if (size < -1L) throw ModLoaderException("Invalid Fabric library size.")
         return MinecraftLibrary(
             name = name,
             downloads = MinecraftLibraryDownloads(
