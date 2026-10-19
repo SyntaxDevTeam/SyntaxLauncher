@@ -8,6 +8,40 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-19 — First v0.3 Microsoft OAuth milestone
+
+**Milestone:** v0.3
+**Author/Agent:** ChatGPT GPT-6
+**Status:** Partial — first authentication phase
+
+### Completed
+- Added validated premium Java account and redacted session type.
+- Added native public-client browser PKCE S256, CSRF nonce and Microsoft authorization code/refresh exchange.
+- Refused fake offline credentials for premium accounts.
+- Added deterministic MockEngine tests for PKCE and OAuth tokens.
+
+### Changed files
+- launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/account/PremiumAccount.kt
+- launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/account/MicrosoftOAuth.kt
+- launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/account/MicrosoftOAuthTest.kt
+- launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/launch/LaunchModels.kt
+- docs/ROADMAP.md and docs/WORKLOG.md
+
+### Verification
+- ./gradlew test — NOT RUN locally, pending GitHub Actions.
+- ./gradlew build — NOT RUN locally, pending GitHub Actions.
+- Live account sign-in — NOT RUN; requires application registration.
+
+### Roadmap updates
+- [x] v0.3 premium identity and PKCE request/token exchange.
+- [ ] v0.3 Xbox, XSTS, Minecraft Services, account GUI and vault pending.
+
+### Follow-ups / known issues
+- Use an independently registered app client ID, never a client secret.
+- Refresh tokens remain in memory until a secure OS vault is implemented.
+
+---
+
 ## 2026-10-19 — Waive v0.2 manual gate once and begin v0.3
 
 **Milestone:** v0.2 transition / v0.3 Premium authentication

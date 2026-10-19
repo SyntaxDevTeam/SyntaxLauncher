@@ -264,7 +264,7 @@ Goal: add official premium authentication without changing the fundamental Minec
 
 - [ ] Introduce account manager/service.
 - [ ] Preserve offline account support.
-- [ ] Add Microsoft account implementation/session model.
+- [x] Add a verified premium account type and token-safe session class; tested.
 - [ ] Support multiple saved accounts.
 - [ ] Allow account selection per launch or as launcher default.
 - [ ] Display account type clearly.
@@ -280,8 +280,8 @@ Goal: add official premium authentication without changing the fundamental Minec
 
 ## Microsoft authentication
 
-- [ ] Implement browser-based Microsoft OAuth flow suitable for desktop apps.
-- [ ] Use PKCE where applicable.
+- [ ] 🚧 IN PROGRESS — native public-client OAuth request/code exchange and refresh implemented; localhost browser callback UI remains.
+- [x] Implement S256 PKCE, cryptographic CSRF state and unique request verifier; tested.
 - [ ] Never request/store Microsoft password.
 - [ ] Exchange Microsoft identity for Xbox Live authentication.
 - [ ] Complete XSTS authentication.

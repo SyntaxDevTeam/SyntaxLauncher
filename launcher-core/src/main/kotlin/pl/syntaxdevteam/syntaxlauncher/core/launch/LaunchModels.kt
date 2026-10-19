@@ -1,6 +1,7 @@
 package pl.syntaxdevteam.syntaxlauncher.core.launch
 
 import pl.syntaxdevteam.syntaxlauncher.core.account.Account
+import pl.syntaxdevteam.syntaxlauncher.core.account.PremiumAccount
 import pl.syntaxdevteam.syntaxlauncher.core.java.JavaRuntime
 import pl.syntaxdevteam.syntaxlauncher.core.minecraft.MinecraftPlatform
 import pl.syntaxdevteam.syntaxlauncher.core.minecraft.PreparedMinecraftVersion
@@ -26,8 +27,11 @@ data class LaunchAuthentication(
     val clientId: String = "",
     val xuid: String = "",
 ) {
+    override fun toString() = "LaunchAuthentication(type=" + userType + ", credentials=[REDACTED])"
+
     companion object {
         fun offline(account: Account): LaunchAuthentication {
+            require(account !is PremiumAccount) { "Premium account requires a verified session." }
             val compactUuid = account.uuid.toString().replace("-", "")
             return LaunchAuthentication(
                 accessToken = "0",
