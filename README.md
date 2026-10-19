@@ -2,7 +2,7 @@
 
 SyntaxLauncher is a modern Minecraft launcher from SyntaxDevTeam, written primarily in Kotlin and developed incrementally from a minimal vanilla launcher into a modular launcher with premium authentication, isolated instances, mod loaders, Modrinth integration, modpacks and diagnostics.
 
-The project has an implemented v0.2 Instance Manager and has now entered **v0.3 Microsoft/Premium account development**. The Kotlin/Compose launcher now connects the offline account, Mojang metadata, verified game preparation, automatic Java runtime installation, metadata-driven LaunchPlan and MinecraftProcessManager to an actual desktop Play workflow. A real clean-machine Minecraft launch is not yet verified.
+The project has an implemented v0.2 Instance Manager and has reached **v0.4 Fabric loader development**, while Microsoft app approval and v0.3 real-account acceptance remain pending. The Kotlin/Compose launcher now connects the offline account, Mojang metadata, verified game preparation, automatic Java runtime installation, metadata-driven LaunchPlan and MinecraftProcessManager to an actual desktop Play workflow. A real clean-machine Minecraft launch is not yet verified.
 
 ## Project philosophy
 
@@ -37,6 +37,24 @@ The v0.2 implementation includes cross-process per-instance file locks, safe clo
 ## v0.3 — Microsoft/Premium Accounts
 
 The desktop now has a v0.3 development account picker with Offline and in-memory Microsoft Java sessions, native browser PKCE login, account removal and the shared premium/offline launch pipeline. Configure SYNTAXLAUNCHER_MICROSOFT_CLIENT_ID with your own registered public application ID. Secure persistence, real Minecraft approval/testing and full UI acceptance are still outstanding; no tokens are persisted to files. A properly authorized Microsoft public-client app registration will be required. Premium sign-in must never request a Microsoft password or hardcode someone else's application ID.
+
+## v0.4 — Fabric loader (development; manual acceptance pending)
+
+Instances can now store an optional Vanilla/Fabric loader selection with the chosen compatible
+Fabric version. The instance creation and settings dialogs query the official Fabric Meta API
+and show compatible versions or an actionable error. The shared launch coordinator resolves
+the loader metadata before downloading Fabric libraries through the verified download pipeline,
+while continuing to use the Mojang version's own client, assets, Java runtime and process manager.
+Vanilla and existing schema-1 instances remain valid; immutable libraries are shared, and
+mutable game state remains per instance.
+
+**Do not consider v0.4 release-ready until Gradle CI, real Fabric boot tests and cross-platform
+instance/loader switching tests pass.** Loader choice is stored per instance; library downloads
+occur on the first Fabric launch rather than when the profile settings are saved. See
+[the v0.4 manual checklist](docs/TESTING_V0.4.md).
+
+OptiFine remains a later graphics enhancement rather than the first loader: its installer and
+Forge-specific compatibility constraints are different from Fabric's public launcher-profile API.
 
 ## Current implementation
 

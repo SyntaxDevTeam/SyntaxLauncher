@@ -517,3 +517,27 @@ The project must not:
 - hardcode one server ecosystem into core;
 - make the desktop UI the owner of launch logic;
 - sacrifice maintainability for early feature count.
+
+
+## 23. v0.4 Loader architecture
+
+`ModLoaderRegistry` maps provider IDs to independently implemented adapters. A nullable
+`ModLoaderSelection` on an instance means Vanilla; an explicit ID/version selects a provider.
+The selection is serialized as an optional schema-1 property, so pre-v0.4 instance JSON remains
+readable without a migration or destructive rewrite.
+
+The Fabric provider queries official Fabric Meta version/profile endpoints and overlays the
+profile's entry point, arguments and libraries onto previously validated Mojang metadata.
+Version IDs, game client JAR, assets, native rules, logging and Java runtime continue to come
+from Mojang. Libraries are downloaded through the shared MinecraftPreparationService and
+DownloadManager; shared immutable caches live outside instance game directories.
+
+`MinecraftLaunchCoordinator` asks the registry to produce the effective version before its
+existing prepare/Java/plan/process steps. The desktop never assembles game classpaths.
+Other loaders may require processors and version-specific artifacts; such work must remain
+inside each provider's own installation implementation, not in the coordinator.
+
+**Limitation:** Some Fabric profile libraries have no upstream checksum fields. The centralized
+downloader can verify supplied SHA-1/size fields, but absent hashes cannot be treated as
+cryptographically verified. Integrity metadata and real-client launch validation are
+acceptance gates before claiming comprehensive loader support.

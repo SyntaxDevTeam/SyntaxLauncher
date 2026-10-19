@@ -8,6 +8,45 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-19 — Begin v0.4 Fabric loader integration
+
+**Milestone:** v0.4 — Fabric Loader
+**Author/Agent:** GPT-6
+**Status:** Partial — pushed to main; CI and actual Fabric boot acceptance pending
+
+### Completed
+- Evaluated OptiFine-first against Fabric-first and retained the documented Fabric-first plan. OptiFine remains scheduled for a separate graphics feature phase.
+- Introduced a generic mod loader registry, provider contract and versioned selection stored optionally in existing schema-1 instance metadata.
+- Added a Fabric Meta adapter for compatible loader discovery, profile parsing, trusted Maven sources, per-library metadata and overlay of Fabric entry point/dependencies onto the Mojang base version.
+- Routed loader selection through the existing prepare/Java/launch pipeline; did not add a second game runner.
+- Added Vanilla/Fabric controls, live compatibility loading, selection changes and feedback in create/edit instance screens.
+- Added deterministic MockEngine and file-backed tests for compatibility, metadata, security and persistence.
+
+### Changed files
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/loader/*` — registry, Fabric integration and profile parser.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/instance/MinecraftInstanceRepository.kt` — optional loader field.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/launch/MinecraftLaunchCoordinator.kt` — loader resolution phase.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/{Main.kt,DesktopLauncherSession.kt,ui/*}` — loader service wiring and profile controls.
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/{loader/FabricLoaderProviderTest.kt,instance/MinecraftInstanceRepositoryTest.kt}` — test coverage.
+- `README.md`, `docs/ARCHITECTURE.md`, `docs/ROADMAP.md`, `docs/TESTING_V0.4.md`, `docs/WORKLOG.md` — delivery and verification documentation.
+
+### Verification
+- `./gradlew test` — NOT RUN locally; GitHub Actions verification running after source commits.
+- `./gradlew build` — NOT RUN locally; local runtime has no network access to Gradle/dependencies.
+- Manual verification — NOT RUN; requires a real Fabric client on target desktops.
+
+### Roadmap updates
+- v0.4 features marked `🚧 IN PROGRESS` instead of prematurely completed.
+- Added explicit library integrity and real client/desktop acceptance checkpoints.
+
+### Follow-ups / known issues
+- Check and repair any CI compilation/tests failures.
+- Verify a real Fabric instance launches and keeps saves/configs separated from Vanilla.
+- Some Fabric profiles do not supply library checksums; strengthen verifiable artifact metadata before claiming complete integrity.
+- v0.3 Microsoft app approval remains outstanding and independent of v0.4 offline launch verification.
+
+---
+
 ## 2026-10-19 — Fix Compose Desktop draggable area import
 
 **Milestone:** v0.3 desktop window chrome
