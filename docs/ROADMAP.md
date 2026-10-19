@@ -258,7 +258,14 @@ Goal: separate user installations into isolated, manageable Minecraft instances 
 
 Goal: add official premium authentication without changing the fundamental Minecraft launch pipeline.
 
-**Status:** 🚧 STARTED — v0.2 manual acceptance explicitly waived ONCE by maintainer to begin v0.3 (not falsely counted as tested). Initial implementation focuses on secure premium identity, PKCE, Xbox/XSTS/Minecraft provider chain, tests and migration-safe shared launch integration. External prerequisite: a Microsoft public application ID with Minecraft Services authorization.
+**Status:** 🚧 IN PROGRESS / EXTERNAL BLOCKER — Microsoft OAuth, Xbox/XSTS and Minecraft Services exchanges are implemented and mock-tested, but **a new Microsoft Entra Client ID is not automatically authorized by Minecraft Services**. The project must separately submit its own AppID for Minecraft/Mojang approval/allowlisting. Until explicit confirmation and a real `login_with_xbox` test, authenticated Minecraft Java login and full v0.3 release are **BLOCKED**. The maintainer's one-time v0.2 acceptance waiver is unrelated to this external dependency.
+
+## External prerequisite — Minecraft Services AppID authorization
+
+- [ ] **P0 / BLOCKED — Register SyntaxLauncher's own native/public Microsoft Entra app** and configure its authorized `http://localhost/callback` redirect. Do not reuse another launcher's Client ID or embed a client secret.
+- [ ] **P0 / BLOCKED — Submit SyntaxLauncher Client ID for Minecraft/Mojang AppID approval (allowlist).** Microsoft Entra registration alone is insufficient. Developers report `HTTP 403 Invalid app registration` at `POST /authentication/login_with_xbox` even when OAuth/Xbox/XSTS work. Check the Minecraft support page `https://help.minecraft.net/hc/en-us/articles/16254801392141` and the linked current submission process. A form reported by a developer in August 2026 was `https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=v4j5cvGGr0GRqy180BHbR-ajEQ1td1ROpz00KtS8Gd5UNVpPTkVLNFVROVQxNkdRMEtXVjNQQjdXVC4u`; verify the current form through Minecraft support before submitting.
+- [ ] **P0 / BLOCKED — Obtain and record explicit approval from Mojang/Minecraft** for the project's Client ID, then perform a real successful Minecraft Services token and Java profile retrieval test.
+- [ ] Keep Xbox/XSTS/Minecraft provider implementations testable with mocked HTTP responses while approval is pending; this does **not** constitute live authentication success.
 
 ## Account management
 

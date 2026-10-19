@@ -8,6 +8,39 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-19 — Document Mojang AppID allowlist as a v0.3 external blocker
+
+**Milestone:** v0.3 — Microsoft / Premium authentication  
+**Author/Agent:** ChatGPT GPT-6  
+**Status:** Partial — BLOCKED for live premium authentication pending Minecraft/Mojang AppID approval
+
+### Completed
+- Recorded the maintainer's correction: a Microsoft Entra app registration does not itself grant Minecraft Services API authorization.
+- Added an explicit dependency on Minecraft/Mojang's approval/allowlisting of SyntaxLauncher's own Client ID, before calling premium sign-in functional.
+- Distinguished mocked Microsoft/Xbox/XSTS/Minecraft exchange tests from a live successful Java-profile login.
+- Added approval, registration and real-token validation gates to the v0.3 testing checklist.
+
+### Changed files
+- `docs/ROADMAP.md` — external AppID approval blocker and release prerequisite.
+- `docs/TESTING_V0.3.md` — registration, written approval and live Minecraft Services test steps.
+- `docs/WORKLOG.md` — rationale and evidence boundaries.
+
+### Verification
+- `./gradlew test` — NOT RUN; documentation-only change.
+- `./gradlew build` — NOT RUN; documentation-only change.
+- Mojang approval — NOT OBTAINED / NOT VERIFIED.
+- Live `login_with_xbox` / Java profile — NOT RUN.
+
+### Roadmap updates
+- [ ] v0.3 / P0 — app registration and allowlisting remain blocked externally.
+- [ ] v0.3 / premium sign-in — requires approved Client ID and real Java profile test.
+
+### Follow-ups / known issues
+- A recent Microsoft Q&A thread reports a Minecraft AppID registration form and an independent developer receiving Mojang Enforcement approval; this report does not establish a guaranteed or currently active approval process.
+- Do not use another launcher's registered app identity; the project's own approval is required.
+
+---
+
 ## 2026-10-19 — Redact launch plan diagnostics and document premium acceptance
 
 **Milestone:** v0.3

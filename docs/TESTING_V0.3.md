@@ -6,9 +6,20 @@ This checklist separates deterministic CI coverage from real Microsoft/Xbox/Mine
 
 1. Register an independent SyntaxLauncher native/public Microsoft Entra application that permits personal Microsoft accounts. Do not reuse another launcher's client ID.
 2. Configure a native loopback redirect URI (http://localhost) for the public client. Do not add a client secret to the launcher.
-3. Obtain the necessary Xbox/Minecraft Services access/registration approval. OAuth or Xbox success does **not** establish that Minecraft Services accepts the application.
+3. **Separate mandatory step:** submit SyntaxLauncher's own Microsoft Entra Client ID to Minecraft/Mojang's AppID approval/allowlisting process. A valid Entra registration, Microsoft OAuth token, Xbox user token and XSTS token do not guarantee access to `https://api.minecraftservices.com/authentication/login_with_xbox`. Without approval the endpoint may return `HTTP 403 Invalid app registration`.
+   - Support reference: https://help.minecraft.net/hc/en-us/articles/16254801392141 (confirm current application process on the official support website).
+   - A developer reported Mojang Enforcement approval via https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=v4j5cvGGr0GRqy180BHbR-ajEQ1td1ROpz00KtS8Gd5UNVpPTkVLNFVROVQxNkdRMEtXVjNQQjdXVC4u in August 2026; this is a third-party report, **not independent confirmation** that the form is still accepting submissions.
+   - Retain the submission confirmation and approval response without storing account secrets in the repository.
 4. Configure SYNTAXLAUNCHER_MICROSOFT_CLIENT_ID to the project's registered public application UUID in the launcher's environment.
 5. Test only on accounts you own; never share account tokens or browser callback URLs.
+
+## App registration approval gate
+
+- [ ] The project's own Entra Client ID exists, with correct native/public client settings.
+- [ ] SyntaxLauncher AppID has been submitted for Minecraft Services approval.
+- [ ] Written confirmation of Minecraft/Mojang approval has been received (not inferred from Entra portal success).
+- [ ] `login_with_xbox` returns a valid Minecraft access token, and `/minecraft/profile` returns a verified Java profile for an entitled test account.
+- [ ] If Minecraft responds with `Invalid app registration`, report the approval blocker clearly; do not recommend using another launcher's Client ID or bypassing authentication.
 
 ## Account selection / OAuth
 
