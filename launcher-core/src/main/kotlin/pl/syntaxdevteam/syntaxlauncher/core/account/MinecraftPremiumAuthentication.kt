@@ -83,11 +83,27 @@ class MinecraftPremiumAuthentication(
                     put("identityToken", "XBL3.0 x=" + xstsHash + ";" + xsts.token)
                 }.toString())
             }
+            if (response.status.value == 403) {
+                throw PremiumExchangeException(PremiumStage.MINECRAFT,
+                    "Minecraft Services refused app registration (403); authorize this application.")
+            }
+            if (response.status.value !in 200..299) {
+                throw PremiumExchangeException(PremiumStage.MINECRAFT,
+                    "Minecraft Services rejected authentication (HTTP " + response.status.value + ").")
+            }
             json.decodeFromString<MinecraftResult>(response.bodyAsText())
         }
         val profile = safe(PremiumStage.JAVA_PROFILE) {
             val response = http.get("https://api.minecraftservices.com/minecraft/profile") {
                 headers { append(HttpHeaders.Authorization, "Bearer " + minecraft.accessToken) }
+            }
+            if (response.status.value == 403 || response.status.value == 404) {
+                throw PremiumExchangeException(PremiumStage.JAVA_PROFILE,
+                    "This Microsoft account has no accessible Minecraft Java profile.")
+            }
+            if (response.status.value !in 200..299) {
+                throw PremiumExchangeException(PremiumStage.JAVA_PROFILE,
+                    "Minecraft Java profile request failed (HTTP " + response.status.value + ").")
             }
             json.decodeFromString<JavaProfileResult>(response.bodyAsText())
         }
