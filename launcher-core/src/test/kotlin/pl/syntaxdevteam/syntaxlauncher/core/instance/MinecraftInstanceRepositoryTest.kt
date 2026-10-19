@@ -3,6 +3,7 @@ package pl.syntaxdevteam.syntaxlauncher.core.instance
 import java.nio.file.Files
 import java.util.UUID
 import kotlin.test.Test
+import kotlinx.coroutines.CancellationException
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
@@ -228,6 +229,66 @@ class MinecraftInstanceRepositoryTest {
         assertFailsWith<InstanceInUseException> { repo.importLegacy("Unsafe import", "26.3") }
         repo.endPreparation(null)
         assertEquals("original", Files.readString(legacyWorld))
+    }
+
+    @Test fun secondRepositoryCannotModifyOrLaunchAnActiveProfile() = runBlocking {
+        val (repo, layout) = fixture()
+        val profile = repo.create("Busy", "26.3")
+        val root = repo.gameDirectory(profile).parent.parent
+        val other = MinecraftInstanceRepository(root, root.parent.resolve("instance-trash"), layout)
+        repo.beginLaunch(profile.id)
+        assertFailsWith<InstanceInUseException> {
+            other.update(profile.copy(name = "Clobbered"))
+        }
+        assertFailsWith<InstanceInUseException> { other.beginLaunch(profile.id) }
+        repo.endPreparation(profile.id)
+        assertEquals("After", other.update(profile.copy(name = "After")).name)
+    }
+
+    @Test fun cancelledLargeCopyLeavesNoPublishedWorldOrTouchedSource() = runBlocking {
+        val (repo, layout) = fixture()
+        val legacyFile = layout.gameDir.resolve("saves/World/level.dat")
+        Files.createDirectories(legacyFile.parent)
+        Files.write(legacyFile, ByteArray(2 * 1024 * 1024) { (it % 251).toByte() })
+        val originalBytes = Files.readAllBytes(legacyFile)
+        assertFailsWith<CancellationException> {
+            repo.importLegacy("Cancelled", "26.3", onProgress = { progress ->
+                if (progress.copiedBytes > 256 * 1024L) throw CancellationException("cancel fixture")
+            })
+        }
+        assertEquals(originalBytes.toList(), Files.readAllBytes(legacyFile).toList())
+        assertTrue(repo.list().instances.isEmpty())
+    }
+
+    @Test fun realGameFolderLayoutIsolatedAndRestoresAfterRestart() = runBlocking {
+        val (repo, layout) = fixture()
+        val a = repo.create("Survival", "26.3", maximumMemoryMiB = 4096)
+        val b = repo.create("Survival", "26.3", maximumMemoryMiB = 6144)
+        for ((instance, name) in listOf(a to "OnlyInA", b to "OnlyInB")) {
+            val game = repo.layoutFor(instance).gameDir
+            Files.createDirectories(game.resolve("saves/$name"))
+            Files.writeString(game.resolve("saves/$name/level.dat"), name)
+            Files.writeString(game.resolve("options.txt"), name)
+            Files.createDirectories(game.resolve("screenshots"))
+            Files.writeString(game.resolve("screenshots/$name.png"), name)
+        }
+        val again = MinecraftInstanceRepository(
+            repo.gameDirectory(a).parent.parent,
+            repo.gameDirectory(a).parent.parent.parent.resolve("instance-trash"),
+            layout,
+        )
+        assertEquals(2, again.list().instances.size)
+        assertTrue(Files.exists(again.gameDirectory(a).resolve("saves/OnlyInA/level.dat")))
+        assertFalse(Files.exists(again.gameDirectory(b).resolve("saves/OnlyInA/level.dat")))
+        assertFalse(Files.exists(again.gameDirectory(a).resolve("saves/OnlyInB/level.dat")))
+        assertEquals("OnlyInA", Files.readString(again.gameDirectory(a).resolve("options.txt")))
+        assertEquals("OnlyInB", Files.readString(again.gameDirectory(b).resolve("options.txt")))
+        assertEquals(layout.assetsDir, again.layoutFor(a).assetsDir)
+        assertEquals(layout.librariesDir, again.layoutFor(b).librariesDir)
+        val moved = again.moveToTrash(a.id)
+        val restored = again.restoreFromTrash(moved.fileName.toString())
+        assertEquals(a.id, restored.id)
+        assertEquals("OnlyInA", Files.readString(again.gameDirectory(restored).resolve("options.txt")))
     }
 
     @Test fun invalidMetadataCannotEscapeInstancesRoot() = runBlocking {

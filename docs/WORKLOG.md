@@ -8,6 +8,40 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-19 — Interprocess safety and five-gate regression foundation
+
+**Milestone:** v0.2 (A2, A3, A4, B1–B4)  
+**Author/Agent:** ChatGPT GPT-6  
+**Status:** Partial — live Minecraft and visual acceptance are not testable in this environment
+
+### Completed
+- Introduced per-profile OS advisory file locks spanning entire filesystem mutation, removing the check-then-act race between independent SyntaxLauncher processes.
+- Retained process PID/start-time leases across game detach/restart with fail-closed handling of corrupted markers.
+- Added filesystem integration regression scenarios: two UUID worlds/options/screenshots, shared caches, reopened repository, trash recovery, cancellation during multi-megabyte import, and a second repository object attempting concurrent access.
+- Kept real Minecraft gameplay as a distinct release acceptance gate; mock filesystem tests are not falsely counted as real-client verification.
+
+### Changed files
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/instance/InstanceActivityGuard.kt` — interprocess locks and PID marker coordination.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/instance/MinecraftInstanceRepository.kt` — wrap all destructive mutations in a guarded critical section.
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/instance/MinecraftInstanceRepositoryTest.kt` — new regressions for two profiles, cancellation and competing repositories.
+- `docs/ROADMAP.md`, `docs/WORKLOG.md` — acceptance status and test evidence.
+
+### Verification
+- `./gradlew test` — NOT RUN locally; GitHub Actions job required.
+- `./gradlew build` — NOT RUN locally; GitHub Actions job required.
+- Real Minecraft A/B acceptance — NOT RUN; no graphical Minecraft client/environment available.
+- Manual high-DPI keyboard/Windows filesystem acceptance — NOT RUN.
+
+### Roadmap updates
+- [ ] v0.2 / A2 — automated A/B world layout improved; actual Minecraft gameplay pending.
+- [ ] v0.2 / A3/A4 — cancellation and interprocess protection strengthened; manual failure testing pending.
+- [ ] v0.2 / B1–B4 — remains open for end-user review.
+
+### Follow-ups / known issues
+- A real offline-mode Minecraft launch and UI inspection on supported desktops are mandatory before calling v0.2 stable.
+
+---
+
 ## 2026-10-19 — Replace temporary instance dialog with Instances workspace
 
 **Milestone:** v0.2 / B4, A3, B3  

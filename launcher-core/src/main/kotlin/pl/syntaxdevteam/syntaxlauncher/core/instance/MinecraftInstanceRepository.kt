@@ -167,18 +167,21 @@ class MinecraftInstanceRepository(
                 minimumMemoryMiB = minimumMemoryMiB, maximumMemoryMiB = maximumMemoryMiB,
                 extraJvmArguments = extraJvmArguments,
             )
-            publishNew(value)
-            value
+            activity.withInactive(value.id) {
+                publishNew(value)
+                value
+            }
         }
     }
 
     suspend fun update(instance: MinecraftInstance): MinecraftInstance = withContext(Dispatchers.IO) {
         mutex.withLock {
             val directory = instanceDirectory(instance.id)
-            activity.assertInactive(instance.id)
-            read(directory)
-            write(directory, instance)
-            instance
+            activity.withInactive(instance.id) {
+                read(directory)
+                write(directory, instance)
+                instance
+            }
         }
     }
 
@@ -201,27 +204,29 @@ class MinecraftInstanceRepository(
         onProgress: (InstanceCopyProgress) -> Unit = {},
     ): MinecraftInstance = withContext(Dispatchers.IO) {
         mutex.withLock {
-            activity.assertInactive(id)
-            val existing = read(instanceDirectory(id))
-            val copy = existing.copy(id = UUID.randomUUID().toString(), name = name.trim())
-            publishNew(copy, gameDirectory(existing), instanceDirectory(id).resolve("instance.json"), onProgress)
-            copy
+            activity.withInactive(id) {
+                val existing = read(instanceDirectory(id))
+                val copy = existing.copy(id = UUID.randomUUID().toString(), name = name.trim())
+                publishNew(copy, gameDirectory(existing), instanceDirectory(id).resolve("instance.json"), onProgress)
+                copy
+            }
         }
     }
 
     /** Moves all mutable user data into a recoverable trash area; never permanently deletes it. */
     suspend fun moveToTrash(id: String): Path = withContext(Dispatchers.IO) {
         mutex.withLock {
-            val source = instanceDirectory(id)
-            activity.assertInactive(id)
-            read(source)
-            Files.createDirectories(trash)
-            require(Files.isDirectory(trash, LinkOption.NOFOLLOW_LINKS)) {
-                "Instance trash must be a normal directory"
+            activity.withInactive(id) {
+                val source = instanceDirectory(id)
+                read(source)
+                Files.createDirectories(trash)
+                require(Files.isDirectory(trash, LinkOption.NOFOLLOW_LINKS) && !Files.isSymbolicLink(trash)) {
+                    "Instance trash must be a normal directory"
+                }
+                val target = trash.resolve(id + "-" + UUID.randomUUID())
+                move(source, target)
+                target
             }
-            val target = trash.resolve(id + "-" + UUID.randomUUID())
-            move(source, target)
-            target
         }
     }
 
@@ -233,14 +238,15 @@ class MinecraftInstanceRepository(
         mutex.withLock {
             val source = trashDirectory(entryName)
             val recovered = read(source, fromTrash = true)
-            activity.assertInactive(recovered.id)
-            Files.createDirectories(root)
-            val destination = instanceDirectory(recovered.id)
-            check(!Files.exists(destination, LinkOption.NOFOLLOW_LINKS)) {
-                "Instance UUID already exists. Deleted data is still in trash; no files were changed."
+            activity.withInactive(recovered.id) {
+                Files.createDirectories(root)
+                val destination = instanceDirectory(recovered.id)
+                check(!Files.exists(destination, LinkOption.NOFOLLOW_LINKS)) {
+                    "Instance UUID already exists. Deleted data is still in trash; no files were changed."
+                }
+                move(source, destination)
+                recovered
             }
-            move(source, destination)
-            recovered
         }
     }
 
@@ -250,14 +256,15 @@ class MinecraftInstanceRepository(
         onProgress: (InstanceCopyProgress) -> Unit = {},
     ): MinecraftInstance = withContext(Dispatchers.IO) {
         mutex.withLock {
-            activity.assertInactive("legacy")
-            check(legacyGameAvailable()) { "No legacy game directory available" }
-            val instance = MinecraftInstance(
-                id = UUID.randomUUID().toString(), name = name.trim(),
-                minecraftVersionId = minecraftVersionId, maximumMemoryMiB = maximumMemoryMiB,
-            )
-            publishNew(instance, sharedLayout.gameDir, onProgress = onProgress)
-            instance
+            activity.withInactive("legacy") {
+                check(legacyGameAvailable()) { "No legacy game directory available" }
+                val instance = MinecraftInstance(
+                    id = UUID.randomUUID().toString(), name = name.trim(),
+                    minecraftVersionId = minecraftVersionId, maximumMemoryMiB = maximumMemoryMiB,
+                )
+                publishNew(instance, sharedLayout.gameDir, onProgress = onProgress)
+                instance
+            }
         }
     }
 

@@ -197,9 +197,9 @@ Goal: separate user installations into isolated, manageable Minecraft instances 
 
 ## v0.2 delivery phases — prioritized work remaining
 
-- [ ] **A2 / P0 — Real-world isolation:** demonstrate two same-version instances with different worlds/options, shared verified Mojang caches and working restart persistence. The filesystem assertions already pass CI; real Minecraft acceptance is outstanding.
+- [ ] 🚧 IN PROGRESS — **A2 / P0 — Real-world isolation:** extended filesystem regression for two same-version worlds/options/screenshots, shared caches, repository restart and trash restore. Real Minecraft process/world interaction still requires manual acceptance.
 - [ ] 🚧 IN PROGRESS — **A3 / P0 — Legacy import completion:** core preflight/disk-space checks, streamed progress, cancellation and rollback are now wired to UI preview with source/destination/size confirmation and a Cancel copy action; real-world and forced disk-full tests pending.
-- [ ] 🚧 IN PROGRESS — **A4 / P0 — Data protection:** per-instance preparation/game PID activity marker now blocks update/clone/trash and legacy import across detached launcher sessions; streamed copying checks links, space and failed-copy rollback. Cross-process race and manual multi-launch acceptance remain open.
+- [ ] 🚧 IN PROGRESS — **A4 / P0 — Data protection:** added per-profile OS file locks across the entire mutation (not just PID preflight) to serialize separate launcher processes; protected edit/create/clone/import/trash/restore and preparation. Deterministic duplicate-repository tests added; actual detached-game and Windows filesystem acceptance remain open.
 - [ ] **B1 / P0 — Selection UX acceptance:** make duplicate names distinguishable, verify saved selection after restart and handle missing/corrupt instance explicitly.
 - [ ] 🚧 IN PROGRESS — **B2 / P0 — Settings editor:** dedicated Save/Cancel editor for name, version, min/max RAM and advanced JVM arguments added; version-change/world downgrade warning and form validation included. CI and manual persistence/cancel/downgrade acceptance pending.
 - [ ] 🚧 IN PROGRESS — **B3 / P0 — Safe clone/trash/restore:** in-app trash listing/restore, UUID-conflict protection and automated round-trip tests implemented; CI and real-world recovery acceptance pending. Clone/import progress and cancellation remain open.
