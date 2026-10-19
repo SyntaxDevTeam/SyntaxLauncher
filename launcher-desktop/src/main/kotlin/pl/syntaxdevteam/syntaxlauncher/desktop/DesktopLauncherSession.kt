@@ -94,9 +94,10 @@ class DesktopLauncherSession(
                         instanceLayout = instance?.let(instances::layoutFor) ?: legacyLayout,
                     )
                     val running = processManager.status.value
-                    if (running.state == MinecraftProcessState.RUNNING && running.pid != null) {
+                    val gamePid = running.pid
+                    if (running.state == MinecraftProcessState.RUNNING && gamePid != null) {
                         // A game may survive launcher shutdown: persist its actual PID/start instant.
-                        instances.markGameStarted(instance?.id, running.pid)
+                        instances.markGameStarted(instance?.id, gamePid)
                     }
                 } catch (cancelled: kotlinx.coroutines.CancellationException) {
                     throw cancelled
