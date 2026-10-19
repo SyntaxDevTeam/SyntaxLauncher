@@ -181,7 +181,7 @@ fun SyntaxLauncherApp(session: DesktopLauncherSession) {
                     }
                     Spacer(Modifier.width(22.dp))
                     Text(
-                        "JAVA EDITION   /   PREVIEW 0.1",
+                        "JAVA EDITION   /   v0.2 PREVIEW",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.labelSmall,
                         letterSpacing = 1.sp,
@@ -461,7 +461,9 @@ private fun LauncherPanel(
             isBusy = mutationBusy,
             isLoadingInventory = inventory == null,
             hasLegacyGame = session.instances.legacyGameAvailable(),
-            latestVersion = manifest.latestRelease,
+            // Import an existing legacy world with its selected Minecraft version by default,
+            // not an unrelated newer release that might convert world data.
+            latestVersion = legacyVersionId.ifBlank { manifest.latestRelease },
             availableVersions = manifest.versions.map { it.id },
             error = instanceError,
             preview = copyPreview,

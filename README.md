@@ -20,13 +20,19 @@ The first release will **not** try to compete with mature launchers by implement
 
 Later features must extend that core rather than replace it.
 
-## v0.2 — Instance Manager (work in progress)
+## v0.2 — Instance Manager (release validation in progress)
 
 The detailed implementation sequence is in [v0.2 Instance Manager phases](docs/INSTANCE_MANAGER_PHASES.md): **Track A — separate Minecraft instances** and **Track B — managing instances**, with P0/P1 priorities, existing coverage, outstanding data-safety work and explicit acceptance criteria.
 
 Instances now provide stable UUID identities and separate game directories for worlds/configs/resource packs, with shared immutable Mojang caches. Core instance tests, desktop compilation and Linux/Windows/macOS packaging passed in [GitHub Actions 39157681455](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/39157681455). Real two-world isolation remains to be checked manually. The desktop manager supports creating, selecting, renaming, cloning, editing per-instance Minecraft version, minimum/maximum RAM and advanced JVM arguments through explicit Save/Cancel, moving instances to a recoverable trash directory and restoring deleted instances in-app with their original UUID. Restore refuses an occupied UUID instead of replacing data; corrupted trash entries remain visible as diagnostic warnings without automatic cleanup. Legacy Vanilla remains playable with the original v0.1 game directory; an explicit import copies existing legacy worlds without deleting the source. Instance metadata is versioned, written atomically and preserves unknown properties. Follow the [v0.2 Instance Manager test checklist](docs/TESTING_V0.2.md) before declaring the milestone complete; code compilation alone does not prove the game-state isolation acceptance gate.
 
 The v0.2 Instances workspace now separates searchable instance inventory from profile actions, supports restoring deleted profiles, and reviews source/destination paths and estimated size before clone/import. Long copies show byte/file progress and can be cancelled; incomplete profiles are never published. A process activity marker rejects profile mutations while launcher-managed Minecraft or preparation is active, including after detaching from the launcher. These safeguards still require real-world acceptance.
+
+### v0.2 verification status
+
+The v0.2 implementation includes cross-process per-instance file locks, safe cloning/import to private staging, SHA-256 copy verification, space checks, cancellation, recovery from trash, and an adaptive Instances workspace. A deterministic test runs two actual Java child processes through the launch coordinator and verifies that their game directories do not mix. These automated tests are distinct from real Minecraft gameplay acceptance.
+
+**v0.2 is still a Preview, not a signed-off stable milestone.** Before marking it complete, execute the real Minecraft A/B world test, existing-world import, interrupted copy, trash recovery and DPI/keyboard checklist in [docs/TESTING_V0.2.md](docs/TESTING_V0.2.md). The release gate cannot be satisfied solely with CI packaging.
 
 ## Current implementation
 

@@ -8,6 +8,35 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-19 — Align preview label and safe default for legacy import
+
+**Milestone:** v0.2 / A3 and release validation  
+**Author/Agent:** ChatGPT GPT-6  
+**Status:** Partial — real game acceptance pending
+
+### Completed
+- Marked the launcher header as `v0.2 PREVIEW` rather than the obsolete `PREVIEW 0.1`.
+- Preserved the selected Legacy Vanilla Minecraft version when importing an existing legacy world, avoiding unrequested automatic conversion to the latest release.
+- Updated README and the canonical roadmap to clearly distinguish implementation/CI from still-open real Minecraft acceptance.
+- Corrected Compose pane declarations after extracting compact/wide responsive UI (follow-up to earlier responsive layout commit).
+
+### Changed files
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/SyntaxLauncherApp.kt` — preview marker and legacy version default.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/InstanceWorkspace.kt` — corrected extracted local panes (preceding follow-up commit).
+- `README.md`, `docs/ROADMAP.md`, `docs/WORKLOG.md` — release and acceptance status.
+
+### Verification
+- Previous implementation's Kotlin core tests and desktop compilation passed CI; final packaging and this documentation commit require the latest CI check.
+- Manual real Minecraft gameplay/visual review — NOT RUN, environment has no graphical game client.
+
+### Roadmap updates
+- [ ] v0.2 final acceptance remains open for real-world evidence; CI must not be mistaken for game-client validation.
+
+### Follow-ups / known issues
+- Perform and record the manual release gates from `docs/TESTING_V0.2.md`, then mark v0.2 complete only if every result passes.
+
+---
+
 ## 2026-10-19 — Exercise isolated launch with two real JVM child processes
 
 **Milestone:** v0.2 / A2 and final regression  

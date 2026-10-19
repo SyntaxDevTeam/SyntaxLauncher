@@ -191,7 +191,7 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 
 Goal: separate user installations into isolated, manageable Minecraft instances before introducing mods.
 
-**Status:** 🚧 IN PROGRESS — schema-versioned instance repository, CRUD, non-destructive clone/trash/import, Compose manager and per-instance launch integration compile and pass the core test suite. Cross-platform CI 39157681455 PASSED (4/4). Real two-world, legacy import and clone acceptance remain pending.
+**Status:** 🚧 PREVIEW / RELEASE VALIDATION — schema-versioned instance repository, guarded CRUD, SHA-256 verified clone/import, in-app restore, dedicated adaptive Instances workspace and JVM child-process A/B isolation regression implemented. Real Minecraft gameplay/world data, interrupt and GUI visual acceptance must still be performed before v0.2 is marked complete.
 
 **Detailed execution phases and acceptance criteria:** [INSTANCE_MANAGER_PHASES.md](INSTANCE_MANAGER_PHASES.md) — Track A (separate game instances) and Track B (instance management).
 
