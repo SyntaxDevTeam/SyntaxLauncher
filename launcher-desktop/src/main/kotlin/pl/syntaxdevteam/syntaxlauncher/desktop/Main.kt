@@ -16,6 +16,8 @@ import androidx.compose.ui.window.application
 import java.awt.GraphicsEnvironment
 import pl.syntaxdevteam.syntaxlauncher.core.java.MojangJavaRuntimeManager
 import pl.syntaxdevteam.syntaxlauncher.core.instance.MinecraftInstanceRepository
+import pl.syntaxdevteam.syntaxlauncher.core.loader.ModLoaderRegistry
+import pl.syntaxdevteam.syntaxlauncher.core.loader.FabricLoaderProvider
 import pl.syntaxdevteam.syntaxlauncher.core.launch.LaunchPlanBuilder
 import pl.syntaxdevteam.syntaxlauncher.core.launch.MinecraftLaunchCoordinator
 import pl.syntaxdevteam.syntaxlauncher.core.launch.MinecraftProcessManager
@@ -52,6 +54,7 @@ fun main(args: Array<String>) {
             LauncherVersion.parse(LauncherBuildInfo.version))
     } else null
     val processManager = MinecraftProcessManager(paths.logsDir)
+    val modLoaders = ModLoaderRegistry(listOf(FabricLoaderProvider(httpClient)))
     val session = DesktopLauncherSession(
         versionCatalog = MinecraftVersionCatalog(httpClient),
         versionResolver = MinecraftVersionResolver(httpClient),
@@ -62,6 +65,7 @@ fun main(args: Array<String>) {
             processes = processManager,
             layout = MinecraftInstallationLayout.from(paths),
             platform = platform,
+            loaders = modLoaders,
         ),
         processManager = processManager,
         preferences = LauncherPreferencesStore(paths.configDir.resolve("settings.properties")),
@@ -72,6 +76,7 @@ fun main(args: Array<String>) {
             sharedLayout = MinecraftInstallationLayout.from(paths),
         ),
         httpClient = httpClient,
+        loaders = modLoaders,
         microsoftSignIn = System.getenv("SYNTAXLAUNCHER_MICROSOFT_CLIENT_ID")
             ?.trim()?.takeIf { it.isNotEmpty() }
             ?.let { clientId -> runCatching { DesktopMicrosoftSignIn(httpClient, clientId) }.getOrNull() },

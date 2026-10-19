@@ -481,6 +481,7 @@ private fun LauncherPanel(
         InstanceSettingsDialog(
             instance = editing,
             availableVersions = manifest.versions.map { it.id },
+            loadFabricVersions = { game -> session.loaders?.compatibleVersions("fabric", game).orEmpty() },
             onSave = { updated ->
                 modifyInstance { session.instances.update(updated) }
                 editingInstance = null
@@ -501,12 +502,13 @@ private fun LauncherPanel(
             // not an unrelated newer release that might convert world data.
             latestVersion = legacyVersionId.ifBlank { manifest.latestRelease },
             availableVersions = manifest.versions.map { it.id },
+            loadFabricVersions = { game -> session.loaders?.compatibleVersions("fabric", game).orEmpty() },
             error = instanceError,
             preview = copyPreview,
             copyProgress = copyProgress,
             onSelect = ::chooseInstance,
-            onCreate = { name, version -> modifyInstance {
-                session.instances.create(name, version, maximumMemoryMiB = ramMiB.toInt())
+            onCreate = { name, version, loader -> modifyInstance {
+                session.instances.create(name, version, maximumMemoryMiB = ramMiB.toInt(), loader = loader)
             } },
             onEdit = { instance -> editingInstance = instance },
             onClonePreview = { instance, name ->
@@ -880,7 +882,7 @@ private fun LauncherPanel(
                 )
                 if (activeInstance != null) {
                     Text(
-                        "Version and RAM belong to this instance. Edit them under Manage instances → Instance settings.",
+                        "Version, loader and RAM belong to this instance. Edit them under Manage instances → Instance settings.",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodySmall,
                     )
@@ -902,7 +904,7 @@ private fun LauncherPanel(
                     MinecraftProcessState.STOPPED -> "Last exit code: ${process.exitCode ?: "?"}"
                     MinecraftProcessState.CRASHED -> process.errorMessage ?: "Minecraft crashed"
                     else -> if (selectedPremium != null) "Microsoft account · " + selectedPremium.username
-                        else "Offline profile · Vanilla"
+                        else "Offline profile · " + (activeInstance?.loader?.id?.replaceFirstChar { it.uppercase() } ?: "Vanilla")
                 },
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall,

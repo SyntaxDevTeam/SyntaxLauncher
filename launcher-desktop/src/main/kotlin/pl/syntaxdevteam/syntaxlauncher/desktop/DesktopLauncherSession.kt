@@ -20,6 +20,7 @@ import pl.syntaxdevteam.syntaxlauncher.core.account.PremiumSession
 import pl.syntaxdevteam.syntaxlauncher.core.launch.LaunchAuthentication
 import kotlinx.coroutines.flow.StateFlow
 import java.time.Instant
+import pl.syntaxdevteam.syntaxlauncher.core.loader.ModLoaderRegistry
 import pl.syntaxdevteam.syntaxlauncher.core.instance.MinecraftInstance
 import pl.syntaxdevteam.syntaxlauncher.core.instance.MinecraftInstanceRepository
 import pl.syntaxdevteam.syntaxlauncher.core.launch.LaunchOptions
@@ -47,6 +48,7 @@ class DesktopLauncherSession(
     val instances: MinecraftInstanceRepository,
     private val legacyLayout: MinecraftInstallationLayout,
     private val httpClient: HttpClient,
+    val loaders: ModLoaderRegistry? = null,
     private val microsoftSignIn: DesktopMicrosoftSignIn? = null,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -143,6 +145,7 @@ class DesktopLauncherSession(
                         ),
                         instanceLayout = instance?.let(instances::layoutFor) ?: legacyLayout,
                         authentication = authentication,
+                        loader = instance?.loader,
                     )
                     // Transfer the preparing lease to the child under NonCancellable,
                     // so closing the launcher between process.start() and hand-off is safe.
