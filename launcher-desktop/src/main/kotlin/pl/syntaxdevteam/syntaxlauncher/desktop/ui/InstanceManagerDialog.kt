@@ -37,7 +37,7 @@ fun InstanceManagerDialog(
     onCreate: (String) -> Unit,
     onRename: (MinecraftInstance, String) -> Unit,
     onClone: (MinecraftInstance, String) -> Unit,
-    onSaveSettings: (MinecraftInstance) -> Unit,
+    onEditSettings: (MinecraftInstance) -> Unit,
     onImportLegacy: (String) -> Unit,
     onDelete: (MinecraftInstance) -> Unit,
     onRestore: (TrashedMinecraftInstance) -> Unit,
@@ -106,9 +106,9 @@ fun InstanceManagerDialog(
                             enabled = canModify && valid && name.trim().length < 43,
                         ) { Text("Clone") }
                         OutlinedButton(
-                            onClick = { onSaveSettings(selected) },
+                            onClick = { onEditSettings(selected) },
                             enabled = canModify,
-                        ) { Text("Save version / RAM") }
+                        ) { Text("Instance settings") }
                     }
                     OutlinedButton(
                         onClick = { deleting = true },

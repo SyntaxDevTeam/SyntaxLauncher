@@ -201,7 +201,7 @@ Goal: separate user installations into isolated, manageable Minecraft instances 
 - [ ] **A3 / P0 — Legacy import completion:** add size/progress/cancel/error handling and demonstrate that importing v0.1 worlds never modifies their source.
 - [ ] **A4 / P0 — Data protection:** enforce active-game safety before clone/trash/edit, robust copy/staging rollback, symlink/path protection and disk-space/permissions diagnostics.
 - [ ] **B1 / P0 — Selection UX acceptance:** make duplicate names distinguishable, verify saved selection after restart and handle missing/corrupt instance explicitly.
-- [ ] **B2 / P0 — Settings editor:** complete explicit Save/Cancel for version, memory and JVM options, with downgrade warnings and no unintended writes.
+- [ ] 🚧 IN PROGRESS — **B2 / P0 — Settings editor:** dedicated Save/Cancel editor for name, version, min/max RAM and advanced JVM arguments added; version-change/world downgrade warning and form validation included. CI and manual persistence/cancel/downgrade acceptance pending.
 - [ ] 🚧 IN PROGRESS — **B3 / P0 — Safe clone/trash/restore:** in-app trash listing/restore, UUID-conflict protection and automated round-trip tests implemented; CI and real-world recovery acceptance pending. Clone/import progress and cancellation remain open.
 - [ ] **B4 / P1 — Instance workspace:** replace the dense prototype dialog with a focused, accessible Instances view; keep Play the home screen's primary action.
 - [ ] **Final acceptance / P0:** automated regression suite, three platform distributions, real A/B world isolation, non-destructive legacy import, clone/restore and v0.1 compatibility.
@@ -240,7 +240,7 @@ Goal: separate user installations into isolated, manageable Minecraft instances 
 ## v0.2 UI
 
 - [ ] 🚧 IN PROGRESS — instance selector/manager added to Compose home without changing primary Play CTA.
-- [ ] 🚧 IN PROGRESS — create, rename, clone, explicit legacy import, save version/RAM and confirm delete actions.
+- [ ] 🚧 IN PROGRESS — create, rename, clone, explicit legacy import, dedicated per-instance settings editor and confirm delete/restore actions; cross-platform and UX acceptance pending.
 - [ ] 🚧 IN PROGRESS — corrupt/missing saved instances are explicitly reported and cannot silently redirect Play to Legacy Vanilla.
 - [ ] Preview UX review (window size, instance manager dialog, large folders and keyboard focus) pending.
 

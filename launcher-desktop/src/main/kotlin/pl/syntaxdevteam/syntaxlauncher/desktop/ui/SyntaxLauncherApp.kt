@@ -245,6 +245,7 @@ private fun LauncherPanel(
     var trashInventory by remember(session) { mutableStateOf<TrashedInstanceInventory?>(null) }
     var instanceId by remember { mutableStateOf(saved.selectedInstanceId) }
     var managerOpen by remember { mutableStateOf(false) }
+    var editingInstance by remember { mutableStateOf<MinecraftInstance?>(null) }
     LaunchedEffect(instanceOpenRequest) {
         if (instanceOpenRequest > 0) managerOpen = true
     }
@@ -341,7 +342,18 @@ private fun LauncherPanel(
         if (locked) menuOpen = false
     }
 
-    if (managerOpen) {
+    val editing = editingInstance
+    if (editing != null) {
+        InstanceSettingsDialog(
+            instance = editing,
+            availableVersions = manifest.versions.map { it.id },
+            onSave = { updated ->
+                modifyInstance { session.instances.update(updated) }
+                editingInstance = null
+            },
+            onCancel = { editingInstance = null },
+        )
+    } else if (managerOpen) {
         InstanceManagerDialog(
             instances = inventory?.instances.orEmpty(),
             trashed = trashInventory?.entries.orEmpty(),
@@ -359,12 +371,7 @@ private fun LauncherPanel(
             onClone = { instance, name -> modifyInstance {
                 session.instances.cloneInstance(instance.id, name)
             } },
-            onSaveSettings = { instance -> modifyInstance {
-                session.instances.update(instance.copy(
-                    minecraftVersionId = selected?.id ?: instance.minecraftVersionId,
-                    maximumMemoryMiB = ramMiB.toInt(),
-                ))
-            } },
+            onEditSettings = { instance -> editingInstance = instance },
             onDelete = { instance -> modifyInstance {
                 session.instances.moveToTrash(instance.id)
                 if (instanceId == instance.id) instanceId = ""
@@ -603,7 +610,7 @@ private fun LauncherPanel(
                         style = MaterialTheme.typography.bodySmall)
                 }
                 if (unsavedInstanceSettings) {
-                    Text("Save version / RAM in Manage instances before playing.",
+                    Text("Instance settings differ from the saved profile. Re-select it or edit it in Manage instances.",
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall)
                 }
@@ -639,14 +646,14 @@ private fun LauncherPanel(
                     color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 1.2.sp)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(
-                        selected = !showSnapshots, enabled = !locked,
+                        selected = !showSnapshots, enabled = !locked && activeInstance == null,
                         onClick = {
                             showSnapshots = false
                             selected = manifest.versions.firstOrNull { it.id == manifest.latestRelease }
                         }, label = { Text("Releases") },
                     )
                     FilterChip(
-                        selected = showSnapshots, enabled = !locked,
+                        selected = showSnapshots, enabled = !locked && activeInstance == null,
                         onClick = {
                             showSnapshots = true
                             selected = manifest.versions.firstOrNull { it.id == manifest.latestSnapshot }
@@ -655,12 +662,12 @@ private fun LauncherPanel(
                 }
                 Box {
                     OutlinedButton(
-                        onClick = { menuOpen = true }, enabled = !locked,
+                        onClick = { menuOpen = true }, enabled = !locked && activeInstance == null,
                         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                         shape = RoundedCornerShape(14.dp),
                     ) { Text(selected?.id ?: "Select version") }
                     DropdownMenu(
-                        expanded = menuOpen && !locked,
+                        expanded = menuOpen && !locked && activeInstance == null,
                         onDismissRequest = { menuOpen = false },
                     ) {
                         manifest.versions.asSequence()
@@ -709,8 +716,16 @@ private fun LauncherPanel(
                 }
                 Slider(
                     value = ramMiB, onValueChange = { ramMiB = it },
-                    valueRange = 1024f..16384f, steps = 14, enabled = !locked,
+                    valueRange = 1024f..16384f, steps = 14,
+                    enabled = !locked && activeInstance == null,
                 )
+                if (activeInstance != null) {
+                    Text(
+                        "Version and RAM belong to this instance. Edit them under Manage instances → Instance settings.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,

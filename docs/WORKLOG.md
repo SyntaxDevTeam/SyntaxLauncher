@@ -8,6 +8,41 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-19 — Add explicit per-instance settings editor
+
+**Milestone:** v0.2 (B2)  
+**Author/Agent:** ChatGPT  
+**Status:** Partial — CI and manual desktop acceptance pending
+
+### Completed
+- Added a dedicated settings dialog for per-instance name, Minecraft version, minimum/maximum RAM and advanced JVM options.
+- Kept all editing in a local Compose draft; Cancel cannot write metadata, and Save validates memory, catalog version, name and JVM argument limits.
+- Added clear warnings for version changes and possible world damage when downgrading; users must back up worlds before testing older versions.
+- Made version/RAM controls on the home screen read-only for non-legacy instances, preventing accidental unsaved overrides. Legacy Vanilla retains its quick settings.
+- Routed saving through the existing instance repository, then refresh/reselect the updated instance; no changes to Minecraft launch planner.
+
+### Changed files
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/InstanceSettingsDialog.kt` — new transactional settings dialog.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/InstanceManagerDialog.kt` — launch the editor from selected profile.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/SyntaxLauncherApp.kt` — route to settings and disable per-instance quick overrides.
+- `docs/ROADMAP.md`, `docs/TESTING_V0.2.md`, `README.md`, `docs/WORKLOG.md` — documented scope and manual verification.
+
+### Verification
+- `./gradlew test` — NOT RUN locally, dependencies unavailable (network disabled).
+- `./gradlew build` — NOT RUN locally, awaiting GitHub Actions on this commit.
+- Manual UI Save/Cancel, downgrade warnings and real-world compatibility — NOT RUN.
+- Previous v0.2 recovery commit `62746e7`: CI core tests and desktop compilation PASS; packaging was queued at time of writing.
+
+### Roadmap updates
+- [ ] v0.2 / B2 — editor implemented; CI and live user verification still required.
+
+### Follow-ups / known issues
+- Provide an explicit launch-time downgrade confirmation for existing worlds, not merely an edit-time warning.
+- Replace the remaining dense manager dialog with dedicated instance workspace (B4).
+- Verify keyboard/DPI behavior, cancellation and persistence across app restarts.
+
+---
+
 ## 2026-10-19 — Add safe instance trash recovery
 
 **Milestone:** v0.2 (B3 / A4 / B1)  

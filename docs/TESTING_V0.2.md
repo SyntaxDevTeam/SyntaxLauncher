@@ -15,8 +15,9 @@ The initial v0.2 functionality is a preview. Automated core tests validate file 
 3. Create **Survival B** for exactly the same Minecraft version. Run B and check that `OnlyInA` is absent.
 4. Create `OnlyInB`, then return to instance A. Confirm `OnlyInA` is present and `OnlyInB` is absent.
 5. Confirm that assets, libraries, client JARs and managed Java are shared and reused (no unnecessary complete re-download).
-6. Change version or RAM for A, click **Manage instances → Save version / RAM**, restart SyntaxLauncher and verify values persist.
-7. Confirm the launcher rejects Play if an edited version/RAM has not yet been saved to the active instance.
+6. Select A and open **Manage instances → Instance settings**. Change its name, version, minimum/maximum RAM and advanced JVM arguments (one argument per line). Confirm Save persists after restart and that the version-change warning appears.
+7. Reopen settings, change all inputs, click **Cancel**, and confirm no metadata changed. Try invalid RAM/version/JVM values and confirm Save is disabled. Verify the main screen's version/RAM controls are read-only for a selected instance but remain editable in Legacy Vanilla.
+8. Before intentionally downgrading a Minecraft world, make an external backup. Confirm the warning is displayed before saving the lower version. Do not test destructive downgrade on important worlds.
 
 ## Clone, rename and trash
 
