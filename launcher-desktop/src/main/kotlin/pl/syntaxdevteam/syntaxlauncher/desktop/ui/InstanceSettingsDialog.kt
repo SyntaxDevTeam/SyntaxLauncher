@@ -14,6 +14,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -21,6 +22,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import pl.syntaxdevteam.syntaxlauncher.core.instance.MinecraftInstance
+import pl.syntaxdevteam.syntaxlauncher.core.loader.ModLoaderSelection
+import pl.syntaxdevteam.syntaxlauncher.core.loader.ModLoaderVersion
 
 /**
  * Draft values stay in Compose state until explicit Save; Cancel writes nothing.
@@ -30,6 +33,7 @@ import pl.syntaxdevteam.syntaxlauncher.core.instance.MinecraftInstance
 fun InstanceSettingsDialog(
     instance: MinecraftInstance,
     availableVersions: List<String>,
+    loadFabricVersions: suspend (String) -> List<ModLoaderVersion> = { emptyList() },
     onSave: (MinecraftInstance) -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -42,6 +46,11 @@ fun InstanceSettingsDialog(
     }
     var advanced by remember(instance.id) { mutableStateOf(instance.extraJvmArguments.isNotEmpty()) }
     var suggestions by remember { mutableStateOf(false) }
+    var loaderId by remember(instance.id) { mutableStateOf(instance.loader?.id ?: "vanilla") }
+    var fabricVersion by remember(instance.id) { mutableStateOf(instance.loader?.version.orEmpty()) }
+    var compatible by remember(instance.id) { mutableStateOf<List<ModLoaderVersion>>(emptyList()) }
+    var loaderLoading by remember(instance.id) { mutableStateOf(false) }
+    var loaderError by remember(instance.id) { mutableStateOf<String?>(null) }
 
     val minRam = minimum.toIntOrNull()
     val maxRam = maximum.toIntOrNull()
@@ -56,7 +65,31 @@ fun InstanceSettingsDialog(
     val argumentsValid = args.size <= 32 && args.all {
         it.length <= 512 && it.none { ch -> ch.code in 0..31 }
     }
-    val canSave = nameValid && versionValid && ramValid && argumentsValid
+    val fabricValid = loaderId == "vanilla" ||
+        (!loaderLoading && loaderError == null && compatible.any { it.version == fabricVersion })
+    val canSave = nameValid && versionValid && ramValid && argumentsValid && fabricValid
+    LaunchedEffect(versionId, loaderId) {
+        compatible = emptyList()
+        loaderError = null
+        if (loaderId == "fabric" && versionValid) {
+            loaderLoading = true
+            try {
+                compatible = loadFabricVersions(versionId)
+                if (compatible.isEmpty()) {
+                    loaderError = "Fabric is not available for Minecraft $versionId."
+                } else if (compatible.none { it.version == fabricVersion }) {
+                    fabricVersion = compatible.firstOrNull { it.stable }?.version
+                        ?: compatible.first().version
+                }
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                loaderError = error.message ?: "Cannot load compatible Fabric versions."
+            } finally {
+                loaderLoading = false
+            }
+        }
+    }
     val versionChanged = versionId != instance.minecraftVersionId
 
     AlertDialog(
@@ -112,6 +145,39 @@ fun InstanceSettingsDialog(
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
+                Text("MOD LOADER", style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = { loaderId = "vanilla" }) {
+                        Text(if (loaderId == "vanilla") "✓ Vanilla" else "Vanilla")
+                    }
+                    TextButton(onClick = { loaderId = "fabric" }) {
+                        Text(if (loaderId == "fabric") "✓ Fabric" else "Fabric")
+                    }
+                }
+                if (loaderId == "fabric") {
+                    OutlinedTextField(
+                        value = fabricVersion,
+                        onValueChange = { fabricVersion = it },
+                        label = { Text("Fabric loader version") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        isError = !fabricValid,
+                        supportingText = { Text(
+                            if (loaderLoading) "Checking compatible versions…"
+                            else loaderError ?: "Choose one of the compatible versions below."
+                        ) },
+                    )
+                    compatible.take(7).forEach { choice ->
+                        TextButton(onClick = { fabricVersion = choice.version }) {
+                            Text(choice.version + if (choice.stable) " · stable" else " · preview")
+                        }
+                    }
+                    if (loaderError != null) {
+                        Text(loaderError.orEmpty(), color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall)
+                    }
+                }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = minimum,
@@ -165,6 +231,7 @@ fun InstanceSettingsDialog(
                         minimumMemoryMiB = minRam!!,
                         maximumMemoryMiB = maxRam!!,
                         extraJvmArguments = args,
+                        loader = if (loaderId == "fabric") ModLoaderSelection("fabric", fabricVersion) else null,
                     ))
                 },
             ) { Text("Save settings") }
