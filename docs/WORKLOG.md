@@ -8,6 +8,36 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-19 — Native browser login callback foundation
+
+**Milestone:** v0.3
+**Author/Agent:** ChatGPT GPT-6
+**Status:** Partial — no UI or live approved app verification yet
+
+### Completed
+- Added public-client system browser sign-in with a single-use IPv4 loopback callback and random-port redirect.
+- Verified OAuth state in constant time before accepting the authorization code; ignored unrelated local requests and rejected provider denial.
+- Added cancellation-aware listener polling, short per-socket timeouts, overall sign-in timeout, and no OAuth tokens in local callback responses.
+- Integrated Microsoft code/refresh with Xbox/XSTS/Minecraft Java profile resolution in the desktop authentication adapter.
+
+### Changed files
+- launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/DesktopMicrosoftSignIn.kt — browser flow adapter.
+- docs/WORKLOG.md — integration notes.
+
+### Verification
+- ./gradlew test — CI pending.
+- ./gradlew build — CI pending.
+- Real user sign-in — NOT RUN (app registration and user consent required).
+
+### Roadmap updates
+- [ ] Native browser callback implemented; UI wiring and real application approval outstanding.
+
+### Follow-ups / known issues
+- Cross-platform browser callback acceptance on Windows/Linux/macOS required.
+- Microsoft app registration must enable native/public client and localhost callback.
+
+---
+
 ## 2026-10-19 — Share launch pipeline with credential-bearing sessions
 
 **Milestone:** v0.3
