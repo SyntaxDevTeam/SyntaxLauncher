@@ -18,6 +18,13 @@ dependencies {
     implementation(compose.material3)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.11.0")
     runtimeOnly("ch.qos.logback:logback-classic:1.6.5")
+    testImplementation(kotlin("test-junit5"))
+    testImplementation("io.ktor:ktor-client-mock:3.6.0")
+}
+
+tasks.test {
+    useJUnitPlatform()
+    systemProperty("java.awt.headless", "true")
 }
 
 compose.desktop {

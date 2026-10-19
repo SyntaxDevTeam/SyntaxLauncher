@@ -92,9 +92,11 @@ SyntaxLauncher stores only the selected offline nickname, Minecraft version/chan
 
 ## Visual identity
 
-The desktop home uses an optimized cinematic JPEG derived from the approved concept: a neon-blue voxel block/arrow against Minecraft night scenery, subdued behind actual Compose text. The 128px app icon is never enlarged as hero artwork. App-wide `Surface` semantics ensure readable text on dark cards. The settings panel has a visible scrollbar and the initial window size adapts to the available desktop work area.
+The desktop home follows the approved neon-blue concept with a detailed voxel valley, a separate transparent block/arrow foreground, ink-blue panels, cyan outline icons and a prominent gradient Play action. A subtle shadow and cyan halo lift the mark from the scenery; its measured responsive layout preserves the original proportions, keeps the full arrow visible and reserves space away from the heading/profile in compact windows. The 128px app icon is never enlarged as hero artwork. All labels and controls are native Compose. The setup panel has a visible scrollbar; narrow windows stack the hero/Play and setup panel into a scrollable page. The initial window size adapts to the desktop work area, with a 400 × 400 minimum. [Artwork assets and prompts](launcher-desktop/src/main/resources/branding/README.md) document the generated layers.
 
 The SyntaxLauncher product mark is a navy/cobalt/cyan voxel grass-and-dirt block with an upward orbital arrow. The launcher uses a matching dark-blue Compose UI with a bright blue Play accent, quiet secondary surfaces and semantic error colors.
+
+Deterministic desktop render tests cover the ready home, nickname validation/disabled Play, quick instance selection, narrow/short windows and 150% scaling. A live-resize regression checks 27 hero size/density combinations at 100%, 150% and 200%, including both directions across breakpoints, and rejects cropped, distorted or overlapping logo/text bounds. Run `./gradlew :launcher-desktop:test`; generated QA images are under `launcher-desktop/build/reports/ui/`. These tests use mocked metadata and temporary profiles; they do not start Minecraft or access real accounts.
 
 The optimized transparent icon is stored in `launcher-desktop/src/main/resources/branding/syntaxlauncher-icon.png` and is used in the window chrome, launcher header and Linux application package. The authoritative [color palette and UI rules](docs/DESIGN.md#syntaxlauncher-blue-identity-october-2026) cover future features.
 

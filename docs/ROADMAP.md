@@ -142,17 +142,22 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 
 ## v0.1 UI
 
-- [ ] 🚧 IN PROGRESS — replaced weak procedural hero/background and low-resolution enlarged app icon with approved concept-derived cinematic imagery, real Home/Instances header interaction and refined high-contrast Play treatment. Requires CI and visual screenshot acceptance.
+- [x] Make the launcher logo respond to the measured hero/text space and original asset aspect ratio: reserve separate text/logo areas, reflow below the heading in narrow heroes, and verify 27 resize/density cases without cropping, distortion or text collisions (19 October 2026).
 
-- [ ] 🚧 IN PROGRESS — premium navy voxel landscape, subdued hero scrims, prominently staged blue logo, corrected light-on-dark content colors and improved Play hierarchy; screen resizing and scrollable instance panel implemented. CI/desktop visual acceptance pending.
+- [x] Match the supplied neon concept with a detailed voxel landscape, independently fitted transparent block/arrow, subtle separation shadow/halo, ink-blue panels, shared cyan vector icons, compact controls and correctly disabled Play styling. Local `test build` and Compose render review passed on 19 October 2026.
+- [x] Add deterministic headless home rendering/interaction checks for 1440×810, 1024×640, 440×740, 400×400 and 150% scaling; validate nickname/Play state and access to settings by scrolling. Native keyboard/focus and other-platform acceptance remain separate open gates.
 
-- [ ] 🚧 IN PROGRESS — approved blue voxel/arrow mark integrated into desktop header and window; navy/cobalt/cyan Compose theme and Linux package icon configured. Cross-platform CI and manual UI visual review are pending.
+- [ ] 🚧 IN PROGRESS — reference-based cinematic scenery and independent transparent mark, Home/Instances interactions and high-contrast Play treatment now pass local build/tests and headless render review. Native desktop, keyboard/focus and cross-platform visual acceptance remain open.
+
+- [ ] 🚧 IN PROGRESS — voxel valley, readable scrims and independently fitted blue foreground mark implemented; short/narrow layouts and 150% scaling pass deterministic render checks. Native OS/DPI acceptance remains pending.
+
+- [ ] 🚧 IN PROGRESS — blue voxel/arrow mark integrated into desktop header/window; updated ink-blue/cyan theme and existing Linux package icon configured. Local compilation passes; package/native visual acceptance of this revision remains pending.
 
 - [ ] 🚧 IN PROGRESS — v0.1 Compose home redesigned around a high-contrast atmospheric hero, prominent contextual Play CTA, compact profile/version/RAM settings, branded header, semantic status and progressive error details; full platform CI and manual UX/accessibility review pending.
-- [ ] 🚧 IN PROGRESS — shared dark color roles, restrained mint accent, consistent 14–26 dp radii, typographic hierarchy and lighter surface grouping added; resizing, focus and DPI evaluation still pending.
+- [ ] 🚧 IN PROGRESS — shared ink-blue/cyan roles, 18 dp panels, 9 dp controls, typography and vector components implemented; deterministic resizing/150% rendering passes. Native focus/accessibility and platform DPI evaluation still pending.
 
 - [ ] 🚧 IN PROGRESS — offline nickname field validates username and feeds `OfflineAccount.create()` for the real Play pipeline; persistence/full UI verification remains pending.
-- [ ] 🚧 IN PROGRESS — Minecraft version selector and release/snapshot filters are driven by the official Mojang catalog, with selected metadata verified asynchronously; full Compose execution is pending.
+- [ ] 🚧 IN PROGRESS — Minecraft version selector and release/snapshot filters are driven by the official Mojang catalog, with selected metadata verified asynchronously; fixture-based Compose rendering passes, native live-catalog acceptance remains pending.
 - [ ] 🚧 IN PROGRESS — RAM slider feeds `LaunchOptions(maximumMemoryMiB)` on Play; persistence/full UI verification remains pending.
 - [ ] 🚧 IN PROGRESS — real `Play Minecraft` action now runs prepared metadata → verified game downloads/assets/natives → managed Java → `LaunchPlanBuilder` → `MinecraftProcessManager`; live vanilla launch acceptance is pending.
 - [ ] 🚧 IN PROGRESS — `MinecraftLaunchCoordinator` exposes preparation phases, per-file progress and completion counts through `StateFlow`; Compose displays status and progress and offers cancellation.
@@ -238,6 +243,8 @@ Goal: separate user installations into isolated, manageable Minecraft instances 
 - [ ] Manual acceptance: launch two profiles with the same Minecraft version and confirm independent worlds/configurations.
 
 ## v0.2 UI
+
+- [x] Add a home instance dropdown using the existing guarded selection path for Legacy Vanilla and UUID profiles; a deterministic Compose interaction test verifies profile/version/RAM display without opening the manager.
 
 - [ ] 🚧 IN PROGRESS — instance selector/manager added to Compose home without changing primary Play CTA.
 - [ ] 🚧 IN PROGRESS — create, rename, clone, explicit legacy import, dedicated per-instance settings editor and confirm delete/restore actions; cross-platform and UX acceptance pending.

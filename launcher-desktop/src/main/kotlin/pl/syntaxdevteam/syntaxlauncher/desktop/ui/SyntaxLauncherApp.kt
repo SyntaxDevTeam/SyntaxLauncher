@@ -9,16 +9,17 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -34,8 +35,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -57,7 +56,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -132,9 +130,14 @@ fun SyntaxLauncherApp(session: DesktopLauncherSession) {
             color = MaterialTheme.colorScheme.background,
             contentColor = MaterialTheme.colorScheme.onBackground,
         ) {
+            BoxWithConstraints(Modifier.fillMaxSize().border(1.dp, SyntaxBrand.border,
+                RoundedCornerShape(10.dp))) {
+            val compactShell = maxWidth < 760.dp
             Column(modifier = Modifier.fillMaxSize()) {
             Row(
-                modifier = Modifier.fillMaxWidth().height(80.dp).padding(horizontal = 30.dp),
+                modifier = Modifier.fillMaxWidth().height(if (compactShell) 72.dp else 84.dp)
+                    .background(Brush.horizontalGradient(listOf(SyntaxBrand.panel, SyntaxBrand.background)))
+                    .padding(horizontal = if (compactShell) 16.dp else 28.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
@@ -145,7 +148,7 @@ fun SyntaxLauncherApp(session: DesktopLauncherSession) {
                     Image(
                         painter = painterResource("branding/syntaxlauncher-icon.png"),
                         contentDescription = "SyntaxLauncher",
-                        modifier = Modifier.size(64.dp),
+                        modifier = Modifier.size(if (compactShell) 44.dp else 64.dp),
                     )
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
@@ -160,36 +163,37 @@ fun SyntaxLauncherApp(session: DesktopLauncherSession) {
                         )
                     }
                 }
+                if (!compactShell) Spacer(Modifier.weight(1f))
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        shape = RoundedCornerShape(12.dp),
+                    OutlinedButton(
+                        onClick = { instanceOpenRequest = minOf(instanceOpenRequest - 1, -1) },
+                        shape = RoundedCornerShape(SyntaxBrand.controlRadius),
+                        border = BorderStroke(1.dp, SyntaxBrand.border),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
                     ) {
-                        Text(
-                            "HOME",
-                            color = MaterialTheme.colorScheme.primary,
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 18.dp, vertical = 11.dp),
-                        )
+                        BrandIcon(SyntaxSymbol.Home, description = if (compactShell) "Home" else null)
+                        if (!compactShell) { Spacer(Modifier.width(10.dp)); Text("Home") }
                     }
-                    TextButton(onClick = { instanceOpenRequest++ }) {
-                        Text("Instances", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    TextButton(onClick = { instanceOpenRequest = maxOf(instanceOpenRequest + 1, 1) }) {
+                        BrandIcon(SyntaxSymbol.Instances, tint = SyntaxBrand.heroMuted)
+                        Spacer(Modifier.width(10.dp))
+                        Text("Instances", color = SyntaxBrand.heroMuted)
                     }
-                    Spacer(Modifier.width(22.dp))
-                    Text(
-                        "JAVA EDITION   /   v0.3 DEV",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.labelSmall,
-                        letterSpacing = 1.sp,
-                    )
+                }
+                if (!compactShell) {
+                    Spacer(Modifier.weight(1f))
+                    Text("JAVA EDITION   /   v0.3 DEV", color = SyntaxBrand.heroMuted,
+                        style = MaterialTheme.typography.labelSmall, letterSpacing = 1.sp)
                 }
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f))
-            Box(modifier = Modifier.weight(1f).padding(horizontal = 22.dp, vertical = 18.dp)) {
+            Box(modifier = Modifier.weight(1f).padding(horizontal = if (compactShell) 12.dp else 20.dp,
+                vertical = 12.dp)) {
                 when (val state = catalog) {
                     ManifestState.Loading -> CenterMessage("Connecting to Minecraft", "Loading official versions…", true)
                     is ManifestState.Error -> Column(
@@ -212,14 +216,15 @@ fun SyntaxLauncherApp(session: DesktopLauncherSession) {
                 }
             }
             Row(
-                modifier = Modifier.fillMaxWidth().height(42.dp).padding(horizontal = 30.dp),
+                modifier = Modifier.fillMaxWidth().height(30.dp).padding(horizontal = if (compactShell) 16.dp else 28.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text("SYNTAXDEVTEAM   /   MINECRAFT LAUNCHER", style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 0.7.sp)
-                Text("BUILT FOR THE ADVENTURE", style = MaterialTheme.typography.labelSmall,
+                if (!compactShell) Text("BUILT FOR THE ADVENTURE", style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 0.7.sp)
+            }
             }
             }
         }
@@ -247,6 +252,8 @@ private fun LauncherPanel(
             })
     }
     var menuOpen by remember { mutableStateOf(false) }
+    var instanceMenuOpen by remember { mutableStateOf(false) }
+    var accountInfoOpen by remember { mutableStateOf(false) }
     var ramMiB by remember { mutableStateOf(saved.maximumMemoryMiB.toFloat()) }
     // Preserve Legacy Vanilla's own settings when switching to UUID-scoped profiles.
     var legacyVersionId by remember { mutableStateOf(saved.selectedVersionId) }
@@ -264,7 +271,8 @@ private fun LauncherPanel(
     var copyProgress by remember { mutableStateOf<InstanceCopyProgress?>(null) }
     var copyJob by remember { mutableStateOf<Job?>(null) }
     LaunchedEffect(instanceOpenRequest) {
-        if (instanceOpenRequest > 0) managerOpen = true
+        managerOpen = instanceOpenRequest > 0
+        if (instanceOpenRequest < 0) { editingInstance = null; copyPreview = null }
     }
     var mutationBusy by remember { mutableStateOf(false) }
     var instanceError by remember { mutableStateOf<String?>(null) }
@@ -443,7 +451,7 @@ private fun LauncherPanel(
         }
     }
     LaunchedEffect(locked) {
-        if (locked) menuOpen = false
+        if (locked) { menuOpen = false; instanceMenuOpen = false }
     }
 
     val editing = editingInstance
@@ -498,111 +506,44 @@ private fun LauncherPanel(
         )
     }
 
+    if (accountInfoOpen) {
+        AlertDialog(onDismissRequest = { accountInfoOpen = false },
+            title = { Text("Player accounts") },
+            text = { Text("Offline profiles work for local play and servers that accept offline clients. " +
+                "Microsoft sign-in is available when this launcher has an approved application ID. " +
+                "For development, configure SYNTAXLAUNCHER_MICROSOFT_CLIENT_ID. " +
+                "Microsoft sessions currently last until you close the launcher.") },
+            confirmButton = { TextButton(onClick = { accountInfoOpen = false }) { Text("Got it") } })
+    }
+
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-    val narrowLayout = maxWidth < 1050.dp
-    val sidebarWidth = if (narrowLayout) 306.dp else 342.dp
-    Row(
-        modifier = Modifier.fillMaxSize(),
-        horizontalArrangement = Arrangement.spacedBy(if (narrowLayout) 14.dp else 18.dp),
-    ) {
+    val stacked = maxWidth < 760.dp
+    val shortWindow = maxHeight < 440.dp
+    val scrollPage = stacked || shortWindow
+    val homeScroll = rememberScrollState()
+    val sidebarWidth = if (maxWidth < 1100.dp) 310.dp else 354.dp
+    val contentHeight = maxOf(maxHeight, 440.dp)
+    val leftContent: @Composable (Modifier) -> Unit = { columnModifier ->
         Column(
-            modifier = Modifier.weight(1f).fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            modifier = columnModifier,
+            verticalArrangement = Arrangement.spacedBy(SyntaxBrand.panelGap),
         ) {
-            BoxWithConstraints(
-                modifier = Modifier.weight(1f).fillMaxWidth()
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(SyntaxBrand.heroEnd)
-                    .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
-                        RoundedCornerShape(24.dp)),
-            ) {
-                val compactHero = maxHeight < 405.dp || maxWidth < 650.dp
-                // Cropped from the approved concept: actual cinematic voxel artwork.
-                // The left-side text baked into the reference is fully masked in this asset.
-                Image(
-                    painter = painterResource("branding/hero-landscape.jpg"),
-                    contentDescription = null,
-                    modifier = Modifier.matchParentSize(),
-                    contentScale = ContentScale.Crop,
-                )
-                // Secondary Compose scrim gives the content a stable reading surface.
-                Box(Modifier.matchParentSize().background(Brush.horizontalGradient(
-                    0f to Color(0x99051123),
-                    0.48f to Color(0x4C07182E),
-                    1f to Color.Transparent,
-                )))
-                Box(Modifier.matchParentSize().background(Brush.verticalGradient(
-                    0f to Color.Transparent,
-                    0.75f to Color.Transparent,
-                    1f to Color(0x99071324),
-                )))
-                Column(
-                    modifier = Modifier.fillMaxSize().padding(if (compactHero) 24.dp else 34.dp),
-                    verticalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(if (compactHero) 6.dp else 12.dp)) {
-                        SurfaceTag("VANILLA MINECRAFT", MaterialTheme.colorScheme.tertiary)
-                        Spacer(Modifier.height(if (compactHero) 2.dp else 8.dp))
-                        Text(
-                            "Your world.",
-                            fontSize = if (compactHero) 35.sp else 48.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            lineHeight = if (compactHero) 40.sp else 54.sp,
-                            letterSpacing = (-1.2).sp,
-                            color = SyntaxBrand.heroText,
-                        )
-                        Text(
-                            "Your adventure.",
-                            fontSize = if (compactHero) 35.sp else 48.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            lineHeight = if (compactHero) 40.sp else 54.sp,
-                            letterSpacing = (-1.2).sp,
-                            color = Color(0xFF69CCFA),
-                        )
-                        Text(
-                            "No distractions. Just you and Minecraft.",
-                            color = SyntaxBrand.heroMuted,
-                            style = if (compactHero) MaterialTheme.typography.bodyMedium
-                                else MaterialTheme.typography.bodyLarge,
-                        )
-                    }
-                    Column(verticalArrangement = Arrangement.spacedBy(if (compactHero) 8.dp else 12.dp)) {
-                        Text(
-                            activeInstance?.name?.uppercase() ?: "LEGACY VANILLA PROFILE",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = SyntaxBrand.heroMuted,
-                            letterSpacing = 1.6.sp,
-                        )
-                        Text(
-                            selected?.id ?: "Choose a Minecraft version",
-                            style = if (compactHero) MaterialTheme.typography.titleLarge
-                                else MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color.White,
-                        )
-                        HorizontalDivider(color = Color(0xFF72B4E6).copy(alpha = 0.32f))
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Text("JAVA EDITION", style = MaterialTheme.typography.labelSmall,
-                                color = SyntaxBrand.heroMuted)
-                            Text("•", color = SyntaxBrand.heroMuted)
-                            Text(if (showSnapshots) "SNAPSHOT CHANNEL" else "STABLE RELEASE",
-                                style = MaterialTheme.typography.labelSmall, color = SyntaxBrand.heroMuted)
-                        }
-                    }
-                }
-            }
+            LauncherHero(selected?.id, activeInstance?.name, showSnapshots,
+                Modifier.weight(1f).fillMaxWidth())
             Column(
                 modifier = Modifier.fillMaxWidth()
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(MaterialTheme.colorScheme.surface)
-                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f),
-                        RoundedCornerShape(22.dp))
+                    .clip(RoundedCornerShape(SyntaxBrand.panelRadius))
+                    .background(Brush.linearGradient(listOf(SyntaxBrand.panelHighlight, SyntaxBrand.panel)))
+                    .border(1.dp, SyntaxBrand.border,
+                        RoundedCornerShape(SyntaxBrand.panelRadius))
                     .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(11.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth()) {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    BrandIcon(SyntaxSymbol.Gamepad, size = 30.dp)
+                    Spacer(Modifier.width(18.dp))
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                         Text(
                             when {
                                 isRunning -> "You're in the game"
@@ -631,6 +572,7 @@ private fun LauncherPanel(
                             launch.isPreparing -> "PREPARING"
                             launch.phase == LaunchPhase.FAILED ||
                                 process.state == MinecraftProcessState.CRASHED -> "ERROR"
+                            selectedPremium != null -> "MICROSOFT"
                             else -> "OFFLINE"
                         },
                         when {
@@ -638,7 +580,7 @@ private fun LauncherPanel(
                                 process.state == MinecraftProcessState.CRASHED -> MaterialTheme.colorScheme.error
                             launch.isPreparing -> MaterialTheme.colorScheme.tertiary
                             isRunning -> MaterialTheme.colorScheme.primary
-                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                            else -> SyntaxBrand.success
                         },
                     )
                 }
@@ -660,23 +602,32 @@ private fun LauncherPanel(
                     enabled = canPlay,
                     modifier = Modifier.fillMaxWidth().height(62.dp)
                         .background(Brush.horizontalGradient(
-                            listOf(Color(0xFF57D3FF), Color(0xFF1CAAF6)),
-                        ), RoundedCornerShape(15.dp))
-                        .border(1.dp, Color(0xFF90E8FF), RoundedCornerShape(15.dp)),
+                            if (canPlay) listOf(SyntaxBrand.playStart, SyntaxBrand.blue)
+                            else listOf(SyntaxBrand.field, SyntaxBrand.field),
+                        ), RoundedCornerShape(14.dp))
+                        .border(1.dp, if (canPlay) SyntaxBrand.playBorder else SyntaxBrand.fieldBorder,
+                            RoundedCornerShape(14.dp)),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.Transparent,
-                        contentColor = Color(0xFF06172D),
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        disabledContainerColor = Color.Transparent,
+                        disabledContentColor = SyntaxBrand.heroMuted.copy(alpha = 0.55f),
                     ),
-                    shape = RoundedCornerShape(15.dp),
+                    shape = RoundedCornerShape(14.dp),
                 ) {
+                    if (canPlay) {
+                        BrandIcon(SyntaxSymbol.Play, tint = MaterialTheme.colorScheme.onPrimary, size = 22.dp)
+                        Spacer(Modifier.width(24.dp))
+                    }
                     Text(
                         when {
                             launch.isPreparing -> "PREPARING MINECRAFT"
                             isRunning -> "MINECRAFT IS RUNNING"
-                            else -> "▶     PLAY MINECRAFT"
+                            else -> "PLAY MINECRAFT"
                         },
                         fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp,
+                        letterSpacing = 2.8.sp,
+                        fontSize = 16.sp,
                     )
                 }
                 if (launch.isPreparing) {
@@ -690,31 +641,40 @@ private fun LauncherPanel(
                 }
             }
         }
+    }
+    val sidebarContent: @Composable (Modifier) -> Unit = { sidebarModifier ->
         val sidebarScroll = rememberScrollState()
         Box(
-            modifier = Modifier.width(sidebarWidth).fillMaxSize()
-                .clip(RoundedCornerShape(22.dp))
-                .background(MaterialTheme.colorScheme.surface)
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f),
-                    RoundedCornerShape(22.dp)),
+            modifier = sidebarModifier
+                .clip(RoundedCornerShape(SyntaxBrand.panelRadius))
+                .background(Brush.linearGradient(listOf(SyntaxBrand.panelHighlight, SyntaxBrand.panel)))
+                .border(1.dp, SyntaxBrand.border,
+                    RoundedCornerShape(SyntaxBrand.panelRadius)),
         ) {
         Column(
             modifier = Modifier.fillMaxSize().verticalScroll(sidebarScroll)
-                .padding(start = 22.dp, top = 20.dp, end = 28.dp, bottom = 22.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(start = 20.dp, top = 16.dp, end = 20.dp, bottom = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                Text("INSTANCE", style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary, letterSpacing = 2.sp)
-                Text(activeInstance?.name ?: "Legacy Vanilla",
-                    color = MaterialTheme.colorScheme.onSurface,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium)
-                OutlinedButton(onClick = { managerOpen = true }, enabled = !locked,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 46.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)) {
-                    Text("Manage instances (${inventory?.instances?.size ?: 0})")
+                SectionLabel("INSTANCE", SyntaxSymbol.Cube)
+                Box {
+                    SelectorButton(activeInstance?.name ?: if (missingInstance) "Unavailable instance" else "Legacy Vanilla",
+                        onClick = { instanceMenuOpen = true }, enabled = !locked,
+                        symbol = SyntaxSymbol.Cube)
+                    DropdownMenu(expanded = instanceMenuOpen && !locked,
+                        onDismissRequest = { instanceMenuOpen = false }) {
+                        DropdownMenuItem(text = { Text("Legacy Vanilla") },
+                            onClick = { chooseInstance(""); instanceMenuOpen = false })
+                        inventory?.instances.orEmpty().forEach { profile ->
+                            DropdownMenuItem(text = { Text(profile.name + " · " + profile.id.take(8)) },
+                                onClick = { chooseInstance(profile.id); instanceMenuOpen = false })
+                        }
+                    }
                 }
+                SelectorButton("Manage instances (${inventory?.instances?.size ?: 0})",
+                    onClick = { managerOpen = true }, enabled = !locked,
+                    symbol = SyntaxSymbol.Setup, trailing = SyntaxSymbol.ChevronRight)
                 if (missingInstance) {
                     Text("Selected instance is unavailable. Choose a valid instance or Legacy Vanilla.",
                         color = MaterialTheme.colorScheme.error,
@@ -730,17 +690,23 @@ private fun LauncherPanel(
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f))
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("YOUR SETUP", style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary, letterSpacing = 2.sp)
-                Text("Make it yours.", style = MaterialTheme.typography.titleLarge,
+                SectionLabel("YOUR SETUP", SyntaxSymbol.Setup)
+                Text("Make it yours.", modifier = Modifier.padding(start = 34.dp),
+                    style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold)
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f))
             Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                Text("PLAYER", style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 1.2.sp)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp),
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween) {
+                    SectionLabel("PLAYER", SyntaxSymbol.Player)
+                    IconButton(onClick = { accountInfoOpen = true }, modifier = Modifier.size(24.dp)) {
+                        BrandIcon(SyntaxSymbol.Info, size = 17.dp, tint = SyntaxBrand.heroMuted,
+                            description = "Account information")
+                    }
+                }
+                if (session.microsoftEnabled || premiumAccounts.isNotEmpty()) Row(horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically) {
                     FilterChip(
                         selected = selectedPremiumId == null,
@@ -774,10 +740,18 @@ private fun LauncherPanel(
                     OutlinedTextField(
                         value = nickname, onValueChange = { nickname = it },
                         label = { Text("Offline nickname") },
-                        supportingText = { Text("For local play and offline-compatible servers.") },
+                        supportingText = {
+                            Text(if (nickname.isNotBlank() && !OfflineAccount.isValidUsername(nickname.trim()))
+                                "Use 3–16 letters, numbers or underscores."
+                                else "For local play and offline-compatible servers.")
+                        },
                         isError = nickname.isNotBlank() && !OfflineAccount.isValidUsername(nickname.trim()),
                         enabled = !locked, singleLine = true, modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(SyntaxBrand.controlRadius),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedBorderColor = SyntaxBrand.fieldBorder,
+                            focusedBorderColor = SyntaxBrand.cyan,
+                            unfocusedContainerColor = SyntaxBrand.panel.copy(alpha = 0.5f)),
                     )
                 } else {
                     Text(selectedPremium?.username ?: "This Microsoft session is unavailable.",
@@ -803,42 +777,32 @@ private fun LauncherPanel(
                         }, enabled = !locked) { Text("Sign out") }
                     }
                 }
-                if (!session.microsoftEnabled) {
-                    Text("Microsoft sign-in requires this launcher's own public app ID. " +
-                        "Set SYNTAXLAUNCHER_MICROSOFT_CLIENT_ID.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
                 premiumError?.let {
                     Text(it, style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error)
                 }
             }
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("GAME VERSION", style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 1.2.sp)
+                SectionLabel("GAME VERSION", SyntaxSymbol.Cube)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(
+                    ChannelButton("Releases", modifier = Modifier.weight(1f),
                         selected = !showSnapshots, enabled = !locked && activeInstance == null,
                         onClick = {
                             showSnapshots = false
                             selected = manifest.versions.firstOrNull { it.id == manifest.latestRelease }
-                        }, label = { Text("Releases") },
+                        },
                     )
-                    FilterChip(
+                    ChannelButton("Snapshots", modifier = Modifier.weight(1f),
                         selected = showSnapshots, enabled = !locked && activeInstance == null,
                         onClick = {
                             showSnapshots = true
                             selected = manifest.versions.firstOrNull { it.id == manifest.latestSnapshot }
-                        }, label = { Text("Snapshots") },
+                        },
                     )
                 }
                 Box {
-                    OutlinedButton(
-                        onClick = { menuOpen = true }, enabled = !locked && activeInstance == null,
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                        shape = RoundedCornerShape(14.dp),
-                    ) { Text(selected?.id ?: "Select version") }
+                    SelectorButton(selected?.id ?: "Select version",
+                        onClick = { menuOpen = true }, enabled = !locked && activeInstance == null)
                     DropdownMenu(
                         expanded = menuOpen && !locked && activeInstance == null,
                         onDismissRequest = { menuOpen = false },
@@ -882,14 +846,14 @@ private fun LauncherPanel(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Text("MEMORY", style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 1.2.sp)
+                    SectionLabel("MEMORY ALLOCATION", SyntaxSymbol.Memory)
                     Text("${ramMiB.toInt() / 1024} GB", color = MaterialTheme.colorScheme.primary,
                         style = MaterialTheme.typography.labelLarge)
                 }
                 Slider(
                     value = ramMiB, onValueChange = { ramMiB = it },
                     valueRange = 1024f..16384f, steps = 14,
+                    modifier = Modifier.height(32.dp),
                     enabled = !locked && activeInstance == null,
                 )
                 if (activeInstance != null) {
@@ -936,6 +900,24 @@ private fun LauncherPanel(
         )
         }
     }
+    Box(Modifier.fillMaxSize()) {
+        if (stacked) {
+            Column(Modifier.fillMaxSize().verticalScroll(homeScroll).padding(end = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(SyntaxBrand.panelGap)) {
+                leftContent(Modifier.fillMaxWidth().height(590.dp))
+                sidebarContent(Modifier.fillMaxWidth().height(690.dp))
+            }
+        } else {
+            Row(Modifier.fillMaxSize().then(if (scrollPage) Modifier.verticalScroll(homeScroll)
+                .padding(end = 10.dp) else Modifier),
+                horizontalArrangement = Arrangement.spacedBy(SyntaxBrand.panelGap)) {
+                leftContent(Modifier.weight(1f).height(contentHeight))
+                sidebarContent(Modifier.width(sidebarWidth).height(contentHeight))
+            }
+        }
+        if (scrollPage) VerticalScrollbar(rememberScrollbarAdapter(homeScroll),
+            Modifier.align(Alignment.CenterEnd).fillMaxHeight().width(8.dp))
+    }
     }
 }
 
@@ -950,47 +932,16 @@ private fun VersionLabel(version: MinecraftVersion, manifest: MinecraftVersionMa
 }
 
 @Composable
-private fun Heading(title: String, subtitle: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-        Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-        Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-@Composable
-private fun StatusLine(label: String, value: String) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.width(10.dp))
-        Text(value, fontWeight = FontWeight.Medium)
-    }
-}
-
-@Composable
-private fun InfoCard(
-    modifier: Modifier = Modifier,
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(22.dp),
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            content = content,
-        )
-    }
-}
-
-@Composable
 private fun SurfaceTag(label: String, color: Color) {
-    Box(
-        modifier = Modifier.background(color.copy(alpha = 0.14f), RoundedCornerShape(8.dp))
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+    Row(
+        modifier = Modifier.background(SyntaxBrand.field, RoundedCornerShape(10.dp))
+            .border(1.dp, SyntaxBrand.fieldBorder.copy(alpha = 0.6f), RoundedCornerShape(10.dp))
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Text(label, color = color, style = MaterialTheme.typography.labelSmall,
+        Box(Modifier.size(9.dp).background(color, CircleShape))
+        Text(label, color = SyntaxBrand.heroMuted, style = MaterialTheme.typography.labelSmall,
             letterSpacing = 1.3.sp, fontWeight = FontWeight.Bold)
     }
 }

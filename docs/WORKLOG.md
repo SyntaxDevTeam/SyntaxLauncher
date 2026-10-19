@@ -8,6 +8,92 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-19 — Make the launcher logo respond to measured layout space
+
+**Milestone:** v0.1 — UI visual foundation
+**Author/Agent:** Codex / GPT-6
+**Status:** Completed
+
+### Completed
+- Treated the block/arrow as launcher identity with its original asset proportions, rather than an arbitrarily sized decorative overlay.
+- Measured the heading/profile before placing the logo in a separate remaining rectangle. Wide heroes reserve the right side; narrow heroes put the logo below the heading and beside the profile.
+- Recomputed size and placement on layout changes, fitting both dimensions without cropping or stretching. Short heroes reduce typography and omit secondary tagline copy to preserve essential content.
+- Added an accessible logo description and retained the existing separate transparent artwork and restrained separation effects.
+- Added a regression using the same live composition across nine size changes at each of 100%, 150% and 200% density. It checks non-zero logo size, original aspect ratio, hero containment and absence of intersections between logo, heading and profile.
+
+### Changed files
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/LauncherArtwork.kt` — measured responsive layout and intrinsic logo aspect ratio.
+- `launcher-desktop/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/LauncherHomeRenderTest.kt` — 27 live-resize/density checks.
+- `README.md`, `docs/DESIGN.md`, `launcher-desktop/src/main/resources/branding/README.md` — logo behavior and verification documentation.
+- `docs/ROADMAP.md`, `docs/WORKLOG.md` — progress and verification record.
+
+### Verification
+- `./gradlew test` — PASS, executed as `./gradlew --offline test build`; 63 core + 4 desktop tests, zero failures/errors/skips.
+- `./gradlew build` — PASS in the same invocation.
+- `git diff --check` — PASS.
+- Visual verification — inspected actual updated Compose renders of the complete home at 1440 × 810 and 440 × 740; the mark remains distinct from the scenery and separate from copy.
+- Live resize regression — PASS for 27 measured size/density cases, including wide, narrow, short and return-to-wide transitions in the same composition.
+- Native OS window dragging and Windows/macOS visual/focus acceptance — NOT RUN; broader platform gates remain open.
+
+### Roadmap updates
+- `[x] v0.1 / UI / Measured responsive launcher logo and live-resize/density regression`.
+- `[ ] v0.1 / UI / Native keyboard/focus and cross-platform visual acceptance` — remains open.
+
+### Follow-ups / known issues
+- Scope is logo sizing/placement and directly related copy layout; no new artwork, animation, launch behavior or persisted format.
+- Existing Gradle wrapper modifications and earlier UI changes remain intact.
+
+---
+
+## 2026-10-19 — Match the neon home reference and separate the foreground mark
+
+**Milestone:** v0.1 — home visual foundation; v0.2 — existing instance selector presentation
+**Author/Agent:** Codex / GPT-6
+**Status:** Completed — requested visual implementation and deterministic render checks; broader native/platform acceptance remains open
+
+### Completed
+- Matched the supplied concept with detailed voxel scenery, ink-blue panels, shared cyan outline icons, stronger typography, compact rectangular selectors and a prominent gradient Play action.
+- Applied the maintainer's follow-up: the block/orbit/arrow is a separate transparent foreground PNG, with a subtle static navy separation shadow and faint cyan halo. The complete mark fits on resize rather than being cropped with the scenery.
+- Used built-in imagegen for the landscape and transparent mark; optimized both as local resources. Recorded final prompts and asset provenance beside the assets. The supplied Library attachment was used only as a reference and was not modified.
+- Added a real quick instance dropdown over the existing selection path; preserved the instance manager, account handling, preparation/progress/cancel/stop behavior and shared launch pipeline.
+- Moved Microsoft developer-configuration details behind Player information; kept available Microsoft account actions and improved invalid-nickname guidance. Corrected the disabled Play appearance and premium account status label.
+- Added compact/stacked layouts, independent setup scrolling and a visible page scrollbar when required. Enforced a 400 × 400 native window minimum; constrained the initial window to the desktop work area.
+- Added three deterministic headless Compose tests, including five size/scaling cases, selection interaction, nickname validation and reaching settings by scrolling.
+
+### Changed files
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/SyntaxTheme.kt` — shared palette, typography and geometry.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/SyntaxComponents.kt` — vector icons, section labels, selectors and accessible channel selection state.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/LauncherArtwork.kt` — independently composed scenery/mark with adaptive typography and separation effects.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/SyntaxLauncherApp.kt` — reference-style shell, setup controls, Play treatment, quick instance selection and adaptive layout.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/Main.kt` — initial window proportions and minimum size.
+- `launcher-desktop/src/main/resources/branding/hero-landscape.jpg`, `hero-mark.png`, `README.md` — optimized artwork and provenance/final prompts.
+- `launcher-desktop/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/LauncherHomeRenderTest.kt` — isolated metadata-backed render/interaction regression tests and generated QA images.
+- `launcher-desktop/build.gradle.kts` — JUnit5/Ktor mock desktop test dependencies and headless test setup.
+- `README.md`, `docs/DESIGN.md`, `docs/ROADMAP.md`, `docs/WORKLOG.md` — visual-system, verification and progress documentation.
+
+### Verification
+- `./gradlew test` — PASS, executed as `./gradlew --offline test build`; 63 core and 3 desktop tests, zero failures/errors/skips.
+- `./gradlew build` — PASS in the same invocation using the existing local Gradle/JDK cache.
+- Initial sandbox execution could not create Gradle's cache lock outside the repository; the authorized run with cache access passed. Pre-existing Gradle wrapper modifications were left untouched.
+- `git diff --check` — PASS.
+- Visual verification — inspected actual Compose/Skia renders at 1440 × 810, 1024 × 640, 440 × 740, 400 × 400 and 1200 × 900 at 150% density, including scrolled compact views. Verified the logo is separated, remains fully visible, Play fits normal/short layouts, and settings remain reachable.
+- Interaction verification — mocked catalog/verified metadata, invalid nickname disables Play, quick instance selection updates profile/RAM, and compact-page scrolling exposes memory controls. All state is temporary; no real accounts or Minecraft downloads were used.
+- Native OS keyboard/focus, Windows/macOS visual acceptance and actual Minecraft gameplay — NOT RUN; these broader acceptance gates remain open.
+
+### Roadmap updates
+- `[x] v0.1 / UI / Reference-matching artwork, independent mark, shared controls and Play styling`.
+- `[x] v0.1 / UI / Deterministic rendering, resizing/scaling and scrolling checks`.
+- `[x] v0.2 / UI / Quick home instance dropdown verified through Compose interaction`.
+- `[ ] v0.1 / UI / Native keyboard/focus and cross-platform visual acceptance` — remains open.
+- `[ ] v0.2 and v0.3 quality gates` — existing real-game/authentication acceptance and external app-approval blockers remain unchanged.
+
+### Follow-ups / known issues
+- Future Mods, Resource Packs and global Settings navigation were intentionally not introduced: the corresponding product features are not implemented in the current milestone.
+- No launch/authentication/storage schema changes; no Minecraft launch or premium sign-in success is claimed by this visual task.
+- Existing Compose resource API deprecation warnings remain; no new rendering dependency or continuously animated effect was added.
+
+---
+
 ## 2026-10-19 — Document Mojang AppID allowlist as a v0.3 external blocker
 
 **Milestone:** v0.3 — Microsoft / Premium authentication  

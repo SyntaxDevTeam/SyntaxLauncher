@@ -159,28 +159,28 @@ The approved mark is a voxel dirt/grass block with a navy/cobalt/cyan top and an
 
 | UI role | Token |
 | --- | --- |
-| Background | `#0A101C` |
-| Surface | `#131F31` |
-| Surface variant | `#203149` |
-| Primary / Play | `#48BEF5` |
-| Primary container | `#163C61` |
+| Background | `#030F20` |
+| Surface | `#08192E` |
+| Surface variant | `#10243B` |
+| Primary / Play | `#00D5FF` |
+| Primary container | `#06355A` |
 | Secondary | `#91B5DB` |
-| Cyan detail | `#79DDF7` |
-| Main text | `#F0F6FF` |
-| Muted text | `#ACBFD6` |
-| Outline | `#49617D` |
+| Cyan detail | `#00D5FF` |
+| Main text | `#F3F7FF` |
+| Muted text | `#B3CBEA` |
+| Outline | `#284967` |
 
-The hero gradient is `#102B50 → #0C203C → #0A1528`. Reserve vivid neon for the icon and small interactive accents. Do not reintroduce green/teal prototype UI colors or recolor semantic warnings and errors blue. Use the central `SyntaxTheme.kt` tokens instead of scattering color literals.
+Panels use restrained `#0C2444 → #08192E` depth, with `#135582` outlines. The enabled Play button uses `#34D7F5 → #009EF4`; its disabled state uses a quiet solid field color. Reserve vivid neon for the icon and small interactive accents. Do not reintroduce green/teal prototype UI colors or recolor semantic warnings and errors blue. Use the central `SyntaxTheme.kt` tokens instead of scattering color literals.
 
 ### Desktop hero and responsive shell (October 2026)
 
-- The hero uses a compact, local, darkened JPEG derived from the approved high-detail launcher concept (voxel block, orbital arrow and Minecraft night scenery). It deliberately has no pre-rendered labels or UI controls. Avoid upscaling a tiny 128px app icon into hero artwork; that produced visibly blurry results. The source screenshot is not rendered as a UI screenshot. All controls remain native Compose.
+- The hero uses a local cinematic voxel valley JPEG plus a separate transparent PNG of the blue block/orbit/arrow. Both were generated with the built-in imagegen tool from the approved reference; see [asset provenance and prompts](../launcher-desktop/src/main/resources/branding/README.md). The landscape deliberately has no logo, pre-rendered labels or UI controls. Avoid upscaling a tiny 128px app icon into hero artwork; that produced visibly blurry results. The source screenshot is not rendered as a UI screenshot. All controls remain native Compose.
 - Preserve a left-to-right dark scrim. Text and the Minecraft version must stay readable independent of background artwork.
-- Use the bright logo and a cyan secondary line in the heading as the focal detail. Do not replicate glow throughout all controls.
+- Position the foreground mark independently with `ContentScale.Fit` and derive its aspect ratio from the asset. Measure the heading/profile first and reserve disjoint rectangles: text on the left and logo on the right above 640 dp of hero width; below that width, put the logo below the heading and beside the profile. Fit both dimensions to the available space on every measurement, so resizing never crops its arrow, distorts the mark or places it underneath text. Compact, short heroes reduce the title and omit the secondary tagline to preserve the logo and profile. A soft static navy radial shadow and faint cyan halo distinguish it from the landscape without a rectangular backing, runtime blur or continuous animation. Use the bright mark and cyan secondary heading as the focal details; do not replicate glow throughout all controls.
 - Use an application-wide Material `Surface` for proper light text over the dark theme. Do not depend on default `Text` content colors after drawing raw backgrounds.
 - The main window chooses an initial size constrained by the desktop work area. The instance panel is vertically scrollable, with a visible scrollbar; crucial controls should be visible without scrolling on typical full-HD screens.
-- A compact hero typography variant avoids text collisions when the user resizes the window. Never make unsupported future features appear as active navigation.
-- The optimized resource JPEG is loaded locally via painterResource without network access, runtime blur, repeated animation or dynamic downloads.
+- Compact hero typography avoids text collisions. Below 760 dp of content width, stack the hero/Play and setup panel with a visible page scrollbar; otherwise keep Play visible and scroll the setup panel independently. Very short windows scroll the page as well. The minimum native window is 400 × 400. Never make unsupported future features appear as active navigation.
+- Optimized JPEG/PNG resources load locally via painterResource without network access, runtime blur, repeated animation or dynamic downloads. Shared vector icons, 18 dp panel radii, 9 dp field radii and typography live in `SyntaxTheme.kt` / `SyntaxComponents.kt`. Account setup details belong behind the Player information action, keeping the normal launch screen concise.
 
 ## 8. Typography
 

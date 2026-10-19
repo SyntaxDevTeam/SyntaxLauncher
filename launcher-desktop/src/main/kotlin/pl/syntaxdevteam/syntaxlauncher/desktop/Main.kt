@@ -57,14 +57,15 @@ fun main() {
         // Respect smaller laptop desktops; short windows remain fully usable via sidebar scrolling.
         val screen = GraphicsEnvironment.getLocalGraphicsEnvironment().maximumWindowBounds
         // Never create a window larger than the actual usable desktop bounds.
-        val initialWidth = minOf(1320, (screen.width - 40).coerceAtLeast(400)).dp
-        val initialHeight = minOf(860, (screen.height - 40).coerceAtLeast(400)).dp
+        val initialWidth = minOf(1440, (screen.width - 40).coerceAtLeast(400)).dp
+        val initialHeight = minOf(840, (screen.height - 40).coerceAtLeast(400)).dp
         Window(
             onCloseRequest = { session.close { exitApplication() } },
             title = "SyntaxLauncher",
             icon = painterResource("branding/syntaxlauncher-icon.png"),
             state = WindowState(width = initialWidth, height = initialHeight),
         ) {
+            window.minimumSize = java.awt.Dimension(400, 400)
             SyntaxLauncherApp(session)
         }
     }
