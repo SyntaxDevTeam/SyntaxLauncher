@@ -142,6 +142,8 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 
 ## v0.1 UI
 
+- [ ] 🚧 IN PROGRESS — replaced weak procedural hero/background and low-resolution enlarged app icon with approved concept-derived cinematic imagery, real Home/Instances header interaction and refined high-contrast Play treatment. Requires CI and visual screenshot acceptance.
+
 - [ ] 🚧 IN PROGRESS — premium navy voxel landscape, subdued hero scrims, prominently staged blue logo, corrected light-on-dark content colors and improved Play hierarchy; screen resizing and scrollable instance panel implemented. CI/desktop visual acceptance pending.
 
 - [ ] 🚧 IN PROGRESS — approved blue voxel/arrow mark integrated into desktop header and window; navy/cobalt/cyan Compose theme and Linux package icon configured. Cross-platform CI and manual UI visual review are pending.

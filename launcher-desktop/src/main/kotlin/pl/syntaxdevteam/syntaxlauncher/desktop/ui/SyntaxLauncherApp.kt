@@ -32,6 +32,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -55,7 +57,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -97,6 +98,7 @@ fun SyntaxLauncherApp(session: DesktopLauncherSession) {
         var reloadCatalog by remember { mutableIntStateOf(0) }
         var persisted by remember(session) { mutableStateOf<LauncherPreferences?>(null) }
         var settingsError by remember(session) { mutableStateOf<String?>(null) }
+        var instanceOpenRequest by remember { mutableIntStateOf(0) }
 
         LaunchedEffect(session) {
             try {
@@ -137,7 +139,7 @@ fun SyntaxLauncherApp(session: DesktopLauncherSession) {
                     Image(
                         painter = painterResource("branding/syntaxlauncher-icon.png"),
                         contentDescription = "SyntaxLauncher",
-                        modifier = Modifier.size(55.dp),
+                        modifier = Modifier.size(64.dp),
                     )
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
@@ -152,12 +154,33 @@ fun SyntaxLauncherApp(session: DesktopLauncherSession) {
                         )
                     }
                 }
-                Text(
-                    "JAVA EDITION     /     PREVIEW 0.1",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.labelMedium,
-                    letterSpacing = 1.2.sp,
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Text(
+                            "HOME",
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 18.dp, vertical = 11.dp),
+                        )
+                    }
+                    TextButton(onClick = { instanceOpenRequest++ }) {
+                        Text("Instances", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Spacer(Modifier.width(22.dp))
+                    Text(
+                        "JAVA EDITION   /   PREVIEW 0.1",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.labelSmall,
+                        letterSpacing = 1.sp,
+                    )
+                }
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f))
             Box(modifier = Modifier.weight(1f).padding(horizontal = 22.dp, vertical = 18.dp)) {
@@ -178,7 +201,7 @@ fun SyntaxLauncherApp(session: DesktopLauncherSession) {
                             settingsError.orEmpty() + " — your file was preserved.",
                         )
                         persisted == null -> CenterMessage("Loading profile", "Restoring your settings…", true)
-                        else -> LauncherPanel(state.manifest, session, persisted!!)
+                        else -> LauncherPanel(state.manifest, session, persisted!!, instanceOpenRequest)
                     }
                 }
             }
@@ -202,6 +225,7 @@ private fun LauncherPanel(
     manifest: MinecraftVersionManifest,
     session: DesktopLauncherSession,
     saved: LauncherPreferences,
+    instanceOpenRequest: Int,
 ) {
     var nickname by remember { mutableStateOf(saved.nickname) }
     var showSnapshots by remember { mutableStateOf(saved.snapshots) }
@@ -219,6 +243,9 @@ private fun LauncherPanel(
     var inventory by remember(session) { mutableStateOf<InstanceInventory?>(null) }
     var instanceId by remember { mutableStateOf(saved.selectedInstanceId) }
     var managerOpen by remember { mutableStateOf(false) }
+    LaunchedEffect(instanceOpenRequest) {
+        if (instanceOpenRequest > 0) managerOpen = true
+    }
     var mutationBusy by remember { mutableStateOf(false) }
     var instanceError by remember { mutableStateOf<String?>(null) }
     val activeInstance = inventory?.instances?.firstOrNull { it.id == instanceId }
@@ -363,27 +390,25 @@ private fun LauncherPanel(
                         RoundedCornerShape(24.dp)),
             ) {
                 val compactHero = maxHeight < 405.dp || maxWidth < 650.dp
-                HeroAtmosphere(Modifier.matchParentSize())
-                // The artwork stays subordinate to the text, even when the window is narrow.
+                // Cropped from the approved concept: actual cinematic voxel artwork.
+                // The left-side text baked into the reference is fully masked in this asset.
+                Image(
+                    painter = painterResource("branding/hero-landscape.jpg"),
+                    contentDescription = null,
+                    modifier = Modifier.matchParentSize(),
+                    contentScale = ContentScale.Crop,
+                )
+                // Secondary Compose scrim gives the content a stable reading surface.
                 Box(Modifier.matchParentSize().background(Brush.horizontalGradient(
-                    0f to Color(0xF2071225),
-                    0.55f to Color(0xDB0A1C34),
-                    1f to Color(0x66071C36),
+                    0f to Color(0x99051123),
+                    0.48f to Color(0x4C07182E),
+                    1f to Color.Transparent,
                 )))
                 Box(Modifier.matchParentSize().background(Brush.verticalGradient(
-                    0f to Color(0x20081226),
-                    0.65f to Color.Transparent,
-                    1f to Color(0xDB071326),
+                    0f to Color.Transparent,
+                    0.75f to Color.Transparent,
+                    1f to Color(0x99071324),
                 )))
-                Image(
-                    painter = painterResource("branding/syntaxlauncher-icon.png"),
-                    contentDescription = null,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.align(Alignment.CenterEnd)
-                        .padding(end = if (compactHero) 12.dp else 30.dp)
-                        .size(if (compactHero) 168.dp else 245.dp)
-                        .alpha(if (compactHero) 0.69f else 0.85f),
-                )
                 Column(
                     modifier = Modifier.fillMaxSize().padding(if (compactHero) 24.dp else 34.dp),
                     verticalArrangement = Arrangement.SpaceBetween,
@@ -393,17 +418,17 @@ private fun LauncherPanel(
                         Spacer(Modifier.height(if (compactHero) 2.dp else 8.dp))
                         Text(
                             "Your world.",
-                            fontSize = if (compactHero) 33.sp else 43.sp,
+                            fontSize = if (compactHero) 35.sp else 48.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            lineHeight = if (compactHero) 39.sp else 52.sp,
+                            lineHeight = if (compactHero) 40.sp else 54.sp,
                             letterSpacing = (-1.2).sp,
                             color = SyntaxBrand.heroText,
                         )
                         Text(
                             "Your adventure.",
-                            fontSize = if (compactHero) 33.sp else 43.sp,
+                            fontSize = if (compactHero) 35.sp else 48.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            lineHeight = if (compactHero) 39.sp else 52.sp,
+                            lineHeight = if (compactHero) 40.sp else 54.sp,
                             letterSpacing = (-1.2).sp,
                             color = Color(0xFF69CCFA),
                         )
@@ -505,8 +530,15 @@ private fun LauncherPanel(
                         session.play(it, nickname.trim(), ramMiB.toInt(), activeInstance)
                     } },
                     enabled = canPlay,
-                    modifier = Modifier.fillMaxWidth().height(60.dp)
-                        .border(1.dp, Color(0xFF87E4FF), RoundedCornerShape(15.dp)),
+                    modifier = Modifier.fillMaxWidth().height(62.dp)
+                        .background(Brush.horizontalGradient(
+                            listOf(Color(0xFF57D3FF), Color(0xFF1CAAF6)),
+                        ), RoundedCornerShape(15.dp))
+                        .border(1.dp, Color(0xFF90E8FF), RoundedCornerShape(15.dp)),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Transparent,
+                        contentColor = Color(0xFF06172D),
+                    ),
                     shape = RoundedCornerShape(15.dp),
                 ) {
                     Text(
@@ -547,9 +579,12 @@ private fun LauncherPanel(
                 Text("INSTANCE", style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary, letterSpacing = 2.sp)
                 Text(activeInstance?.name ?: "Legacy Vanilla",
-                    style = MaterialTheme.typography.titleMedium)
+                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium)
                 OutlinedButton(onClick = { managerOpen = true }, enabled = !locked,
-                    modifier = Modifier.fillMaxWidth()) {
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 46.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)) {
                     Text("Manage instances (${inventory?.instances?.size ?: 0})")
                 }
                 if (missingInstance) {
@@ -570,6 +605,7 @@ private fun LauncherPanel(
                 Text("YOUR SETUP", style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary, letterSpacing = 2.sp)
                 Text("Make it yours.", style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold)
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f))

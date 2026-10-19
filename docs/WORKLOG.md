@@ -8,6 +8,39 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-19 — Replace procedural UI hero with approved visual identity
+
+**Milestone:** v0.1 desktop UI / shared v0.2 shell  
+**Author/Agent:** ChatGPT  
+**Status:** Partial — CI and real visual acceptance pending
+
+### Completed
+- Compared the approved screenshot against the actual app screenshot: procedural scenery was near invisible, the scaled 128px icon became blurred, and the result lacked the promised cinematic atmosphere.
+- Prepared an optimized, text-free hero image from the approved concept, preserving the glowing block and ascending arrow on the right while darkening the left side under real Compose content.
+- Replaced the Canvas night scene and oversized icon with a real local bitmap and restrained scrims.
+- Refined headline hierarchy, luminous Play CTA, brand header and right-side instance panel.
+- Added only implemented navigation: Home is a static current location and Instances opens the existing instance manager. Deferred Mods and Resource Packs as they are not available in this milestone.
+
+### Changed files
+- `launcher-desktop/src/main/resources/branding/hero-landscape.jpg` — local concept-derived hero artwork.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/SyntaxLauncherApp.kt` — visual treatment, working Instances shortcut.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/HeroAtmosphere.kt` — retired (Canvas no longer used).
+- `docs/DESIGN.md`, `README.md`, `docs/ROADMAP.md`, `docs/WORKLOG.md` — design/verification documentation.
+
+### Verification
+- GitHub Actions compilation/tests — PENDING.
+- Cross-platform distributable packages — PENDING.
+- Human visual inspection with actual launcher screenshot — PENDING.
+
+### Roadmap updates
+- [ ] v0.1 / UI / faithful cinematic hero — open pending build and manual visual acceptance.
+
+### Follow-ups / known issues
+- Compare output against reference at native window size, reduced desktop size and high DPI.
+- Keep advanced roadmap navigation hidden until corresponding screens work.
+
+---
+
 ## 2026-10-18 — Refine desktop hero and correct UI readability
 
 **Milestone:** v0.1 UI polish / v0.2 shared desktop shell  

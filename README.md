@@ -80,7 +80,7 @@ SyntaxLauncher stores only the selected offline nickname, Minecraft version/chan
 
 ## Visual identity
 
-The desktop home now uses a static Compose-drawn midnight Minecraft landscape behind the hero, subtle dark overlays for legible content and a prominent transparent blue logo. App-wide `Surface` semantics ensure readable text on dark cards. The settings panel has a visible scrollbar and the initial window size adapts to the available desktop work area.
+The desktop home uses an optimized cinematic JPEG derived from the approved concept: a neon-blue voxel block/arrow against Minecraft night scenery, subdued behind actual Compose text. The 128px app icon is never enlarged as hero artwork. App-wide `Surface` semantics ensure readable text on dark cards. The settings panel has a visible scrollbar and the initial window size adapts to the available desktop work area.
 
 The SyntaxLauncher product mark is a navy/cobalt/cyan voxel grass-and-dirt block with an upward orbital arrow. The launcher uses a matching dark-blue Compose UI with a bright blue Play accent, quiet secondary surfaces and semantic error colors.
 

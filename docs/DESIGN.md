@@ -174,13 +174,13 @@ The hero gradient is `#102B50 → #0C203C → #0A1528`. Reserve vivid neon for t
 
 ### Desktop hero and responsive shell (October 2026)
 
-- The hero contains a static, local, voxel-inspired night landscape drawn in Compose Canvas and the approved transparent launcher mark on the right.
+- The hero uses a compact, local, darkened JPEG derived from the approved high-detail launcher concept (voxel block, orbital arrow and Minecraft night scenery). It deliberately has no pre-rendered labels or UI controls. Avoid upscaling a tiny 128px app icon into hero artwork; that produced visibly blurry results. The source screenshot is not rendered as a UI screenshot. All controls remain native Compose.
 - Preserve a left-to-right dark scrim. Text and the Minecraft version must stay readable independent of background artwork.
 - Use the bright logo and a cyan secondary line in the heading as the focal detail. Do not replicate glow throughout all controls.
 - Use an application-wide Material `Surface` for proper light text over the dark theme. Do not depend on default `Text` content colors after drawing raw backgrounds.
 - The main window chooses an initial size constrained by the desktop work area. The instance panel is vertically scrollable, with a visible scrollbar; crucial controls should be visible without scrolling on typical full-HD screens.
 - A compact hero typography variant avoids text collisions when the user resizes the window. Never make unsupported future features appear as active navigation.
-- The vector-like background is generated locally without costly blur, frame animations or remote image requests.
+- The optimized resource JPEG is loaded locally via painterResource without network access, runtime blur, repeated animation or dynamic downloads.
 
 ## 8. Typography
 
