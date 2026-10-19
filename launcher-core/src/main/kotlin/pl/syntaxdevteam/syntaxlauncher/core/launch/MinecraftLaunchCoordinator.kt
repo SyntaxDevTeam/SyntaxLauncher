@@ -8,6 +8,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import org.slf4j.LoggerFactory
 import pl.syntaxdevteam.syntaxlauncher.core.account.Account
+import pl.syntaxdevteam.syntaxlauncher.core.loader.ModLoaderRegistry
+import pl.syntaxdevteam.syntaxlauncher.core.loader.ModLoaderSelection
+import pl.syntaxdevteam.syntaxlauncher.core.loader.ModLoaderException
 import pl.syntaxdevteam.syntaxlauncher.core.java.JavaRuntimeEvent
 import pl.syntaxdevteam.syntaxlauncher.core.java.JavaRuntimeManager
 import pl.syntaxdevteam.syntaxlauncher.core.minecraft.MinecraftPlatform
@@ -19,7 +22,7 @@ import pl.syntaxdevteam.syntaxlauncher.core.network.DownloadEvent
 import pl.syntaxdevteam.syntaxlauncher.core.storage.MinecraftInstallationLayout
 
 enum class LaunchPhase {
-    IDLE, PREPARING_GAME, PREPARING_JAVA, BUILDING_PLAN, STARTING_GAME, STARTED, FAILED, CANCELLED,
+    IDLE, PREPARING_LOADER, PREPARING_GAME, PREPARING_JAVA, BUILDING_PLAN, STARTING_GAME, STARTED, FAILED, CANCELLED,
 }
 
 data class LaunchPipelineStatus(
@@ -31,7 +34,7 @@ data class LaunchPipelineStatus(
 ) {
     val isPreparing: Boolean
         get() = phase in setOf(
-            LaunchPhase.PREPARING_GAME, LaunchPhase.PREPARING_JAVA,
+            LaunchPhase.PREPARING_LOADER, LaunchPhase.PREPARING_GAME, LaunchPhase.PREPARING_JAVA,
             LaunchPhase.BUILDING_PLAN, LaunchPhase.STARTING_GAME,
         )
 }
@@ -47,6 +50,7 @@ class MinecraftLaunchCoordinator(
     private val processes: MinecraftProcessManager,
     private val layout: MinecraftInstallationLayout,
     private val platform: MinecraftPlatform,
+    private val loaders: ModLoaderRegistry? = null,
 ) {
     private val log = LoggerFactory.getLogger(MinecraftLaunchCoordinator::class.java)
     private val launchMutex = Mutex()
@@ -59,6 +63,7 @@ class MinecraftLaunchCoordinator(
         options: LaunchOptions,
         instanceLayout: MinecraftInstallationLayout = layout,
         authentication: LaunchAuthentication = LaunchAuthentication.offline(account),
+        loader: ModLoaderSelection? = null,
     ): LaunchPipelineStatus {
         if (!launchMutex.tryLock()) return mutableStatus.value
         try {
@@ -67,8 +72,13 @@ class MinecraftLaunchCoordinator(
                 ?: throw IllegalArgumentException(
                     "Minecraft does not declare a supported Java runtime.",
                 )
+            val effectiveVersion = if (loader == null) version else {
+                stage(LaunchPhase.PREPARING_LOADER, "Resolving ${loader.id} ${loader.version}")
+                val registry = loaders ?: throw ModLoaderException("Mod loader service is not configured.")
+                registry.resolve(version, loader)
+            }
             stage(LaunchPhase.PREPARING_GAME, "Preparing Minecraft ${version.id}")
-            val prepared = preparation.prepare(version, platform, instanceLayout) { event ->
+            val prepared = preparation.prepare(effectiveVersion, platform, instanceLayout) { event ->
                 when (event) {
                     is MinecraftPreparationEvent.StageChanged -> {
                         val name = when (event.stage) {
@@ -174,6 +184,7 @@ class MinecraftLaunchCoordinator(
 
     private fun messageFor(error: Exception): String {
         val reason = when (error) {
+            is ModLoaderException -> error.message ?: "Could not prepare the mod loader."
             is MinecraftProcessException -> "Cannot start Minecraft. Check the game logs."
             is LaunchPlanException -> "Cannot construct launch arguments for this version."
             is IllegalArgumentException -> "Unsupported Minecraft metadata or launch settings."

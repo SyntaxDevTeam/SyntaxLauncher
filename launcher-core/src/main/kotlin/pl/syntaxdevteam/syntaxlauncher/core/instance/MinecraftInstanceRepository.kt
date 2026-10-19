@@ -19,6 +19,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import pl.syntaxdevteam.syntaxlauncher.core.storage.MinecraftInstallationLayout
+import pl.syntaxdevteam.syntaxlauncher.core.loader.ModLoaderSelection
 
 @Serializable
 data class MinecraftInstance(
@@ -29,6 +30,7 @@ data class MinecraftInstance(
     val minimumMemoryMiB: Int = 512,
     val maximumMemoryMiB: Int = 4096,
     val extraJvmArguments: List<String> = emptyList(),
+    val loader: ModLoaderSelection? = null,
 ) {
     init {
         require(schemaVersion == 1) { "Unsupported instance schema version" }
@@ -159,6 +161,7 @@ class MinecraftInstanceRepository(
         minimumMemoryMiB: Int = 512,
         maximumMemoryMiB: Int = 4096,
         extraJvmArguments: List<String> = emptyList(),
+        loader: ModLoaderSelection? = null,
     ): MinecraftInstance = withContext(Dispatchers.IO) {
         mutex.withLock {
             val value = MinecraftInstance(
@@ -166,6 +169,7 @@ class MinecraftInstanceRepository(
                 minecraftVersionId = minecraftVersionId,
                 minimumMemoryMiB = minimumMemoryMiB, maximumMemoryMiB = maximumMemoryMiB,
                 extraJvmArguments = extraJvmArguments,
+                loader = loader,
             )
             activity.withInactive(value.id) {
                 publishNew(value)
