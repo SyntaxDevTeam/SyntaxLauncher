@@ -170,8 +170,6 @@ fun InstanceWorkspace(
                         modifier = paneModifier.verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
                         OutlinedTextField(
                             value = search, onValueChange = { search = it },
                             label = { Text("Find instance") },
@@ -207,8 +205,6 @@ fun InstanceWorkspace(
                 val detailPane: @Composable (Modifier) -> Unit = { paneModifier ->
                     Column(
                         modifier = paneModifier.verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.spacedBy(15.dp),
-                    ) {
                         verticalArrangement = Arrangement.spacedBy(15.dp),
                     ) {
                         Text(if (selected != null) "SELECTED PROFILE" else "CREATE A PROFILE",
