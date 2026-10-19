@@ -8,6 +8,17 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-19 — Fix Compose Desktop draggable area import
+
+**Milestone:** v0.3 desktop window chrome
+**Status:** Source fix submitted; new CI verification pending
+
+- The first GitHub Actions run for commit `1112479` failed Kotlin compilation because `WindowDraggableArea` was imported from the old `androidx.compose.ui.window` namespace.
+- Corrected to the supported Compose Desktop import `androidx.compose.foundation.window.WindowDraggableArea`, matching the official Window API documentation.
+- No window logic or Minecraft runtime behavior changed. Native UI acceptance remains pending.
+
+---
+
 ## 2026-10-19 — Identify CI builds and replace native desktop title bars
 
 **Milestone:** Cross-milestone v0.3 development UX / v0.12 build and distribution metadata
