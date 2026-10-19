@@ -8,6 +8,40 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-19 — Cancellable staged game data copying (A3/A4 core)
+
+**Milestone:** v0.2 / A3 and A4  
+**Author/Agent:** ChatGPT  
+**Status:** Partial — desktop operation UI and manual filesystem acceptance pending
+
+### Completed
+- Added filesystem preflight with total-byte and file-count estimates, symlink ancestor checks, special-file rejection and available-space checks.
+- Replaced opaque `Files.copy` for worlds with buffered, cancellable chunk copying and explicit byte/file progress events.
+- Preserved source data and only published UUID profiles after a successful copy; rollback deletes only this operation's staging directory.
+- Added tests for progress, estimated size, forced failure rollback and symbolic-link refusal.
+
+### Changed files
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/instance/InstanceFileCopy.kt` — validation/estimate/copy services.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/instance/MinecraftInstanceRepository.kt` — progress-aware clone/import.
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/instance/MinecraftInstanceRepositoryTest.kt` — safety tests.
+- `docs/ROADMAP.md`, `docs/INSTANCE_MANAGER_PHASES.md`, `docs/TESTING_V0.2.md`, `docs/WORKLOG.md` — updated tracked status.
+
+### Verification
+- `./gradlew test` — NOT RUN locally; CI pending.
+- `./gradlew build` — NOT RUN locally; CI pending.
+- Real world copy and cancelled large-file test — NOT RUN manually.
+
+### Roadmap updates
+- [ ] v0.2 / A3 — core validation/streaming finished; end-user operations and real-world acceptance remain open.
+- [ ] v0.2 / A4 — source/rollback/disk safeguards improved; process safety pending.
+
+### Follow-ups / known issues
+- Bind size estimates and progress to UI; make cancellation user-accessible.
+- Track process activity across detached launcher sessions.
+- Add an explicit policy for orphaned staging directories after hard shutdown.
+
+---
+
 ## 2026-10-19 — Add explicit per-instance settings editor
 
 **Milestone:** v0.2 (B2)  

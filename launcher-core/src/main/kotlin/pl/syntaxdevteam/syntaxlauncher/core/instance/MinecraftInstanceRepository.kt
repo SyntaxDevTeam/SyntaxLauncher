@@ -159,11 +159,26 @@ class MinecraftInstanceRepository(
         }
     }
 
-    suspend fun cloneInstance(id: String, name: String): MinecraftInstance = withContext(Dispatchers.IO) {
+    suspend fun estimateClone(id: String): InstanceCopyEstimate = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            read(instanceDirectory(id))
+            InstanceFileCopy.estimate(gameDirectory(read(instanceDirectory(id))))
+        }
+    }
+
+    suspend fun estimateLegacyImport(): InstanceCopyEstimate = withContext(Dispatchers.IO) {
+        InstanceFileCopy.estimate(sharedLayout.gameDir)
+    }
+
+    suspend fun cloneInstance(
+        id: String,
+        name: String,
+        onProgress: (InstanceCopyProgress) -> Unit = {},
+    ): MinecraftInstance = withContext(Dispatchers.IO) {
         mutex.withLock {
             val existing = read(instanceDirectory(id))
             val copy = existing.copy(id = UUID.randomUUID().toString(), name = name.trim())
-            publishNew(copy, gameDirectory(existing), instanceDirectory(id).resolve("instance.json"))
+            publishNew(copy, gameDirectory(existing), instanceDirectory(id).resolve("instance.json"), onProgress)
             copy
         }
     }
@@ -204,6 +219,7 @@ class MinecraftInstanceRepository(
     /** Explicit non-destructive import of the old v0.1 game folder. */
     suspend fun importLegacy(
         name: String, minecraftVersionId: String, maximumMemoryMiB: Int = 4096,
+        onProgress: (InstanceCopyProgress) -> Unit = {},
     ): MinecraftInstance = withContext(Dispatchers.IO) {
         mutex.withLock {
             check(legacyGameAvailable()) { "No legacy game directory available" }
@@ -211,15 +227,16 @@ class MinecraftInstanceRepository(
                 id = UUID.randomUUID().toString(), name = name.trim(),
                 minecraftVersionId = minecraftVersionId, maximumMemoryMiB = maximumMemoryMiB,
             )
-            publishNew(instance, sharedLayout.gameDir)
+            publishNew(instance, sharedLayout.gameDir, onProgress = onProgress)
             instance
         }
     }
 
-    private fun publishNew(
+    private suspend fun publishNew(
         value: MinecraftInstance,
         sourceGame: Path? = null,
         sourceMetadata: Path? = null,
+        onProgress: (InstanceCopyProgress) -> Unit = {},
     ) {
         Files.createDirectories(root)
         val temporary = root.resolve(".creating-" + value.id)
@@ -229,31 +246,13 @@ class MinecraftInstanceRepository(
         Files.createDirectory(temporary)
         try {
             Files.createDirectory(temporary.resolve("game"))
-            if (sourceGame != null) copyGameFiles(sourceGame, temporary.resolve("game"))
+            if (sourceGame != null) InstanceFileCopy.copy(sourceGame, temporary.resolve("game"), onProgress)
             if (sourceMetadata != null) Files.copy(sourceMetadata, temporary.resolve("instance.json"))
             write(temporary, value)
             move(temporary, destination)
         } finally {
             if (Files.exists(temporary, LinkOption.NOFOLLOW_LINKS)) eraseStaging(temporary)
         }
-    }
-
-    private fun copyGameFiles(source: Path, destination: Path) {
-        check(Files.isDirectory(source, LinkOption.NOFOLLOW_LINKS)) { "Source game is not a directory" }
-        Files.walkFileTree(source, object : SimpleFileVisitor<Path>() {
-            override fun preVisitDirectory(dir: Path, attrs: BasicFileAttributes): FileVisitResult {
-                require(!Files.isSymbolicLink(dir)) { "Symlinked directory in game data" }
-                Files.createDirectories(destination.resolve(source.relativize(dir)))
-                return FileVisitResult.CONTINUE
-            }
-            override fun visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult {
-                require(!Files.isSymbolicLink(file) && attrs.isRegularFile) {
-                    "Only regular game files can be copied (no links or special files)"
-                }
-                Files.copy(file, destination.resolve(source.relativize(file)))
-                return FileVisitResult.CONTINUE
-            }
-        })
     }
 
     private fun trashDirectory(entryName: String): Path {

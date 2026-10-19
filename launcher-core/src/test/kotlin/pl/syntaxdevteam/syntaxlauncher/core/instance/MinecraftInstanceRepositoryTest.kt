@@ -162,6 +162,54 @@ class MinecraftInstanceRepositoryTest {
         assertFailsWith<IllegalArgumentException> { repo.restoreFromTrash("../../instances") }
     }
 
+    @Test fun importReportsProgressAndKeepsOriginalUntouched() = runBlocking {
+        val (repo, layout) = fixture()
+        val source = layout.gameDir.resolve("saves/legacy/world.dat")
+        Files.createDirectories(source.parent)
+        Files.write(source, ByteArray(1024 * 1024) { 7 })
+        val estimate = repo.estimateLegacyImport()
+        assertEquals(1024L * 1024, estimate.totalBytes)
+        assertEquals(1, estimate.fileCount)
+        val updates = mutableListOf<InstanceCopyProgress>()
+        val imported = repo.importLegacy("Imported", "26.3", onProgress = { updates.add(it) })
+        assertEquals(0L, updates.first().copiedBytes)
+        assertEquals(estimate.totalBytes, updates.last().copiedBytes)
+        assertEquals(1, updates.last().copiedFiles)
+        assertTrue(updates.last().fraction == 1f)
+        assertEquals(Files.readAllBytes(source).size.toLong(),
+            Files.size(repo.gameDirectory(imported).resolve("saves/legacy/world.dat")))
+        assertEquals(7, Files.readAllBytes(source).first().toInt())
+    }
+
+    @Test fun abortedCopyNeverPublishesIncompleteProfile() = runBlocking {
+        val (repo, layout) = fixture()
+        val original = layout.gameDir.resolve("saves/large.dat")
+        Files.createDirectories(original.parent)
+        Files.write(original, ByteArray(1024 * 1024) { 5 })
+        assertFailsWith<IllegalStateException> {
+            repo.importLegacy("Cancel test", "26.3", onProgress = { status ->
+                if (status.copiedBytes > 0) throw IllegalStateException("Simulated I/O failure")
+            })
+        }
+        assertTrue(repo.list().instances.isEmpty())
+        assertEquals(1024L * 1024, Files.size(original))
+        assertTrue(Files.list(layout.gameDir.parent.resolve("instances")).use { stream ->
+            stream.noneMatch { it.fileName.toString().startsWith(".creating-") }
+        })
+    }
+
+    @Test fun rejectsLinkedSourceBeforeAnyInstanceIsPublished() = runBlocking {
+        val (repo, layout) = fixture()
+        val other = Files.createTempFile("linked-source-", ".dat")
+        Files.createDirectories(layout.gameDir)
+        val link = layout.gameDir.resolve("linked.dat")
+        val supported = runCatching { Files.createSymbolicLink(link, other) }.isSuccess
+        if (supported) {
+            assertFailsWith<InstanceCopyException> { repo.importLegacy("Unsafe", "26.3") }
+            assertTrue(repo.list().instances.isEmpty())
+        }
+    }
+
     @Test fun invalidMetadataCannotEscapeInstancesRoot() = runBlocking {
         val (repo, _) = fixture()
         assertFailsWith<IllegalArgumentException> { repo.create("Danger", "../outside") }

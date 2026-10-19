@@ -29,6 +29,13 @@ The initial v0.2 functionality is a preview. Automated core tests validate file 
 6. If an instance with that UUID already exists, confirm Restore fails without overwriting either copy; resolve the conflict manually after backing up both directories.
 7. If the `Legacy Vanilla` game data exists, use **Import v0.1 game (copy worlds)**, verify imported saves, and confirm the original legacy game folder remains untouched.
 
+## Large copy acceptance (v0.2)
+
+- Import a copy of a large test world (not your only save). Check that the displayed byte totals match the source estimate once the UI is wired.
+- Cancel an import mid-file and verify that the source is unmodified and no new selectable instance appears.
+- Simulate insufficient disk space/permissions with a disposable test directory. Confirm an actionable failure and no partial published profile.
+- Place a symbolic link in a disposable source game folder and confirm import refuses the unsafe copy rather than following that link.
+
 ## Failure handling and migration
 
 - A malformed or newer-than-supported `instance.json` should not be deleted or overwritten by routine list/update actions.
