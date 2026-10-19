@@ -67,6 +67,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import pl.syntaxdevteam.syntaxlauncher.core.instance.InstanceInventory
+import pl.syntaxdevteam.syntaxlauncher.core.instance.TrashedInstanceInventory
 import pl.syntaxdevteam.syntaxlauncher.core.instance.MinecraftInstance
 import pl.syntaxdevteam.syntaxlauncher.core.account.OfflineAccount
 import pl.syntaxdevteam.syntaxlauncher.core.launch.LaunchPhase
@@ -241,6 +242,7 @@ private fun LauncherPanel(
     var metadata by remember { mutableStateOf<VersionMetadataState>(VersionMetadataState.Idle) }
     val scope = rememberCoroutineScope()
     var inventory by remember(session) { mutableStateOf<InstanceInventory?>(null) }
+    var trashInventory by remember(session) { mutableStateOf<TrashedInstanceInventory?>(null) }
     var instanceId by remember { mutableStateOf(saved.selectedInstanceId) }
     var managerOpen by remember { mutableStateOf(false) }
     LaunchedEffect(instanceOpenRequest) {
@@ -268,12 +270,14 @@ private fun LauncherPanel(
     LaunchedEffect(session) {
         try {
             inventory = session.instances.list()
+            trashInventory = session.instances.listTrashed()
             inventory?.instances?.firstOrNull { it.id == instanceId }?.let { profile ->
                 selected = manifest.versions.firstOrNull { it.id == profile.minecraftVersionId }
                 ramMiB = profile.maximumMemoryMiB.toFloat()
                 showSnapshots = selected?.type == MinecraftVersionType.SNAPSHOT
             }
-            instanceError = inventory?.problems?.takeIf { it.isNotEmpty() }?.joinToString("; ")
+            instanceError = (inventory?.problems.orEmpty() + trashInventory?.problems.orEmpty())
+                .takeIf { it.isNotEmpty() }?.joinToString("; ")
         }
         catch (error: Exception) { instanceError = error.message ?: "Cannot load instances" }
     }
@@ -294,7 +298,9 @@ private fun LauncherPanel(
             try {
                 val newSelection = action()
                 inventory = session.instances.list()
-                instanceError = inventory?.problems?.takeIf { it.isNotEmpty() }?.joinToString("; ")
+                trashInventory = session.instances.listTrashed()
+                instanceError = (inventory?.problems.orEmpty() + trashInventory?.problems.orEmpty())
+                    .takeIf { it.isNotEmpty() }?.joinToString("; ")
                 if (newSelection != null) chooseInstance(newSelection.id)
             } catch (error: Exception) {
                 instanceError = error.message ?: "Instance operation failed"
@@ -338,6 +344,7 @@ private fun LauncherPanel(
     if (managerOpen) {
         InstanceManagerDialog(
             instances = inventory?.instances.orEmpty(),
+            trashed = trashInventory?.entries.orEmpty(),
             selected = activeInstance,
             canModify = !locked,
             hasLegacyGame = session.instances.legacyGameAvailable(),
@@ -362,6 +369,9 @@ private fun LauncherPanel(
                 session.instances.moveToTrash(instance.id)
                 if (instanceId == instance.id) instanceId = ""
                 null
+            } },
+            onRestore = { entry -> modifyInstance {
+                session.instances.restoreFromTrash(entry.entryName)
             } },
             onImportLegacy = { name -> modifyInstance {
                 session.instances.importLegacy(name, selected?.id ?: manifest.latestRelease,

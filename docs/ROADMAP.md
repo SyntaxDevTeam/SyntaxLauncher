@@ -202,7 +202,7 @@ Goal: separate user installations into isolated, manageable Minecraft instances 
 - [ ] **A4 / P0 — Data protection:** enforce active-game safety before clone/trash/edit, robust copy/staging rollback, symlink/path protection and disk-space/permissions diagnostics.
 - [ ] **B1 / P0 — Selection UX acceptance:** make duplicate names distinguishable, verify saved selection after restart and handle missing/corrupt instance explicitly.
 - [ ] **B2 / P0 — Settings editor:** complete explicit Save/Cancel for version, memory and JVM options, with downgrade warnings and no unintended writes.
-- [ ] **B3 / P0 — Safe clone/trash/restore:** report long-copy progress and implement in-app trash restore with verified world recovery.
+- [ ] 🚧 IN PROGRESS — **B3 / P0 — Safe clone/trash/restore:** in-app trash listing/restore, UUID-conflict protection and automated round-trip tests implemented; CI and real-world recovery acceptance pending. Clone/import progress and cancellation remain open.
 - [ ] **B4 / P1 — Instance workspace:** replace the dense prototype dialog with a focused, accessible Instances view; keep Play the home screen's primary action.
 - [ ] **Final acceptance / P0:** automated regression suite, three platform distributions, real A/B world isolation, non-destructive legacy import, clone/restore and v0.1 compatibility.
 
@@ -222,13 +222,13 @@ Goal: separate user installations into isolated, manageable Minecraft instances 
 - [x] Atomic per-instance `instance.json` publication with explicit errors for corrupt/newer metadata; CI tests passed.
 - [ ] 🚧 IN PROGRESS — schema 1 read/write supports unknown-field preservation; later schema migrations remain to be designed/tested.
 - [ ] 🚧 IN PROGRESS — explicit non-destructive import copies the v0.1 game folder while leaving source untouched.
-- [ ] 🚧 IN PROGRESS — cloning refuses symlinks, stages files before publishing and preserves unknown JSON metadata fields; real-world clone/manual tests pending.
+- [ ] 🚧 IN PROGRESS — cloning refuses symlinks/special files, stages files before publishing without reusing abandoned staging, and preserves unknown JSON metadata; disk-space, cancellation and real-world tests remain open.
 
 ## Instance management
 
 - [ ] 🚧 IN PROGRESS — create, rename, edit instance version/RAM/JVM settings, list alphabetically, clone worlds and move to recoverable trash.
 - [x] Selected instance UUID persists as an optional schema-1 preferences key, compatible with older settings; CI suite passed.
-- [ ] 🚧 IN PROGRESS — deletion goes to `data/instance-trash/`; in-app trash recovery is not implemented yet.
+- [ ] 🚧 IN PROGRESS — deletion uses `data/instance-trash/`, with in-app restore and original UUID preservation; CI/manual restore verification remains pending.
 
 ## Launch integration
 

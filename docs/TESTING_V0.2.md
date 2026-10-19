@@ -24,14 +24,17 @@ The initial v0.2 functionality is a preview. Automated core tests validate file 
 2. Change a world/config in the clone. The original A must retain its original data.
 3. Rename the clone. Its internal UUID/path should not change.
 4. Move the clone to trash and confirm it disappears from the launcher list.
-5. Confirm its entire directory still exists under `instance-trash` and can be recovered manually. **There is no in-app restore button yet.**
-6. If the `Legacy Vanilla` game data exists, use **Import v0.1 game (copy worlds)**, verify imported saves, and confirm the original legacy game folder remains untouched.
+5. Confirm its directory exists under `instance-trash`. In **Manage instances → Recover deleted instances**, click **Restore**. Confirm the original UUID, world saves and settings reappear, then launch the restored instance.
+6. If an instance with that UUID already exists, confirm Restore fails without overwriting either copy; resolve the conflict manually after backing up both directories.
+7. If the `Legacy Vanilla` game data exists, use **Import v0.1 game (copy worlds)**, verify imported saves, and confirm the original legacy game folder remains untouched.
 
 ## Failure handling and migration
 
 - A malformed or newer-than-supported `instance.json` should not be deleted or overwritten by routine list/update actions.
 - Missing previously selected instance should generate an actionable warning instead of silently opening Legacy Vanilla.
 - Instance metadata uses schema v1. Unknown fields are retained during update and clone. Schema-changing migrations will be added when a later format is introduced.
+- Malformed trash entries must show a problem, remain on disk for manual recovery and never be automatically deleted.
+- Restoring a deleted instance must keep its original UUID, including unknown schema-1 metadata fields; duplicate names are differentiated by short UUID in the manager.
 - The metadata `instance.json` is stored beside each instance's `game` directory. The folder name and JSON `id` must agree.
 
 ## Report a problem

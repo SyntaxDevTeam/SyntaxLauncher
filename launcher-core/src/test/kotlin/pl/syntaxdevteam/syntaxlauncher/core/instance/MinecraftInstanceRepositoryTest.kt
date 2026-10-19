@@ -104,6 +104,64 @@ class MinecraftInstanceRepositoryTest {
         assertEquals("legacy world", Files.readString(legacyWorld))
     }
 
+    @Test fun restoreKeepsWorldsUuidAndUnknownMetadata() = runBlocking {
+        val (repo, _) = fixture()
+        assertTrue(repo.listTrashed().entries.isEmpty())
+        val original = repo.create("Backup", "26.3")
+        val world = repo.gameDirectory(original).resolve("saves/important/level.dat")
+        Files.createDirectories(world.parent)
+        Files.writeString(world, "world data")
+        val metadata = repo.gameDirectory(original).parent.resolve("instance.json")
+        Files.writeString(metadata, Files.readString(metadata)
+            .replaceFirst("{", """{ "futureSetting": {"enabled": true},"""))
+        val removed = repo.moveToTrash(original.id)
+        val deleted = repo.listTrashed()
+        assertTrue(deleted.problems.isEmpty())
+        assertEquals(1, deleted.entries.size)
+        assertEquals(removed.fileName.toString(), deleted.entries.single().entryName)
+        val restored = repo.restoreFromTrash(deleted.entries.single().entryName)
+        assertEquals(original, restored)
+        assertEquals(original.id, repo.list().instances.single().id)
+        assertEquals("world data", Files.readString(world))
+        assertTrue(Files.readString(metadata).contains("futureSetting"))
+        assertTrue(repo.listTrashed().entries.isEmpty())
+    }
+
+    @Test fun restoreCannotOverwriteAnExistingUuidAndRetainsBackup() = runBlocking {
+        val (repo, _) = fixture()
+        val original = repo.create("Safe", "26.3")
+        val removed = repo.moveToTrash(original.id)
+        val destination = repo.gameDirectory(original).parent
+        Files.createDirectories(destination)
+        val sentinel = destination.resolve("existing.txt")
+        Files.writeString(sentinel, "do not replace")
+        assertFailsWith<IllegalStateException> {
+            repo.restoreFromTrash(removed.fileName.toString())
+        }
+        assertEquals("do not replace", Files.readString(sentinel))
+        assertTrue(Files.exists(removed.resolve("instance.json")))
+        Files.delete(sentinel)
+        Files.delete(destination)
+        assertEquals(original.id, repo.restoreFromTrash(removed.fileName.toString()).id)
+    }
+
+    @Test fun corruptOrDisguisedTrashDataIsNotPublished() = runBlocking {
+        val (repo, _) = fixture()
+        val original = repo.create("Recovery", "26.3")
+        val removed = repo.moveToTrash(original.id)
+        val metadata = removed.resolve("instance.json")
+        Files.writeString(metadata, Files.readString(metadata)
+            .replace(""""schemaVersion": 1""", """"schemaVersion": 999"""))
+        val inventory = repo.listTrashed()
+        assertTrue(inventory.entries.isEmpty())
+        assertEquals(1, inventory.problems.size)
+        assertFailsWith<IllegalArgumentException> {
+            repo.restoreFromTrash(removed.fileName.toString())
+        }
+        assertTrue(Files.exists(metadata))
+        assertFailsWith<IllegalArgumentException> { repo.restoreFromTrash("../../instances") }
+    }
+
     @Test fun invalidMetadataCannotEscapeInstancesRoot() = runBlocking {
         val (repo, _) = fixture()
         assertFailsWith<IllegalArgumentException> { repo.create("Danger", "../outside") }

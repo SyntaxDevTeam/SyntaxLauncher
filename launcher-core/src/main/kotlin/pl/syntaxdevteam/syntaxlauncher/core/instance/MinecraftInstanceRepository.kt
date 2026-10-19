@@ -53,6 +53,14 @@ data class InstanceInventory(
     val problems: List<String>,
 )
 
+/** A recoverable trash entry; [entryName] identifies one specific deletion, not just an instance UUID. */
+data class TrashedMinecraftInstance(val entryName: String, val instance: MinecraftInstance)
+
+data class TrashedInstanceInventory(
+    val entries: List<TrashedMinecraftInstance>,
+    val problems: List<String>,
+)
+
 /** Isolated mutable game directories, immutable shared cache, and safe schema 1 metadata. */
 class MinecraftInstanceRepository(
     private val root: Path,
@@ -91,6 +99,35 @@ class MinecraftInstanceRepository(
             InstanceInventory(found.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) {
                 it.name
             }), problems)
+        }
+    }
+
+    /** Do not hide corrupted trash entries: users must still be able to recover them manually. */
+    suspend fun listTrashed(): TrashedInstanceInventory = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            if (!Files.exists(trash, LinkOption.NOFOLLOW_LINKS)) {
+                return@withLock TrashedInstanceInventory(emptyList(), emptyList())
+            }
+            require(Files.isDirectory(trash, LinkOption.NOFOLLOW_LINKS)) {
+                "Instance trash is not a normal directory; no files were changed"
+            }
+            val found = mutableListOf<TrashedMinecraftInstance>()
+            val problems = mutableListOf<String>()
+            Files.newDirectoryStream(trash).use { dirs ->
+                dirs.forEach { dir ->
+                    try {
+                        val entryName = dir.fileName.toString()
+                        trashDirectory(entryName)
+                        found.add(TrashedMinecraftInstance(entryName, read(dir, fromTrash = true)))
+                    } catch (error: Exception) {
+                        problems.add("Cannot read deleted instance " + dir.fileName + ": " + error.message)
+                    }
+                }
+            }
+            TrashedInstanceInventory(
+                found.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.instance.name }),
+                problems,
+            )
         }
     }
 
@@ -137,9 +174,30 @@ class MinecraftInstanceRepository(
             val source = instanceDirectory(id)
             read(source)
             Files.createDirectories(trash)
+            require(Files.isDirectory(trash, LinkOption.NOFOLLOW_LINKS)) {
+                "Instance trash must be a normal directory"
+            }
             val target = trash.resolve(id + "-" + UUID.randomUUID())
             move(source, target)
             target
+        }
+    }
+
+    /**
+     * Restores exactly one trash entry, preserving UUID, metadata and all game files.
+     * Existing destination data is never overwritten, even when names are identical.
+     */
+    suspend fun restoreFromTrash(entryName: String): MinecraftInstance = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            val source = trashDirectory(entryName)
+            val recovered = read(source, fromTrash = true)
+            Files.createDirectories(root)
+            val destination = instanceDirectory(recovered.id)
+            check(!Files.exists(destination, LinkOption.NOFOLLOW_LINKS)) {
+                "Instance UUID already exists. Deleted data is still in trash; no files were changed."
+            }
+            move(source, destination)
+            recovered
         }
     }
 
@@ -167,8 +225,10 @@ class MinecraftInstanceRepository(
         val temporary = root.resolve(".creating-" + value.id)
         val destination = instanceDirectory(value.id)
         require(!Files.exists(destination, LinkOption.NOFOLLOW_LINKS))
+        // createDirectory fails on leftover staging from an interrupted run; never reuse or erase it.
+        Files.createDirectory(temporary)
         try {
-            Files.createDirectories(temporary.resolve("game"))
+            Files.createDirectory(temporary.resolve("game"))
             if (sourceGame != null) copyGameFiles(sourceGame, temporary.resolve("game"))
             if (sourceMetadata != null) Files.copy(sourceMetadata, temporary.resolve("instance.json"))
             write(temporary, value)
@@ -187,14 +247,29 @@ class MinecraftInstanceRepository(
                 return FileVisitResult.CONTINUE
             }
             override fun visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult {
-                require(!Files.isSymbolicLink(file)) { "Symlinked game files cannot be cloned" }
+                require(!Files.isSymbolicLink(file) && attrs.isRegularFile) {
+                    "Only regular game files can be copied (no links or special files)"
+                }
                 Files.copy(file, destination.resolve(source.relativize(file)))
                 return FileVisitResult.CONTINUE
             }
         })
     }
 
-    private fun read(dir: Path): MinecraftInstance {
+    private fun trashDirectory(entryName: String): Path {
+        require(entryName.length == 73 && entryName[36] == '-') {
+            "Invalid trash entry name"
+        }
+        val id = entryName.substring(0, 36)
+        val deletionId = entryName.substring(37)
+        require(runCatching { UUID.fromString(id).toString() == id }.getOrDefault(false) &&
+            runCatching { UUID.fromString(deletionId).toString() == deletionId }.getOrDefault(false)) {
+            "Invalid trash entry identifier"
+        }
+        return trash.resolve(entryName)
+    }
+
+    private fun read(dir: Path, fromTrash: Boolean = false): MinecraftInstance {
         require(Files.isDirectory(dir, LinkOption.NOFOLLOW_LINKS)) { "Instance directory missing" }
         val file = dir.resolve("instance.json")
         require(Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) { "Missing instance.json" }
@@ -203,7 +278,20 @@ class MinecraftInstanceRepository(
             "Newer or invalid instance schema; data preserved"
         }
         val instance = json.decodeFromJsonElement(MinecraftInstance.serializer(), obj)
-        require(instanceDirectory(instance.id).toAbsolutePath().normalize() ==
+        val expectedDirectory = if (fromTrash) {
+            val entryName = dir.fileName.toString()
+            require(trashDirectory(entryName).toAbsolutePath().normalize() ==
+                dir.toAbsolutePath().normalize() && entryName.substring(0, 36) == instance.id) {
+                "Trash entry and instance UUID do not match"
+            }
+            require(Files.isDirectory(dir.resolve("game"), LinkOption.NOFOLLOW_LINKS)) {
+                "Deleted game directory is missing"
+            }
+            trash.resolve(entryName)
+        } else {
+            instanceDirectory(instance.id)
+        }
+        require(expectedDirectory.toAbsolutePath().normalize() ==
             dir.toAbsolutePath().normalize()) { "Directory and UUID do not match" }
         return instance
     }

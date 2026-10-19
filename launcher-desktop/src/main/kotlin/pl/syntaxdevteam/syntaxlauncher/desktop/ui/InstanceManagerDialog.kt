@@ -23,11 +23,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import pl.syntaxdevteam.syntaxlauncher.core.instance.MinecraftInstance
+import pl.syntaxdevteam.syntaxlauncher.core.instance.TrashedMinecraftInstance
 
 /** Destructive actions are never issued until explicitly confirmed. */
 @Composable
 fun InstanceManagerDialog(
     instances: List<MinecraftInstance>,
+    trashed: List<TrashedMinecraftInstance>,
     selected: MinecraftInstance?,
     canModify: Boolean,
     hasLegacyGame: Boolean,
@@ -38,6 +40,7 @@ fun InstanceManagerDialog(
     onSaveSettings: (MinecraftInstance) -> Unit,
     onImportLegacy: (String) -> Unit,
     onDelete: (MinecraftInstance) -> Unit,
+    onRestore: (TrashedMinecraftInstance) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var name by remember(selected?.id) { mutableStateOf(selected?.name.orEmpty()) }
@@ -47,9 +50,9 @@ fun InstanceManagerDialog(
         AlertDialog(
             onDismissRequest = { deleting = false },
             title = { Text("Move instance to trash?") },
-            text = { Text("The game worlds and settings for ${selected.name} will be moved to the recoverable instance-trash directory. This cannot be undone in the launcher.") },
+            text = { Text("Worlds and settings for ${selected.name} will be moved to recoverable storage. You can restore them from this manager.") },
             confirmButton = {
-                TextButton(onClick = { onDelete(selected); deleting = false }) { Text("Move to trash") }
+                TextButton(onClick = { onDelete(selected); deleting = false }, enabled = canModify) { Text("Move to trash") }
             },
             dismissButton = { TextButton(onClick = { deleting = false }) { Text("Cancel") } },
         )
@@ -75,7 +78,7 @@ fun InstanceManagerDialog(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Text((if (selected?.id == instance.id) "●  " else "") +
-                            "${instance.name}   ·   ${instance.minecraftVersionId}")
+                            "${instance.name}   ·   ${instance.minecraftVersionId}   ·   ${instance.id.take(8)}")
                     }
                 }
                 OutlinedTextField(
@@ -111,6 +114,27 @@ fun InstanceManagerDialog(
                         onClick = { deleting = true },
                         enabled = canModify,
                     ) { Text("Move selected instance to trash") }
+                }
+                if (trashed.isNotEmpty()) {
+                    Text("Recover deleted instances", style = MaterialTheme.typography.titleSmall)
+                    trashed.forEach { entry ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(entry.instance.name, style = MaterialTheme.typography.bodyMedium)
+                                Text(
+                                    entry.instance.minecraftVersionId + " · " + entry.instance.id.take(8),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            OutlinedButton(onClick = { onRestore(entry) }, enabled = canModify) {
+                                Text("Restore")
+                            }
+                        }
+                    }
                 }
                 if (hasLegacyGame) {
                     OutlinedButton(

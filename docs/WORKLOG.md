@@ -8,6 +8,45 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-19 — Add safe instance trash recovery
+
+**Milestone:** v0.2 (B3 / A4 / B1)  
+**Author/Agent:** ChatGPT  
+**Status:** Partial — CI and real Minecraft manual acceptance pending
+
+### Completed
+- Implemented read-only trash inventory and in-app Restore, with original UUID, world files and unknown schema-1 metadata preserved.
+- Validated trash entry naming and metadata UUID before restoration; reject duplicate destination UUIDs without overwriting or consuming the recoverable copy.
+- Report corrupt/unreadable trash entries as non-destructive diagnostics.
+- Refused special files while copying worlds, and prevented a new create/clone/import from accidentally reusing leftover operation staging.
+- Made duplicate-name instances distinguishable by a short UUID; retained the launcher’s active-game UI mutation lock.
+- Added automated recovery, metadata preservation, conflicting UUID and corrupt trash safety tests.
+
+### Changed files
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/instance/MinecraftInstanceRepository.kt` — recovery inventory/restore and staging/file safety.
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/instance/MinecraftInstanceRepositoryTest.kt` — recovery regression tests.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/SyntaxLauncherApp.kt` — trash loading, error propagation and restore action.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/InstanceManagerDialog.kt` — recovery controls and short UUID labels.
+- `docs/ROADMAP.md`, `docs/TESTING_V0.2.md`, `README.md`, `docs/WORKLOG.md` — updated status and acceptance instructions.
+
+### Verification
+- `./gradlew test` — NOT RUN locally; network-disabled environment lacks Gradle dependencies.
+- `./gradlew build` — NOT RUN locally; GitHub Actions CI verification pending.
+- Manual two-world gameplay, clone, legacy import, restore and active-game safety — NOT RUN.
+
+### Roadmap updates
+- [ ] v0.2 / B3 — restore implementation and tests added; remain open until CI and real-world acceptance.
+- [ ] v0.2 / A4 — improved staging and special-file handling; complete disk checks, cancellation and cross-process locks still required.
+- [ ] v0.2 / B1 — short UUID differentiator added; restart and missing/corrupt selection UX acceptance remains open.
+
+### Follow-ups / known issues
+- Keep deleted data recoverable after corrupted JSON; add explicit guided manual recovery in future UX.
+- Add copy progress, cancellation, disk-space verification and crash-resumable cleanup.
+- Persist active-instance process protection across launcher restarts/detached games, and verify multiple-process concurrency.
+- Complete real Minecraft A/B data-isolation and recovered-world launch tests.
+
+---
+
 ## 2026-10-19 — Replace procedural UI hero with approved visual identity
 
 **Milestone:** v0.1 desktop UI / shared v0.2 shell  
