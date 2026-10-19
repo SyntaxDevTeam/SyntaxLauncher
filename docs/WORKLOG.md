@@ -8,6 +8,39 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-19 — Publish portable applications to Build Explorer
+
+**Milestone:** v0.1 — Build and CI validation (explicit maintainer request)
+**Author/Agent:** Codex
+**Status:** Partial — local verification passed; cross-platform publication pending
+
+### Completed
+- Extended the existing three-platform workflow with a dependent publication job.
+- Included desktop tests in the verification gate; pull requests never publish.
+- Added serial uploads with integrity metadata, shared run identity and strict validation of the complete file set.
+- Provisioned the portal project and a repository secret with project-scoped server permissions.
+
+### Changed files
+- `.github/workflows/build.yml` — full tests and publication after the complete platform matrix.
+- `scripts/publish_build_explorer.py` — bounded, authenticated v2 publisher.
+- `tests/test_build_explorer_publish.py` — grouping, channel, integrity, missing/corrupt/oversized input tests.
+- `docs/DEVELOPMENT.md`, `docs/ROADMAP.md`, `docs/WORKLOG.md` — operation and truthful progress.
+
+### Verification
+- `./gradlew test --console=plain build` — PASS; existing compiler/deprecation warnings.
+- `python3 -m unittest discover -s tests -p 'test_*.py'` — PASS, five tests.
+- Manual verification — no UI changes; real CI publication pending.
+
+### Roadmap updates
+- `[ ] v0.1 / Build and CI validation / Build Explorer publication` — real matrix/publication pending.
+- Existing native OS acceptance, installer signing and gameplay gates remain open.
+
+### Follow-ups / known issues
+- No automatic launcher self-update or native installer work is included.
+- Each upload becomes visible individually; interrupted publication is recovered by rerunning its CI job.
+
+---
+
 ## 2026-10-19 — Make the launcher logo respond to measured layout space
 
 **Milestone:** v0.1 — UI visual foundation
