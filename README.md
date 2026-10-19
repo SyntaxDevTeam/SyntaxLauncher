@@ -36,7 +36,7 @@ The v0.2 implementation includes cross-process per-instance file locks, safe clo
 
 ## v0.3 — Microsoft/Premium Accounts
 
-The next milestone adds official browser-based Microsoft OAuth with PKCE, Xbox Live/XSTS and Minecraft Services identity, multiple accounts, secure sessions and a shared launch pipeline for premium/offline play. A properly authorized Microsoft public-client app registration will be required. Premium sign-in must never request a Microsoft password or hardcode someone else's application ID.
+The core now implements Microsoft public-client browser OAuth requests with PKCE, Xbox Live/XSTS, Minecraft Services and Java profile lookup. Multiple-account UI, secure session storage and authenticated game launching remain in development. A properly authorized Microsoft public-client app registration will be required. Premium sign-in must never request a Microsoft password or hardcode someone else's application ID.
 
 ## Current implementation
 

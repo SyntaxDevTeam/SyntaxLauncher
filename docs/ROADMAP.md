@@ -283,12 +283,12 @@ Goal: add official premium authentication without changing the fundamental Minec
 - [ ] 🚧 IN PROGRESS — native public-client OAuth request/code exchange and refresh implemented; localhost browser callback UI remains.
 - [x] Implement S256 PKCE, cryptographic CSRF state and unique request verifier; tested.
 - [ ] Never request/store Microsoft password.
-- [ ] Exchange Microsoft identity for Xbox Live authentication.
-- [ ] Complete XSTS authentication.
-- [ ] Authenticate with Minecraft Services.
-- [ ] Fetch Minecraft profile.
-- [ ] Obtain premium username and UUID.
-- [ ] Detect account/profile errors cleanly.
+- [x] Implement Xbox user-token exchange to Microsoft OAuth token, covered by MockEngine integration test.
+- [x] Implement Xbox XSTS auth with Minecraft relying party, covered by MockEngine.
+- [ ] 🚧 IN PROGRESS — login_with_xbox implemented with typed HTTP-403 app-registration errors; only mocked tests so far.
+- [x] Fetch and parse verified Minecraft Java profile (mock-tested).
+- [x] Parse Minecraft Java profile name and compact UUID (mock-tested).
+- [x] Classify Xbox, XSTS, Minecraft-app-registration and missing Java profile failures without exposing tokens.
 
 ## Token lifecycle
 

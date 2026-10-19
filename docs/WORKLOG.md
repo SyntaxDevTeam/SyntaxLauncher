@@ -8,6 +8,37 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-19 — Xbox/XSTS/Minecraft provider exchanges
+
+**Milestone:** v0.3
+**Author/Agent:** ChatGPT GPT-6
+**Status:** Partial — mocked provider pipeline, live approval pending
+
+### Completed
+- Added typed Xbox Live, XSTS, Minecraft Services and verified Java profile exchanges.
+- Added explicit 403 app-registration and missing Java profile errors, without leaking server bodies or tokens.
+- Tested successful and rejected provider sequences via Ktor MockEngine.
+
+### Changed files
+- launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/account/MinecraftPremiumAuthentication.kt
+- launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/account/MinecraftPremiumAuthenticationTest.kt
+- docs/ROADMAP.md and docs/WORKLOG.md
+
+### Verification
+- ./gradlew test — CI pending; no local Gradle cache.
+- ./gradlew build — CI pending.
+- Real registered Microsoft/Minecraft services — NOT RUN.
+
+### Roadmap updates
+- [x] Provider API chain implementation with mock tests.
+- [ ] Live approved application authentication and UI remain.
+
+### Follow-ups / known issues
+- Invalid app registration can block Minecraft login even when Microsoft and Xbox steps succeed.
+- Do not consider authentication finished without live consent/account testing.
+
+---
+
 ## 2026-10-19 — First v0.3 Microsoft OAuth milestone
 
 **Milestone:** v0.3
