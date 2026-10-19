@@ -36,7 +36,7 @@ The v0.2 implementation includes cross-process per-instance file locks, safe clo
 
 ## v0.3 — Microsoft/Premium Accounts
 
-The core now implements Microsoft public-client browser OAuth requests with PKCE, Xbox Live/XSTS, Minecraft Services and Java profile lookup. Multiple-account UI, secure session storage and authenticated game launching remain in development. A properly authorized Microsoft public-client app registration will be required. Premium sign-in must never request a Microsoft password or hardcode someone else's application ID.
+The desktop now has a v0.3 development account picker with Offline and in-memory Microsoft Java sessions, native browser PKCE login, account removal and the shared premium/offline launch pipeline. Configure SYNTAXLAUNCHER_MICROSOFT_CLIENT_ID with your own registered public application ID. Secure persistence, real Minecraft approval/testing and full UI acceptance are still outstanding; no tokens are persisted to files. A properly authorized Microsoft public-client app registration will be required. Premium sign-in must never request a Microsoft password or hardcode someone else's application ID.
 
 ## Current implementation
 

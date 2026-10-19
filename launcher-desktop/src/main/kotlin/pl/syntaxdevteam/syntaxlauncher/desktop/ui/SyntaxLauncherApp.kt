@@ -181,7 +181,7 @@ fun SyntaxLauncherApp(session: DesktopLauncherSession) {
                     }
                     Spacer(Modifier.width(22.dp))
                     Text(
-                        "JAVA EDITION   /   v0.2 PREVIEW",
+                        "JAVA EDITION   /   v0.3 DEV",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.labelSmall,
                         letterSpacing = 1.sp,
@@ -234,6 +234,11 @@ private fun LauncherPanel(
     instanceOpenRequest: Int,
 ) {
     var nickname by remember { mutableStateOf(saved.nickname) }
+    var selectedPremiumId by remember { mutableStateOf<String?>(null) }
+    var signingInPremium by remember { mutableStateOf(false) }
+    var premiumError by remember { mutableStateOf<String?>(null) }
+    val premiumAccounts by session.premiumAccounts.collectAsState()
+    val selectedPremium = premiumAccounts.firstOrNull { it.uuid.toString() == selectedPremiumId }
     var showSnapshots by remember { mutableStateOf(saved.snapshots) }
     var selected by remember(manifest) {
         mutableStateOf(manifest.versions.firstOrNull { it.id == saved.selectedVersionId }
@@ -270,8 +275,9 @@ private fun LauncherPanel(
 
     val isRunning = process.state == MinecraftProcessState.RUNNING ||
         process.state == MinecraftProcessState.STARTING
-    val locked = isRunning || launch.isPreparing || mutationBusy
-    val validName = nickname.isNotBlank() && OfflineAccount.isValidUsername(nickname.trim())
+    val locked = isRunning || launch.isPreparing || mutationBusy || signingInPremium
+    val validName = if (selectedPremiumId != null) selectedPremium != null
+        else nickname.isNotBlank() && OfflineAccount.isValidUsername(nickname.trim())
     val resolved = (metadata as? VersionMetadataState.Ready)?.metadata
         ?.takeIf { it.id == selected?.id }
     val unsavedInstanceSettings = activeInstance != null &&
@@ -648,7 +654,8 @@ private fun LauncherPanel(
                 }
                 Button(
                     onClick = { resolved?.let {
-                        session.play(it, nickname.trim(), ramMiB.toInt(), activeInstance)
+                        session.play(it, nickname.trim(), ramMiB.toInt(), activeInstance,
+                            premiumId = selectedPremiumId)
                     } },
                     enabled = canPlay,
                     modifier = Modifier.fillMaxWidth().height(62.dp)
@@ -733,17 +740,79 @@ private fun LauncherPanel(
             Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
                 Text("PLAYER", style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 1.2.sp)
-                OutlinedTextField(
-                    value = nickname, onValueChange = { nickname = it },
-                    label = { Text("Offline nickname") },
-                    supportingText = {
-                        Text(if (nickname.isNotBlank() && !validName)
-                            "Use 3–16 letters, numbers or underscores." else "For offline-compatible servers.")
-                    },
-                    isError = nickname.isNotBlank() && !validName,
-                    enabled = !locked, singleLine = true, modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    FilterChip(
+                        selected = selectedPremiumId == null,
+                        onClick = { selectedPremiumId = null },
+                        label = { Text("Offline") },
+                        enabled = !locked,
+                    )
+                    if (session.microsoftEnabled) {
+                        OutlinedButton(
+                            onClick = {
+                                signingInPremium = true
+                                premiumError = null
+                                scope.launch {
+                                    try {
+                                        val account = session.addPremiumAccount()
+                                        selectedPremiumId = account.uuid.toString()
+                                    } catch (cancelled: CancellationException) {
+                                        throw cancelled
+                                    } catch (error: Exception) {
+                                        premiumError = error.message ?: "Microsoft sign-in failed."
+                                    } finally {
+                                        signingInPremium = false
+                                    }
+                                }
+                            },
+                            enabled = !locked,
+                        ) { Text(if (signingInPremium) "Signing in…" else "Add Microsoft") }
+                    }
+                }
+                if (selectedPremiumId == null) {
+                    OutlinedTextField(
+                        value = nickname, onValueChange = { nickname = it },
+                        label = { Text("Offline nickname") },
+                        supportingText = { Text("For local play and offline-compatible servers.") },
+                        isError = nickname.isNotBlank() && !OfflineAccount.isValidUsername(nickname.trim()),
+                        enabled = !locked, singleLine = true, modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                    )
+                } else {
+                    Text(selectedPremium?.username ?: "This Microsoft session is unavailable.",
+                        color = if (selectedPremium == null) MaterialTheme.colorScheme.error
+                            else MaterialTheme.colorScheme.onSurface)
+                    Text("Verified Minecraft Java profile · Microsoft",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                premiumAccounts.forEach { profile ->
+                    Row(modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween) {
+                        FilterChip(
+                            selected = selectedPremiumId == profile.uuid.toString(),
+                            onClick = { selectedPremiumId = profile.uuid.toString() },
+                            label = { Text(profile.username) },
+                            enabled = !locked,
+                        )
+                        TextButton(onClick = {
+                            session.removePremiumAccount(profile.uuid.toString())
+                            if (selectedPremiumId == profile.uuid.toString()) selectedPremiumId = null
+                        }, enabled = !locked) { Text("Sign out") }
+                    }
+                }
+                if (!session.microsoftEnabled) {
+                    Text("Microsoft sign-in requires this launcher's own public app ID. " +
+                        "Set SYNTAXLAUNCHER_MICROSOFT_CLIENT_ID.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                premiumError?.let {
+                    Text(it, style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error)
+                }
             }
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("GAME VERSION", style = MaterialTheme.typography.labelSmall,
@@ -846,7 +915,8 @@ private fun LauncherPanel(
                     MinecraftProcessState.RUNNING -> "Running · PID ${process.pid ?: "?"}"
                     MinecraftProcessState.STOPPED -> "Last exit code: ${process.exitCode ?: "?"}"
                     MinecraftProcessState.CRASHED -> process.errorMessage ?: "Minecraft crashed"
-                    else -> "Offline profile · Vanilla"
+                    else -> if (selectedPremium != null) "Microsoft account · " + selectedPremium.username
+                        else "Offline profile · Vanilla"
                 },
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall,

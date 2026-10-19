@@ -8,6 +8,41 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-19 — Wire Microsoft and offline account selection into desktop Play
+
+**Milestone:** v0.3
+**Author/Agent:** ChatGPT GPT-6
+**Status:** Partial — real account consent, OS vault and UI acceptance still required
+
+### Completed
+- Added browser-enabled Microsoft account sign-in to DesktopLauncherSession when the independent application ID is configured.
+- Added in-memory multiple premium identities, account selection and explicit Sign out; existing Offline nickname stays available.
+- Refreshes expiring Microsoft/Minecraft tokens before launching, using the same coordinator and per-instance launch settings.
+- Added actionable UI errors; no Microsoft password, refresh token or access token is saved in launcher preferences.
+- Updated home UI to v0.3 DEV without presenting the milestone as production-ready.
+
+### Changed files
+- launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/DesktopLauncherSession.kt
+- launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/Main.kt
+- launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/SyntaxLauncherApp.kt
+- docs/ROADMAP.md, docs/WORKLOG.md, README.md
+
+### Verification
+- ./gradlew test — CI pending.
+- ./gradlew build — CI pending.
+- Real Microsoft login/game launch — NOT RUN; requires approved app/client ID and consenting owner.
+
+### Roadmap updates
+- [ ] v0.3 browser and session picker have been implemented, but manual acceptance is still pending.
+- [ ] v0.3 long-lived OS secure vault and live Microsoft Minecraft launch remain outstanding.
+
+### Follow-ups / known issues
+- Premium identities and refresh tokens are intentionally held only in memory until cross-platform secure OS credential storage is available.
+- Default ProcessBuilder discards premium stdout/stderr; review game-owned logs before shipping.
+- Application ID must be the project's own correctly authorized Microsoft registration.
+
+---
+
 ## 2026-10-19 — Native browser login callback foundation
 
 **Milestone:** v0.3

@@ -304,15 +304,15 @@ Goal: add official premium authentication without changing the fundamental Minec
 
 - [ ] Convert authenticated account/session to existing launch account/session inputs.
 - [ ] 🚧 IN PROGRESS — coordinator accepts normalized premium LaunchAuthentication and uses standard metadata placeholder replacement; desktop selection and live verification pending.
-- [ ] Avoid a duplicate premium-specific launch pipeline.
+- [x] Both account types use MinecraftLaunchCoordinator with a normalized LaunchAuthentication.
 
 ## v0.3 UI
 
-- [ ] Add account picker.
-- [ ] Add `Add Microsoft account` flow.
-- [ ] Preserve `Offline account` creation/selection.
+- [ ] 🚧 IN PROGRESS — choose Offline or a validated Microsoft session in the home sidebar (memory only); persistence and full UX acceptance pending.
+- [ ] 🚧 IN PROGRESS — native browser / localhost PKCE flow wired to Add Microsoft when an owned app ID is configured; real sign-in pending.
+- [x] Offline profile remains independently selectable and used by the original launch path.
 - [ ] Show premium profile name/avatar when available.
-- [ ] Provide logout/remove-account controls.
+- [ ] 🚧 IN PROGRESS — Sign out removes selected premium session from RAM; persistent vault integration/revocation pending.
 
 ## v0.3 quality gate
 

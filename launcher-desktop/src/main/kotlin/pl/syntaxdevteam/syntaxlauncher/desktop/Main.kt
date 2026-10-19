@@ -48,6 +48,9 @@ fun main() {
             sharedLayout = MinecraftInstallationLayout.from(paths),
         ),
         httpClient = httpClient,
+        microsoftSignIn = System.getenv("SYNTAXLAUNCHER_MICROSOFT_CLIENT_ID")
+            ?.trim()?.takeIf { it.isNotEmpty() }
+            ?.let { clientId -> runCatching { DesktopMicrosoftSignIn(httpClient, clientId) }.getOrNull() },
     )
 
     application {

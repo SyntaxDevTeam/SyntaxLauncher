@@ -15,6 +15,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.swing.Swing
 import kotlinx.coroutines.withContext
 import pl.syntaxdevteam.syntaxlauncher.core.account.OfflineAccount
+import pl.syntaxdevteam.syntaxlauncher.core.account.PremiumAccount
+import pl.syntaxdevteam.syntaxlauncher.core.account.PremiumSession
+import pl.syntaxdevteam.syntaxlauncher.core.launch.LaunchAuthentication
+import kotlinx.coroutines.flow.StateFlow
+import java.time.Instant
 import pl.syntaxdevteam.syntaxlauncher.core.instance.MinecraftInstance
 import pl.syntaxdevteam.syntaxlauncher.core.instance.MinecraftInstanceRepository
 import pl.syntaxdevteam.syntaxlauncher.core.launch.LaunchOptions
@@ -42,6 +47,7 @@ class DesktopLauncherSession(
     val instances: MinecraftInstanceRepository,
     private val legacyLayout: MinecraftInstallationLayout,
     private val httpClient: HttpClient,
+    private val microsoftSignIn: DesktopMicrosoftSignIn? = null,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val lock = Any()
@@ -51,6 +57,30 @@ class DesktopLauncherSession(
     private var pendingPreferences: LauncherPreferences? = null
     private val mutableLaunchIssue = MutableStateFlow<String?>(null)
     val launchIssue = mutableLaunchIssue.asStateFlow()
+    private val premiumSessions = mutableMapOf<String, PremiumSession>()
+    private val mutablePremiumAccounts = MutableStateFlow<List<PremiumAccount>>(emptyList())
+    val premiumAccounts: StateFlow<List<PremiumAccount>> = mutablePremiumAccounts.asStateFlow()
+    val microsoftEnabled: Boolean get() = microsoftSignIn != null
+
+    /** Premium tokens stay in memory until an OS secure vault is implemented. */
+    suspend fun addPremiumAccount(): PremiumAccount {
+        val browser = microsoftSignIn
+            ?: throw IllegalStateException("Configure SYNTAXLAUNCHER_MICROSOFT_CLIENT_ID first.")
+        val session = browser.signIn()
+        synchronized(lock) {
+            check(!closing.get()) { "SyntaxLauncher is closing." }
+            premiumSessions[session.account.uuid.toString()] = session
+            mutablePremiumAccounts.value = premiumSessions.values.map { it.account }
+        }
+        return session.account
+    }
+
+    fun removePremiumAccount(uuid: String) {
+        synchronized(lock) {
+            premiumSessions.remove(uuid)
+            mutablePremiumAccounts.value = premiumSessions.values.map { it.account }
+        }
+    }
 
     fun rememberPreferences(value: LauncherPreferences) {
         synchronized(lock) {
@@ -69,6 +99,7 @@ class DesktopLauncherSession(
         nickname: String,
         maximumMemoryMiB: Int,
         instance: MinecraftInstance? = null,
+        premiumId: String? = null,
     ): Boolean {
         synchronized(lock) {
             if (closing.get() || launchJob?.isActive == true ||
@@ -76,11 +107,30 @@ class DesktopLauncherSession(
                     MinecraftProcessState.RUNNING, MinecraftProcessState.STARTING,
                 )
             ) return false
-            val account = OfflineAccount.create(nickname)
+            val account = if (premiumId != null) {
+                premiumSessions[premiumId]?.account ?: return false
+            } else OfflineAccount.create(nickname)
             mutableLaunchIssue.value = null
             launchJob = scope.launch {
                 var leased = false
                 try {
+                    val authentication = if (premiumId != null) {
+                        val saved = synchronized(lock) { premiumSessions[premiumId] }
+                            ?: throw IllegalStateException("Microsoft account was removed. Sign in again.")
+                        val current = if (saved.expiresAt.isBefore(Instant.now().plusSeconds(180))) {
+                            val refreshed = microsoftSignIn?.refresh(saved)
+                                ?: throw IllegalStateException("Microsoft sign-in is not configured.")
+                            check(refreshed.account.uuid == saved.account.uuid) {
+                                "Microsoft account changed during refresh; sign in again."
+                            }
+                            synchronized(lock) {
+                                premiumSessions[premiumId] = refreshed
+                                mutablePremiumAccounts.value = premiumSessions.values.map { it.account }
+                            }
+                            refreshed
+                        } else saved
+                        current.launchAuthentication(microsoftSignIn!!.clientId)
+                    } else LaunchAuthentication.offline(account)
                     instances.beginLaunch(instance?.id)
                     leased = true
                     coordinator.launch(
@@ -92,6 +142,7 @@ class DesktopLauncherSession(
                             extraJvmArguments = instance?.extraJvmArguments.orEmpty(),
                         ),
                         instanceLayout = instance?.let(instances::layoutFor) ?: legacyLayout,
+                        authentication = authentication,
                     )
                     // Transfer the preparing lease to the child under NonCancellable,
                     // so closing the launcher between process.start() and hand-off is safe.
@@ -142,6 +193,10 @@ class DesktopLauncherSession(
                 settingsJob?.cancelAndJoin()
                 pending?.let { runCatching { preferences.save(it) } }
                 processManager.shutdown(MinecraftShutdownPolicy.DETACH)
+                synchronized(lock) {
+                    premiumSessions.clear()
+                    mutablePremiumAccounts.value = emptyList()
+                }
             } finally {
                 httpClient.close()
                 withContext(Dispatchers.Swing) { onClosed() }
