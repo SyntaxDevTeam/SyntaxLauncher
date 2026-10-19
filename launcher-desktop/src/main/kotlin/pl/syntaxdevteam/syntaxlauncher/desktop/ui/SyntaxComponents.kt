@@ -46,6 +46,10 @@ internal enum class SyntaxSymbol(val path: String) {
     ChevronDown("M6 9L12 15L18 9"),
     ChevronRight("M9 6L15 12L9 18"),
     Play("M7 3L21 12L7 21Z"),
+    Minimize("M5 18H19"),
+    Maximize("M5 5H19V19H5Z"),
+    Restore("M8 4H20V16 M4 8H16V20H4Z"),
+    Close("M5 5L19 19 M19 5L5 19"),
     Info("M12 16V11 M12 7H12.01 M22 12C22 25.3 2 25.3 2 12C2 -1.3 22 -1.3 22 12Z"),
 }
 

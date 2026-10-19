@@ -59,6 +59,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -97,7 +98,11 @@ private sealed interface VersionMetadataState {
 }
 
 @Composable
-fun SyntaxLauncherApp(session: DesktopLauncherSession) {
+fun SyntaxLauncherApp(
+    session: DesktopLauncherSession,
+    chromeInset: Dp = 0.dp,
+    headerDragArea: @Composable (@Composable () -> Unit) -> Unit = { content -> content() },
+) {
     SyntaxTheme {
         var catalog by remember { mutableStateOf<ManifestState>(ManifestState.Loading) }
         var reloadCatalog by remember { mutableIntStateOf(0) }
@@ -134,11 +139,14 @@ fun SyntaxLauncherApp(session: DesktopLauncherSession) {
             BoxWithConstraints(Modifier.fillMaxSize().border(1.dp, SyntaxBrand.border,
                 RoundedCornerShape(10.dp))) {
             val compactShell = maxWidth < 760.dp
+            val tinyShell = chromeInset > 0.dp && maxWidth < 560.dp
             Column(modifier = Modifier.fillMaxSize()) {
+            headerDragArea {
             Row(
                 modifier = Modifier.fillMaxWidth().height(if (compactShell) 72.dp else 84.dp)
                     .background(Brush.horizontalGradient(listOf(SyntaxBrand.panel, SyntaxBrand.background)))
-                    .padding(horizontal = if (compactShell) 16.dp else 28.dp),
+                    .padding(start = if (compactShell) 12.dp else 28.dp,
+                        end = if (chromeInset > 0.dp) chromeInset else if (compactShell) 16.dp else 28.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
@@ -151,7 +159,7 @@ fun SyntaxLauncherApp(session: DesktopLauncherSession) {
                         contentDescription = "SyntaxLauncher",
                         modifier = Modifier.size(if (compactShell) 44.dp else 64.dp),
                     )
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    if (!tinyShell) Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
                             "SYNTAX", color = MaterialTheme.colorScheme.onBackground,
                             fontWeight = FontWeight.Black,
@@ -182,15 +190,28 @@ fun SyntaxLauncherApp(session: DesktopLauncherSession) {
                     }
                     TextButton(onClick = { instanceOpenRequest = maxOf(instanceOpenRequest + 1, 1) }) {
                         BrandIcon(SyntaxSymbol.Instances, tint = SyntaxBrand.heroMuted)
-                        Spacer(Modifier.width(10.dp))
-                        Text("Instances", color = SyntaxBrand.heroMuted)
+                        if (!compactShell) {
+                            Spacer(Modifier.width(10.dp))
+                            Text("Instances", color = SyntaxBrand.heroMuted)
+                        }
                     }
                 }
                 if (!compactShell) {
                     Spacer(Modifier.weight(1f))
-                    Text("JAVA EDITION   /   v${LauncherBuildInfo.version}", color = SyntaxBrand.heroMuted,
-                        style = MaterialTheme.typography.labelSmall, letterSpacing = 1.sp)
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("JAVA EDITION   /   v" + LauncherBuildInfo.version,
+                            color = SyntaxBrand.heroMuted, style = MaterialTheme.typography.labelSmall,
+                            letterSpacing = 1.sp)
+                        Text(LauncherBuildInfo.buildLabel + "   /   " + LauncherBuildInfo.shortCommit,
+                            color = SyntaxBrand.cyan, style = MaterialTheme.typography.labelSmall,
+                            letterSpacing = 0.6.sp)
+                    }
+                } else {
+                    Spacer(Modifier.width(6.dp))
+                    Text(LauncherBuildInfo.compactBuildLabel,
+                        color = SyntaxBrand.cyan, style = MaterialTheme.typography.labelSmall)
                 }
+            }
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f))
             Box(modifier = Modifier.weight(1f).padding(horizontal = if (compactShell) 12.dp else 20.dp,

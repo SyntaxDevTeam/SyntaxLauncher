@@ -47,6 +47,7 @@ import pl.syntaxdevteam.syntaxlauncher.core.update.StartupUpdateProgress
 import pl.syntaxdevteam.syntaxlauncher.core.update.StartupUpdateResult
 import pl.syntaxdevteam.syntaxlauncher.core.update.StartupUpdater
 import pl.syntaxdevteam.syntaxlauncher.desktop.DesktopUpdateHandoff
+import pl.syntaxdevteam.syntaxlauncher.desktop.LauncherBuildInfo
 
 @Composable
 internal fun StartupUpdateGate(
@@ -115,6 +116,9 @@ internal fun StartupUpdateScreen(
                 verticalArrangement = Arrangement.spacedBy(18.dp)) {
                 Image(painterResource("branding/hero-mark.png"), "SyntaxLauncher logo", Modifier.size(112.dp))
                 Text("SyntaxLauncher", style = MaterialTheme.typography.headlineMedium)
+                Text("v" + LauncherBuildInfo.version + "   /   " + LauncherBuildInfo.buildLabel +
+                    "   /   " + LauncherBuildInfo.shortCommit,
+                    color = SyntaxBrand.cyan, style = MaterialTheme.typography.labelSmall)
                 Text(if (error == null) progress.message else "Update needs attention",
                     style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
                 if (error == null) {

@@ -29,8 +29,14 @@ tasks.test {
 }
 
 val launcherVersion = providers.gradleProperty("launcherVersion").orElse("0.3.0-dev")
+val launcherBuildNumber = providers.gradleProperty("launcherBuildNumber")
+    .orElse(providers.environmentVariable("GITHUB_RUN_NUMBER")).orElse("local")
+val launcherCommit = providers.gradleProperty("launcherCommit")
+    .orElse(providers.environmentVariable("GITHUB_SHA")).orElse("unknown")
 abstract class GenerateLauncherBuildInfo : DefaultTask() {
     @get:Input abstract val releaseVersion: Property<String>
+    @get:Input abstract val buildNumber: Property<String>
+    @get:Input abstract val commitSha: Property<String>
     @get:OutputDirectory abstract val destination: DirectoryProperty
 
     @TaskAction fun generate() {
@@ -38,14 +44,24 @@ abstract class GenerateLauncherBuildInfo : DefaultTask() {
         require(value.matches(Regex("[0-9]+\\.[0-9]+\\.[0-9]+(?:-[A-Za-z0-9.-]+)?(?:\\+[A-Za-z0-9.-]+)?"))) {
             "launcherVersion must be a semantic version."
         }
+        val build = buildNumber.get()
+        val commit = commitSha.get()
+        require(build == "local" || build.matches(Regex("[1-9][0-9]*"))) {
+            "launcherBuildNumber must be 'local' or a positive integer."
+        }
+        require(commit == "unknown" || commit.matches(Regex("[0-9a-fA-F]{40}"))) {
+            "launcherCommit must be 'unknown' or a 40-character Git commit SHA."
+        }
         destination.file("launcher-build.properties").get().asFile.apply {
             parentFile.mkdirs()
-            writeText("version=$value\n")
+            writeText("version=$value\nbuild=$build\ncommit=$commit\n")
         }
     }
 }
 val generateLauncherBuildInfo = tasks.register<GenerateLauncherBuildInfo>("generateLauncherBuildInfo") {
     releaseVersion.set(launcherVersion)
+    buildNumber.set(launcherBuildNumber)
+    commitSha.set(launcherCommit)
     destination.set(layout.buildDirectory.dir("generated/launcher-build-info"))
 }
 sourceSets.main { resources.srcDir(generateLauncherBuildInfo) }

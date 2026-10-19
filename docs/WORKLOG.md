@@ -8,6 +8,40 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-19 — Identify CI builds and replace native desktop title bars
+
+**Milestone:** Cross-milestone v0.3 development UX / v0.12 build and distribution metadata
+**Author/Agent:** GPT-6
+**Status:** Source changes prepared for main; native/manual validation pending
+
+### Completed
+- Extended the generated launcher-build.properties resource with CI run number and commit SHA while preserving semantic version for updater comparison and handoff receipts; local execution is explicitly labeled LOCAL BUILD.
+- Displayed build identity in the right side of the main header, with a compact form for smaller windows, and on the startup updater screen.
+- Replaced the standard AWT decorations with Compose-native minimize, maximize/restore and close controls visible during normal operation and update startup.
+- Enabled header dragging and installed eight custom resize hit areas with minimum-size-constrained geometry; preserved the original session close process and window minimum size.
+- Added isolated resize geometry tests and passed build identifiers from GitHub Actions to build and packaging tasks.
+
+### Changed files
+- `launcher-desktop/build.gradle.kts`, `DesktopStartupUpdate.kt` — generated version/build/commit metadata.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/Main.kt`, `ui/SyntaxLauncherApp.kt`, `ui/SyntaxComponents.kt`, `ui/WindowChrome.kt`, `ui/StartupUpdateGate.kt` — frameless window and visible build identifiers.
+- `launcher-desktop/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/WindowChromeTest.kt` — pure geometry tests for resize directions, limits and negative screen positions.
+- `.github/workflows/build.yml` — CI build number and commit passed through Gradle.
+- `README.md`, `docs/DESIGN.md`, `docs/ROADMAP.md`, `docs/WORKLOG.md` — release and UX documentation.
+
+### Verification
+- Connector-level file and commit review only. Full Gradle compile/test and real UI execution were not possible in the agent's network-isolated runtime.
+- Await GitHub Actions build/tests and manual window checks; do not treat source presence as visual acceptance.
+
+### Roadmap updates
+- Marked CI/build identity source wiring complete.
+- Left native frameless window acceptance in progress and cross-platform/manual checks unchecked.
+
+### Follow-ups / known issues
+- Verify minimize/maximize/restore, border dragging, window restore bounds, updater controls, navigation hit testing, and layout under Windows/macOS and Linux X11/Wayland, including HiDPI and multi-monitor configurations.
+- No runtime changes to the Minecraft launch process, premium authentication or instance storage.
+
+---
+
 ## 2026-10-19 — Integrate updater with concurrent main publication changes
 
 **Milestone:** v0.12 — startup updater; v0.1 — existing Build Explorer publication

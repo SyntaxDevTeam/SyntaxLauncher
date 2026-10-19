@@ -1,6 +1,14 @@
 package pl.syntaxdevteam.syntaxlauncher.desktop
 
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.WindowDraggableArea
+import androidx.compose.ui.window.WindowPlacement
+import androidx.compose.ui.window.rememberWindowState
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowState
@@ -22,6 +30,8 @@ import pl.syntaxdevteam.syntaxlauncher.core.storage.LauncherPreferencesStore
 import pl.syntaxdevteam.syntaxlauncher.core.storage.MinecraftInstallationLayout
 import pl.syntaxdevteam.syntaxlauncher.desktop.ui.SyntaxLauncherApp
 import pl.syntaxdevteam.syntaxlauncher.desktop.ui.StartupUpdateGate
+import pl.syntaxdevteam.syntaxlauncher.desktop.ui.WindowControls
+import pl.syntaxdevteam.syntaxlauncher.desktop.ui.WindowResizeHandles
 import pl.syntaxdevteam.syntaxlauncher.core.update.UpdatePlatform
 import pl.syntaxdevteam.syntaxlauncher.core.update.StartupUpdater
 import pl.syntaxdevteam.syntaxlauncher.core.update.GitHubLauncherReleases
@@ -73,16 +83,32 @@ fun main(args: Array<String>) {
         // Never create a window larger than the actual usable desktop bounds.
         val initialWidth = minOf(1440, (screen.width - 40).coerceAtLeast(400)).dp
         val initialHeight = minOf(840, (screen.height - 40).coerceAtLeast(400)).dp
+        val windowState = rememberWindowState(width = initialWidth, height = initialHeight)
+        val closeLauncher = { session.close { exitApplication() } }
         Window(
-            onCloseRequest = { session.close { exitApplication() } },
-            title = "SyntaxLauncher",
+            onCloseRequest = closeLauncher,
+            title = "SyntaxLauncher · v" + LauncherBuildInfo.version + " · " + LauncherBuildInfo.buildLabel,
             icon = painterResource("branding/syntaxlauncher-icon.png"),
-            state = WindowState(width = initialWidth, height = initialHeight),
+            state = windowState,
+            undecorated = true,
+            resizable = true,
         ) {
             window.minimumSize = java.awt.Dimension(400, 400)
-            StartupUpdateGate(updater, handoff,
-                onTransferred = { session.close { exitApplication() } }) {
-                SyntaxLauncherApp(session)
+            BoxWithConstraints(Modifier.fillMaxSize()) {
+                StartupUpdateGate(updater, handoff, onTransferred = closeLauncher) {
+                    SyntaxLauncherApp(
+                        session = session,
+                        chromeInset = 144.dp,
+                        headerDragArea = { content -> WindowDraggableArea { content() } },
+                    )
+                }
+                WindowResizeHandles(window, windowState.placement == WindowPlacement.Maximized)
+                WindowControls(
+                    state = windowState,
+                    onClose = closeLauncher,
+                    modifier = Modifier.align(Alignment.TopEnd)
+                        .padding(end = 16.dp, top = if (maxWidth < 760.dp) 18.dp else 24.dp),
+                )
             }
         }
     }

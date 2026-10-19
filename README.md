@@ -104,7 +104,13 @@ The SyntaxLauncher product mark is a navy/cobalt/cyan voxel grass-and-dirt block
 
 Deterministic desktop render tests cover the ready home, nickname validation/disabled Play, quick instance selection, narrow/short windows and 150% scaling. A live-resize regression checks 27 hero size/density combinations at 100%, 150% and 200%, including both directions across breakpoints, and rejects cropped, distorted or overlapping logo/text bounds. Run `./gradlew :launcher-desktop:test`; generated QA images are under `launcher-desktop/build/reports/ui/`. These tests use mocked metadata and temporary profiles; they do not start Minecraft or access real accounts.
 
-The optimized transparent icon is stored in `launcher-desktop/src/main/resources/branding/syntaxlauncher-icon.png` and is used in the window chrome, launcher header and Linux application package. The authoritative [color palette and UI rules](docs/DESIGN.md#syntaxlauncher-blue-identity-october-2026) cover future features.
+The optimized transparent icon is stored in `launcher-desktop/src/main/resources/branding/syntaxlauncher-icon.png` and is used in the window chrome, launcher header and Linux application package.
+
+### Development build identification and window controls
+
+Packaged CI artifacts now embed the GitHub Actions run number and source commit SHA alongside the independent SemVer release version. The launcher's header and updater identify the actual build as `v0.3.0-dev / BUILD #<run-number> / <short-sha>` (example format, not a fixed number); developer/IDE builds show `LOCAL BUILD` instead of inventing a CI number. CI metadata comes from `GITHUB_RUN_NUMBER` / `GITHUB_SHA` or the `-PlauncherBuildNumber` / `-PlauncherCommit` overrides, never from a runtime GitHub request. Update comparison and startup receipts still use only the semantic version.
+
+The desktop window is undecorated: a branded Compose title/header acts as the drag area, with independent minimize/maximize/restore/close controls overlaid at the top right, including during update startup. Eight small resize grips preserve a 400×400 minimum; window placement/dragging and resizing need manual acceptance on Windows, macOS, and Linux X11/Wayland at common display scales. No change is made to the Minecraft launch or account pipeline. The authoritative [color palette and UI rules](docs/DESIGN.md#syntaxlauncher-blue-identity-october-2026) cover future features.
 
 ## v0.1 test builds
 

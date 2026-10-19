@@ -10,11 +10,19 @@ import kotlinx.coroutines.withContext
 import pl.syntaxdevteam.syntaxlauncher.core.update.StartupUpdater
 
 internal object LauncherBuildInfo {
-    val version: String by lazy {
-        val properties = Properties()
-        javaClass.getResourceAsStream("/launcher-build.properties")?.use(properties::load)
-        properties.getProperty("version", "0.3.0-dev")
+    private val metadata: Properties by lazy {
+        Properties().also { values ->
+            javaClass.getResourceAsStream("/launcher-build.properties")?.use(values::load)
+        }
     }
+
+    val version: String get() = metadata.getProperty("version", "0.3.0-dev")
+    val buildNumber: String get() = metadata.getProperty("build", "local")
+    val commit: String get() = metadata.getProperty("commit", "unknown")
+    val shortCommit: String get() = commit.takeIf { it.matches(Regex("[a-fA-F0-9]{40}")) }
+        ?.take(7) ?: "untracked"
+    val buildLabel: String get() = if (buildNumber == "local") "LOCAL BUILD" else "BUILD #" + buildNumber
+    val compactBuildLabel: String get() = if (buildNumber == "local") "LOCAL" else "#" + buildNumber
 }
 
 internal data class DesktopUpdateHandoff(val receipt: Path, val nonce: String) {

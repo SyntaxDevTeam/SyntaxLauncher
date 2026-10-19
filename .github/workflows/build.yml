@@ -29,7 +29,7 @@ jobs:
         with:
           gradle-version: "9.8.1"
       - name: Compile and run tests
-        run: gradle --no-daemon --stacktrace test build
+        run: gradle --no-daemon --stacktrace "-PlauncherBuildNumber=$GITHUB_RUN_NUMBER" "-PlauncherCommit=$GITHUB_SHA" test build
       - name: Test update packaging protocol
         run: python3 -m unittest discover -s scripts -p "test_*.py"
 
@@ -80,9 +80,9 @@ jobs:
         run: |
           version="0.3.0-dev"
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then version="${GITHUB_REF_NAME#v}"; fi
-          gradle --no-daemon --stacktrace "-PlauncherVersion=$version" :launcher-desktop:createDistributable
+          gradle --no-daemon --stacktrace "-PlauncherVersion=$version" "-PlauncherBuildNumber=$GITHUB_RUN_NUMBER" "-PlauncherCommit=$GITHUB_SHA" :launcher-desktop:createDistributable
           python scripts/package_update.py --source launcher-desktop/build/compose/binaries/main/app --platform "${{ matrix.artifact }}" --version "$version" --output "launcher-desktop/build/updates/syntaxlauncher-update-${{ matrix.artifact }}.zip"
-          gradle --no-daemon --stacktrace "-PlauncherVersion=$version" "-PupdateBundle=build/updates/syntaxlauncher-update-${{ matrix.artifact }}.zip" :launcher-desktop:verifyUpdateBundle
+          gradle --no-daemon --stacktrace "-PlauncherVersion=$version" "-PlauncherBuildNumber=$GITHUB_RUN_NUMBER" "-PlauncherCommit=$GITHUB_SHA" "-PupdateBundle=build/updates/syntaxlauncher-update-${{ matrix.artifact }}.zip" :launcher-desktop:verifyUpdateBundle
       - name: Show jpackage diagnostics on failure
         if: failure()
         shell: bash

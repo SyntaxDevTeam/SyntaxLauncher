@@ -367,3 +367,14 @@ Before considering a significant UI change complete, ask:
 - Does the result feel recognizably modern without copying another launcher?
 
 If the answer to several of these questions is no, the UI should not be considered finished.
+
+---
+
+## 17. Frameless window chrome and build identification
+
+- Use the existing branded launcher header as the title-bar drag region; **never** introduce another full-height title bar.
+- The operating-system frame is disabled in the packaged app. Top-right controls must support minimize, maximize/restore, and close, remain accessible on the startup update/error screen, and not obscure existing navigation or technical build information.
+- Retain the 400×400 minimum and preserve resize grips on all eight edges/corners. On maximized windows, disable custom grips.
+- Make the exact installed development artifact diagnosable: display the embedded product version, GitHub Actions run number, and abbreviated commit hash. Developer/IDE executions show LOCAL BUILD rather than a fictitious CI number.
+- Version is still SemVer for update ordering. A new build number **must not** masquerade as a new stable product release or change the startup updater's version comparator/receipt format.
+- Accept the UI only after verifying clickable controls, drag vs navigation interactions, double-click conventions where supported, resizing and maximized-restore bounds, small-screen layout, and DPI/multiple-monitor behavior on Windows, macOS, and Linux X11/Wayland. These manual cross-platform checks remain pending until actually performed.
