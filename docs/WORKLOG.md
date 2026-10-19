@@ -12,7 +12,7 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 **Milestone:** v0.1 — Build and CI validation (explicit maintainer request)
 **Author/Agent:** Codex
-**Status:** Partial — local verification passed; cross-platform publication pending
+**Status:** Completed — CI and all three public downloads verified
 
 ### Completed
 - Extended the existing three-platform workflow with a dependent publication job.
@@ -29,10 +29,13 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 ### Verification
 - `./gradlew test --console=plain build` — PASS; existing compiler/deprecation warnings.
 - `python3 -m unittest discover -s tests -p 'test_*.py'` — PASS, five tests.
-- Manual verification — no UI changes; real CI publication pending.
+- GitHub PR #9 checks — PASS, core/desktop verification and Windows/macOS/Linux packaging; merged as `422c404cb489449daa52c71ea71f68327b051320`.
+- Main CI [39290313808](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/39290313808) — PASS, tests, three portable applications and Build Explorer publication.
+- Public downloads — PASS, Linux 77,141,160 bytes, macOS 76,868,020 bytes, Windows 70,182,015 bytes; each downloaded SHA-256 matches CI metadata.
+- Portal integration — PASS, three-platform grouping, retries, project scope, checksum rollback, retention denial, attachment downloads and desktop/mobile fallback chooser. Native OS gameplay remains outside this CI task.
 
 ### Roadmap updates
-- `[ ] v0.1 / Build and CI validation / Build Explorer publication` — real matrix/publication pending.
+- `[x] v0.1 / Build and CI validation / Build Explorer publication` — real main pipeline and all three downloads verified.
 - Existing native OS acceptance, installer signing and gameplay gates remain open.
 
 ### Follow-ups / known issues
