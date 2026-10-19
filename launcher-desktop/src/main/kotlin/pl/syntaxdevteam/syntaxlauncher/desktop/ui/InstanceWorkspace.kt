@@ -30,6 +30,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,6 +46,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.rememberDialogState
 import pl.syntaxdevteam.syntaxlauncher.core.instance.InstanceCopyProgress
 import pl.syntaxdevteam.syntaxlauncher.core.instance.MinecraftInstance
+import pl.syntaxdevteam.syntaxlauncher.core.loader.ModLoaderSelection
+import pl.syntaxdevteam.syntaxlauncher.core.loader.ModLoaderVersion
 import pl.syntaxdevteam.syntaxlauncher.core.instance.TrashedMinecraftInstance
 
 data class InstanceCopyPreview(
@@ -76,11 +79,12 @@ fun InstanceWorkspace(
     hasLegacyGame: Boolean,
     latestVersion: String,
     availableVersions: List<String>,
+    loadFabricVersions: suspend (String) -> List<ModLoaderVersion> = { emptyList() },
     error: String?,
     preview: InstanceCopyPreview?,
     copyProgress: InstanceCopyProgress?,
     onSelect: (String) -> Unit,
-    onCreate: (String, String) -> Unit,
+    onCreate: (String, String, ModLoaderSelection?) -> Unit,
     onEdit: (MinecraftInstance) -> Unit,
     onClonePreview: (MinecraftInstance, String) -> Unit,
     onLegacyPreview: (String, String) -> Unit,
@@ -99,6 +103,35 @@ fun InstanceWorkspace(
     var search by remember { mutableStateOf("") }
     var newName by remember { mutableStateOf("") }
     var newVersion by remember { mutableStateOf(latestVersion) }
+    var newLoader by remember { mutableStateOf("vanilla") }
+    var newFabricVersion by remember { mutableStateOf("") }
+    var compatible by remember { mutableStateOf<List<ModLoaderVersion>>(emptyList()) }
+    var fabricLoading by remember { mutableStateOf(false) }
+    var fabricError by remember { mutableStateOf<String?>(null) }
+    val fabricValid = newLoader == "vanilla" ||
+        (!fabricLoading && fabricError == null && compatible.any { it.version == newFabricVersion })
+    LaunchedEffect(newVersion, newLoader) {
+        compatible = emptyList()
+        fabricError = null
+        if (newLoader == "fabric" && newVersion in availableVersions) {
+            fabricLoading = true
+            try {
+                compatible = loadFabricVersions(newVersion)
+                if (compatible.isEmpty()) {
+                    fabricError = "Fabric is not available for Minecraft $newVersion."
+                } else if (compatible.none { it.version == newFabricVersion }) {
+                    newFabricVersion = compatible.firstOrNull { it.stable }?.version
+                        ?: compatible.first().version
+                }
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                fabricError = error.message ?: "Failed to check Fabric compatibility."
+            } finally {
+                fabricLoading = false
+            }
+        }
+    }
     var cloneName by remember(selected?.id) {
         mutableStateOf(selected?.name?.take(43)?.plus(" copy").orEmpty())
     }
@@ -194,7 +227,7 @@ fun InstanceWorkspace(
                         filtered.forEach { profile ->
                             InstanceListRow(
                                 title = profile.name,
-                                subtitle = profile.minecraftVersionId + " · " + profile.id.take(8),
+                                subtitle = profile.minecraftVersionId + (profile.loader?.let { " · ${it.id} ${it.version}" } ?: "") + " · " + profile.id.take(8),
                                 active = selectedId == profile.id,
                                 enabled = canModify,
                                 onClick = { onSelect(profile.id) },
@@ -220,7 +253,7 @@ fun InstanceWorkspace(
                         } else {
                             Text(selected.name, style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Medium)
-                            Text("Minecraft ${selected.minecraftVersionId} · ${selected.maximumMemoryMiB} MiB RAM · ${selected.id.take(8)}",
+                            Text("Minecraft ${selected.minecraftVersionId} · ${selected.loader?.let { "${it.id} ${it.version} · " } ?: "Vanilla · "}${selected.maximumMemoryMiB} MiB RAM · ${selected.id.take(8)}",
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 style = MaterialTheme.typography.bodySmall)
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -262,9 +295,44 @@ fun InstanceWorkspace(
                             Text("Version not found in the catalog.", color = MaterialTheme.colorScheme.error,
                                 style = MaterialTheme.typography.bodySmall)
                         }
-                        Button(onClick = { onCreate(newName.trim(), newVersion.trim()) },
+                        Text("MOD LOADER", style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            TextButton(onClick = { newLoader = "vanilla" }, enabled = canModify) {
+                                Text(if (newLoader == "vanilla") "✓ Vanilla" else "Vanilla")
+                            }
+                            TextButton(onClick = { newLoader = "fabric" }, enabled = canModify) {
+                                Text(if (newLoader == "fabric") "✓ Fabric" else "Fabric")
+                            }
+                        }
+                        if (newLoader == "fabric") {
+                            OutlinedTextField(
+                                value = newFabricVersion,
+                                onValueChange = { newFabricVersion = it },
+                                label = { Text("Fabric loader version") },
+                                singleLine = true, enabled = canModify,
+                                isError = !fabricValid,
+                                modifier = Modifier.fillMaxWidth(),
+                                supportingText = { Text(
+                                    if (fabricLoading) "Checking compatibility…"
+                                    else fabricError ?: "Select a compatible version."
+                                ) },
+                            )
+                            compatible.take(6).forEach { loader ->
+                                TextButton(onClick = { newFabricVersion = loader.version }, enabled = canModify) {
+                                    Text(loader.version + if (loader.stable) " · stable" else " · preview")
+                                }
+                            }
+                            if (fabricError != null) Text(fabricError.orEmpty(),
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall)
+                        }
+                        Button(onClick = {
+                            onCreate(newName.trim(), newVersion.trim(),
+                                if (newLoader == "fabric") ModLoaderSelection("fabric", newFabricVersion) else null)
+                        },
                             enabled = canModify && newName.trim().length in 1..48 &&
-                                newVersion in availableVersions) { Text("Create instance") }
+                                newVersion in availableVersions && fabricValid) { Text("Create instance") }
                         if (hasLegacyGame) {
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                             Text("IMPORT OLD GAME DATA", style = MaterialTheme.typography.labelMedium,
