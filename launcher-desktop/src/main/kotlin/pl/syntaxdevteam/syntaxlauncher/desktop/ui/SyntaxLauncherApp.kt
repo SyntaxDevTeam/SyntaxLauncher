@@ -66,6 +66,11 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.swing.Swing
+import pl.syntaxdevteam.syntaxlauncher.core.instance.InstanceCopyEstimate
+import pl.syntaxdevteam.syntaxlauncher.core.instance.InstanceCopyProgress
 import pl.syntaxdevteam.syntaxlauncher.core.instance.InstanceInventory
 import pl.syntaxdevteam.syntaxlauncher.core.instance.TrashedInstanceInventory
 import pl.syntaxdevteam.syntaxlauncher.core.instance.MinecraftInstance
@@ -246,6 +251,9 @@ private fun LauncherPanel(
     var instanceId by remember { mutableStateOf(saved.selectedInstanceId) }
     var managerOpen by remember { mutableStateOf(false) }
     var editingInstance by remember { mutableStateOf<MinecraftInstance?>(null) }
+    var copyPreview by remember { mutableStateOf<InstanceCopyPreview?>(null) }
+    var copyProgress by remember { mutableStateOf<InstanceCopyProgress?>(null) }
+    var copyJob by remember { mutableStateOf<Job?>(null) }
     LaunchedEffect(instanceOpenRequest) {
         if (instanceOpenRequest > 0) managerOpen = true
     }
@@ -295,8 +303,8 @@ private fun LauncherPanel(
 
     fun modifyInstance(action: suspend () -> MinecraftInstance?) {
         if (locked) return
+        mutationBusy = true
         scope.launch {
-            mutationBusy = true
             try {
                 val newSelection = action()
                 inventory = session.instances.list()
@@ -307,6 +315,77 @@ private fun LauncherPanel(
             } catch (error: Exception) {
                 instanceError = error.message ?: "Instance operation failed"
             } finally { mutationBusy = false }
+        }
+    }
+
+    fun previewCopy(from: MinecraftInstance?, name: String, version: String) {
+        if (locked || copyPreview != null) return
+        mutationBusy = true
+        scope.launch {
+            try {
+                val estimate: InstanceCopyEstimate = if (from == null) {
+                    session.instances.estimateLegacyImport()
+                } else session.instances.estimateClone(from.id)
+                copyPreview = InstanceCopyPreview(
+                    from = from,
+                    name = name,
+                    minecraftVersionId = version,
+                    sourcePath = (from?.let(session.instances::gameDirectory)
+                        ?: session.instances.legacyGameDirectory()).toString(),
+                    destinationPath = session.instances.instancesDirectory()
+                        .resolve("<new UUID>/game").toString(),
+                    totalBytes = estimate.totalBytes,
+                    totalFiles = estimate.fileCount,
+                )
+                instanceError = null
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                instanceError = error.message ?: "Could not inspect the game data."
+            } finally {
+                mutationBusy = false
+            }
+        }
+    }
+
+    fun startCopy() {
+        if (locked) return
+        val request = copyPreview ?: return
+        copyPreview = null
+        mutationBusy = true
+        copyProgress = InstanceCopyProgress(0L, request.totalBytes, 0, request.totalFiles)
+        copyJob = scope.launch {
+            try {
+                var lastShown = 0L
+                val onProgress: (InstanceCopyProgress) -> Unit = { update ->
+                    val now = System.nanoTime()
+                    if (update.copiedFiles == update.totalFiles || update.copiedBytes == 0L ||
+                        now - lastShown >= 120_000_000L) {
+                        lastShown = now
+                        scope.launch(Dispatchers.Swing) {
+                            if (mutationBusy) copyProgress = update
+                        }
+                    }
+                }
+                val imported = if (request.from != null) {
+                    session.instances.cloneInstance(request.from.id, request.name, onProgress)
+                } else {
+                    session.instances.importLegacy(request.name, request.minecraftVersionId,
+                        maximumMemoryMiB = ramMiB.toInt(), onProgress = onProgress)
+                }
+                inventory = session.instances.list()
+                trashInventory = session.instances.listTrashed()
+                chooseInstance(imported.id)
+                instanceError = null
+            } catch (_: CancellationException) {
+                instanceError = "Copy cancelled. Original files were preserved."
+            } catch (error: Exception) {
+                instanceError = error.message ?: "Copy failed; original files were preserved."
+            } finally {
+                mutationBusy = false
+                copyProgress = null
+                copyJob = null
+            }
         }
     }
 
@@ -355,24 +434,32 @@ private fun LauncherPanel(
             onCancel = { editingInstance = null },
         )
     } else if (managerOpen) {
-        InstanceManagerDialog(
+        InstanceWorkspace(
             instances = inventory?.instances.orEmpty(),
             trashed = trashInventory?.entries.orEmpty(),
+            selectedId = instanceId,
             selected = activeInstance,
             canModify = !locked,
+            isBusy = mutationBusy,
+            isLoadingInventory = inventory == null,
             hasLegacyGame = session.instances.legacyGameAvailable(),
+            latestVersion = manifest.latestRelease,
+            availableVersions = manifest.versions.map { it.id },
+            error = instanceError,
+            preview = copyPreview,
+            copyProgress = copyProgress,
             onSelect = ::chooseInstance,
-            onCreate = { name -> modifyInstance {
-                session.instances.create(name, selected?.id ?: manifest.latestRelease,
-                    maximumMemoryMiB = ramMiB.toInt())
+            onCreate = { name, version -> modifyInstance {
+                session.instances.create(name, version, maximumMemoryMiB = ramMiB.toInt())
             } },
-            onRename = { instance, name -> modifyInstance {
-                session.instances.update(instance.copy(name = name))
-            } },
-            onClone = { instance, name -> modifyInstance {
-                session.instances.cloneInstance(instance.id, name)
-            } },
-            onEditSettings = { instance -> editingInstance = instance },
+            onEdit = { instance -> editingInstance = instance },
+            onClonePreview = { instance, name ->
+                previewCopy(instance, name, instance.minecraftVersionId)
+            },
+            onLegacyPreview = { name, version -> previewCopy(null, name, version) },
+            onCancelPreview = { copyPreview = null },
+            onConfirmPreview = ::startCopy,
+            onCancelCopy = { copyJob?.cancel() },
             onDelete = { instance -> modifyInstance {
                 session.instances.moveToTrash(instance.id)
                 if (instanceId == instance.id) instanceId = ""
@@ -381,11 +468,7 @@ private fun LauncherPanel(
             onRestore = { entry -> modifyInstance {
                 session.instances.restoreFromTrash(entry.entryName)
             } },
-            onImportLegacy = { name -> modifyInstance {
-                session.instances.importLegacy(name, selected?.id ?: manifest.latestRelease,
-                    maximumMemoryMiB = ramMiB.toInt())
-            } },
-            onDismiss = { managerOpen = false },
+            onDismiss = { managerOpen = false; copyPreview = null },
         )
     }
 

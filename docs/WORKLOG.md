@@ -8,6 +8,42 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-19 — Replace temporary instance dialog with Instances workspace
+
+**Milestone:** v0.2 / B4, A3, B3  
+**Author/Agent:** ChatGPT  
+**Status:** Partial — CI and visual/manual acceptance pending
+
+### Completed
+- Replaced the crowded temporary manager with a spacious, resizable and scrollable workspace using a searchable instance inventory and a focused details/action column.
+- Added form-based creation, editing, clone preview, non-destructive legacy import preview, trash recovery and explicit delete confirmation.
+- Added estimate/paths/byte+file progress display and direct cancellation for clone and import; the user sees real sizes before copying.
+- Fixed streamed copying to retain empty source directories in new instances.
+- Kept the main Play action on the home screen; no duplicate launcher engine or early mod features.
+
+### Changed files
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/InstanceWorkspace.kt` — new manager UI.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/InstanceManagerDialog.kt` — removed legacy dialog.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/SyntaxLauncherApp.kt` — preview, progress, cancellation and workspace wiring.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/instance/MinecraftInstanceRepository.kt` — safe location access for preview.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/instance/InstanceFileCopy.kt` — preserve empty directories.
+- `docs/ROADMAP.md`, `docs/INSTANCE_MANAGER_PHASES.md`, `docs/TESTING_V0.2.md`, `README.md`, `docs/WORKLOG.md` — updated status.
+
+### Verification
+- `./gradlew test` and `./gradlew build` — NOT RUN locally, CI pending.
+- Actual Minecraft A/B isolation, visually responsive sizing and tested large-world disk failures — NOT RUN.
+
+### Roadmap updates
+- [ ] v0.2 / B4 — dedicated workspace implemented; accessibility and desktop review pending.
+- [ ] v0.2 / A3, B3 — preflight/copy progress/cancel wired; manual acceptance remains open.
+
+### Follow-ups / known issues
+- Confirm desktop focus order and dialog layout on Windows/Linux/macOS at 1080×720 and high DPI.
+- Stress-test cancellations with 10+ GiB saved worlds and hostile filesystem settings; the source is never moved or deleted.
+- Confirm detachment locks and corruption recovery with actual Minecraft processes.
+
+---
+
 ## 2026-10-19 — Protect instances across launcher detach and restart
 
 **Milestone:** v0.2 / A4  

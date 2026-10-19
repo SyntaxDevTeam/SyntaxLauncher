@@ -94,6 +94,10 @@ class MinecraftInstanceRepository(
     fun layoutFor(instance: MinecraftInstance): MinecraftInstallationLayout =
         sharedLayout.copy(gameDir = gameDirectory(instance))
 
+    fun legacyGameDirectory(): Path = sharedLayout.gameDir
+
+    fun instancesDirectory(): Path = root
+
     fun legacyGameAvailable(): Boolean =
         Files.isDirectory(sharedLayout.gameDir, LinkOption.NOFOLLOW_LINKS)
 

@@ -198,12 +198,12 @@ Goal: separate user installations into isolated, manageable Minecraft instances 
 ## v0.2 delivery phases — prioritized work remaining
 
 - [ ] **A2 / P0 — Real-world isolation:** demonstrate two same-version instances with different worlds/options, shared verified Mojang caches and working restart persistence. The filesystem assertions already pass CI; real Minecraft acceptance is outstanding.
-- [ ] 🚧 IN PROGRESS — **A3 / P0 — Legacy import completion:** core preflight size, disk-space check, streamed progress, cooperative cancellation, source preservation and staging rollback implemented with regression tests; desktop preview/progress/cancel UI and real-world acceptance pending.
+- [ ] 🚧 IN PROGRESS — **A3 / P0 — Legacy import completion:** core preflight/disk-space checks, streamed progress, cancellation and rollback are now wired to UI preview with source/destination/size confirmation and a Cancel copy action; real-world and forced disk-full tests pending.
 - [ ] 🚧 IN PROGRESS — **A4 / P0 — Data protection:** per-instance preparation/game PID activity marker now blocks update/clone/trash and legacy import across detached launcher sessions; streamed copying checks links, space and failed-copy rollback. Cross-process race and manual multi-launch acceptance remain open.
 - [ ] **B1 / P0 — Selection UX acceptance:** make duplicate names distinguishable, verify saved selection after restart and handle missing/corrupt instance explicitly.
 - [ ] 🚧 IN PROGRESS — **B2 / P0 — Settings editor:** dedicated Save/Cancel editor for name, version, min/max RAM and advanced JVM arguments added; version-change/world downgrade warning and form validation included. CI and manual persistence/cancel/downgrade acceptance pending.
 - [ ] 🚧 IN PROGRESS — **B3 / P0 — Safe clone/trash/restore:** in-app trash listing/restore, UUID-conflict protection and automated round-trip tests implemented; CI and real-world recovery acceptance pending. Clone/import progress and cancellation remain open.
-- [ ] **B4 / P1 — Instance workspace:** replace the dense prototype dialog with a focused, accessible Instances view; keep Play the home screen's primary action.
+- [ ] 🚧 IN PROGRESS — **B4 / P1 — Instance workspace:** dedicated scalable Instances dialog with search, separate inventory/details, create/edit/clone/import/restore and progress/empty/error states replaces the prototype; manual DPI/keyboard acceptance pending.
 - [ ] **Final acceptance / P0:** automated regression suite, three platform distributions, real A/B world isolation, non-destructive legacy import, clone/restore and v0.1 compatibility.
 
 
@@ -222,7 +222,7 @@ Goal: separate user installations into isolated, manageable Minecraft instances 
 - [x] Atomic per-instance `instance.json` publication with explicit errors for corrupt/newer metadata; CI tests passed.
 - [ ] 🚧 IN PROGRESS — schema 1 read/write supports unknown-field preservation; later schema migrations remain to be designed/tested.
 - [ ] 🚧 IN PROGRESS — explicit non-destructive import copies the v0.1 game folder while leaving source untouched.
-- [ ] 🚧 IN PROGRESS — cloning refuses symlinks/special files, stages files before publishing without reusing abandoned staging, and preserves unknown JSON metadata; disk-space, cancellation and real-world tests remain open.
+- [ ] 🚧 IN PROGRESS — cloning rejects symlinks/special files, reports preflight size and streamed copy progress, stages data atomically without reusing abandoned staging, and preserves unknown metadata; real-world tests remain open.
 
 ## Instance management
 

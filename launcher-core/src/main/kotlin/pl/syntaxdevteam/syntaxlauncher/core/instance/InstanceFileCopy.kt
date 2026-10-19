@@ -43,7 +43,7 @@ class InstanceCopyException(
  */
 internal object InstanceFileCopy {
     private data class Item(val relative: Path, val bytes: Long)
-    private data class Plan(val files: List<Item>, val totalBytes: Long)
+    private data class Plan(val directories: List<Path>, val files: List<Item>, val totalBytes: Long)
 
     suspend fun estimate(source: Path): InstanceCopyEstimate {
         val plan = inspect(source, currentCoroutineContext())
@@ -68,6 +68,10 @@ internal object InstanceFileCopy {
                 InstanceCopyFailureKind.DISK_SPACE,
                 "Not enough free disk space: ${plan.totalBytes} bytes required, ${usable} available.",
             )
+        }
+        for (relative in plan.directories) {
+            context.ensureActive()
+            Files.createDirectories(destination.resolve(relative))
         }
         var written = 0L
         var finished = 0
@@ -126,6 +130,7 @@ internal object InstanceFileCopy {
                 "Game data directory is missing or not a normal directory: $source")
         }
         val files = ArrayList<Item>()
+        val directories = ArrayList<Path>()
         var totalBytes = 0L
         try {
             Files.walkFileTree(source, object : SimpleFileVisitor<Path>() {
@@ -135,6 +140,7 @@ internal object InstanceFileCopy {
                         throw InstanceCopyException(InstanceCopyFailureKind.SOURCE_INVALID,
                             "Directory link or unsupported folder: $dir")
                     }
+                    directories.add(source.relativize(dir))
                     return FileVisitResult.CONTINUE
                 }
 
@@ -156,7 +162,7 @@ internal object InstanceFileCopy {
         } catch (e: IOException) {
             throw classify(e)
         }
-        return Plan(files, totalBytes)
+        return Plan(directories, files, totalBytes)
     }
 
     /** Reject symlinked path ancestors, including a redirected instance root. */

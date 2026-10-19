@@ -31,8 +31,8 @@ The initial v0.2 functionality is a preview. Automated core tests validate file 
 
 ## Large copy acceptance (v0.2)
 
-- Import a copy of a large test world (not your only save). Check that the displayed byte totals match the source estimate once the UI is wired.
-- Cancel an import mid-file and verify that the source is unmodified and no new selectable instance appears.
+- Import a copy of a large test world (not your only save). Check that the displayed source/destination paths and estimated byte totals match the source preview.
+- Cancel an import mid-file using the workspace **Cancel copying** action and verify that the source is unmodified and no new selectable instance appears.
 - Simulate insufficient disk space/permissions with a disposable test directory. Confirm an actionable failure and no partial published profile.
 - Place a symbolic link in a disposable source game folder and confirm import refuses the unsafe copy rather than following that link.
 

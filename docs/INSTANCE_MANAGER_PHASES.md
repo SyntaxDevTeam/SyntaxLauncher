@@ -179,7 +179,7 @@ This document divides v0.2 into two **ordered implementation tracks**, not a new
 
 **Deliverables**
 
-- Replace the dense temporary dialog with a lightweight dedicated Instances view: clear inventory, current selection and one primary action per context.
+- Replace the dense temporary dialog with a lightweight dedicated Instances view: clear inventory, current selection and one primary action per context. A dedicated responsive Instances window now contains searchable inventory, separated profile controls, trash recovery and copy confirmation/progress; manual layout acceptance is pending.
 - Use a small create/edit flow, contextual clone/restore/trash actions and progress/status surfaces.
 - Keep Play dominant on the normal home screen, not competing with destructive actions.
 - Include empty/loading/error/corrupt inventory states and keyboard/focus accessibility.
