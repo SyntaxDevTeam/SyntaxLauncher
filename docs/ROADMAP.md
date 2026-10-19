@@ -197,7 +197,7 @@ Goal: separate user installations into isolated, manageable Minecraft instances 
 
 ## v0.2 delivery phases — prioritized work remaining
 
-- [ ] 🚧 IN PROGRESS — **A2 / P0 — Real-world isolation:** extended filesystem regression for two same-version worlds/options/screenshots, shared caches, repository restart and trash restore. Real Minecraft process/world interaction still requires manual acceptance.
+- [ ] 🚧 IN PROGRESS — **A2 / P0 — Real-world isolation:** filesystem/repository tests plus a real Java child-process fixture now verify per-instance working directories, worlds/options isolation and shared cache location through the launch coordinator. Actual Mojang Minecraft GUI/gameplay still requires manual acceptance.
 - [ ] 🚧 IN PROGRESS — **A3 / P0 — Legacy import completion:** source inspection, disk-space preflight, cancellable streamed copy, SHA-256 read-back verification and stage rollback wired to UI. Real-world large-save import and disk-full/permission acceptance pending.
 - [ ] 🚧 IN PROGRESS — **A4 / P0 — Data protection:** added per-profile OS file locks across the entire mutation (not just PID preflight) to serialize separate launcher processes; protected edit/create/clone/import/trash/restore and preparation. Deterministic duplicate-repository tests added; actual detached-game and Windows filesystem acceptance remain open.
 - [ ] 🚧 IN PROGRESS — **B1 / P0 — Selection UX acceptance:** Legacy Vanilla settings remain independent, UUID selections are persisted, duplicates show short UUID, and missing game directories are reported rather than recreated; manual restart UX acceptance pending.

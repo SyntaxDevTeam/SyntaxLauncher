@@ -8,6 +8,35 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-19 — Exercise isolated launch with two real JVM child processes
+
+**Milestone:** v0.2 / A2 and final regression  
+**Author/Agent:** ChatGPT GPT-6  
+**Status:** Partial — Minecraft game-client acceptance remains pending
+
+### Completed
+- Added a deterministic Java source-mode fixture process that writes world and options files to the process working directory.
+- Launched the fixture twice via `MinecraftLaunchCoordinator` and the real `MinecraftProcessManager`, selecting two isolated game directories and shared cache paths.
+- Asserted that each actual child process populated only its own instance, with no cross-instance worlds or options leakage.
+- Used a local/mock artifact response and installed JDK only, with no dependence on Mojang or the availability of a graphical desktop.
+
+### Changed files
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/launch/MinecraftLaunchCoordinatorTest.kt` — two-process isolation integration regression.
+- `docs/ROADMAP.md`, `docs/WORKLOG.md` — updated acceptance evidence.
+
+### Verification
+- `./gradlew test` — NOT RUN locally; CI pending.
+- `./gradlew build` — NOT RUN locally; CI pending.
+- Actual Mojang client world A/B test — NOT RUN (manual release gate).
+
+### Roadmap updates
+- [ ] v0.2 / A2 — deterministic JVM child-process test added; real gameplay requirement still open.
+
+### Follow-ups / known issues
+- Execute v0.2 manual validation with official game client on a supported desktop before signing off the milestone.
+
+---
+
 ## 2026-10-19 — Verify cloned bytes and close lifecycle safety gaps
 
 **Milestone:** v0.2 / A2, A3, A4, B1  

@@ -11,6 +11,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeout
 import pl.syntaxdevteam.syntaxlauncher.core.account.OfflineAccount
 import pl.syntaxdevteam.syntaxlauncher.core.java.JavaRuntime
 import pl.syntaxdevteam.syntaxlauncher.core.java.JavaRuntimeManager
@@ -77,6 +79,75 @@ class MinecraftLaunchCoordinatorTest {
             assertNotNull(process.status.value.stderrLog)
         } finally {
             process.shutdown(MinecraftShutdownPolicy.DETACH)
+            http.close()
+        }
+    }
+
+    @Test
+    fun actualJavaChildWritesToOnlyItsSelectedInstanceDirectory() = runBlocking {
+        val bytes = "client-fixture".encodeToByteArray()
+        val root = Files.createTempDirectory("syntax-instance-actual-process-")
+        val source = root.resolve("FixtureGame.java")
+        Files.writeString(source, """
+            import java.nio.file.*;
+            public class FixtureGame {
+                public static void main(String[] args) throws Exception {
+                    Path game = Path.of(System.getProperty("user.dir"));
+                    String id = game.getParent().getFileName().toString();
+                    Path world = game.resolve("saves").resolve(id);
+                    Files.createDirectories(world);
+                    Files.writeString(world.resolve("level.dat"), "world-" + id);
+                    Files.writeString(game.resolve("options.txt"), "profile-" + id);
+                }
+            }
+        """.trimIndent())
+
+        val java = Path.of(System.getProperty("java.home"), "bin",
+            if (System.getProperty("os.name").startsWith("Windows", true)) "java.exe" else "java")
+        val runtime = JavaRuntime(java.parent.parent, java, 21, "21")
+        val http = HttpClient(MockEngine { respond(bytes) })
+        val processManager = MinecraftProcessManager(root.resolve("logs")) { plan, stdout, stderr ->
+            ProcessBuilder(java.toString(), source.toString())
+                .directory(plan.workingDirectory.toFile())
+                .redirectOutput(stdout.toFile())
+                .redirectError(stderr.toFile())
+                .start()
+        }
+        val shared = makeLayout(root)
+        val coordinator = MinecraftLaunchCoordinator(
+            preparation = MinecraftPreparationService(
+                DownloadManager(http, retryPolicy = DownloadRetryPolicy(maxAttempts = 1))),
+            runtimes = runtimeManager(runtime),
+            plans = LaunchPlanBuilder(),
+            processes = processManager,
+            layout = shared,
+            platform = platform,
+        )
+        try {
+            val one = shared.copy(gameDir = root.resolve("instances/a/game"))
+            val two = shared.copy(gameDir = root.resolve("instances/b/game"))
+            for (target in listOf(one, two)) {
+                assertEquals(LaunchPhase.STARTED, coordinator.launch(
+                    version(bytes), OfflineAccount.create("SyntaxTest"),
+                    LaunchOptions(maximumMemoryMiB = 2048), instanceLayout = target,
+                ).phase)
+                withTimeout(30_000) {
+                    while (processManager.status.value.state == MinecraftProcessState.RUNNING) {
+                        delay(25)
+                    }
+                }
+                assertEquals(MinecraftProcessState.STOPPED, processManager.status.value.state)
+            }
+            assertEquals("world-a", Files.readString(one.gameDir.resolve("saves/a/level.dat")))
+            assertEquals("world-b", Files.readString(two.gameDir.resolve("saves/b/level.dat")))
+            assertEquals("profile-a", Files.readString(one.gameDir.resolve("options.txt")))
+            assertEquals("profile-b", Files.readString(two.gameDir.resolve("options.txt")))
+            assertTrue(Files.notExists(one.gameDir.resolve("saves/b/level.dat")))
+            assertTrue(Files.notExists(two.gameDir.resolve("saves/a/level.dat")))
+            assertEquals(shared.versionsDir, one.versionsDir)
+            assertEquals(shared.assetsDir, two.assetsDir)
+        } finally {
+            processManager.shutdown(MinecraftShutdownPolicy.DETACH)
             http.close()
         }
     }
