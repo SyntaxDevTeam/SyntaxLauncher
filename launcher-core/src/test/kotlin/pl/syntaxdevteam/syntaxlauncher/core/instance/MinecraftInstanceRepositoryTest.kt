@@ -10,6 +10,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 import kotlinx.coroutines.runBlocking
+import pl.syntaxdevteam.syntaxlauncher.core.loader.ModLoaderSelection
 import pl.syntaxdevteam.syntaxlauncher.core.storage.LauncherPaths
 import pl.syntaxdevteam.syntaxlauncher.core.storage.MinecraftInstallationLayout
 
@@ -308,4 +309,23 @@ class MinecraftInstanceRepositoryTest {
         assertFailsWith<IllegalArgumentException> { repo.create("Danger", "../outside") }
         assertFailsWith<IllegalArgumentException> { repo.moveToTrash("../../bad") }
     }
+    @Test fun existingVanillaMetadataAndFabricSelectionCoexist() = runBlocking {
+        val (repo, _) = fixture()
+        val legacy = repo.create("Old Vanilla", "1.21.1")
+        val oldFile = repo.gameDirectory(legacy).parent.resolve("instance.json")
+        val vanillaJson = Files.readString(oldFile)
+        assertEquals(null, repo.list().instances.single().loader)
+        val loader = ModLoaderSelection("fabric", "0.16.14")
+        val changed = repo.update(legacy.copy(loader = loader))
+        assertEquals(loader, repo.list().instances.single().loader)
+        assertTrue(Files.readString(oldFile).contains("fabric"))
+        val cloned = repo.cloneInstance(changed.id, "Fabric clone")
+        assertEquals(loader, cloned.loader)
+        assertEquals(loader, repo.list().instances.first { it.id == cloned.id }.loader)
+        repo.update(changed.copy(loader = null))
+        assertEquals(null, repo.list().instances.first { it.id == legacy.id }.loader)
+        assertEquals(loader, repo.list().instances.first { it.id == cloned.id }.loader)
+        assertTrue(vanillaJson.contains("schemaVersion"))
+    }
+
 }
