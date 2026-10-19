@@ -243,6 +243,10 @@ private fun LauncherPanel(
     }
     var menuOpen by remember { mutableStateOf(false) }
     var ramMiB by remember { mutableStateOf(saved.maximumMemoryMiB.toFloat()) }
+    // Preserve Legacy Vanilla's own settings when switching to UUID-scoped profiles.
+    var legacyVersionId by remember { mutableStateOf(saved.selectedVersionId) }
+    var legacyRamMiB by remember { mutableStateOf(saved.maximumMemoryMiB.toFloat()) }
+    var legacySnapshots by remember { mutableStateOf(saved.snapshots) }
     var reloadMetadata by remember { mutableIntStateOf(0) }
     var metadata by remember { mutableStateOf<VersionMetadataState>(VersionMetadataState.Idle) }
     val scope = rememberCoroutineScope()
@@ -293,11 +297,25 @@ private fun LauncherPanel(
     }
 
     fun chooseInstance(id: String) {
+        if (instanceId.isBlank()) {
+            legacyVersionId = selected?.id.orEmpty()
+            legacyRamMiB = ramMiB
+            legacySnapshots = showSnapshots
+        }
         instanceId = id
-        inventory?.instances?.firstOrNull { it.id == id }?.let { instance ->
-            selected = manifest.versions.firstOrNull { it.id == instance.minecraftVersionId }
-            ramMiB = instance.maximumMemoryMiB.toFloat()
-            showSnapshots = selected?.type == MinecraftVersionType.SNAPSHOT
+        if (id.isBlank()) {
+            selected = manifest.versions.firstOrNull { it.id == legacyVersionId }
+                ?: manifest.versions.firstOrNull {
+                    it.id == if (legacySnapshots) manifest.latestSnapshot else manifest.latestRelease
+                }
+            ramMiB = legacyRamMiB
+            showSnapshots = legacySnapshots
+        } else {
+            inventory?.instances?.firstOrNull { it.id == id }?.let { instance ->
+                selected = manifest.versions.firstOrNull { it.id == instance.minecraftVersionId }
+                ramMiB = instance.maximumMemoryMiB.toFloat()
+                showSnapshots = selected?.type == MinecraftVersionType.SNAPSHOT
+            }
         }
     }
 
@@ -394,9 +412,9 @@ private fun LauncherPanel(
             session.rememberPreferences(
                 LauncherPreferences(
                     nickname = nickname.trim(),
-                    selectedVersionId = selected?.id.orEmpty(),
-                    snapshots = showSnapshots,
-                    maximumMemoryMiB = ramMiB.toInt(),
+                    selectedVersionId = if (instanceId.isBlank()) selected?.id.orEmpty() else legacyVersionId,
+                    snapshots = if (instanceId.isBlank()) showSnapshots else legacySnapshots,
+                    maximumMemoryMiB = if (instanceId.isBlank()) ramMiB.toInt() else legacyRamMiB.toInt(),
                     selectedInstanceId = instanceId,
                 ),
             )
@@ -462,7 +480,7 @@ private fun LauncherPanel(
             onCancelCopy = { copyJob?.cancel() },
             onDelete = { instance -> modifyInstance {
                 session.instances.moveToTrash(instance.id)
-                if (instanceId == instance.id) instanceId = ""
+                if (instanceId == instance.id) chooseInstance("")
                 null
             } },
             onRestore = { entry -> modifyInstance {

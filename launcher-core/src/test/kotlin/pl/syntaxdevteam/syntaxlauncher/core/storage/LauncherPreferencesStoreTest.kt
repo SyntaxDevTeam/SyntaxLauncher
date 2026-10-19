@@ -22,6 +22,26 @@ class LauncherPreferencesStoreTest {
     }
 
     @Test
+    fun activeInstanceSelectionDoesNotOverwriteLegacyPreferences() = runBlocking {
+        val file = Files.createTempDirectory("syntax-prefs-selection").resolve("settings.properties")
+        val store = LauncherPreferencesStore(file)
+        val instanceId = java.util.UUID.randomUUID().toString()
+        val legacy = LauncherPreferences(
+            nickname = "HorseFan",
+            selectedVersionId = "26.2",
+            snapshots = false,
+            maximumMemoryMiB = 4096,
+            selectedInstanceId = instanceId,
+        )
+        store.save(legacy)
+        assertEquals(legacy, LauncherPreferencesStore(file).load())
+        val legacyAgain = legacy.copy(selectedInstanceId = "")
+        store.save(legacyAgain)
+        assertEquals("26.2", LauncherPreferencesStore(file).load().selectedVersionId)
+        assertEquals(4096, LauncherPreferencesStore(file).load().maximumMemoryMiB)
+    }
+
+    @Test
     fun unknownSchemaIsNotDestroyedByLoadOrSave() = runBlocking {
         val file = Files.createTempDirectory("syntax-prefs-newer").resolve("settings.properties")
         val original = "schema_version=999\nfuture_setting=keep\n"

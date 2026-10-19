@@ -19,6 +19,14 @@ The initial v0.2 functionality is a preview. Automated core tests validate file 
 7. Reopen settings, change all inputs, click **Cancel**, and confirm no metadata changed. Try invalid RAM/version/JVM values and confirm Save is disabled. Verify the main screen's version/RAM controls are read-only for a selected instance but remain editable in Legacy Vanilla.
 8. Before intentionally downgrading a Minecraft world, make an external backup. Confirm the warning is displayed before saving the lower version. Do not test destructive downgrade on important worlds.
 
+## Selection and responsive interface
+
+1. Customize the Legacy Vanilla version/RAM/channel. Switch into a named instance with different version/RAM, then return to Legacy Vanilla; verify Legacy settings are retained.
+2. Restart SyntaxLauncher with a named instance selected. Its saved UUID, version and memory must return; the Legacy Vanilla settings must remain separate.
+3. Resize the Instances window below its two-column breakpoint and back; confirm inventory and actions adapt without clipping or losing state.
+4. Test at 1080×720 and with desktop DPI scaling 125–200%, including keyboard Tab, Enter, Escape, dialogs, cancellation and long names.
+5. Simulate a missing/corrupt selected instance on a disposable launcher profile. Play must remain disabled and offer a clear recovery path.
+
 ## Clone, rename and trash
 
 1. Select A, click **Clone**, then launch the clone. `OnlyInA` must exist in the clone.

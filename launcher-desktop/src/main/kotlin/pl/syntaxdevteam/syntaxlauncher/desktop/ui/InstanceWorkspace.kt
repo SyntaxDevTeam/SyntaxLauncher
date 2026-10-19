@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -93,8 +94,8 @@ fun InstanceWorkspace(
     val workArea = remember {
         java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment().maximumWindowBounds
     }
-    val width = minOf(1020, (workArea.width - 72).coerceAtLeast(700)).dp
-    val height = minOf(760, (workArea.height - 72).coerceAtLeast(530)).dp
+    val width = minOf(1020, (workArea.width - 48).coerceAtLeast(420)).dp
+    val height = minOf(760, (workArea.height - 48).coerceAtLeast(400)).dp
     var search by remember { mutableStateOf("") }
     var newName by remember { mutableStateOf("") }
     var newVersion by remember { mutableStateOf(latestVersion) }
@@ -164,12 +165,11 @@ fun InstanceWorkspace(
                             modifier = Modifier.fillMaxWidth().padding(12.dp))
                     }
                 }
-                Row(
-                    modifier = Modifier.weight(1f).fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(20.dp),
-                ) {
+                val inventoryPane: @Composable (Modifier) -> Unit = { paneModifier ->
                     Column(
-                        modifier = Modifier.width(284.dp).verticalScroll(rememberScrollState()),
+                        modifier = paneModifier.verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         OutlinedTextField(
@@ -203,8 +203,12 @@ fun InstanceWorkspace(
                             )
                         }
                     }
+                }
+                val detailPane: @Composable (Modifier) -> Unit = { paneModifier ->
                     Column(
-                        modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
+                        modifier = paneModifier.verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(15.dp),
+                    ) {
                         verticalArrangement = Arrangement.spacedBy(15.dp),
                     ) {
                         Text(if (selected != null) "SELECTED PROFILE" else "CREATE A PROFILE",
@@ -303,6 +307,25 @@ fun InstanceWorkspace(
                                     }
                                 }
                             }
+                        }
+                    }
+                }
+                BoxWithConstraints(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                    if (maxWidth < 730.dp) {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            inventoryPane(Modifier.fillMaxWidth().heightIn(max = 175.dp))
+                            detailPane(Modifier.fillMaxWidth().weight(1f))
+                        }
+                    } else {
+                        Row(
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalArrangement = Arrangement.spacedBy(20.dp),
+                        ) {
+                            inventoryPane(Modifier.width(284.dp))
+                            detailPane(Modifier.weight(1f))
                         }
                     }
                 }

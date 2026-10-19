@@ -53,8 +53,9 @@ fun main() {
     application {
         // Respect smaller laptop desktops; short windows remain fully usable via sidebar scrolling.
         val screen = GraphicsEnvironment.getLocalGraphicsEnvironment().maximumWindowBounds
-        val initialWidth = minOf(1320, (screen.width - 64).coerceAtLeast(920)).dp
-        val initialHeight = minOf(860, (screen.height - 64).coerceAtLeast(640)).dp
+        // Never create a window larger than the actual usable desktop bounds.
+        val initialWidth = minOf(1320, (screen.width - 40).coerceAtLeast(400)).dp
+        val initialHeight = minOf(860, (screen.height - 40).coerceAtLeast(400)).dp
         Window(
             onCloseRequest = { session.close { exitApplication() } },
             title = "SyntaxLauncher",

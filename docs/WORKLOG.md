@@ -8,6 +8,39 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-19 — Restore separate legacy preferences and narrow workspace layout
+
+**Milestone:** v0.2 / B1, B2 and B4  
+**Author/Agent:** ChatGPT GPT-6  
+**Status:** Partial — automatic build and manual GUI acceptance pending
+
+### Completed
+- Preserved Legacy Vanilla's independent version, RAM and snapshot channel while users switch to and from named UUID profiles, avoiding accidental overwrites from per-instance preferences.
+- Returning to Legacy after trashing the selected profile restores the Legacy controls instead of retaining stale version/RAM state.
+- Converted Instances workspace to adaptive single-column (compact) and dual-column (wide) layout with independent scrolling panes.
+- Prevented initial launcher/manager window dimensions from forcing a too-wide window on smaller desktops.
+- Added preferences restart regression and expanded the end-user acceptance checklist.
+
+### Changed files
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/SyntaxLauncherApp.kt` — independent Legacy preferences.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/InstanceWorkspace.kt` — responsive layout.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/Main.kt` — work-area-aware dimensions.
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/storage/LauncherPreferencesStoreTest.kt` — settings persistence regression.
+- `docs/ROADMAP.md`, `docs/TESTING_V0.2.md`, `docs/WORKLOG.md` — acceptance tracking.
+
+### Verification
+- `./gradlew test` and `./gradlew build` — NOT RUN locally; CI required.
+- Actual resized/different-DPI UI review — NOT RUN; graphical desktop unavailable.
+
+### Roadmap updates
+- [ ] v0.2 / B1/B2/B4 — implementation strengthened; user acceptance pending.
+
+### Follow-ups / known issues
+- Physical 1080×720 and high-DPI visual review required before release.
+- Use disposable test instances, not irreplaceable worlds, to verify deletion/downgrade flows.
+
+---
+
 ## 2026-10-19 — Interprocess safety and five-gate regression foundation
 
 **Milestone:** v0.2 (A2, A3, A4, B1–B4)  
