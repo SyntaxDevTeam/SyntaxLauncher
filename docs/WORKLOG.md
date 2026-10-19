@@ -8,6 +8,39 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-19 — Verify Fabric v0.4 implementation across CI platforms
+
+**Milestone:** v0.4 — Fabric Loader
+**Author/Agent:** GPT-6
+**Status:** Partial — automated verification passed; live Fabric boot still unverified
+
+### Completed
+- Confirmed GitHub Actions run [39317269516](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/39317269516) succeeded for core/desktop compile and tests, portable packaging on macOS, Linux and Windows and Build Explorer publication.
+- Updated the v0.4 roadmap to mark implementation and test checks complete where CI provides sufficient evidence while retaining manual quality gates.
+
+### Changed files
+- `README.md` — recorded verified CI and remaining real-client acceptance.
+- `docs/ROADMAP.md` — reconciled v0.4 checklist with automated build/test results.
+- `docs/WORKLOG.md` — appended verification outcome.
+
+### Verification
+- `gradle --no-daemon --stacktrace test build` — PASS via GitHub Actions [39317269516](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/39317269516).
+- Portable application package builds — PASS for macOS, Ubuntu and Windows on that run.
+- Build Explorer publication — PASS.
+- Manual Fabric Minecraft launch — NOT RUN; quality gate remains open.
+
+### Roadmap updates
+- `[x]` generic loader selection/model and implementation tasks covered by passing CI.
+- `[x]` v0.4 CI builds/tests.
+- `[ ]` real Fabric boot, instance game-data isolation, visual UX and multi-platform acceptance.
+
+### Follow-ups / known issues
+- Test real Fabric client startups with stable releases and ensure appropriate game data separation.
+- Verify hosted artifact checksum coverage for Fabric libraries without published hashes.
+- Microsoft/Mojang app-approval dependency from v0.3 remains independent.
+
+---
+
 ## 2026-10-19 — Begin v0.4 Fabric loader integration
 
 **Milestone:** v0.4 — Fabric Loader

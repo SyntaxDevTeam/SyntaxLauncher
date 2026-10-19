@@ -356,23 +356,24 @@ Goal: add official premium authentication without changing the fundamental Minec
 
 Goal: introduce the first mod loader and validate a reusable loader architecture.
 
-**Status:** 🚧 Source implementation and test fixtures added. Gradle CI and real Fabric
+**Status:** 🚧 CI verified ([successful run](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/39317269516): core/desktop tests,
+native packages for Windows/Linux/macOS and Build Explorer publishing). Real Fabric
 boot / cross-platform acceptance remain required. See [v0.4 checklist](TESTING_V0.4.md).
 v0.3 official Microsoft approval is an independent external dependency and does not block
 offline account tests for this milestone.
 
 ## Loader abstraction
 
-- [ ] 🚧 IN PROGRESS — Added `ModLoaderProvider` and `ModLoaderRegistry`; Gradle and real second-provider acceptance pending.
-- [ ] 🚧 IN PROGRESS — Implemented ID/version selections; validation and CI pending.
-- [ ] 🚧 IN PROGRESS — Added optional per-instance loader selection in schema 1; serialization regression tests added, CI pending.
-- [ ] 🚧 IN PROGRESS — Fabric-specific metadata remains in its provider; native/Forge installer adapters remain future work.
+- [x] Introduced `ModLoaderProvider` and `ModLoaderRegistry`; the second-provider extensibility quality gate remains open.
+- [x] Implemented and validated loader ID/version selections in core.
+- [x] Added optional per-instance loader selection in schema 1 with passing serialization regression tests.
+- [x] Isolated Fabric metadata handling in its provider without duplicating the process launcher.
 
 ## Fabric
 
-- [ ] 🚧 IN PROGRESS — Query official Fabric Meta compatible loaders; fake-response tests added, live integration not yet validated.
+- [ ] 🚧 IN PROGRESS — Query official Fabric Meta compatible loaders; MockEngine tests passed, live integration not yet validated.
 - [ ] 🚧 IN PROGRESS — Construct Fabric dependency downloads through shared downloader; no separate installer process; real boot pending.
-- [ ] 🚧 IN PROGRESS — Overlay entry point/libraries/arguments on Mojang metadata; hashes used where available; Gradle tests pending.
+- [ ] 🚧 IN PROGRESS — Overlay entry point/libraries/arguments on Mojang metadata; hashes used where available; automated Gradle tests passed.
 - [ ] 🚧 IN PROGRESS — Feed loader selection to generic launch pipeline; real Fabric launch pending.
 - [ ] 🚧 IN PROGRESS — Support per-instance loader version changing, cloning and Vanilla reset; manual acceptance pending.
 - [ ] 🚧 IN PROGRESS — Compatibility checked on selection and again before launch; live metadata verification pending.
@@ -386,12 +387,14 @@ offline account tests for this milestone.
 
 ## v0.4 quality gate
 
-- [ ] Existing vanilla instances remain unchanged (serialization test source exists; CI/manual pending).
-- [ ] Fabric selection and writable game data are instance-scoped (automated coverage added; real-world acceptance pending).
+- [x] CI Gradle tests and build completed on Ubuntu, macOS and Windows runners, with successful Build Explorer publishing.
+
+- [ ] Existing vanilla instances remain unchanged (serialization tests pass; manual pending).
+- [ ] Fabric selection and writable game data are instance-scoped (automated coverage passes; real-world acceptance pending).
 - [ ] Fabric instance launches without duplicated launch engine (same coordinator, real boot pending).
 - [ ] Provider boundary accommodates distinct future loader mechanics without Fabric-specific code in launcher core (second-provider proof pending).
 - [ ] Confirm checksum availability/fallback strategy for Fabric libraries whose profile omits hashes.
-- [ ] Pass the `docs/TESTING_V0.4.md` checklist on target desktop platforms.
+- [ ] Pass the `docs/TESTING_V0.4.md` *manual* checklist on target desktop platforms.
 
 ---
 

@@ -48,8 +48,10 @@ while continuing to use the Mojang version's own client, assets, Java runtime an
 Vanilla and existing schema-1 instances remain valid; immutable libraries are shared, and
 mutable game state remains per instance.
 
-**Do not consider v0.4 release-ready until Gradle CI, real Fabric boot tests and cross-platform
-instance/loader switching tests pass.** Loader choice is stored per instance; library downloads
+The first v0.4 [GitHub Actions validation](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/39317269516) passed core/desktop tests, native packages
+on Linux/Windows/macOS, and Build Explorer publication. **Do not consider v0.4
+release-ready until real Fabric boot and cross-platform instance/loader switching
+tests pass.** Loader choice is stored per instance; library downloads
 occur on the first Fabric launch rather than when the profile settings are saved. See
 [the v0.4 manual checklist](docs/TESTING_V0.4.md).
 
