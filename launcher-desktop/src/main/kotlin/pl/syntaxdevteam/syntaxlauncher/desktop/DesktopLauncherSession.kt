@@ -93,24 +93,27 @@ class DesktopLauncherSession(
                         ),
                         instanceLayout = instance?.let(instances::layoutFor) ?: legacyLayout,
                     )
-                    val running = processManager.status.value
-                    val gamePid = running.pid
-                    if (running.state == MinecraftProcessState.RUNNING && gamePid != null) {
-                        // A game may survive launcher shutdown: persist its actual PID/start instant.
-                        instances.markGameStarted(instance?.id, gamePid)
-                    }
+                    // Transfer the preparing lease to the child under NonCancellable,
+                    // so closing the launcher between process.start() and hand-off is safe.
                 } catch (cancelled: kotlinx.coroutines.CancellationException) {
                     throw cancelled
                 } catch (error: Exception) {
                     mutableLaunchIssue.value = error.message ?: "Could not protect the active instance."
-                    // Never leave a launched game untracked after a lease hand-off error.
-                    if (processManager.status.value.state == MinecraftProcessState.RUNNING) {
-                        runCatching { processManager.terminate() }
-                    }
                 } finally {
                     if (leased) {
-                        // After a successful hand-off the game lease remains until the child PID exits.
                         kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+                            val running = processManager.status.value
+                            val gamePid = running.pid
+                            if (running.state == MinecraftProcessState.RUNNING && gamePid != null) {
+                                try {
+                                    instances.markGameStarted(instance?.id, gamePid)
+                                } catch (error: Exception) {
+                                    mutableLaunchIssue.value = error.message
+                                        ?: "Failed to protect the running game; stopping it."
+                                    // Never leave a child game writing into an unprotected profile.
+                                    runCatching { processManager.terminate() }
+                                }
+                            }
                             runCatching { instances.endPreparation(instance?.id) }
                         }
                     }

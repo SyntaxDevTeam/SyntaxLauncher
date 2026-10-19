@@ -291,6 +291,18 @@ class MinecraftInstanceRepositoryTest {
         assertEquals("OnlyInA", Files.readString(again.gameDirectory(restored).resolve("options.txt")))
     }
 
+    @Test fun disappearedWorldDirectoryIsNotSilentlyRecreated() = runBlocking {
+        val (repo, _) = fixture()
+        val instance = repo.create("Lost", "26.3")
+        Files.delete(repo.gameDirectory(instance))
+        val problem = repo.list()
+        assertTrue(problem.instances.isEmpty())
+        assertEquals(1, problem.problems.size)
+        assertTrue(problem.problems.single().contains("Missing instance game data"))
+        assertFailsWith<IllegalArgumentException> { repo.beginLaunch(instance.id) }
+        assertFalse(Files.exists(repo.gameDirectory(instance)))
+    }
+
     @Test fun invalidMetadataCannotEscapeInstancesRoot() = runBlocking {
         val (repo, _) = fixture()
         assertFailsWith<IllegalArgumentException> { repo.create("Danger", "../outside") }

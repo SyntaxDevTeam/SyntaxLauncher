@@ -8,6 +8,38 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-19 — Verify cloned bytes and close lifecycle safety gaps
+
+**Milestone:** v0.2 / A2, A3, A4, B1  
+**Author/Agent:** ChatGPT GPT-6  
+**Status:** Partial — CI and manual Minecraft acceptance pending
+
+### Completed
+- Added SHA-256 read-back verification for every staged copied file, rejecting modified source attributes, mismatched size or hash before publishing a new profile.
+- Made missing game directories an explicit inventory error; no silent recreation of apparently empty worlds when profile metadata survives.
+- Hardened the preparation-to-running-game PID hand-off under `NonCancellable`: launcher shutdown cannot silently skip recording an active game lease; if hand-off fails, terminate the child conservatively.
+- Added a regression for lost game data and expanded manual acceptance instructions.
+
+### Changed files
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/instance/InstanceFileCopy.kt` — SHA-256 verification.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/instance/MinecraftInstanceRepository.kt` — missing game safety.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/DesktopLauncherSession.kt` — non-cancellable lease hand-off.
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/instance/MinecraftInstanceRepositoryTest.kt` — missing world test.
+- `docs/ROADMAP.md`, `docs/TESTING_V0.2.md`, `docs/WORKLOG.md` — updated gate tracking.
+
+### Verification
+- `./gradlew test` and `./gradlew build` — NOT RUN locally; CI pending.
+- Manual actual Minecraft A/B and large-world copy/disk failure — NOT RUN.
+
+### Roadmap updates
+- [ ] v0.2 / A2–A4, B1 — automated safeguards strengthened, manual acceptance still open.
+
+### Follow-ups / known issues
+- Check real-world copy throughput and cancellation on large saves on Windows and Linux.
+- Review high-DPI instance layout with actual screenshots; compilation alone is not visual acceptance.
+
+---
+
 ## 2026-10-19 — Restore separate legacy preferences and narrow workspace layout
 
 **Milestone:** v0.2 / B1, B2 and B4  

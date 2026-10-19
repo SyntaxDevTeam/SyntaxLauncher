@@ -307,6 +307,9 @@ class MinecraftInstanceRepository(
     private fun read(dir: Path, fromTrash: Boolean = false): MinecraftInstance {
         require(Files.isDirectory(dir, LinkOption.NOFOLLOW_LINKS)) { "Instance directory missing" }
         val file = dir.resolve("instance.json")
+        require(Files.isDirectory(dir.resolve("game"), LinkOption.NOFOLLOW_LINKS)) {
+            "Missing instance game data; refusing to create an empty replacement world"
+        }
         require(Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) { "Missing instance.json" }
         val obj = json.parseToJsonElement(Files.readString(file)).jsonObject
         require(obj["schemaVersion"]?.toString()?.toIntOrNull() == 1) {

@@ -11,6 +11,7 @@ import java.nio.file.Path
 import java.nio.file.SimpleFileVisitor
 import java.nio.file.StandardOpenOption
 import java.nio.file.attribute.BasicFileAttributes
+import java.security.MessageDigest
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -63,7 +64,7 @@ internal object InstanceFileCopy {
         validateAncestors(destination)
         val usable = Files.getFileStore(destination).usableSpace
         // Keep some headroom; do not attempt a copy which cannot fit.
-        if (usable < plan.totalBytes + 8L * 1024L * 1024L) {
+        if (plan.totalBytes > usable - 8L * 1024L * 1024L) {
             throw InstanceCopyException(
                 InstanceCopyFailureKind.DISK_SPACE,
                 "Not enough free disk space: ${plan.totalBytes} bytes required, ${usable} available.",
@@ -81,6 +82,12 @@ internal object InstanceFileCopy {
                 context.ensureActive()
                 val from = source.resolve(item.relative)
                 val to = destination.resolve(item.relative)
+                val before = Files.readAttributes(from, BasicFileAttributes::class.java, LinkOption.NOFOLLOW_LINKS)
+                if (!before.isRegularFile || before.size() != item.bytes) {
+                    throw InstanceCopyException(InstanceCopyFailureKind.SOURCE_INVALID,
+                        "Source changed after preflight: ${item.relative}")
+                }
+                val sourceDigest = MessageDigest.getInstance("SHA-256")
                 Files.createDirectories(to.parent)
                 Channels.newInputStream(
                     Files.newByteChannel(from, setOf(StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS))
@@ -92,16 +99,43 @@ internal object InstanceFileCopy {
                             val count = input.read(chunk)
                             if (count < 0) break
                             output.write(chunk, 0, count)
+                            sourceDigest.update(chunk, 0, count)
                             written += count
                             onProgress(InstanceCopyProgress(written, plan.totalBytes, finished, plan.files.size,
                                 item.relative.toString()))
                         }
                     }
                 }
-                if (Files.size(to) != item.bytes) {
+                val after = Files.readAttributes(from, BasicFileAttributes::class.java, LinkOption.NOFOLLOW_LINKS)
+                if (!after.isRegularFile || after.size() != before.size() ||
+                    after.lastModifiedTime() != before.lastModifiedTime() ||
+                    (before.fileKey() != null && after.fileKey() != before.fileKey()) ||
+                    Files.size(to) != item.bytes
+                ) {
                     throw InstanceCopyException(
                         InstanceCopyFailureKind.SOURCE_INVALID,
-                        "A file changed during the copy: ${item.relative}",
+                        "A source file changed during the copy: ${item.relative}",
+                    )
+                }
+                // Size alone cannot prove correct copies. Read back SHA-256 from staging.
+                onProgress(InstanceCopyProgress(written, plan.totalBytes, finished, plan.files.size,
+                    "Verifying ${item.relative}"))
+                val targetDigest = MessageDigest.getInstance("SHA-256")
+                Channels.newInputStream(
+                    Files.newByteChannel(to, setOf(StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS))
+                ).use { input ->
+                    val buffer = ByteArray(256 * 1024)
+                    while (true) {
+                        context.ensureActive()
+                        val count = input.read(buffer)
+                        if (count < 0) break
+                        targetDigest.update(buffer, 0, count)
+                    }
+                }
+                if (!sourceDigest.digest().contentEquals(targetDigest.digest())) {
+                    throw InstanceCopyException(
+                        InstanceCopyFailureKind.IO,
+                        "Copy verification failed: ${item.relative}. Staging will be discarded.",
                     )
                 }
                 finished++

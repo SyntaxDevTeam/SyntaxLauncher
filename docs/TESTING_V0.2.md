@@ -55,6 +55,8 @@ The initial v0.2 functionality is a preview. Automated core tests validate file 
 ## Failure handling and migration
 
 - A malformed or newer-than-supported `instance.json` should not be deleted or overwritten by routine list/update actions.
+- Delete only the `game` directory of a disposable test profile (not a real world). Confirm the inventory flags a corrupted/missing profile and cannot silently launch an empty replacement.
+- For a disposable import, confirm SHA-256 verification completes before publication. Interrupted verification must roll back staging as well as interrupted copying.
 - Missing previously selected instance should generate an actionable warning instead of silently opening Legacy Vanilla.
 - Instance metadata uses schema v1. Unknown fields are retained during update and clone. Schema-changing migrations will be added when a later format is introduced.
 - Malformed trash entries must show a problem, remain on disk for manual recovery and never be automatically deleted.
