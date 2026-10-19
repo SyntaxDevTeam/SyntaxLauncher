@@ -2,7 +2,7 @@
 
 SyntaxLauncher is a modern Minecraft launcher from SyntaxDevTeam, written primarily in Kotlin and developed incrementally from a minimal vanilla launcher into a modular launcher with premium authentication, isolated instances, mod loaders, Modrinth integration, modpacks and diagnostics.
 
-The project has a working v0.1 vanilla launch pipeline and is now in **active v0.2 Instance Manager development**. The Kotlin/Compose launcher now connects the offline account, Mojang metadata, verified game preparation, automatic Java runtime installation, metadata-driven LaunchPlan and MinecraftProcessManager to an actual desktop Play workflow. A real clean-machine Minecraft launch is not yet verified.
+The project has an implemented v0.2 Instance Manager and has now entered **v0.3 Microsoft/Premium account development**. The Kotlin/Compose launcher now connects the offline account, Mojang metadata, verified game preparation, automatic Java runtime installation, metadata-driven LaunchPlan and MinecraftProcessManager to an actual desktop Play workflow. A real clean-machine Minecraft launch is not yet verified.
 
 ## Project philosophy
 
@@ -32,7 +32,11 @@ The v0.2 Instances workspace now separates searchable instance inventory from pr
 
 The v0.2 implementation includes cross-process per-instance file locks, safe cloning/import to private staging, SHA-256 copy verification, space checks, cancellation, recovery from trash, and an adaptive Instances workspace. A deterministic test runs two actual Java child processes through the launch coordinator and verifies that their game directories do not mix. These automated tests are distinct from real Minecraft gameplay acceptance.
 
-**v0.2 is still a Preview, not a signed-off stable milestone.** Before marking it complete, execute the real Minecraft A/B world test, existing-world import, interrupted copy, trash recovery and DPI/keyboard checklist in [docs/TESTING_V0.2.md](docs/TESTING_V0.2.md). The release gate cannot be satisfied solely with CI packaging.
+**One-time release-gate exception (19 October 2026):** The maintainer explicitly waived the v0.2 manual Minecraft/visual acceptance requirement solely for proceeding to v0.3. These tests were NOT executed and must NOT be represented as passed. This waiver is not valid for future milestones; the checklist remains available for regression testing.
+
+## v0.3 — Microsoft/Premium Accounts
+
+The next milestone adds official browser-based Microsoft OAuth with PKCE, Xbox Live/XSTS and Minecraft Services identity, multiple accounts, secure sessions and a shared launch pipeline for premium/offline play. A properly authorized Microsoft public-client app registration will be required. Premium sign-in must never request a Microsoft password or hardcode someone else's application ID.
 
 ## Current implementation
 

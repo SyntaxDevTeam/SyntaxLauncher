@@ -258,6 +258,8 @@ Goal: separate user installations into isolated, manageable Minecraft instances 
 
 Goal: add official premium authentication without changing the fundamental Minecraft launch pipeline.
 
+**Status:** 🚧 STARTED — v0.2 manual acceptance explicitly waived ONCE by maintainer to begin v0.3 (not falsely counted as tested). Initial implementation focuses on secure premium identity, PKCE, Xbox/XSTS/Minecraft provider chain, tests and migration-safe shared launch integration. External prerequisite: a Microsoft public application ID with Minecraft Services authorization.
+
 ## Account management
 
 - [ ] Introduce account manager/service.
@@ -266,6 +268,15 @@ Goal: add official premium authentication without changing the fundamental Minec
 - [ ] Support multiple saved accounts.
 - [ ] Allow account selection per launch or as launcher default.
 - [ ] Display account type clearly.
+
+## Delivery phases
+
+- [ ] **P0 — Authentication foundation:** typed premium identity, nonce/state + S256 PKCE, OAuth code exchange, Xbox/XSTS/Minecraft profile verification, mocked tests.
+- [ ] **P0 — Desktop sign-in:** system browser with loopback callback and CSRF validation, loading/cancel/error states, configurable registered client ID.
+- [ ] **P0 — Session security:** token redaction, secure OS-backed refresh credential persistence, refresh and sign-out.
+- [ ] **P0 — Launch integration:** selected verified account supplies Minecraft token without an alternate launcher pipeline.
+- [ ] **P1 — Account workspace:** multiple stored offline/Microsoft accounts, selection and account identity UI.
+- [ ] **Release acceptance:** approved Microsoft app registration, live sign-in/refresh and premium Minecraft game launch.
 
 ## Microsoft authentication
 

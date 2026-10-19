@@ -8,6 +8,40 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-19 — Waive v0.2 manual gate once and begin v0.3
+
+**Milestone:** v0.2 transition / v0.3 Premium authentication
+**Author/Agent:** ChatGPT GPT-6
+**Status:** Partial — started milestone, without claiming real sign-in completed
+
+### Completed
+- Recorded the maintainer's explicit one-time exception to v0.2 manual Minecraft and visual acceptance solely for proceeding to v0.3.
+- Kept unperformed v0.2 tests explicitly unverified and preserved the regression checklist.
+- Defined v0.3 P0/P1 implementation gates and external Minecraft Services app-registration dependency.
+- Updated architectural requirements for a native Microsoft OAuth browser/PKCE flow.
+
+### Changed files
+- README.md — milestone transition and one-time waiver.
+- docs/ROADMAP.md — v0.3 execution order.
+- docs/ARCHITECTURE.md — OAuth/Xbox/Minecraft constraints.
+- docs/WORKLOG.md — exception and implementation scope.
+
+### Verification
+- ./gradlew test — NOT RUN (documentation-only commit).
+- ./gradlew build — NOT RUN (documentation-only commit).
+- Manual v0.2 client tests — WAIVED ONCE for v0.3 kickoff, NOT PASSED.
+
+### Roadmap updates
+- [ ] v0.2 manual acceptance remains untested, accepted as a one-time risk for progression.
+- [ ] v0.3 new phases initiated; no premium release acceptance yet.
+
+### Follow-ups / known issues
+- Configure an independent Microsoft public application ID with Minecraft Services authorization.
+- Never store Microsoft refresh tokens in plaintext or emit them in game logs.
+- v0.3 requires live tests; the one-time waiver applies only to v0.2.
+
+---
+
 ## 2026-10-19 — Align preview label and safe default for legacy import
 
 **Milestone:** v0.2 / A3 and release validation  

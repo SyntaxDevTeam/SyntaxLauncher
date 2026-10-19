@@ -327,6 +327,8 @@ Minecraft profile/session
 
 Tokens must be redacted from logs and stored using an appropriate secure mechanism.
 
+As of October 2026, native desktop OAuth should use the system browser with authorization code + S256 PKCE, random CSRF state and localhost callback. The Microsoft public-client app ID is not a client secret, but it must be owned and configured by the project; do not reuse another launcher's app ID. OAuth then exchanges Xbox user token, XSTS, Minecraft Services token and verified Java profile. Microsoft Services may reject unapproved apps with HTTP 403 Invalid app registration. A successful OAuth token alone must not be treated as Minecraft ownership.
+
 ## 12. Instance architecture — v0.2
 
 Instances are introduced before loaders because loader/mod support depends on isolated mutable state.
