@@ -34,6 +34,24 @@ class MinecraftProcessManagerTest {
     }
 
     @Test
+    fun authenticatedGameOutputIsNeverStoredRaw() = runBlocking {
+        val root = Files.createTempDirectory("syntax-process-premium-")
+        val manager = MinecraftProcessManager(root.resolve("logs"))
+        try {
+            val launch = plan(root, javaExecutable(), listOf("-version"))
+                .copy(sensitiveOutput = true)
+            val started = manager.launch(launch)
+            val completed = awaitState(manager, MinecraftProcessState.STOPPED)
+            assertEquals(0, completed.exitCode)
+            assertEquals(0L, Files.size(started.stdoutLog))
+            assertEquals(0L, Files.size(started.stderrLog))
+            assertFalse(launch.toString().contains("java -version"))
+        } finally {
+            manager.shutdown()
+        }
+    }
+
+    @Test
     fun duplicateLaunchNonzeroExitAndRelaunch() = runBlocking {
         val root = Files.createTempDirectory("syntax-process-duplicate-")
         val first = ControlledProcess()

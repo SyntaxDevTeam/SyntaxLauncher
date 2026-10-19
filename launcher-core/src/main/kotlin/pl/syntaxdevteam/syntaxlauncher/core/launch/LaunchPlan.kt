@@ -12,6 +12,10 @@ data class LaunchPlan(
     /** Avoid persisting raw child stdout/stderr when session credentials are present. */
     val sensitiveOutput: Boolean = false,
 ) {
+    override fun toString(): String =
+        "LaunchPlan(workingDirectory=" + workingDirectory + ", mainClass=" + mainClass +
+            ", sensitiveOutput=" + sensitiveOutput + ", arguments=[REDACTED])"
+
     val command: List<String>
         get() = buildList {
             add(runtime.executable.toString())

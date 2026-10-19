@@ -314,6 +314,10 @@ Goal: add official premium authentication without changing the fundamental Minec
 - [ ] Show premium profile name/avatar when available.
 - [ ] 🚧 IN PROGRESS — Sign out removes selected premium session from RAM; persistent vault integration/revocation pending.
 
+## v0.3 manual and security acceptance
+
+- [ ] Follow [TESTING_V0.3.md](TESTING_V0.3.md), including live consent, secure persistence decision, browser cancellation and real online-mode Minecraft gameplay.
+
 ## v0.3 quality gate
 
 - [ ] Offline launching still works.

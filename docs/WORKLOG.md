@@ -8,6 +8,38 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-19 — Redact launch plan diagnostics and document premium acceptance
+
+**Milestone:** v0.3
+**Author/Agent:** ChatGPT GPT-6
+**Status:** Partial — security/manual acceptance open
+
+### Completed
+- Prevented data-class LaunchPlan.toString() from exposing game arguments containing premium access tokens.
+- Added real Java subprocess regression verifying authenticated stdout/stderr are not persisted by the default process manager.
+- Added a dedicated v0.3 acceptance checklist for OAuth, account switching, live Minecraft ownership, refresh and sensitive local logs.
+
+### Changed files
+- launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/launch/LaunchPlan.kt
+- launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/launch/MinecraftProcessManagerTest.kt
+- docs/TESTING_V0.3.md
+- docs/ROADMAP.md and docs/WORKLOG.md
+
+### Verification
+- ./gradlew test — CI pending.
+- ./gradlew build — CI pending.
+- Actual Minecraft Premium game login — NOT RUN.
+
+### Roadmap updates
+- [ ] v0.3 process-log review still requires game-managed log/crash-report audit.
+- [ ] v0.3 live account/refresh/launch test still requires approved app access.
+
+### Follow-ups / known issues
+- OS credential vault for refresh tokens is not yet implemented; sessions remain RAM-only.
+- User must provide a registered Microsoft client ID with Minecraft Services authorization.
+
+---
+
 ## 2026-10-19 — Wire Microsoft and offline account selection into desktop Play
 
 **Milestone:** v0.3
