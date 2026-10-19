@@ -58,6 +58,7 @@ class MinecraftLaunchCoordinator(
         account: Account,
         options: LaunchOptions,
         instanceLayout: MinecraftInstallationLayout = layout,
+        authentication: LaunchAuthentication = LaunchAuthentication.offline(account),
     ): LaunchPipelineStatus {
         if (!launchMutex.tryLock()) return mutableStatus.value
         try {
@@ -104,6 +105,7 @@ class MinecraftLaunchCoordinator(
                     runtime = runtime,
                     platform = platform,
                     options = options,
+                    authentication = authentication,
                 ),
             )
             stage(LaunchPhase.STARTING_GAME, "Starting Minecraft")

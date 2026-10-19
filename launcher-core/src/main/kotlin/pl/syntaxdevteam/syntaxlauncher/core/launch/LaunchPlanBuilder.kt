@@ -89,6 +89,7 @@ class LaunchPlanBuilder(
             mainClass = version.mainClass,
             jvmArguments = jvmArguments,
             gameArguments = gameArguments,
+            sensitiveOutput = request.authentication.userType == "msa",
         )
     }
 

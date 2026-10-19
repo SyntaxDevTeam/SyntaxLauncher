@@ -292,7 +292,7 @@ Goal: add official premium authentication without changing the fundamental Minec
 
 ## Token lifecycle
 
-- [ ] Before enabling premium sessions, review and redact sensitive strings in Minecraft process stdout/stderr logs; v0.1 currently redirects raw game output to private per-session files.
+- [ ] 🚧 IN PROGRESS — premium LaunchPlan now flags credential-bearing sessions and default process starter discards stdout/stderr rather than persisting raw tokens. Game-owned logs and crash reports still require security review.
 
 - [ ] Refresh expired/expiring sessions automatically when possible.
 - [ ] Store long-lived secrets/tokens using an appropriate secure OS mechanism.
@@ -303,7 +303,7 @@ Goal: add official premium authentication without changing the fundamental Minec
 ## Launch integration
 
 - [ ] Convert authenticated account/session to existing launch account/session inputs.
-- [ ] Supply valid access token/profile information to Minecraft launch arguments.
+- [ ] 🚧 IN PROGRESS — coordinator accepts normalized premium LaunchAuthentication and uses standard metadata placeholder replacement; desktop selection and live verification pending.
 - [ ] Avoid a duplicate premium-specific launch pipeline.
 
 ## v0.3 UI

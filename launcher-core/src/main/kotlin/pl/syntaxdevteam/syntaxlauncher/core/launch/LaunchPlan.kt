@@ -9,6 +9,8 @@ data class LaunchPlan(
     val mainClass: String,
     val jvmArguments: List<String>,
     val gameArguments: List<String>,
+    /** Avoid persisting raw child stdout/stderr when session credentials are present. */
+    val sensitiveOutput: Boolean = false,
 ) {
     val command: List<String>
         get() = buildList {

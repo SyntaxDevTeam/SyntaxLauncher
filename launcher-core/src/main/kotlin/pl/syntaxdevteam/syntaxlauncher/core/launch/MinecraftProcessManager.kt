@@ -69,15 +69,20 @@ fun interface MinecraftProcessStarter {
  * Owns at most one Minecraft process at a time. Does not depend on Compose.
  * OS-level stdout/stderr file redirection is intentional: DETACH works even if
  * the launcher JVM exits. These files contain raw game output and are private
- * on POSIX systems; a future premium flow must review possible token emission.
+ * on POSIX systems. For premium sessions, the default process starter discards
+ * raw stdout/stderr instead of persisting potentially credential-bearing output.
+ * This does not control game-owned files such as logs/latest.log; those still
+ * require independent review and should never be uploaded automatically.
  */
 class MinecraftProcessManager(
     private val logsDirectory: Path,
     private val starter: MinecraftProcessStarter = MinecraftProcessStarter { plan, stdout, stderr ->
         ProcessBuilder(plan.command)
             .directory(plan.workingDirectory.toFile())
-            .redirectOutput(ProcessBuilder.Redirect.to(stdout.toFile()))
-            .redirectError(ProcessBuilder.Redirect.to(stderr.toFile()))
+            .redirectOutput(if (plan.sensitiveOutput) ProcessBuilder.Redirect.DISCARD
+                else ProcessBuilder.Redirect.to(stdout.toFile()))
+            .redirectError(if (plan.sensitiveOutput) ProcessBuilder.Redirect.DISCARD
+                else ProcessBuilder.Redirect.to(stderr.toFile()))
             .start()
     },
 ) {

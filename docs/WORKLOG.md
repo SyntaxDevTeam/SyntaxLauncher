@@ -8,6 +8,39 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-19 — Share launch pipeline with credential-bearing sessions
+
+**Milestone:** v0.3
+**Author/Agent:** ChatGPT GPT-6
+**Status:** Partial — desktop sign-in and Minecraft live testing remain
+
+### Completed
+- Extended the existing MinecraftLaunchCoordinator to accept a normalized premium LaunchAuthentication payload.
+- Marked premium LaunchPlan as credential-sensitive while keeping the offline plan unchanged.
+- Prevented raw stdout/stderr files for premium child processes in the default ProcessBuilder starter, avoiding accidental token leakage from redirected output.
+
+### Changed files
+- launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/launch/LaunchPlan.kt
+- launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/launch/LaunchPlanBuilder.kt
+- launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/launch/MinecraftLaunchCoordinator.kt
+- launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/launch/MinecraftProcessManager.kt
+- docs/ROADMAP.md and docs/WORKLOG.md
+
+### Verification
+- ./gradlew test — NOT RUN locally; GitHub CI pending.
+- ./gradlew build — NOT RUN locally; GitHub CI pending.
+- Real Minecraft authenticated client — NOT RUN.
+
+### Roadmap updates
+- [ ] v0.3 premium process log review is partial; game-owned logs still pending.
+- [ ] v0.3 launch wiring prepared; account UI/session management pending.
+
+### Follow-ups / known issues
+- Raw game-managed local logs and crash reports can still contain tokens and must never be uploaded without sanitization.
+- A correctly approved Microsoft application registration is required.
+
+---
+
 ## 2026-10-19 — Xbox/XSTS/Minecraft provider exchanges
 
 **Milestone:** v0.3
