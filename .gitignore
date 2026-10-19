@@ -27,6 +27,6 @@ cache/
 .env
 *.local
 
-# Python packaging tools
+# Python packaging and publication tools
 __pycache__/
 *.pyc

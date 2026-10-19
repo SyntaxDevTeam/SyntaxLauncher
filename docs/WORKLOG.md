@@ -8,6 +8,44 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-19 — Integrate updater with concurrent main publication changes
+
+**Milestone:** v0.12 — startup updater; v0.1 — existing Build Explorer publication
+**Author/Agent:** Codex / GPT-6
+**Status:** Completed — merge integration verified locally
+
+### Completed
+- Integrated main commits `422c404` and `4f01065` with updater commit `d6e114f` after a normal push was rejected as non-fast-forward.
+- Preserved the existing Build Explorer publisher/job and the updater release publisher/job, with both Python test suites and the full Gradle verification gate.
+- Resolved adjacent documentation/cache-ignore additions by retaining both bodies of work; preserved historical worklog entries.
+- Temporarily secured pre-existing staged/unstaged Gradle wrapper changes separately from all committed updater/integration files.
+
+### Changed files
+- `.github/workflows/build.yml` — retained both publication jobs and both Python test steps.
+- `.gitignore` — combined Kotlin/Python cache exclusions.
+- `docs/DEVELOPMENT.md` — retained updater and Build Explorer operating instructions.
+- `docs/ROADMAP.md` — retained the upstream verified Build Explorer item and local updater implementation/acceptance status.
+- `docs/WORKLOG.md` — retained both histories and recorded the integration.
+- Upstream `scripts/publish_build_explorer.py` and `tests/test_build_explorer_publish.py` — retained without modification.
+
+### Verification
+- `./gradlew test` — PASS using the cached Gradle 9.8.1 executable while the original wrapper edits were secured; unchanged core/desktop tasks reused their passing results.
+- `./gradlew build` — PASS in the same `--offline test build` invocation.
+- Python update packaging tests — PASS, 2 tests.
+- Python Build Explorer publisher tests — PASS, 5 tests.
+- Workflow YAML/integration checks — PASS; all four jobs, both test suites and scoped publication permissions present.
+- `git diff --check` and conflict-marker checks — PASS.
+
+### Roadmap updates
+- Retained `[x] v0.1 / Build and CI validation / Build Explorer publication`.
+- Retained implemented v0.12 updater checks; hosted update/native acceptance and remaining production gates stay open.
+
+### Follow-ups / known issues
+- No release tag or hosted update acceptance is claimed by this merge. Normal main CI publication remains configured by the upstream changes.
+- Existing user wrapper edits are excluded from updater and merge commits and restored separately.
+
+---
+
 ## 2026-10-19 — Add startup launcher updates with verified side-by-side installs
 
 **Milestone:** v0.12 — startup self-update slice explicitly requested early by the maintainer
@@ -62,6 +100,42 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 - Integrity trust is HTTPS plus this project's GitHub publishing account; this is not an independent release signature. Native signing/notarization and actual platform-specific startup acceptance remain required before production claims.
 - Previous/orphan app images are intentionally retained; no user/game directory or existing installed executable is deleted or replaced. A startup receipt proves initial rendering, not later gameplay stability.
 - Source changes are local and reviewable; existing user Gradle wrapper modifications were not altered or included in this work.
+
+---
+
+## 2026-10-19 — Publish portable applications to Build Explorer
+
+**Milestone:** v0.1 — Build and CI validation (explicit maintainer request)
+**Author/Agent:** Codex
+**Status:** Completed — CI and all three public downloads verified
+
+### Completed
+- Extended the existing three-platform workflow with a dependent publication job.
+- Included desktop tests in the verification gate; pull requests never publish.
+- Added serial uploads with integrity metadata, shared run identity and strict validation of the complete file set.
+- Provisioned the portal project and a repository secret with project-scoped server permissions.
+
+### Changed files
+- `.github/workflows/build.yml` — full tests and publication after the complete platform matrix.
+- `scripts/publish_build_explorer.py` — bounded, authenticated v2 publisher.
+- `tests/test_build_explorer_publish.py` — grouping, channel, integrity, missing/corrupt/oversized input tests.
+- `docs/DEVELOPMENT.md`, `docs/ROADMAP.md`, `docs/WORKLOG.md` — operation and truthful progress.
+
+### Verification
+- `./gradlew test --console=plain build` — PASS; existing compiler/deprecation warnings.
+- `python3 -m unittest discover -s tests -p 'test_*.py'` — PASS, five tests.
+- GitHub PR #9 checks — PASS, core/desktop verification and Windows/macOS/Linux packaging; merged as `422c404cb489449daa52c71ea71f68327b051320`.
+- Main CI [39290313808](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/39290313808) — PASS, tests, three portable applications and Build Explorer publication.
+- Public downloads — PASS, Linux 77,141,160 bytes, macOS 76,868,020 bytes, Windows 70,182,015 bytes; each downloaded SHA-256 matches CI metadata.
+- Portal integration — PASS, three-platform grouping, retries, project scope, checksum rollback, retention denial, attachment downloads and desktop/mobile fallback chooser. Native OS gameplay remains outside this CI task.
+
+### Roadmap updates
+- `[x] v0.1 / Build and CI validation / Build Explorer publication` — real main pipeline and all three downloads verified.
+- Existing native OS acceptance, installer signing and gameplay gates remain open.
+
+### Follow-ups / known issues
+- No automatic launcher self-update or native installer work is included.
+- Each upload becomes visible individually; interrupted publication is recovered by rerunning its CI job.
 
 ---
 

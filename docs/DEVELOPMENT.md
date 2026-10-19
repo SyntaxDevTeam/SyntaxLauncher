@@ -319,3 +319,30 @@ Before merging or finishing a task:
 ## 20. Launcher updates and tagged releases
 
 The maintainer requested the startup self-update slice of v0.12 early. Follow [UPDATING.md](UPDATING.md) when modifying versioning, bundle manifests, cached startup/rollback, the receipt protocol or publishing. Core update logic must remain independent of Compose; use the central downloader. Tests use local ZIP/HTTP/process fixtures and isolated data directories. The explicit `verifyUpdateBundle` task tests a real packaged archive without executing it. Update the product version through `-PlauncherVersion=...`; publish only complete platform releases through a reviewed maintainer version tag. Do not equate a successful fixture test with live hosted cross-platform self-update acceptance.
+
+## Build Explorer publication
+
+The existing build workflow verifies both core and desktop tests and builds portable
+applications for Windows x64, macOS ARM64 and Linux x64. A dependent Linux job
+publishes all three archives to the `syntaxlauncher` project only after the complete
+matrix succeeds. Pull requests never publish or receive the publishing secret.
+
+Repository secret: `BUILD_EXPLORER_TOKEN`. The server stores only its SHA-256 hash
+and limits it to this project, application formats and 90 MiB per file. It cannot
+manage retention or publish to other projects. Rotate with the miniPORTAL CLI
+`bin/issue-build-ci-token.php syntaxlauncher NEW_SECRET_FILE --rotate`, replace
+the repository secret and remove the transfer file. Never commit the token.
+
+Pushes to `main` publish Snapshot builds using the Gradle product version. Tags
+`vX.Y.Z` publish Release builds; prerelease tags publish Snapshot builds. The shared
+GitHub run ID groups platforms into one release; rerunning the same run replaces
+its platform artifacts. Publication is serial, validates all three files first,
+and includes SHA-256, size, commit and OS/architecture metadata. Server-side
+visibility is immediate for each successfully uploaded file; a network failure
+midway can leave a partial release until the job is rerun.
+
+Run `python3 -m unittest discover -s tests -p 'test_*.py'` for publisher tests.
+For metadata-only checks, download the three workflow archives into `dist/` and
+run `python3 scripts/publish_build_explorer.py --dry-run` with the standard GitHub
+run environment. Native installer signing and clean-machine gameplay acceptance
+remain separate roadmap items.
