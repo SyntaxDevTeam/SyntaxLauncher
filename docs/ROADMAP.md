@@ -172,6 +172,8 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 
 ## Build and CI validation
 
+- [ ] 🚧 IN PROGRESS — publish all three portable applications to Build Explorer v2 using a project-scoped CI secret; implementation and local publisher tests pass, real publication pending.
+
 - [x] GitHub Actions run 39125171338 passed `:launcher-core:test` and desktop Kotlin compilation with pinned Gradle 9.4.0 and Temurin JDK 21 on Linux.
 - [x] GitHub Actions run 39125171338 built Compose portable app images for Linux x64, Windows x64 and macOS ARM64, and published permission-preserving platform tar.gz preview artifacts.
 - [x] Official Gradle wrapper 9.4.0 (`gradlew`, `gradlew.bat`, properties, official JAR) generated, executed and committed by a restricted bootstrap GitHub Actions workflow (03d2650).

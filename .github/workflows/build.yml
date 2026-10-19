@@ -28,8 +28,10 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: "9.8.1"
-      - name: Compile and run tests
-        run: gradle --no-daemon --stacktrace :launcher-core:test :launcher-desktop:compileKotlin
+      - name: Compile and run all tests
+        run: gradle --no-daemon --stacktrace test build
+      - name: Test Build Explorer publisher
+        run: python3 -m unittest discover -s tests -p 'test_*.py'
       - name: Upload test evidence
         if: always()
         uses: actions/upload-artifact@v7
@@ -97,3 +99,24 @@ jobs:
           path: syntaxlauncher-${{ matrix.artifact }}.tar.gz
           if-no-files-found: error
           retention-days: 14
+
+
+  publish-build-explorer:
+    name: Publish all platforms to Build Explorer
+    needs: [verify, distributables]
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: syntaxlauncher-*-${{ github.sha }}
+          path: dist
+          merge-multiple: true
+      - name: Publish complete portable build set
+        env:
+          BUILD_EXPLORER_TOKEN: ${{ secrets.BUILD_EXPLORER_TOKEN }}
+        run: python3 scripts/publish_build_explorer.py

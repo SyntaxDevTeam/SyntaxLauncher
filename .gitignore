@@ -25,3 +25,6 @@ cache/
 # Local environment
 .env
 *.local
+
+# Python publisher validation
+__pycache__/
