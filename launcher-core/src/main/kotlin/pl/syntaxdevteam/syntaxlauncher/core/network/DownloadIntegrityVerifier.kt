@@ -29,11 +29,16 @@ class DownloadIntegrityVerifier {
                     }
                 }
 
+            request.expectedSha256?.let { expected ->
+                if (!hash(target, "SHA-256").equals(expected, ignoreCase = true)) return@withContext false
+            }
             true
         }
 
-    internal fun sha1(path: Path): String {
-        val digest = MessageDigest.getInstance("SHA-1")
+    internal fun sha1(path: Path): String = hash(path, "SHA-1")
+
+    private fun hash(path: Path, algorithm: String): String {
+        val digest = MessageDigest.getInstance(algorithm)
         val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
 
         Files.newInputStream(path).buffered().use { input ->

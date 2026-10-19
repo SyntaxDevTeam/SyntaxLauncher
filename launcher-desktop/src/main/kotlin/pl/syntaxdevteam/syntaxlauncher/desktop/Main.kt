@@ -21,12 +21,26 @@ import pl.syntaxdevteam.syntaxlauncher.core.storage.LauncherPaths
 import pl.syntaxdevteam.syntaxlauncher.core.storage.LauncherPreferencesStore
 import pl.syntaxdevteam.syntaxlauncher.core.storage.MinecraftInstallationLayout
 import pl.syntaxdevteam.syntaxlauncher.desktop.ui.SyntaxLauncherApp
+import pl.syntaxdevteam.syntaxlauncher.desktop.ui.StartupUpdateGate
+import pl.syntaxdevteam.syntaxlauncher.core.update.UpdatePlatform
+import pl.syntaxdevteam.syntaxlauncher.core.update.StartupUpdater
+import pl.syntaxdevteam.syntaxlauncher.core.update.GitHubLauncherReleases
+import pl.syntaxdevteam.syntaxlauncher.core.update.LauncherVersion
 
-fun main() {
+fun main(args: Array<String>) {
     val paths = LauncherPaths.resolve()
     val platform = MinecraftPlatform.detect()
     val httpClient = LauncherHttpClientFactory.create()
     val downloader = DownloadManager(httpClient)
+    val updateRoot = paths.dataDir.resolve("launcher-updates")
+    val handoff = DesktopUpdateHandoff.parse(args, updateRoot)
+    val updatePlatform = UpdatePlatform.detect()
+    val updater = if (System.getProperty("jpackage.app-path") != null && updatePlatform != null) {
+        StartupUpdater(
+            GitHubLauncherReleases(httpClient), downloader,
+            updateRoot, paths.cacheDir.resolve("launcher-updates"), updatePlatform,
+            LauncherVersion.parse(LauncherBuildInfo.version))
+    } else null
     val processManager = MinecraftProcessManager(paths.logsDir)
     val session = DesktopLauncherSession(
         versionCatalog = MinecraftVersionCatalog(httpClient),
@@ -66,7 +80,10 @@ fun main() {
             state = WindowState(width = initialWidth, height = initialHeight),
         ) {
             window.minimumSize = java.awt.Dimension(400, 400)
-            SyntaxLauncherApp(session)
+            StartupUpdateGate(updater, handoff,
+                onTransferred = { session.close { exitApplication() } }) {
+                SyntaxLauncherApp(session)
+            }
         }
     }
 }

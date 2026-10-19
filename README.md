@@ -84,7 +84,13 @@ The remaining v0.1 engineering work is complete cross-platform artifact verifica
 
 ## Continuous integration
 
-The [Build and package SyntaxLauncher](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/workflows/build.yml) workflow runs on pushes to `main`, pull requests and manual dispatch. It verifies the core tests and desktop compilation on Java 21, then builds Compose `createDistributable` portable applications for Linux, Windows and macOS. Workflow artifacts contain a tar.gz archive of the runnable app directory for each platform (including executable bits and symlinks); they are not signed native installers. Gradle 9.4.0 is provisioned with `gradle/actions/setup-gradle` until an official committed wrapper is available. CI status must be green before a v0.1 test release is called build-verified. The macOS jpackage bundle uses app-version 1.0.0 because macOS rejects leading-zero versions; the SyntaxLauncher project release milestone remains v0.1. Local developers can use the official committed `./gradlew :launcher-core:test :launcher-desktop:run` (on Windows use `gradlew.bat`). Platform builds use `./gradlew :launcher-desktop:createDistributable`; output is under `launcher-desktop/build/compose/binaries/main/app/`.
+The [Build and package SyntaxLauncher](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/workflows/build.yml) workflow runs on pushes to `main`, pull requests and manual dispatch. It verifies core/desktop tests and compilation plus update packaging fixtures, then builds Compose `createDistributable` portable applications for Linux, Windows and macOS. Workflow artifacts contain a tar.gz archive of the runnable app directory for each platform (including executable bits and symlinks); they are not signed native installers. Platform jobs also emit verified schema-1 update ZIPs; a version-tag-only job uploads all platform update/portable assets to a complete GitHub Release. CI provisions Gradle 9.8.1 explicitly with `gradle/actions/setup-gradle`; local builds use the committed wrapper. CI status must be green before a v0.1 test release is called build-verified. The macOS jpackage bundle uses app-version 1.0.0 because macOS rejects leading-zero versions; the SyntaxLauncher project release milestone remains v0.1. Local developers can use the official committed `./gradlew :launcher-core:test :launcher-desktop:run` (on Windows use `gradlew.bat`). Platform builds use `./gradlew :launcher-desktop:createDistributable`; output is under `launcher-desktop/build/compose/binaries/main/app/`.
+
+## Startup updates
+
+Packaged builds now check the project's stable GitHub Releases before opening the home screen. Eligible updates download with SHA-256 verification, install beside the original application, and become active only after the new window confirms startup. A verified cached version works offline; failed updates preserve the previous launcher, settings and instances. The progress/error screen includes Retry and Continue. IDE/Gradle runs skip automatic updates.
+
+The first build containing the updater must be installed manually. Subsequent releases need the platform-specific update ZIPs and public GitHub asset digests; CI now packages/verifies them and publishes a complete release only for maintainer-created version tags. No release was published during implementation. Hosted old→new and Windows/macOS acceptance remain open. See [startup update behavior, trust model and release instructions](docs/UPDATING.md).
 
 ## Preferences
 
@@ -292,6 +298,7 @@ The canonical UI/UX rules are maintained in [`docs/DESIGN.md`](docs/DESIGN.md).
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — architecture, domain concepts and extension boundaries.
 - [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) — engineering conventions, testing, security and implementation workflow.
 - [`docs/DESIGN.md`](docs/DESIGN.md) — mandatory visual and interaction direction.
+- [`docs/UPDATING.md`](docs/UPDATING.md) — startup update protocol, recovery and publishing.
 - [`docs/WORKLOG.md`](docs/WORKLOG.md) — append-only development journal describing completed work and verification.
 - [`AGENTS.md`](AGENTS.md) — mandatory rules for AI/agent contributors.
 

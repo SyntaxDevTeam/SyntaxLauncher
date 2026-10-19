@@ -8,8 +8,14 @@ data class DownloadRequest(
     val target: Path,
     val expectedSha1: String? = null,
     val expectedSize: Long? = null,
+    val expectedSha256: String? = null,
+    val requestTimeoutMillis: Long? = null,
 ) {
     init {
+        require(requestTimeoutMillis == null || requestTimeoutMillis > 0)
+        require(expectedSha256 == null || expectedSha256.matches(Regex("[a-fA-F0-9]{64}"))) {
+            "Expected SHA-256 must contain exactly 64 hexadecimal digits."
+        }
         require(id.isNotBlank()) { "Download id must not be blank." }
         require(url.isNotBlank()) { "Download URL must not be blank." }
         require(expectedSize == null || expectedSize >= 0L) {
@@ -98,6 +104,7 @@ data class DownloadRetryPolicy(
         when (error) {
             is DownloadNetworkException -> true
             is DownloadIntegrityException -> true
+            is DownloadSha256Exception -> true
             is DownloadSizeMismatchException -> true
             is DownloadHttpException -> error.statusCode in RETRYABLE_HTTP_STATUSES ||
                 error.statusCode in 500..599

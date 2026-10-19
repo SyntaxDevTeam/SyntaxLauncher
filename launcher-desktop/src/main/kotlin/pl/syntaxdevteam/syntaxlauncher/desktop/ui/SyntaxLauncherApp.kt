@@ -80,6 +80,7 @@ import pl.syntaxdevteam.syntaxlauncher.core.minecraft.MinecraftVersionManifest
 import pl.syntaxdevteam.syntaxlauncher.core.minecraft.MinecraftVersionType
 import pl.syntaxdevteam.syntaxlauncher.core.minecraft.ResolvedMinecraftVersion
 import pl.syntaxdevteam.syntaxlauncher.desktop.DesktopLauncherSession
+import pl.syntaxdevteam.syntaxlauncher.desktop.LauncherBuildInfo
 import pl.syntaxdevteam.syntaxlauncher.core.storage.LauncherPreferences
 
 private sealed interface ManifestState {
@@ -187,7 +188,7 @@ fun SyntaxLauncherApp(session: DesktopLauncherSession) {
                 }
                 if (!compactShell) {
                     Spacer(Modifier.weight(1f))
-                    Text("JAVA EDITION   /   v0.3 DEV", color = SyntaxBrand.heroMuted,
+                    Text("JAVA EDITION   /   v${LauncherBuildInfo.version}", color = SyntaxBrand.heroMuted,
                         style = MaterialTheme.typography.labelSmall, letterSpacing = 1.sp)
                 }
             }

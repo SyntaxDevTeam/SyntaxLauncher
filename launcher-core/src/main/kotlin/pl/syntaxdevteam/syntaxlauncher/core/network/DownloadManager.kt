@@ -2,6 +2,7 @@ package pl.syntaxdevteam.syntaxlauncher.core.network
 
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.ResponseException
+import io.ktor.client.plugins.timeout
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsChannel
 import io.ktor.http.isSuccess
@@ -161,7 +162,9 @@ class DownloadManager(
         emitter: SerialDownloadEventEmitter,
     ): DownloadResult {
         val response = try {
-            httpClient.get(request.url)
+            httpClient.get(request.url) {
+                request.requestTimeoutMillis?.let { duration -> timeout { requestTimeoutMillis = duration } }
+            }
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (responseError: ResponseException) {
@@ -180,6 +183,7 @@ class DownloadManager(
 
         val partial = partialPath(request.target)
         val digest = MessageDigest.getInstance("SHA-1")
+        val sha256 = request.expectedSha256?.let { MessageDigest.getInstance("SHA-256") }
         var downloadedBytes = 0L
         var lastReportedBytes = 0L
 
@@ -218,7 +222,11 @@ class DownloadManager(
 
                         output.write(buffer, 0, read)
                         digest.update(buffer, 0, read)
+                        sha256?.update(buffer, 0, read)
                         downloadedBytes += read
+                        request.expectedSize?.let { expected ->
+                            if (downloadedBytes > expected) throw DownloadSizeMismatchException(request.id, expected, downloadedBytes)
+                        }
 
                         if (downloadedBytes - lastReportedBytes >= PROGRESS_INTERVAL_BYTES) {
                             lastReportedBytes = downloadedBytes
@@ -237,6 +245,7 @@ class DownloadManager(
                     request = request,
                     actualSize = downloadedBytes,
                     actualSha1 = digest.digest().toHex(),
+                    actualSha256 = sha256?.digest()?.toHex(),
                 )
                 moveIntoPlace(partial, request.target)
             }
@@ -271,6 +280,7 @@ class DownloadManager(
         request: DownloadRequest,
         actualSize: Long,
         actualSha1: String,
+        actualSha256: String?,
     ) {
         request.expectedSize?.let { expectedSize ->
             if (actualSize != expectedSize) {
@@ -278,6 +288,9 @@ class DownloadManager(
             }
         }
 
+        request.expectedSha256?.let {
+            if (!it.equals(actualSha256, ignoreCase = true)) throw DownloadSha256Exception(request.id)
+        }
         request.expectedSha1
             ?.takeIf(String::isNotBlank)
             ?.let { expectedSha1 ->
@@ -328,6 +341,7 @@ class DownloadManager(
             } else if (
                 existing.url != request.url ||
                 existing.expectedSha1 != request.expectedSha1 ||
+                existing.expectedSha256 != request.expectedSha256 ||
                 existing.expectedSize != request.expectedSize
             ) {
                 throw DownloadTargetConflictException(request.target)

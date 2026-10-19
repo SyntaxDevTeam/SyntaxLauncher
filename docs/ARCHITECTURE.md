@@ -459,6 +459,14 @@ Production polish includes:
 - first-run experience;
 - release pipeline.
 
+### Startup update slice (requested early, October 2026)
+
+The `launcher-core/update` package owns semantic version precedence, the fixed stable GitHub release channel, manifest-driven bundle installation, cached-image validation, update state and startup transaction/receipt handling. It depends on the same HTTP client and download manager as other core services. Updates add SHA-256 verification without changing existing SHA-1 Minecraft contracts.
+
+Desktop composes `StartupUpdateGate` before the home screen. Its state is supplied by `StartupUpdater`; disk/network/process work runs off the UI thread. Packaged builds embed an independent semantic product version through a generated resource. The original packaged executable remains a bootstrap, and new complete application images are installed into user-owned version directories. The running app image and mutable user/game data are never replaced by extraction. A schema-versioned atomic pointer selects the active image only after the child's nonce/version/render receipt. The child bypasses a duplicate check for that one process handoff. A failed new image falls back to a verified installed image where available; process locks guard concurrent bootstrap transactions.
+
+The distribution protocol records per-file hashes, executable flags, directories and safe relative symlinks. CI creates portable first-install archives and protocol ZIPs for the three currently packaged platforms. Published stable releases, rather than every CI build, form the update channel. Full details, verification boundaries and the GitHub account trust model are in [UPDATING.md](UPDATING.md). This explicitly requested v0.12 slice does not complete v0.12 or change earlier milestone release gates.
+
 ## 20. Error model
 
 Prefer typed/domain-specific failures that preserve causes.

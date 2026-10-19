@@ -648,12 +648,18 @@ Goal: prepare the launcher for stable public release.
 
 ## Self-update
 
-- [ ] Define update channel strategy.
-- [ ] Check for launcher updates.
-- [ ] Download update safely.
-- [ ] Verify update artifact integrity/signature as appropriate.
-- [ ] Apply updates atomically/recoverably.
-- [ ] Support rollback/failure recovery strategy where practical.
+**Explicit early delivery request (19 October 2026):** implement this v0.12 slice during current launcher development. Other v0.12 features and existing release gates remain unchanged. See [UPDATING.md](UPDATING.md).
+
+- [x] Define update channel strategy: public stable GitHub Releases from this project; SemVer ordering excludes drafts/prereleases and prevents automatic downgrade.
+- [x] Implement pre-home packaged startup checks, bounded network checks and Retry/Continue UI; development runs bypass execution. Mocked HTTP and Compose receipt/recovery tests pass.
+- [x] Download through the shared client/downloader with SHA-256, length verification, cancellation, retries, `.part` staging and cached archive revalidation.
+- [x] Verify GitHub release asset digest and per-file manifest SHA-256; reject wrong platform/version, unsafe paths/links, duplicate/extra ZIP entries and oversized packages.
+- [x] Install app images beside the original, reuse verified images, repair into a fresh stage and atomically publish installation/state; a matching child startup receipt activates the image. Local Linux full-bundle extraction/revalidation passes.
+- [x] Preserve active/previous state and original executable, terminate failed/timed-out children and fall back to a verified cached application; tested with a real Java child plus failure/cancellation/offline fixtures.
+- [x] Generate consistent semantic build metadata, manifest-driven update ZIPs and an explicit full-bundle verification task; Python fixture tests pass.
+- [ ] 🚧 IN PROGRESS — CI now runs desktop tests and packages/verifies all three update bundles, then publishes complete six-asset releases only for version tags. Hosted workflow/tag publication and native Windows/macOS acceptance are not yet executed for this change.
+- [ ] Live old→new GitHub-hosted update, original-shortcut relaunch, offline/cancel/failed-child recovery, native permissions/trust and user-data continuity on Windows/Linux/macOS.
+- [ ] Release signing/notarization and cache/old-version cleanup policy before production distribution; current integrity trust is the project's HTTPS GitHub publishing account.
 
 ## Reliability
 

@@ -182,6 +182,10 @@ Panels use restrained `#0C2444 → #08192E` depth, with `#135582` outlines. The 
 - Compact hero typography avoids text collisions. Below 760 dp of content width, stack the hero/Play and setup panel with a visible page scrollbar; otherwise keep Play visible and scroll the setup panel independently. Very short windows scroll the page as well. The minimum native window is 400 × 400. Never make unsupported future features appear as active navigation.
 - Optimized JPEG/PNG resources load locally via painterResource without network access, runtime blur, repeated animation or dynamic downloads. Shared vector icons, 18 dp panel radii, 9 dp field radii and typography live in `SyntaxTheme.kt` / `SyntaxComponents.kt`. Account setup details belong behind the Player information action, keeping the normal launch screen concise.
 
+### Startup update screen
+
+Packaged startup uses the same brand palette and responsive block/arrow logo on a quiet background. Show one short phase message, indeterminate/proportional progress, and a secondary Continue action. Errors show an actionable summary with Retry and Continue. Continue cancels checking/downloading/extraction; disable it during child process handoff to prevent launching two home screens. Keep technical metadata out of this screen and keep file/network work on background dispatchers. Only compose the main home after continuing, finding no update, or receiving a verified child startup. Rendered recovery states and a real Compose startup receipt are part of regression coverage.
+
 ## 8. Typography
 
 Typography should carry a substantial part of the interface hierarchy.

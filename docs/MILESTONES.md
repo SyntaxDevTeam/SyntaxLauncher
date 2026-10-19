@@ -441,6 +441,8 @@ Convert a feature-complete pre-release into software suitable for stable distrib
 
 The launcher needs a safe self-update mechanism with integrity validation and failure recovery appropriate to the chosen packaging strategy.
 
+**Explicit early scope requested on 19 October 2026:** implement the startup updater during current development: stable GitHub release checks, SHA-256 verified side-by-side application installation, startup receipts and previous-version recovery. See [UPDATING.md](UPDATING.md). This narrow request does not advance unrelated v0.12 features or waive real hosted/cross-platform acceptance.
+
 ### CI/CD scope
 
 Automated tests and release builds must run in CI, with versioned release artifacts and a repeatable release process.

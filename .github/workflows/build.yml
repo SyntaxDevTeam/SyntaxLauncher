@@ -29,7 +29,9 @@ jobs:
         with:
           gradle-version: "9.8.1"
       - name: Compile and run tests
-        run: gradle --no-daemon --stacktrace :launcher-core:test :launcher-desktop:compileKotlin
+        run: gradle --no-daemon --stacktrace test build
+      - name: Test update packaging protocol
+        run: python3 -m unittest discover -s scripts -p "test_*.py"
       - name: Upload test evidence
         if: always()
         uses: actions/upload-artifact@v7
@@ -39,6 +41,7 @@ jobs:
             launcher-core/build/test-results/**
             launcher-core/build/reports/tests/**
             launcher-desktop/build/reports/**
+            launcher-desktop/build/test-results/**
           if-no-files-found: ignore
           retention-days: 14
 
@@ -66,8 +69,17 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: "9.8.1"
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
       - name: Build runnable native app directory
-        run: gradle --no-daemon --stacktrace :launcher-desktop:createDistributable
+        shell: bash
+        run: |
+          version="0.3.0-dev"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then version="${GITHUB_REF_NAME#v}"; fi
+          gradle --no-daemon --stacktrace "-PlauncherVersion=$version" :launcher-desktop:createDistributable
+          python scripts/package_update.py --source launcher-desktop/build/compose/binaries/main/app --platform "${{ matrix.artifact }}" --version "$version" --output "launcher-desktop/build/updates/syntaxlauncher-update-${{ matrix.artifact }}.zip"
+          gradle --no-daemon --stacktrace "-PlauncherVersion=$version" "-PupdateBundle=build/updates/syntaxlauncher-update-${{ matrix.artifact }}.zip" :launcher-desktop:verifyUpdateBundle
       - name: Show jpackage diagnostics on failure
         if: failure()
         shell: bash
@@ -97,3 +109,54 @@ jobs:
           path: syntaxlauncher-${{ matrix.artifact }}.tar.gz
           if-no-files-found: error
           retention-days: 14
+
+      - name: Upload verified update bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: syntaxlauncher-update-${{ matrix.artifact }}
+          path: launcher-desktop/build/updates/*.zip
+          if-no-files-found: error
+          retention-days: 14
+
+  publish-release:
+    name: Publish complete tagged release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: distributables
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: syntaxlauncher-update-*
+          path: release-assets
+          merge-multiple: true
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: syntaxlauncher-*-${{ github.sha }}
+          path: release-assets
+          merge-multiple: true
+      - name: Publish all platform updates together
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f release-assets/syntaxlauncher-update-linux-x64.zip
+          test -f release-assets/syntaxlauncher-update-windows-x64.zip
+          test -f release-assets/syntaxlauncher-update-macos-arm64.zip
+          test -f release-assets/syntaxlauncher-linux-x64.tar.gz
+          test -f release-assets/syntaxlauncher-windows-x64.tar.gz
+          test -f release-assets/syntaxlauncher-macos-arm64.tar.gz
+          if gh release view "$GITHUB_REF_NAME" --json isDraft > existing-release.json 2>/dev/null; then
+            python3 -c 'import json; assert json.load(open("existing-release.json"))["isDraft"], "Refusing to replace a published release"'
+          else
+            gh release create "$GITHUB_REF_NAME" --verify-tag --draft --generate-notes --title "SyntaxLauncher $GITHUB_REF_NAME"
+          fi
+          gh release upload "$GITHUB_REF_NAME" release-assets/*.zip release-assets/*.tar.gz --clobber
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then
+            gh release edit "$GITHUB_REF_NAME" --draft=false --prerelease
+          else
+            gh release edit "$GITHUB_REF_NAME" --draft=false --latest
+          fi

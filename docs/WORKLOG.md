@@ -8,6 +8,63 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-19 — Add startup launcher updates with verified side-by-side installs
+
+**Milestone:** v0.12 — startup self-update slice explicitly requested early by the maintainer
+**Author/Agent:** Codex / GPT-6
+**Status:** Partial — implementation/local verification complete; hosted publication and native Windows/macOS acceptance remain open
+
+### Completed
+- Added a UI-independent update service that checks this project's stable public GitHub Releases before composing the launcher home. Uses semantic version ordering, owned HTTPS platform asset paths, GitHub SHA-256 digests, short check timeouts and the shared HTTP/download services.
+- Extended the common downloader with optional SHA-256 and per-request timeout support, cache revalidation, oversized-response rejection and unchanged existing SHA-1 Minecraft support.
+- Added schema-1 manifest-driven ZIP installation with archive/per-file SHA-256, fixed OS/CPU executable identity, executable bits, safe relative symlinks, archive/path/case/size validation, disk-space preflight and cancellable private staging. The real Linux package was installed and fully revalidated.
+- Kept the original application and all user data untouched; installed complete launcher images beside each other in user-owned storage. Valid cached images are reused, corrupt images can be repaired into a fresh directory, and previous/orphan directories are retained.
+- Added a cross-process update lock and atomic schema-versioned active/previous state, preserving unknown properties and refusing unknown schemas without rewriting them.
+- Implemented startup receipts: the child validates the single-use destination/nonce, renders Compose content, and reports its embedded version after two frames. The bootstrap activates only a matching ready child. Failed/timed-out/cancelled children are terminated; failed new installs/starts fall back to a verified active version when available. Offline cached startup is covered.
+- Added a branded checking/download/install/start screen with progress, Retry/Continue, actionable errors and protected process handoff. Gradle/IDE runs bypass automatic execution; packaged jpackage applications enable it.
+- Generated build-time semantic version metadata (`-PlauncherVersion`), displayed the actual version in the header, and added a standalone full-bundle verification task that installs/revalidates without starting downloaded code.
+- Added stdlib Python update packaging with file hashes, executable flags and symlink metadata. CI now runs desktop tests and package fixtures, builds/verifies all three update bundles and, for maintainer-pushed version tags only, publishes a complete draft-to-public release with update ZIPs and first-install portable archives. Published releases are not overwritten on rerun.
+- Documented the updater trust model, first manual installation requirement, release process, recovery behavior and remaining native acceptance. This requested slice does not advance unrelated milestones or waive their quality gates.
+
+### Changed files
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/update/LauncherRelease.kt` — SemVer, platform mapping and stable GitHub release checks.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/update/UpdateBundleInstaller.kt` — safe staged installs, cache repair and per-file revalidation.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/update/StartupUpdater.kt` — update lifecycle, process receipt, locking, fallback and atomic state.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/network/DownloadModels.kt`, `DownloadManager.kt`, `DownloadIntegrityVerifier.kt`, `DownloadExceptions.kt` — SHA-256, length bounds and update download timeout.
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/update/LauncherUpdateTest.kt` — release, integrity, filesystem, real-child, fallback, cancellation and offline regressions.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/DesktopStartupUpdate.kt`, `Main.kt`, `ui/StartupUpdateGate.kt`, `ui/SyntaxLauncherApp.kt` — build identity, packaged startup gate, receipt and UI.
+- `launcher-desktop/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/StartupUpdateScreenTest.kt`, `StartupHandoffTest.kt` — rendered states/actions and real Compose startup receipt.
+- `launcher-desktop/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/update/UpdateBundleSmoke.kt`, `launcher-desktop/build.gradle.kts` — consistent build resource and explicit real-bundle verification.
+- `scripts/package_update.py`, `scripts/test_package_update.py`, `.github/workflows/build.yml`, `.gitignore` — package protocol, CI/publishing, local Kotlin/Python cache exclusions.
+- `docs/UPDATING.md`, `README.md`, `docs/ARCHITECTURE.md`, `docs/DEVELOPMENT.md`, `docs/DESIGN.md`, `docs/MILESTONES.md`, `docs/ROADMAP.md`, `docs/WORKLOG.md` — protocol, early scope, UX, release/acceptance and progress.
+
+### Verification
+- `./gradlew test` — PASS, final offline build invocation; 78 core + 6 desktop tests, zero failures/errors/skips. Includes existing regressions, fifteen new core update tests, update UI states and rendered child receipts.
+- `./gradlew build` — PASS in the same invocation; configuration-cache-compatible build-info task also verified in separate cached invocations.
+- `python3 -m unittest discover -s scripts -p 'test_*.py'` — PASS (2 tests).
+- `./gradlew --no-configuration-cache :launcher-desktop:createDistributable` — PASS for Linux x64. Initially missing Compose runtime-probe tooling in the offline cache was fetched through Gradle; subsequent offline packaging passed.
+- `scripts/package_update.py` and `:launcher-desktop:verifyUpdateBundle` — PASS on the real approximately 74 MiB Linux archive: staged extraction, all file/link/permission checks and cached-image revalidation.
+- `git diff --check` — PASS. Workflow YAML parsed and expected jobs validated locally; hosted Actions execution is not claimed.
+- Visual verification — inspected actual Compose startup checking/error renders; compact state/actions tested at 440 × 600. Core tests use isolated temporary state, mocked metadata/downloads and an actual local Java child; they never execute internet-downloaded code.
+- Public latest release endpoint — HTTP 404 on 19 October 2026; no public stable release response available. A private/unavailable repo or absent stable release must not be confused with successful live update validation.
+- Live GitHub old→new release, actual native child relaunch from a downloaded production release, Windows/macOS packaging/trust/permissions and user-data continuity — NOT RUN; these explicit gates remain open.
+
+### Roadmap updates
+- `[x] v0.12 / Self-update / Stable channel, SemVer, startup checks and UI`.
+- `[x] v0.12 / Self-update / Shared verified downloads and bounded manifest installation`.
+- `[x] v0.12 / Self-update / Atomic side-by-side publication, startup receipt, previous-version preservation/fallback`.
+- `[x] v0.12 / Self-update / Build metadata, protocol packager and explicit real-bundle verification`.
+- `[ ] v0.12 / Self-update / Hosted tagged release pipeline, live update and native cross-platform acceptance` — remains open.
+- `[ ] v0.12 / Production / Release signing/notarization and old-version cleanup policy` — remains open. Full v0.12 is not complete.
+
+### Follow-ups / known issues
+- The first build containing the updater must be installed manually; old launcher binaries have no code to discover this feature. Public stable releases with all expected assets/digests are needed for the token-free channel. No release/tag was created.
+- Integrity trust is HTTPS plus this project's GitHub publishing account; this is not an independent release signature. Native signing/notarization and actual platform-specific startup acceptance remain required before production claims.
+- Previous/orphan app images are intentionally retained; no user/game directory or existing installed executable is deleted or replaced. A startup receipt proves initial rendering, not later gameplay stability.
+- Source changes are local and reviewable; existing user Gradle wrapper modifications were not altered or included in this work.
+
+---
+
 ## 2026-10-19 — Make the launcher logo respond to measured layout space
 
 **Milestone:** v0.1 — UI visual foundation

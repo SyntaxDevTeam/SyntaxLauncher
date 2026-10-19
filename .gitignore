@@ -1,5 +1,6 @@
 # Gradle
 .gradle/
+.kotlin/
 **/build/
 
 # IntelliJ IDEA
@@ -25,3 +26,7 @@ cache/
 # Local environment
 .env
 *.local
+
+# Python packaging tools
+__pycache__/
+*.pyc

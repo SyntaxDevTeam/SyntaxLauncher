@@ -32,6 +32,10 @@ class DownloadIntegrityException(
     "SHA-1 mismatch for '$downloadId': expected $expectedSha1, got $actualSha1.",
 )
 
+class DownloadSha256Exception(downloadId: String) : DownloadException(
+    "SHA-256 mismatch for '$downloadId'. The downloaded update was rejected.",
+)
+
 class DownloadSizeMismatchException(
     downloadId: String,
     expectedSize: Long,

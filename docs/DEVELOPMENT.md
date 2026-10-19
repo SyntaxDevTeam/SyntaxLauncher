@@ -314,3 +314,8 @@ Before merging or finishing a task:
 - [ ] `docs/ROADMAP.md` updated precisely.
 - [ ] `docs/WORKLOG.md` entry appended.
 - [ ] Remaining limitations/follow-ups documented.
+
+
+## 20. Launcher updates and tagged releases
+
+The maintainer requested the startup self-update slice of v0.12 early. Follow [UPDATING.md](UPDATING.md) when modifying versioning, bundle manifests, cached startup/rollback, the receipt protocol or publishing. Core update logic must remain independent of Compose; use the central downloader. Tests use local ZIP/HTTP/process fixtures and isolated data directories. The explicit `verifyUpdateBundle` task tests a real packaged archive without executing it. Update the product version through `-PlauncherVersion=...`; publish only complete platform releases through a reviewed maintainer version tag. Do not equate a successful fixture test with live hosted cross-platform self-update acceptance.
