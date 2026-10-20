@@ -90,6 +90,23 @@ class MinecraftInstanceRepository(
     }
 
 
+    /** Inspect one existing instance; read-only access is allowed while Minecraft runs. */
+    suspend fun get(id: String): MinecraftInstance = withContext(Dispatchers.IO) {
+        mutex.withLock { read(instanceDirectory(id)) }
+    }
+
+    /** Hold the same cross-process lock used by launch, clone and instance settings mutations. */
+    suspend fun <T> withInactiveInstance(
+        id: String,
+        action: suspend (MinecraftInstance) -> T,
+    ): T = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            activity.withInactive(id) {
+                action(read(instanceDirectory(id)))
+            }
+        }
+    }
+
     fun gameDirectory(instance: MinecraftInstance): Path =
         instanceDirectory(instance.id).resolve("game")
 
