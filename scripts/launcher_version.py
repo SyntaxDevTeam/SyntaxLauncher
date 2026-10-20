@@ -12,9 +12,9 @@ SEMVER = re.compile(
 )
 
 
-def read_launcher_version(path=VERSION_FILE):
-    """Fail closed on absent/duplicated/invalid Gradle properties."""
-    properties = Path(path).read_text(encoding="utf-8").splitlines()
+def parse_launcher_version(properties_text: str):
+    """Validate version from the current or a historical gradle.properties file."""
+    properties = properties_text.splitlines()
     matches = [line.split("=", 1)[1].strip() for line in properties
                if re.match(r"^\s*launcherVersion\s*=", line)]
     if len(matches) != 1:
@@ -28,6 +28,11 @@ def read_launcher_version(path=VERSION_FILE):
                           for part in prerelease.split(".")):
         raise ValueError("Numeric SemVer prerelease identifiers must not have leading zeroes")
     return version
+
+
+def read_launcher_version(path=VERSION_FILE):
+    """Fail closed on absent/duplicated/invalid Gradle properties."""
+    return parse_launcher_version(Path(path).read_text(encoding="utf-8"))
 
 
 def validate_git_ref(version, ref):
