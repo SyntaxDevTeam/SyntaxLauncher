@@ -60,7 +60,8 @@ class FabricLoaderProvider(private val http: HttpClient) : ModLoaderProvider {
 object FabricProfileParser {
     private val coordinate = Regex("""[A-Za-z0-9_.-]+:[A-Za-z0-9_.-]+:[A-Za-z0-9_.+~-]+""")
     private val allowedHosts = setOf(
-        "maven.fabricmc.net", "libraries.minecraft.net", "repo.maven.apache.org", "repo1.maven.org"
+        "maven.fabricmc.net", "maven.quiltmc.org", "libraries.minecraft.net",
+        "repo.maven.apache.org", "repo1.maven.org"
     )
 
     fun parseVersions(payload: String): List<ModLoaderVersion> {

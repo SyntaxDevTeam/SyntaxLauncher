@@ -35,5 +35,5 @@ class ModLoaderRegistry(providers: List<ModLoaderProvider>) {
         if (selected == null) base else provider(selected.id).resolve(base, selected.version)
 
     private fun provider(id: String): ModLoaderProvider =
-        providersById[id] ?: throw ModLoaderException("Unsupported loader '$id'. Choose Vanilla or Fabric.")
+        providersById[id] ?: throw ModLoaderException("Unsupported loader '$id'. Select a registered loader or Vanilla.")
 }
