@@ -38,7 +38,6 @@ class InstallerProfileInspector {
     private val json = Json { ignoreUnknownKeys = true }
     private val coordinate = Regex("[A-Za-z0-9_.-]+:[A-Za-z0-9_.-]+:[A-Za-z0-9._+~-]+(:[A-Za-z0-9_.-]+)?")
     private val safeEntry = Regex("[A-Za-z0-9_./+-]{1,200}")
-    private val safeLiteral = Regex("[A-Za-z0-9_:\\-./+{}\\[\\]'\",=;$ ]{1,500}")
 
     fun inspect(jar: Path, requestedGameVersion: String): InstallerProfileInspection {
         require(Files.isRegularFile(jar, LinkOption.NOFOLLOW_LINKS) &&

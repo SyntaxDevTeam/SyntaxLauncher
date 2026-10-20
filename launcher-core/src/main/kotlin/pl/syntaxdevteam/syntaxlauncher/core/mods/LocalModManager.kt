@@ -271,9 +271,11 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
                         records[item.replacement.fileName] = item.replacement
                     }
                     managedStore.save(game, records.values)
+                    val inventory = inspect(instance)
                     backupStore.complete(backup)
-                    inspect(instance)
+                    inventory
                 } catch (failure: Throwable) {
+                    Files.deleteIfExists(backup.resolve("complete"))
                     if (changed) {
                         published.forEach { Files.deleteIfExists(it) }
                         oldPaths.forEachIndexed { index, target ->
@@ -337,8 +339,9 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
                         restored[it.previous.fileName] = it.previous
                     }
                     managedStore.save(game, restored.values)
+                    val inventory = inspect(instance)
                     Files.delete(folder.resolve("complete"))
-                    inspect(instance)
+                    inventory
                 } catch (failure: Throwable) {
                     replaced.forEach { (old, _) -> Files.deleteIfExists(old) }
                     receipt.items.forEachIndexed { index, item ->
@@ -455,7 +458,7 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
         identifiers.forEach { (id, paths) ->
             if (paths.size > 1) warnings += "Duplicate enabled mod id '$id': ${paths.joinToString()}"
         }
-        val builtin = setOf("minecraft", "java", "fabricloader", "fabric")
+        val builtin = setOf("minecraft", "java", "fabricloader", "fabric", "quilt_loader", "quilted_fabric_api")
         active.forEach { mod ->
             val data = mod.metadata ?: return@forEach
             data.depends.keys.filter { it !in builtin && it !in identifiers.keys }

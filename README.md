@@ -2,7 +2,7 @@
 
 SyntaxLauncher is a modern Minecraft launcher from SyntaxDevTeam, written primarily in Kotlin and developed incrementally from a minimal vanilla launcher into a modular launcher with premium authentication, isolated instances, mod loaders, Modrinth integration, modpacks and diagnostics.
 
-The project has an implemented v0.2 Instance Manager and has reached **v0.4 Fabric loader development**, while Microsoft app approval and v0.3 real-account acceptance remain pending. The Kotlin/Compose launcher now connects the offline account, Mojang metadata, verified game preparation, automatic Java runtime installation, metadata-driven LaunchPlan and MinecraftProcessManager to an actual desktop Play workflow. A real clean-machine Minecraft launch is not yet verified.
+The project has implemented a v0.2 Instance Manager, reached **v0.6 Modrinth development** and begun v0.7/v0.8 loader work. NeoForge/Forge official version discovery and installer preflight are implemented, but executing installer processors is not; Quilt Meta profile integration has been added. Microsoft app approval, v0.3 real-account acceptance and real Minecraft startup verification remain pending. The Kotlin/Compose launcher now connects the offline account, Mojang metadata, verified game preparation, automatic Java runtime installation, metadata-driven LaunchPlan and MinecraftProcessManager to an actual desktop Play workflow. A real clean-machine Minecraft launch is not yet verified.
 
 ## Project philosophy
 

@@ -8,6 +8,43 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-20 — Forge-family installer preflight, Quilt metadata and rollback safety
+
+**Milestone:** v0.6, v0.7 and v0.8  
+**Author/Agent:** GPT-6  
+**Status:** Partial — code pushed; final hosted CI and Minecraft acceptance pending
+
+### Completed
+- Added a read-only version-2 Forge/NeoForge JAR inspector for install_profile.json, version.json, required Maven libraries, client-side processor descriptions and embedded data keys.
+- Rejected malformed/oversized archives, unsafe artifacts, missing client processors and cross-Minecraft version profiles rather than attempting unsupported launch.
+- Added synthetic installer archive tests, Modrinth transactional update tests, and Quilt mod descriptor tests.
+- Added quilt.mod.json metadata parsing for local Quilt instance JAR management.
+- Improved rollback ordering to avoid retaining a completed-update marker when post-install validation fails.
+
+### Changed files
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/loader/InstallerProfileInspector.kt`
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/loader/InstallerProfileInspectorTest.kt`
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/mods/LocalModManager.kt`
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/mods/LocalModManagerTest.kt`, `ModrinthUpdateTransactionsTest.kt`
+- `README.md`, `docs/ROADMAP.md`, `docs/WORKLOG.md`
+
+### Verification
+- Previous complete CI run for `67a4092`: Gradle tests and all three OS packages **PASS**, but that commit predates Quilt metadata and installer inspector.
+- Current `./gradlew test` and `./gradlew build`: NOT RUN locally; verify current GitHub Actions run.
+- Live game launch and graphical interaction: NOT RUN; no v0.7/v0.8 quality gate closed.
+
+### Roadmap updates
+- NeoForge and Forge metadata/parser tasks 🚧, processor execution still open.
+- Quilt selection/profile and local metadata tasks 🚧, manual game launch acceptance still open.
+- Modrinth transactional updates/rollback 🚧, crash-resume journal and advanced dependency resolution still open.
+
+### Follow-ups / known issues
+- NeoForge/Forge client processors remain unimplemented; neither loader is exposed as playable.
+- Real Quilt client installation/startup must be tested on targeted systems; v0.8 is not complete.
+- Verify process-crash interruption recovery for Modrinth replace/rollback, beyond exception-safe in-process recovery.
+
+---
+
 ## 2026-10-20 — Quilt loader integration and Forge-family discovery
 
 **Milestone:** v0.7 NeoForge / v0.8 Forge and Quilt  

@@ -507,7 +507,7 @@ Goal: add a second major loader and prove the loader architecture is genuinely r
 ## NeoForge provider
 
 - [ ] 🚧 IN PROGRESS — Discover official NeoForge Maven versions; processor installation and actual launch remain unimplemented.
-- [ ] Parse/install NeoForge metadata/processors as required.
+- [ ] 🚧 IN PROGRESS — Inspect NeoForge installer V2 metadata and list client processors in read-only preflight; execution/generated artifacts remain open.
 - [ ] Resolve required libraries.
 - [ ] Integrate generated/processed artifacts safely.
 - [ ] Store NeoForge loader state in instance metadata.
@@ -534,7 +534,7 @@ Goal: broaden loader support while preserving historical-version compatibility d
 ## Forge
 
 - [ ] 🚧 IN PROGRESS — Discover official Forge Maven versions; processor installation and actual launch remain unimplemented.
-- [ ] Support required Forge installation metadata/processors for targeted Minecraft ranges.
+- [ ] 🚧 IN PROGRESS — Inspect modern Forge installer V2 metadata/processor inputs in read-only preflight; no processor execution yet.
 - [ ] Document exact supported Minecraft/Forge range if universal support is not practical.
 - [ ] Launch Forge through common pipeline.
 - [ ] Integrate Forge mod metadata handling.
@@ -542,11 +542,11 @@ Goal: broaden loader support while preserving historical-version compatibility d
 
 ## Quilt
 
-- [ ] Discover compatible Quilt versions.
-- [ ] Install Quilt metadata/libraries.
-- [ ] Launch Quilt through common pipeline.
-- [ ] Parse Quilt mod metadata where relevant.
-- [ ] Integrate Modrinth Quilt filtering.
+- [ ] 🚧 IN PROGRESS — Quilt Meta v3 loader version discovery through common registry; hosted CI and manual verification pending.
+- [ ] 🚧 IN PROGRESS — Merge official Quilt launcher profile/libraries into shared metadata/download path; manual acceptance pending.
+- [ ] 🚧 IN PROGRESS — Quilt registered in shared launch pipeline; actual game startup unverified.
+- [ ] 🚧 IN PROGRESS — Inspect quilt.mod.json IDs/versions/direct requirements; complex dependency semantics and client acceptance open.
+- [ ] 🚧 IN PROGRESS — Existing version/loader Modrinth filter and verified install enabled for Quilt; client acceptance pending.
 
 ## Historical compatibility
 
