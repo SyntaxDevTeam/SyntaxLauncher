@@ -89,6 +89,72 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
             }
         }
 
+    /**
+     * Commit a fully downloaded dependency set as a single instance-locked batch.
+     * All filenames, archives, hashes and collisions are checked before the first published JAR.
+     * Failure rolls back only files created by this operation; pre-existing user files are never replaced.
+     */
+    suspend fun importBatch(instanceId: String, sources: List<Path>): LocalModInventory =
+        withContext(Dispatchers.IO) {
+            require(sources.isNotEmpty() && sources.size <= 32) { "Invalid Modrinth batch size." }
+            instances.withInactiveInstance(instanceId) { instance ->
+                require(instance.loader?.id == "fabric") { "Only Fabric installation is available." }
+                val mods = modsDirectory(instance, create = true)
+                val names = sources.map { it.fileName.toString() }
+                require(names.distinct().size == names.size && names.all(::validJarName)) {
+                    "Duplicate or unsafe mod filename in download plan."
+                }
+                names.forEach { name ->
+                    check(!Files.exists(mods.resolve(name), LinkOption.NOFOLLOW_LINKS) &&
+                        !Files.exists(mods.resolve("$name.disabled"), LinkOption.NOFOLLOW_LINKS)) {
+                        "The instance already contains $name; no files were changed."
+                    }
+                }
+                val existing = inspect(instance).mods
+                val staging = mods.resolve(".batch-" + UUID.randomUUID())
+                Files.createDirectory(staging)
+                val published = mutableListOf<Path>()
+                try {
+                    val hashes = mutableListOf<String>()
+                    val ids = mutableListOf<String>()
+                    sources.forEachIndexed { index, source ->
+                        require(Files.isRegularFile(source, LinkOption.NOFOLLOW_LINKS)) {
+                            "Unsafe or missing downloaded JAR."
+                        }
+                        require(Files.size(source) in 1..maximumJarBytes) { "Downloaded mod size is invalid." }
+                        val target = staging.resolve(names[index])
+                        Files.copy(source, target)
+                        val info = readMetadata(target)
+                        info?.id?.let(ids::add)
+                        hashes += sha256(target)
+                    }
+                    require(hashes.distinct().size == hashes.size &&
+                        hashes.none { incoming -> existing.any { it.sha256 == incoming } }) {
+                        "A downloaded mod duplicates an already installed JAR."
+                    }
+                    require(ids.distinct().size == ids.size &&
+                        ids.none { incoming -> existing.any { it.metadata?.id == incoming } }) {
+                        "A mod ID already exists in the target instance."
+                    }
+                    names.forEach { name ->
+                        val target = mods.resolve(name)
+                        check(!Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
+                            "A mod appeared during installation; aborting."
+                        }
+                        move(staging.resolve(name), target)
+                        published.add(target)
+                    }
+                    inspect(instance)
+                } catch (failure: Throwable) {
+                    published.forEach { Files.deleteIfExists(it) }
+                    throw failure
+                } finally {
+                    names.forEach { Files.deleteIfExists(staging.resolve(it)) }
+                    Files.deleteIfExists(staging)
+                }
+            }
+        }
+
     suspend fun setEnabled(instanceId: String, fileName: String, enabled: Boolean): LocalModInventory =
         withContext(Dispatchers.IO) {
             instances.withInactiveInstance(instanceId) { instance ->
