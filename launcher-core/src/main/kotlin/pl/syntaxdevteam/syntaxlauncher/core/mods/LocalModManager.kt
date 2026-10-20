@@ -111,13 +111,10 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
         withContext(Dispatchers.IO) {
             instances.withInactiveInstance(instanceId) { instance ->
                 val mods = modsDirectory(instance)
-                val base = requireFileName(fileName)
-                val from = mods.resolve(base).takeIf {
-                    Files.isRegularFile(it, LinkOption.NOFOLLOW_LINKS)
-                } ?: mods.resolve("$base.disabled").also {
-                    require(Files.isRegularFile(it, LinkOption.NOFOLLOW_LINKS)) {
-                        "Mod no longer exists or is not a regular file."
-                    }
+                requireFileName(fileName)
+                val from = mods.resolve(fileName)
+                require(Files.isRegularFile(from, LinkOption.NOFOLLOW_LINKS)) {
+                    "Mod no longer exists or is not a regular file."
                 }
                 val trash = instances.gameDirectory(instance).resolve(".syntaxlauncher-mod-trash")
                 require(!Files.isSymbolicLink(trash)) { "Unsafe mod trash directory." }

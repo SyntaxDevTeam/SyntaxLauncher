@@ -8,6 +8,42 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-20 — Begin v0.5 instance-local Fabric mod management
+
+**Milestone:** v0.5 — Local Mod Manager  
+**Author/Agent:** GPT-6  
+**Status:** Partial — source pushed to main; CI and real game acceptance pending
+
+### Completed
+- Added a UI-independent local JAR manager reading optional Fabric mod metadata, computing SHA-256 and warning about duplicate active IDs, missing declared dependencies and conflicts.
+- Implemented atomic, non-overwriting import from a user-selected JAR, a reversible enable/disable filename change, and a remove-to-private-trash operation.
+- Kept writes scoped to one instance and synchronized with the repository's existing cross-process activity lock. Rejected symlinked mods locations and archive/filename traversal.
+- Connected a scrollable Compose mod dialog and local file picker to Fabric instance management; future online downloads remain in v0.6.
+- Added deterministic tests for imports, reversibility, metadata, missing dependencies, duplicates and Vanilla isolation.
+- Maintainer explicitly deferred v0.4 manual tests; none were marked passed.
+
+### Changed files
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/mods/LocalModManager.kt` — local mod service and metadata diagnostics.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/instance/MinecraftInstanceRepository.kt` — guarded instance mutation access.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/{DesktopLauncherSession.kt,ui/InstanceWorkspace.kt,ui/SyntaxLauncherApp.kt,ui/LocalModsDialog.kt}` — UI and wiring.
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/mods/LocalModManagerTest.kt` — regression tests.
+- `README.md`, `docs/ROADMAP.md`, `docs/TESTING_V0.5.md`, `docs/WORKLOG.md` — documentation.
+
+### Verification
+- `./gradlew test` — NOT RUN locally; GitHub Actions pending.
+- `./gradlew build` — NOT RUN locally; CI pending.
+- Manual Minecraft startup, Fabric mod load and cross-platform GUI checks — NOT RUN (deferred).
+
+### Roadmap updates
+- `[ ]` v0.5 implementation items are marked 🚧 until tests and acceptance pass.
+- `[ ]` v0.4 real client and desktop verification stay outstanding.
+
+### Follow-ups / known issues
+- Review CI, fix failures and reconcile passing automated checkpoints in roadmap.
+- Run live Fabric with enabled/disabled local mods; validate interaction with other Fabric instances and Vanilla.
+- Extend metadata matching/version range handling and pre-launch dependency warnings without hiding optional/unknown states.
+- Confirm user-supplied local mod JAR provenance; enabled mods run third-party code in Minecraft.
+
 ## 2026-10-19 — Verify Fabric v0.4 implementation across CI platforms
 
 **Milestone:** v0.4 — Fabric Loader

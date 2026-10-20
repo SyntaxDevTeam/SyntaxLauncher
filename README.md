@@ -58,6 +58,22 @@ occur on the first Fabric launch rather than when the profile settings are saved
 OptiFine remains a later graphics enhancement rather than the first loader: its installer and
 Forge-specific compatibility constraints are different from Fabric's public launcher-profile API.
 
+## v0.5 — Local Mod Manager (development; acceptance pending)
+
+Fabric instances now offer an **Instances → Mods** workspace for importing local JAR files,
+reviewing detectable `fabric.mod.json` id/name/version/dependencies, turning mods on/off
+(reversible `.jar.disabled` rename), and removing files to each instance's
+`game/.syntaxlauncher-mod-trash` for manual recovery. The original import source is preserved;
+SHA-256 and file names are tracked from disk, and enabled mod ID duplicates and basic
+missing/conflicting dependencies appear as warnings.
+
+Operations are isolated to the instance's own `game/mods` folder and use the same
+cross-process activity lock as the launch/clone functions. This phase does not download
+dependencies or treat locally parsed metadata as a complete compatibility resolver.
+Only import JARs from trusted sources: Minecraft executes enabled mod code.
+See [the v0.5 verification checklist](docs/TESTING_V0.5.md).
+**Manual game startup and UX acceptance remain unverified**, including postponed v0.4 checks.
+
 ## Current implementation
 
 The current v0.1 implementation includes:

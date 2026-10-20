@@ -402,37 +402,43 @@ offline account tests for this milestone.
 
 Goal: manage local mod JARs safely before adding online repositories.
 
+**Status:** 🚧 Implementation on main; CI/manual acceptance pending. v0.4 real Fabric
+boot tests were explicitly deferred by the maintainer on 20 October 2026 and remain open.
+See [v0.5 test checklist](TESTING_V0.5.md).
+
 ## Mod model
 
-- [ ] Add local mod representation.
-- [ ] Track enabled/disabled state.
-- [ ] Track file path/hash.
-- [ ] Parse available mod metadata formats relevant to supported loaders.
-- [ ] Expose mod id/name/version when available.
-- [ ] Detect duplicate mod ids/files where practical.
+- [ ] 🚧 IN PROGRESS — Local JAR model includes file name, size, SHA-256, enabled flag and optional Fabric metadata; automated test acceptance pending.
+- [ ] 🚧 IN PROGRESS — Enabled/disabled state persisted via per-instance filesystem rename; manual testing pending.
+- [ ] 🚧 IN PROGRESS — Track file hash and filename from the instance's own mods directory; CI acceptance pending.
+- [ ] 🚧 IN PROGRESS — Read `fabric.mod.json`; dedicated Quilt/Forge metadata belongs to their later loader milestones.
+- [ ] 🚧 IN PROGRESS — Expose Fabric id/name/version, declared requirements/conflicts; client verification pending.
+- [ ] 🚧 IN PROGRESS — Detect duplicate enabled IDs and identical JAR SHA-256 at import; automated tests pending.
 
 ## Local mod operations
 
-- [ ] Add/import mod JAR into instance.
-- [ ] Remove mod.
-- [ ] Enable/disable mod without deleting it.
-- [ ] Show installed mods.
-- [ ] Surface basic compatibility/dependency metadata.
-- [ ] Avoid modifying mods in other instances.
+- [ ] 🚧 IN PROGRESS — Import local JAR through the Fabric instance dialog and atomic staging; tests pending.
+- [ ] 🚧 IN PROGRESS — Remove JAR to a recoverable instance-local trash folder; manual acceptance pending.
+- [ ] 🚧 IN PROGRESS — Enable/disable with a reversible `.jar.disabled` rename; acceptance pending.
+- [ ] 🚧 IN PROGRESS — Show installed local mods and basic metadata in a scrollable dialog; UX check pending.
+- [ ] 🚧 IN PROGRESS — Warn about missing/conflicting declared Fabric dependencies; version ranges advisory only.
+- [ ] 🚧 IN PROGRESS — Use the instance repository's cross-process lock for mutations and never touch other profiles; acceptance pending.
 
 ## Dependency awareness
 
-- [ ] Detect obviously missing declared dependencies where metadata provides them.
-- [ ] Detect obvious declared incompatibilities/conflicts where practical.
-- [ ] Present warnings before launch.
-- [ ] Do not pretend local-only dependency resolution is complete when repository data is unavailable.
+- [ ] 🚧 IN PROGRESS — Warn for missing enabled declared dependencies; no remote lookup.
+- [ ] 🚧 IN PROGRESS — Warn when enabled mods declare an obvious `breaks` conflict.
+- [ ] 🚧 IN PROGRESS — Warnings appear in the mods dialog before launch; no blocking pre-launch check yet.
+- [x] Modrinth-backed dependency resolution remains explicitly in v0.6; v0.5 does not claim it.
 
 ## v0.5 quality gate
 
-- [ ] Mod enable/disable is reversible.
-- [ ] Mod state persists per instance.
-- [ ] Fabric instance can launch with locally managed mods.
-- [ ] Vanilla instance behavior remains unaffected.
+- [ ] Mod enable/disable is reversible (automated test added; CI pending).
+- [ ] Mod state persists per instance (automated test added; real client pending).
+- [ ] Fabric instance can launch with locally managed mods (real game boot deferred).
+- [ ] Vanilla instance behavior remains unaffected (automated coverage added; manual pending).
+- [ ] Per-instance mods mutations are protected against concurrent launcher/game use.
+- [ ] Manual tests in `docs/TESTING_V0.5.md` pass.
 
 ---
 
