@@ -109,6 +109,9 @@ A task is not done until all applicable points below are satisfied:
 
 ## 6. Version discipline
 
+The canonical SyntaxLauncher product version is `launcherVersion` in the root `gradle.properties`. Do not duplicate a SemVer constant in Gradle scripts, runtime defaults, CI, the Build Explorer publisher or release tooling. Gradle module versions, generated desktop metadata, update bundles and publication metadata must derive from this property. A release tag `vX.Y.Z[-suffix]` must exactly match the value at its tagged commit; CI must reject mismatches. Native jpackage versions may be mechanically normalized for platform rules but must not be maintained separately.
+
+
 Work should target the earliest milestone that actually needs the feature.
 
 Do not pull features forward simply because they are easy to add.

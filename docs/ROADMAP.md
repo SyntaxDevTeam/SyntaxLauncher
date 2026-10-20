@@ -15,6 +15,7 @@ Agents and contributors MUST keep this file synchronized with actual repository 
 ## Cross-milestone desktop development ergonomics (October 2026)
 
 - [x] Embed the semantic product version, CI run number and source SHA at build time; show exact CI build identity in the launcher header and updater without altering release-version comparisons. Local builds have an explicit non-CI label.
+- [ ] 🚧 IN PROGRESS — Consolidate product SemVer in root `gradle.properties` for Gradle modules, embedded metadata, jpackage numeric version derivation, update bundles, GitHub Actions tags and Build Explorer publication; source and deterministic tests committed, final CI acceptance pending.
 - [ ] 🚧 IN PROGRESS — Replace native window decorations with branded controls integrated into the existing Compose header (drag, minimize, maximize/restore, close, 8 resize grips, 400×400 minimum). Source implementation and unit coverage for resize geometry added; real native/manual acceptance on Windows, macOS and Linux X11/Wayland, DPI and small screens remains open.
 - [ ] Complete manual usability checks for dragging over navigation, resizing, maximization, multi-monitor behavior and updates on all supported window managers.
 

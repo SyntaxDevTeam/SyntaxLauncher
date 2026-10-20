@@ -14,9 +14,10 @@ The updater becomes available only after installing a build containing it once. 
 
 ## Version and platform contract
 
-- Default source/development version: `0.3.0-dev`.
-- Release builds: `./gradlew -PlauncherVersion=0.3.1 :launcher-desktop:createDistributable`.
-- The generated `launcher-build.properties` is embedded in the desktop resources and displayed in the header. The publisher and bundle manifest use the same version. This semantic version is independent of the existing macOS-compatible native package version.
+- The sole source of the SyntaxLauncher product SemVer is `launcherVersion` in the root `gradle.properties` (currently `0.3.0-dev`). Change that property when advancing or releasing the launcher; do not edit Gradle build scripts, Python publishing code or workflow versions.
+- Build normally with `./gradlew :launcher-desktop:createDistributable`; all Gradle modules, generated metadata, packaging manifests and publishers resolve the same value.
+- Native jpackage versions must be numeric: prerelease/build suffixes are stripped and a product major of `0` is mapped to native major `1` for macOS compatibility (e.g. `0.3.0-dev` → `1.3.0`). This is a derived packaging identifier, **not** a second product version or update comparison key.
+- The generated `launcher-build.properties` is embedded in desktop resources and displayed in the header; neither runtime startup nor CI has a hardcoded fallback product version.
 - Packaged-mode detection uses jpackage's `jpackage.app-path` property. Gradle/IDE runs skip automatic update execution; unsupported native platforms continue normally.
 
 | Platform | Update asset | Fixed executable inside bundle |
@@ -51,14 +52,18 @@ The bootstrap starts the fixed platform executable with a single-use receipt pat
 
 The existing CI workflow now runs core and desktop tests plus the stdlib Python packaging tests. All three platform jobs produce the existing portable archive and a manifest-driven update ZIP, then install/revalidate their update ZIP through `verifyUpdateBundle` without executing it.
 
-Only a maintainer-pushed `v*` tag enables the release publishing job. That job waits for all platform jobs, creates/reuses a draft, uploads all six assets and then publishes the complete release. Reruns refuse to overwrite an already published release. Tags with a hyphen publish as prereleases and are excluded from automatic stable updates. Normal branch pushes and pull requests do not publish releases. Only the tag publishing job has `contents: write`.
+Only a maintainer-pushed `v*` tag **matching the `launcherVersion` in the tagged commit's `gradle.properties`** enables the release publishing job; CI rejects mismatched tags before building. That job waits for all platform jobs, creates/reuses a draft, uploads all six assets and then publishes the complete release. Reruns refuse to overwrite an already published release. Tags with a hyphen publish as prereleases and are excluded from automatic stable updates. Normal branch pushes and pull requests do not publish releases. Only the tag publishing job has `contents: write`.
 
-A release should follow the project's current acceptance policy. Example commands after selecting and verifying the intended release commit:
+A release should follow the project's current acceptance policy. Set `launcherVersion=0.3.1` in the root `gradle.properties`, commit the version change, complete the release checks, then tag that exact commit:
 
 ```bash
+python3 scripts/launcher_version.py
 git tag v0.3.1
+python3 scripts/launcher_version.py --github-ref refs/tags/v0.3.1
 git push origin v0.3.1
 ```
+
+Branch builds retain the source value (e.g. `0.3.0-dev`), while release tags can never silently override it. After publication, bump the source version for further development.
 
 No release/tag was created as part of implementing this feature. On 19 October 2026 the unauthenticated latest-release endpoint returned HTTP 404. This can mean no public stable release or a private/unavailable repository; no live hosted self-update is claimed. Publicly accessible assets are required for this token-free channel.
 
@@ -70,7 +75,7 @@ python3 -m unittest discover -s scripts -p 'test_*.py'
 ./gradlew --no-configuration-cache :launcher-desktop:createDistributable
 python3 scripts/package_update.py \
   --source launcher-desktop/build/compose/binaries/main/app \
-  --platform linux-x64 --version 0.3.0-dev \
+  --platform linux-x64 --version "$(python3 scripts/launcher_version.py)" \
   --output launcher-desktop/build/updates/syntaxlauncher-update-linux-x64.zip
 ./gradlew -PupdateBundle=build/updates/syntaxlauncher-update-linux-x64.zip :launcher-desktop:verifyUpdateBundle
 ```

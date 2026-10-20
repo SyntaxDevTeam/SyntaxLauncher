@@ -12,11 +12,16 @@ import pl.syntaxdevteam.syntaxlauncher.core.update.StartupUpdater
 internal object LauncherBuildInfo {
     private val metadata: Properties by lazy {
         Properties().also { values ->
-            javaClass.getResourceAsStream("/launcher-build.properties")?.use(values::load)
+            val stream = checkNotNull(javaClass.getResourceAsStream("/launcher-build.properties")) {
+                "Missing generated launcher-build.properties; check the Gradle build-info task."
+            }
+            stream.use(values::load)
         }
     }
 
-    val version: String get() = metadata.getProperty("version", "0.3.0-dev")
+    val version: String get() = checkNotNull(metadata.getProperty("version")) {
+        "Missing launcher version in generated launcher-build.properties."
+    }
     val buildNumber: String get() = metadata.getProperty("build", "local")
     val commit: String get() = metadata.getProperty("commit", "unknown")
     val shortCommit: String get() = commit.takeIf { it.matches(Regex("[a-fA-F0-9]{40}")) }

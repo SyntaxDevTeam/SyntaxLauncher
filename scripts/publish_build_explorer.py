@@ -10,12 +10,14 @@ import re
 import subprocess
 import tempfile
 
+from launcher_version import read_launcher_version, validate_git_ref
+
 PLATFORMS = ('windows-x64', 'macos-arm64', 'linux-x64')
 MAX_BYTES = 90 * 1024 * 1024
 ENDPOINT = 'https://syntaxdevteam.pl/api/v2/builds/ci/syntaxlauncher'
 
 
-def prepare(directory, env):
+def prepare(directory, env, version_file=None):
     run_id = env['GITHUB_RUN_ID']
     run_number = env['GITHUB_RUN_NUMBER']
     sha = env['GITHUB_SHA']
@@ -24,16 +26,12 @@ def prepare(directory, env):
     if not re.fullmatch('[a-f0-9]{40}', sha):
         raise ValueError('Expected full source commit SHA')
     ref = env['GITHUB_REF']
+    version = read_launcher_version(version_file) if version_file is not None else read_launcher_version()
     if ref.startswith('refs/tags/v'):
-        version = ref.removeprefix('refs/tags/v')
-        if not re.fullmatch(r'\d+\.\d+\.\d+(?:-[A-Za-z0-9.-]+)?', version):
-            raise ValueError('Tag must be a v-prefixed semantic version')
+        validate_git_ref(version, ref)
         channel = 'snapshot' if '-' in version else 'release'
     elif ref == 'refs/heads/main':
-        match = re.search(r'version\s*=\s*"([A-Za-z0-9.+-]+)"', Path('build.gradle.kts').read_text())
-        if not match:
-            raise ValueError('Cannot read launcher product version')
-        version, channel = match.group(1), 'snapshot'
+        channel = 'snapshot'
     else:
         raise ValueError('Publication is restricted to main and version tags')
     timestamp = datetime.now(timezone.utc).isoformat()

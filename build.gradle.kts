@@ -5,7 +5,9 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose") version "2.4.21" apply false
 }
 
+val productVersion = providers.gradleProperty("launcherVersion").get()
+
 allprojects {
     group = "pl.syntaxdevteam.syntaxlauncher"
-    version = "0.1.0-SNAPSHOT"
+    version = productVersion
 }

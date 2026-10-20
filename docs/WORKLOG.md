@@ -8,6 +8,41 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-20 — Consolidate SyntaxLauncher version into gradle.properties
+
+**Milestone:** Cross-milestone build/release ergonomics; v0.12 updater/CI slice  
+**Author/Agent:** GPT-6  
+**Status:** Partial — code and deterministic tests prepared for main; GitHub Actions and native package acceptance pending
+
+### Completed
+- Defined one canonical product SemVer as `launcherVersion=0.3.0-dev` in root `gradle.properties`, preserving the existing development product version.
+- Derived root Gradle project versions, desktop generated build info and OS-compatible native package versions from that property; removed stale hardcoded product-version fallbacks.
+- Updated GitHub Actions to read the property instead of inventing `0.3.0-dev` or overriding it from a tag; mismatched release tags fail early.
+- Updated Build Explorer publisher to read the same property and validate tagged publication; added deterministic Python tests for property parsing, mismatch rejection and publisher metadata.
+- Updated release instructions, architecture, contributor rules and roadmap.
+
+### Changed files
+- `gradle.properties`, `build.gradle.kts`, `launcher-desktop/build.gradle.kts`, `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/DesktopStartupUpdate.kt` — single Gradle/runtime version path.
+- `.github/workflows/build.yml`, `scripts/launcher_version.py`, `scripts/test_launcher_version.py` — CI version propagation/tag enforcement.
+- `scripts/publish_build_explorer.py`, `tests/test_build_explorer_publish.py` — unified Build Explorer metadata and regression tests.
+- `AGENTS.md`, `README.md`, `docs/UPDATING.md`, `docs/DEVELOPMENT.md`, `docs/ARCHITECTURE.md`, `docs/ROADMAP.md`, `docs/WORKLOG.md` — documentation and progress tracking.
+
+### Verification
+- `./gradlew test` — NOT RUN locally; GitHub Actions verification pending.
+- `./gradlew build` — NOT RUN locally; GitHub Actions verification pending.
+- `python3 -m unittest discover -s scripts -p 'test_*.py'` — NOT RUN locally; CI pending.
+- `python3 -m unittest discover -s tests -p 'test_*.py'` — NOT RUN locally; CI pending.
+- Manual cross-platform release/package validation — NOT RUN.
+
+### Roadmap updates
+- `[ ]` Cross-milestone / canonical version consolidation remains 🚧 until CI and native validation are confirmed.
+- `[ ]` v0.12 / hosted updates, signing and native acceptance remain open.
+
+### Follow-ups / known issues
+- Verify CI output includes the exact source SemVer in all three update manifests and Build Explorer metadata.
+- Manual native package and old→new update acceptance remains open; no release tag was created.
+- Native jpackage's numeric version intentionally maps product major 0 to major 1 for macOS; it must not be used for updater SemVer comparisons.
+
 ## 2026-10-20 — Add pre-launch mod warnings and confirm dialog scope
 
 **Milestone:** v0.5 — Local Mod Manager  

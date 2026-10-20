@@ -28,7 +28,17 @@ tasks.test {
     systemProperty("java.awt.headless", "true")
 }
 
-val launcherVersion = providers.gradleProperty("launcherVersion").orElse("0.3.0-dev")
+val launcherVersion = providers.gradleProperty("launcherVersion")
+// jpackage on macOS requires a non-zero numeric major and does not accept SemVer prerelease labels.
+// Derive the native package version from the canonical launcherVersion; never maintain another version value.
+val nativePackageVersion = launcherVersion.map { product ->
+    val numeric = product.substringBefore('-').substringBefore('+')
+    val parts = numeric.split('.')
+    require(parts.size == 3 && parts.all { it.matches(Regex("(0|[1-9][0-9]*)")) }) {
+        "launcherVersion must contain a numeric SemVer core."
+    }
+    listOf(if (parts[0] == "0") "1" else parts[0], parts[1], parts[2]).joinToString(".")
+}
 val launcherBuildNumber = providers.gradleProperty("launcherBuildNumber")
     .orElse(providers.environmentVariable("GITHUB_RUN_NUMBER")).orElse("local")
 val launcherCommit = providers.gradleProperty("launcherCommit")
@@ -84,8 +94,8 @@ compose.desktop {
             // Keep JSSE elliptic-curve TLS support in the trimmed jlink runtime.
             modules("jdk.crypto.ec")
             packageName = "SyntaxLauncher"
-            // macOS jpackage forbids a leading zero in app-version; product milestone remains v0.1.
-            packageVersion = "1.0.0"
+            // Compatibility mapping only; the embedded product version is always launcherVersion.
+            packageVersion = nativePackageVersion.get()
             description = "A lightweight, modern Minecraft launcher by SyntaxDevTeam"
             vendor = "SyntaxDevTeam"
             linux {
