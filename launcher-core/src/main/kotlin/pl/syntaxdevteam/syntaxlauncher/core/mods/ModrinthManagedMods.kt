@@ -31,7 +31,7 @@ internal class ModrinthManagedModStore {
         val entries: List<ModrinthManagedMod> = emptyList(),
     )
 
-    private val json = Json { ignoreUnknownKeys = true; prettyPrint = true }
+    private val json = Json { ignoreUnknownKeys = true; prettyPrint = true; encodeDefaults = true }
     private val file = ".syntaxlauncher-modrinth.json"
 
     fun read(game: Path): Map<String, ModrinthManagedMod> {
