@@ -85,10 +85,17 @@ fun LocalModsDialog(
         }
     }
 
+    val workArea = remember {
+        java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment().maximumWindowBounds
+    }
+    val dialogSize = DpSize(
+        minOf(840, (workArea.width - 48).coerceAtLeast(400)).dp,
+        minOf(630, (workArea.height - 48).coerceAtLeast(400)).dp,
+    )
     Dialog(
         onCloseRequest = { if (!busy) onDismiss() },
         title = "SyntaxLauncher — Local mods",
-        state = rememberDialogState(size = DpSize(840.dp, 630.dp)),
+        state = rememberDialogState(size = dialogSize),
         resizable = true,
     ) {
         Surface(
