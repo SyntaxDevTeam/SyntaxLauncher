@@ -8,6 +8,30 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-20 — Preserve in-flight stable version builds
+
+**Milestone:** v0.12 — CI/CD  
+**Author/Agent:** GPT-6  
+**Status:** Partial — CI change committed; subsequent hosted verification pending
+
+### Completed
+- Kept the existing single-source automatic release workflow and tests without introducing a competing publisher.
+- Prevented new commits to `main` from cancelling a verified-version build already in progress. Other refs retain cancellation of superseded runs.
+
+### Changed files
+- `.github/workflows/build.yml` — conditional Actions concurrency cancellation policy.
+- `docs/WORKLOG.md` — this entry.
+
+### Verification
+- Workflow syntax inspected; `./gradlew test` and `./gradlew build` — NOT RUN locally, CI verification pending.
+- No stable version was bumped and no actual GitHub Release was published.
+
+### Roadmap updates
+- `[ ]` v0.12 hosted automated release and updater acceptance remain open.
+
+### Follow-ups / known issues
+- A controlled forward stable bump is still needed to verify complete six-asset release publication.
+
 ## 2026-10-20 — Automatically publish GitHub Releases on stable version bumps
 
 **Milestone:** v0.12 — Production Hardening (early CI/CD slice)  
