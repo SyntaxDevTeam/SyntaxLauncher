@@ -8,6 +8,39 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-20 — Enforce normal GitHub Releases and advance canonical version
+
+**Milestone:** v0.6 release packaging / early v0.12 CI/CD  
+**Author/Agent:** GPT-6  
+**Status:** Partial — source changes committed; GitHub CI publishing outcome pending
+
+### Completed
+- Investigated missing GitHub Releases despite green platform builds: the source product version stayed at `0.3.0-dev` while development reached v0.6, so the version-change release gate never opened.
+- Advanced the sole canonical product version to `0.6.0`; no alternate product version or SNAPSHOT suffix was added.
+- Restricted manual tag-triggered release jobs to plain stable tags, removed the prerelease publication branch, and required every GitHub Release to be ordinary/latest.
+- Retained detection of forward stable changes, complete six-asset publication only after tests, and protection against overwriting existing releases.
+- Updated publishing documentation to explicitly prohibit GitHub prereleases. Historical v0.4/v0.5 milestones are not falsely marked as having published releases.
+
+### Changed files
+- `gradle.properties` — canonical `0.6.0` product version.
+- `.github/workflows/build.yml` — normal GitHub Release only, never prerelease.
+- `README.md`, `docs/UPDATING.md`, `docs/DEVELOPMENT.md` — workflow semantics.
+- `docs/ROADMAP.md`, `docs/WORKLOG.md` — progress record and limitations.
+
+### Verification
+- Prior successful run [39374099339](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/39374099339) — cross-platform verification PASS but release skipped because the old canonical version was unchanged.
+- `./gradlew test`, `./gradlew build` — NOT RUN locally; new GitHub Actions run pending.
+- GitHub `v0.6.0` release publication — NOT YET CONFIRMED.
+- Real Minecraft and cross-platform manual acceptance — NOT RUN; roadmap gates remain open.
+
+### Roadmap updates
+- `[ ]` Auto publishing remains 🚧 pending a verified hosted release.
+- `[ ]` Gameplay, signing, updater and v0.6 completion checks remain open.
+
+### Follow-ups / known issues
+- Verify the new workflow publishes an ordinary `v0.6.0` latest release with all six platform artifacts after all CI jobs succeed.
+- Stable auto-updating consumers can see this public release; reconcile functional acceptance before broad distribution.
+
 ## 2026-10-20 — Implement popular Modrinth discovery and verified installation slice
 
 **Milestone:** v0.6 — Modrinth Integration  

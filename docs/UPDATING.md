@@ -50,32 +50,28 @@ The bootstrap starts the fixed platform executable with a single-use receipt pat
 
 ## Publishing
 
-The existing CI workflow now runs core and desktop tests plus the stdlib Python packaging tests. All three platform jobs produce the existing portable archive and a manifest-driven update ZIP, then install/revalidate their update ZIP through `verifyUpdateBundle` without executing it.
+GitHub Actions runs the Gradle/Python tests and builds three portable `.tar.gz` applications and three verified update ZIPs (Linux x64, Windows x64, macOS ARM64). **Only normal, non-prerelease GitHub Releases are supported**; the publishing job waits for every check and all six files.
 
-### Automatic GitHub Releases
+### Automatically publish a normal GitHub Release
 
-Edit **only** `launcherVersion` in the root `gradle.properties` and push the commit to `main`. For example, changing `0.3.0` to `0.4.0` makes the build eligible for an automatic stable GitHub Release. The existing [build workflow](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/workflows/build.yml) compares the new value with the previous pushed `main` revision. An increase to stable SemVer `X.Y.Z`, or promotion from `X.Y.Z-dev` / `X.Y.Z-rc.1` to the same stable `X.Y.Z`, qualifies. Ordinary code changes, unchanged or lower versions, and development qualifiers do not publish a GitHub Release.
+Change the one canonical product version in the root `gradle.properties` and push to `main`. For example, the current version is:
 
-The complete Gradle/Python test phase and Linux x64, Windows x64, macOS ARM64 packaging/verification matrix must succeed first. The publisher then checks all six non-empty portable/update assets, creates or validates `vX.Y.Z` against the exact verified commit, stages the release as a draft, uploads everything and publishes the finished release. Stable releases enter the launcher's stable auto-update channel. Existing published releases and tags pointing to another commit cannot be overwritten.
-
-The tag is created and artifacts published in the *same* Actions run: GitHub does not start another workflow from a tag created with `GITHUB_TOKEN`. Only the publishing job has `contents: write`. A build failure cannot publish incomplete assets. A failed upload can leave a draft for inspection/retry.
-
-**Treat a stable version bump as a reviewed public release action**, not an arbitrary development milestone. Live Minecraft, UI and native installer acceptance gates remain separate. The first actual automatic version-bump publication still needs verification.
-
-### Manual version-tag publication
-
-The former manual `v*` tag-push publishing route remains available, provided the tagged commit's canonical `launcherVersion` exactly matches its tag; CI rejects mismatches. For a commit with `launcherVersion=0.4.0`:
-
-```bash
-python3 scripts/launcher_version.py
-git tag v0.4.0
-python3 scripts/launcher_version.py --github-ref refs/tags/v0.4.0
-git push origin v0.4.0
+```properties
+launcherVersion=0.6.0
 ```
 
-Tags with a prerelease qualifier remain GitHub prereleases, excluded from stable startup updates. After a stable release, advance the property to the next development version, e.g. `0.4.1-dev`, while continuing work.
+The next release requires a forward change such as `0.6.0` → `0.7.0`. The workflow compares the canonical version at the commit before the push with the new version. A change to a higher plain SemVer `X.Y.Z` qualifies, as does promoting a development suffix to its plain version. Source-code changes without a version bump do not issue new releases.
 
-No release/tag was created as part of implementing this feature. On 19 October 2026 the unauthenticated latest-release endpoint returned HTTP 404. This can mean no public stable release or a private/unavailable repository; no live hosted self-update is claimed. Publicly accessible assets are required for this token-free channel.
+After tests and three-platform packaging pass, CI verifies all six files, creates or validates the exact-commit `vX.Y.Z` tag, creates a draft, uploads all assets and publishes a **normal GitHub Release** as latest. CI never marks it as `prerelease`. A published release or an existing tag pointing to another commit cannot be overwritten. Tags created by `GITHUB_TOKEN` do not start a second workflow run; only the release job has `contents: write`.
+
+Manual matching `vX.Y.Z` tag pushes remain supported. Tags with development or prerelease suffixes do not run the GitHub Release publishing job. Do not use `-SNAPSHOT`, `-dev`, `-alpha`, `-beta` or `-rc` when planning a public release.
+
+### Version history and release acceptance
+
+Earlier v0.4 and v0.5 development work was committed while the canonical version remained `0.3.0-dev`; therefore no GitHub Releases were created for those historical milestones. Changing this configuration does not retrospectively issue releases for old commits. The first expected automatic normal release is `v0.6.0`, provided its CI succeeds.
+
+**Release labeling is not a claim that every roadmap feature passed manual verification.** Real gameplay, Microsoft integration, macOS/Windows acceptance, updater continuity and signing remain separate tests and open items. Because ordinary GitHub Releases enter the stable auto-update channel, maintainers should carefully review the release before advancing the version.
+
 
 ## Verification
 

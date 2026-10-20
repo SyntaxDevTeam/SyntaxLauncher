@@ -718,7 +718,7 @@ Goal: prepare the launcher for stable public release.
 
 ## CI/CD
 
-- [ ] 🚧 IN PROGRESS — Publish complete GitHub Releases automatically when canonical `launcherVersion` increases to a stable SemVer version on `main`, after all platform CI checks; source and regression tests committed, first hosted release publication still pending.
+- [ ] 🚧 IN PROGRESS — Automatically publish only ordinary GitHub Releases (never prereleases) when canonical plain `launcherVersion` increases on `main`; bumped the source version to `0.6.0` to exercise first real six-asset release, hosted publication acceptance pending.
 - [ ] Build/test CI.
 - [ ] Cross-platform build validation.
 - [ ] Release artifact generation.
