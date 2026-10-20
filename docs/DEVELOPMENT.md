@@ -346,3 +346,15 @@ For metadata-only checks, download the three workflow archives into `dist/` and
 run `python3 scripts/publish_build_explorer.py --dry-run` with the standard GitHub
 run environment. Native installer signing and clean-machine gameplay acceptance
 remain separate roadmap items.
+
+## Version catalog cache
+
+`MinecraftVersionCatalog` uses the shared HTTP client with a 15-second request deadline. Desktop supplies `cacheDir/minecraft/version_manifest_v2.json`; tests may omit the path. Each fetch requests fresh data, validates JSON and catalog consistency, then publishes the raw Mojang document through a unique sibling temporary file and atomic replacement where supported. This is disposable remote metadata, not a launcher settings schema. Invalid/missing caches are never silently treated as an empty catalog. Failed refreshes can use a re-parsed valid cache, cancellation propagates, and cache-write failures are logged without discarding a valid online result. Disk work runs on the IO dispatcher. Deterministic MockEngine tests cover restart reuse, replacement, malformed/HTTP failures, corruption, unavailable storage and cancellation. Full offline launching remains a separate concern.
+
+## Interface localization (EN / PL / DE)
+
+`desktop/i18n/UiStrings` loads UTF-8 `resources/i18n/{en,pl,de}.properties` bundles once. Use stable keys with numbered `{0}` placeholders; format runtime values through `strings.text(key, arguments…)` rather than embedding translated content in core. `LocalStrings` scopes language to the application composition. `LauncherLanguageHost` loads the system/saved choice off the UI thread and publishes a new localizer only after an atomic successful preference save. A save failure leaves the current language active and presents a translated retry explanation. No JVM-wide locale mutation is used.
+
+`LauncherPreferencesStore.loadLanguage/saveLanguage` adds `ui_language` to schema 1 without changing existing profile fields. Missing keys follow system language; unsupported locale tags display English without rewriting the stored value. Older readers preserve the key as unknown. Language saves and normal preference saves share the same mutex and preserve each other's fields. Unsupported schemas are rejected before write. Tests cover legacy reading, unknown fields/languages/schemas, restart, normal saves, invalid writes, placeholders and all supported locale resources.
+
+Keep user data, project names and upstream descriptions verbatim. Core log strings remain diagnostic. Use typed launch/update stages for localized progress rather than parsing English log messages. Add translated primary controls, errors and accessibility labels when adding screens; detailed upstream/domain diagnostics may retain their original language. Resource-parity and Compose language-switch/render regressions run with `./gradlew test`. Generated wide/narrow EN/PL/DE QA images are under `launcher-desktop/build/reports/ui/`; native keyboard/font/DPI acceptance remains separate.

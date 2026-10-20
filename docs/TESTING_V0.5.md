@@ -1,14 +1,14 @@
 # v0.5 — Local Mod Manager verification
 
-The maintainer deferred manual v0.4 acceptance on 20 October 2026. This **does not mean Fabric boot was tested**.
+The maintainer confirmed real Fabric and Quilt startup tests on 20 October 2026. The local mod-management workflows below remain separate acceptance checks.
 
 ## Automated
 - [ ] GitHub Actions Gradle core/desktop tests and build pass.
-- [ ] Instance-scoped import preserves source and other profiles.
-- [ ] Enable/disable is a reversible rename with identical SHA-256.
-- [ ] Removal moves a mod to game/.syntaxlauncher-mod-trash.
-- [ ] Missing dependencies, duplicate active IDs and disabled dependencies are reported.
-- [ ] Invalid archives and filename traversal are rejected.
+- [x] Instance-scoped import preserves source and other profiles. Local deterministic suite passes (20 October 2026).
+- [x] Enable/disable is a reversible rename with identical SHA-256. Local deterministic suite passes (20 October 2026).
+- [x] Removal moves a mod to game/.syntaxlauncher-mod-trash. Local deterministic suite passes (20 October 2026).
+- [x] Missing dependencies, duplicate active IDs and disabled dependencies are reported. Local deterministic suite passes (20 October 2026).
+- [x] Invalid archives and filename traversal are rejected. Local deterministic suite passes (20 October 2026).
 
 ## Manual — not yet executed
 - [ ] Create or select a Fabric profile; open Instances → Mods.
@@ -22,6 +22,6 @@ The maintainer deferred manual v0.4 acceptance on 20 October 2026. This **does n
 - [ ] Verify Windows/macOS/Linux dialogs, small displays and file chooser.
 
 **Scope:** Fabric metadata is advisory only. Version-range evaluation, nested-JAR diagnostics,
-repository-driven dependency resolution, automatic downloads, update matching and dedicated Quilt/Forge
-metadata readers are deferred; do not assume a missing warning implies compatibility.
+repository-driven dependency resolution, automatic downloads, update matching and a Forge
+metadata reader is deferred (Quilt metadata parsing is implemented); do not assume a missing warning implies compatibility.
 A local JAR can execute arbitrary code once Minecraft loads it, so use trusted sources only.

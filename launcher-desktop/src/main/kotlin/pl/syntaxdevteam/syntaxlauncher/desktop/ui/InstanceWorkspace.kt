@@ -1,5 +1,8 @@
 package pl.syntaxdevteam.syntaxlauncher.desktop.ui
 
+import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.LocalStrings
+import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.UiStrings
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -60,10 +63,10 @@ data class InstanceCopyPreview(
     val totalFiles: Int,
 )
 
-private fun displaySize(bytes: Long): String = when {
-    bytes >= 1024L * 1024L * 1024L -> "%.2f GiB".format(bytes / (1024.0 * 1024 * 1024))
-    bytes >= 1024L * 1024L -> "%.1f MiB".format(bytes / (1024.0 * 1024))
-    else -> "$bytes bytes"
+private fun displaySize(strings: UiStrings, bytes: Long): String = when {
+    bytes >= 1024L * 1024L * 1024L -> "%.2f GiB".format(java.util.Locale.forLanguageTag(strings.language.code), bytes / (1024.0 * 1024 * 1024))
+    bytes >= 1024L * 1024L -> "%.1f MiB".format(java.util.Locale.forLanguageTag(strings.language.code), bytes / (1024.0 * 1024))
+    else -> strings.text("unit.bytes", bytes)
 }
 
 /** Dedicated, scrollable Instances workspace. The home screen continues to own Play. */
@@ -96,6 +99,7 @@ fun InstanceWorkspace(
     onRestore: (TrashedMinecraftInstance) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val strings = LocalStrings.current
     val workArea = remember {
         java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment().maximumWindowBounds
     }
@@ -119,7 +123,7 @@ fun InstanceWorkspace(
             try {
                 compatible = loadLoaderVersions(newLoader, newVersion)
                 if (compatible.isEmpty()) {
-                    fabricError = "Fabric is not available for Minecraft $newVersion."
+                    fabricError = strings.text("loader.unavailable", newLoader.replaceFirstChar { it.uppercase() }, newVersion)
                 } else if (compatible.none { it.version == newFabricVersion }) {
                     newFabricVersion = compatible.firstOrNull { it.stable }?.version
                         ?: compatible.first().version
@@ -127,16 +131,16 @@ fun InstanceWorkspace(
             } catch (cancelled: kotlinx.coroutines.CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
-                fabricError = error.message ?: "Failed to check Fabric compatibility."
+                fabricError = error.message ?: strings.text("loader.compatibility_error")
             } finally {
                 fabricLoading = false
             }
         }
     }
     var cloneName by remember(selected?.id) {
-        mutableStateOf(selected?.name?.take(43)?.plus(" copy").orEmpty())
+        mutableStateOf(selected?.name?.take(43)?.plus(strings.text("ui.copy")).orEmpty())
     }
-    var legacyName by remember { mutableStateOf("Imported Vanilla") }
+    var legacyName by remember { mutableStateOf(strings.text("ui.imported_vanilla")) }
     var confirmDelete by remember { mutableStateOf<MinecraftInstance?>(null) }
     val filtered = instances.filter {
         search.isBlank() || it.name.contains(search, true) ||
@@ -147,20 +151,20 @@ fun InstanceWorkspace(
         val deleting = confirmDelete!!
         AlertDialog(
             onDismissRequest = { confirmDelete = null },
-            title = { Text("Move ${deleting.name} to trash?") },
-            text = { Text("All worlds and settings will remain recoverable from this workspace.") },
+            title = { Text(strings.text("ui.move_0_to_trash", deleting.name)) },
+            text = { Text(strings.text("ui.all_worlds_and_settings_will_remain_recoverable_from_this_work")) },
             confirmButton = {
                 TextButton(onClick = { onDelete(deleting); confirmDelete = null }, enabled = canModify) {
-                    Text("Move to trash")
+                    Text(strings.text("ui.move_to_trash"))
                 }
             },
-            dismissButton = { TextButton(onClick = { confirmDelete = null }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { confirmDelete = null }) { Text(strings.text("ui.cancel")) } },
         )
     }
 
     Dialog(
         onCloseRequest = { if (!isBusy) onDismiss() },
-        title = "SyntaxLauncher — Instances",
+        title = strings.text("ui.syntaxlauncher_instances"),
         state = rememberDialogState(size = DpSize(width, height)),
         resizable = true,
     ) {
@@ -178,15 +182,15 @@ fun InstanceWorkspace(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                        Text("INSTANCES", style = MaterialTheme.typography.labelMedium,
+                        Text(strings.text("ui.instances_741b2b"), style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.primary)
-                        Text("Your Minecraft worlds", style = MaterialTheme.typography.headlineSmall,
+                        Text(strings.text("ui.your_minecraft_worlds"), style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.SemiBold)
-                        Text("Independent saves and settings. Shared game downloads.",
+                        Text(strings.text("ui.independent_saves_and_settings_shared_game_downloads"),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    OutlinedButton(onClick = onDismiss, enabled = !isBusy) { Text("Close") }
+                    OutlinedButton(onClick = onDismiss, enabled = !isBusy) { Text(strings.text("ui.close")) }
                 }
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 error?.let {
@@ -206,13 +210,13 @@ fun InstanceWorkspace(
                     ) {
                         OutlinedTextField(
                             value = search, onValueChange = { search = it },
-                            label = { Text("Find instance") },
+                            label = { Text(strings.text("ui.find_instance")) },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                         )
                         InstanceListRow(
-                            title = "Legacy Vanilla",
-                            subtitle = "Original v0.1 game",
+                            title = strings.text("ui.legacy_vanilla"),
+                            subtitle = strings.text("ui.original_v0_1_game"),
                             active = selectedId.isEmpty(),
                             enabled = canModify,
                             onClick = { onSelect("") },
@@ -220,8 +224,8 @@ fun InstanceWorkspace(
                         if (isLoadingInventory) {
                             LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                         } else if (filtered.isEmpty()) {
-                            Text(if (instances.isEmpty()) "No instances yet. Create your first profile."
-                                else "No profiles match your search.",
+                            Text(if (instances.isEmpty()) strings.text("ui.no_instances_yet_create_your_first_profile")
+                                else strings.text("ui.no_profiles_match_your_search"),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 style = MaterialTheme.typography.bodyMedium)
                         }
@@ -241,13 +245,13 @@ fun InstanceWorkspace(
                         modifier = paneModifier.verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(15.dp),
                     ) {
-                        Text(if (selected != null) "SELECTED PROFILE" else "CREATE A PROFILE",
+                        Text(if (selected != null) strings.text("ui.selected_profile") else strings.text("ui.create_a_profile"),
                             color = MaterialTheme.colorScheme.primary,
                             style = MaterialTheme.typography.labelMedium)
                         if (selected == null) {
                             Text(
-                                if (selectedId.isNotEmpty()) "The previously selected instance is missing. Select an existing one."
-                                else "Keep different worlds, settings and Minecraft versions separate.",
+                                if (selectedId.isNotEmpty()) strings.text("ui.the_previously_selected_instance_is_missing_select_an_existing")
+                                else strings.text("ui.keep_different_worlds_settings_and_minecraft_versions_separate"),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 style = MaterialTheme.typography.bodyMedium,
                             )
@@ -259,19 +263,19 @@ fun InstanceWorkspace(
                                 style = MaterialTheme.typography.bodySmall)
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Button(onClick = { onEdit(selected) }, enabled = canModify) {
-                                    Text("Settings")
+                                    Text(strings.text("ui.settings"))
                                 }
                                 if (selected.loader?.id in setOf("fabric", "quilt")) {
                                     OutlinedButton(onClick = { onManageMods(selected) },
-                                        enabled = canModify) { Text("Mods") }
+                                        enabled = canModify) { Text(strings.text("ui.mods")) }
                                 }
                                 OutlinedButton(onClick = { confirmDelete = selected },
-                                    enabled = canModify) { Text("Move to trash") }
+                                    enabled = canModify) { Text(strings.text("ui.move_to_trash")) }
                             }
                             OutlinedTextField(
                                 value = cloneName,
                                 onValueChange = { cloneName = it },
-                                label = { Text("Clone as") },
+                                label = { Text(strings.text("ui.clone_as")) },
                                 singleLine = true,
                                 enabled = canModify,
                                 modifier = Modifier.fillMaxWidth(),
@@ -279,28 +283,28 @@ fun InstanceWorkspace(
                             OutlinedButton(
                                 onClick = { onClonePreview(selected, cloneName.trim()) },
                                 enabled = canModify && cloneName.trim().length in 1..48,
-                            ) { Text("Review clone…") }
+                            ) { Text(strings.text("ui.review_clone")) }
                         }
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                        Text("NEW INSTANCE", style = MaterialTheme.typography.labelMedium,
+                        Text(strings.text("ui.new_instance"), style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.primary)
                         OutlinedTextField(
                             value = newName, onValueChange = { newName = it },
-                            label = { Text("Name") }, singleLine = true,
+                            label = { Text(strings.text("ui.name")) }, singleLine = true,
                             enabled = canModify, modifier = Modifier.fillMaxWidth(),
                         )
                         OutlinedTextField(
                             value = newVersion, onValueChange = { newVersion = it },
-                            label = { Text("Minecraft version") },
-                            supportingText = { Text("Choose a version listed in the Mojang catalog.") },
+                            label = { Text(strings.text("ui.minecraft_version")) },
+                            supportingText = { Text(strings.text("ui.choose_a_version_listed_in_the_mojang_catalog")) },
                             singleLine = true, enabled = canModify,
                             modifier = Modifier.fillMaxWidth(),
                         )
                         if (newVersion !in availableVersions) {
-                            Text("Version not found in the catalog.", color = MaterialTheme.colorScheme.error,
+                            Text(strings.text("ui.version_not_found_in_the_catalog"), color = MaterialTheme.colorScheme.error,
                                 style = MaterialTheme.typography.bodySmall)
                         }
-                        Text("MOD LOADER", style = MaterialTheme.typography.labelMedium,
+                        Text(strings.text("ui.mod_loader"), style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.primary)
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             TextButton(onClick = { newLoader = "vanilla" }, enabled = canModify) {
@@ -317,25 +321,25 @@ fun InstanceWorkspace(
                             OutlinedTextField(
                                 value = newFabricVersion,
                                 onValueChange = { newFabricVersion = it },
-                                label = { Text(newLoader.replaceFirstChar { it.uppercase() } + " loader version") },
+                                label = { Text(newLoader.replaceFirstChar { it.uppercase() } + strings.text("ui.loader_version")) },
                                 singleLine = true, enabled = canModify,
                                 isError = !fabricValid,
                                 modifier = Modifier.fillMaxWidth(),
                                 supportingText = { Text(
-                                    if (fabricLoading) "Checking compatibility…"
-                                    else fabricError ?: "Select a compatible version."
+                                    if (fabricLoading) strings.text("ui.checking_compatibility")
+                                    else fabricError ?: strings.text("ui.select_a_compatible_version")
                                 ) },
                             )
                             compatible.take(6).forEach { loader ->
                                 TextButton(onClick = { newFabricVersion = loader.version }, enabled = canModify) {
-                                    Text(loader.version + if (loader.stable) " · stable" else " · preview")
+                                    Text(loader.version + if (loader.stable) strings.text("ui.stable") else strings.text("ui.preview"))
                                 }
                             }
                             if (fabricError != null) Text(fabricError.orEmpty(),
                                 color = MaterialTheme.colorScheme.error,
                                 style = MaterialTheme.typography.bodySmall)
                         }
-                        Text("NeoForge and Forge need processor-based installation; not selectable yet.",
+                        Text(strings.text("ui.neoforge_and_forge_need_processor_based_installation_not_selec"),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Button(onClick = {
@@ -343,25 +347,25 @@ fun InstanceWorkspace(
                                 if (newLoader in setOf("fabric", "quilt")) ModLoaderSelection(newLoader, newFabricVersion) else null)
                         },
                             enabled = canModify && newName.trim().length in 1..48 &&
-                                newVersion in availableVersions && fabricValid) { Text("Create instance") }
+                                newVersion in availableVersions && fabricValid) { Text(strings.text("ui.create_instance")) }
                         if (hasLegacyGame) {
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                            Text("IMPORT OLD GAME DATA", style = MaterialTheme.typography.labelMedium,
+                            Text(strings.text("ui.import_old_game_data"), style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.primary)
                             OutlinedTextField(
                                 value = legacyName, onValueChange = { legacyName = it },
-                                label = { Text("Imported profile name") },
+                                label = { Text(strings.text("ui.imported_profile_name")) },
                                 singleLine = true, enabled = canModify,
                                 modifier = Modifier.fillMaxWidth(),
                             )
                             OutlinedButton(
                                 onClick = { onLegacyPreview(legacyName.trim(), latestVersion) },
                                 enabled = canModify && legacyName.trim().length in 1..48,
-                            ) { Text("Review v0.1 import…") }
+                            ) { Text(strings.text("ui.review_v0_1_import")) }
                         }
                         if (trashed.isNotEmpty()) {
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                            Text("RECENTLY DELETED", style = MaterialTheme.typography.labelMedium,
+                            Text(strings.text("ui.recently_deleted"), style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.primary)
                             trashed.forEach { entry ->
                                 Row(
@@ -378,7 +382,7 @@ fun InstanceWorkspace(
                                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                     TextButton(onClick = { onRestore(entry) }, enabled = canModify) {
-                                        Text("Restore")
+                                        Text(strings.text("ui.restore"))
                                     }
                                 }
                             }
@@ -414,17 +418,17 @@ fun InstanceWorkspace(
                             modifier = Modifier.fillMaxWidth().padding(14.dp),
                             verticalArrangement = Arrangement.spacedBy(5.dp),
                         ) {
-                            Text(if (preview.from == null) "Confirm legacy import" else "Confirm clone",
+                            Text(if (preview.from == null) strings.text("ui.confirm_legacy_import") else strings.text("ui.confirm_clone"),
                                 style = MaterialTheme.typography.titleMedium)
-                            Text("Source: ${preview.sourcePath}", style = MaterialTheme.typography.bodySmall)
-                            Text("Destination: ${preview.destinationPath}",
+                            Text(strings.text("ui.source_0", preview.sourcePath), style = MaterialTheme.typography.bodySmall)
+                            Text(strings.text("ui.destination_0", preview.destinationPath),
                                 style = MaterialTheme.typography.bodySmall)
-                            Text("${preview.totalFiles} files · ${displaySize(preview.totalBytes)} to copy (plus reserve)",
+                            Text(strings.text("ui.0_files_1_to_copy_plus_reserve", preview.totalFiles, displaySize(strings, preview.totalBytes)),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Button(onClick = onConfirmPreview, enabled = canModify) { Text("Start copy") }
-                                TextButton(onClick = onCancelPreview, enabled = canModify) { Text("Cancel") }
+                                Button(onClick = onConfirmPreview, enabled = canModify) { Text(strings.text("ui.start_copy")) }
+                                TextButton(onClick = onCancelPreview, enabled = canModify) { Text(strings.text("ui.cancel")) }
                             }
                         }
                     }
@@ -433,10 +437,10 @@ fun InstanceWorkspace(
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Row(modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Copying game data — ${copyProgress.copiedFiles} / ${copyProgress.totalFiles} files",
+                            Text(strings.text("ui.copying_game_data_0_1_files", copyProgress.copiedFiles, copyProgress.totalFiles),
                                 style = MaterialTheme.typography.bodySmall)
-                            Text(displaySize(copyProgress.copiedBytes) + " / " +
-                                displaySize(copyProgress.totalBytes),
+                            Text(displaySize(strings, copyProgress.copiedBytes) + " / " +
+                                displaySize(strings, copyProgress.totalBytes),
                                 style = MaterialTheme.typography.bodySmall)
                         }
                         LinearProgressIndicator(
@@ -445,12 +449,12 @@ fun InstanceWorkspace(
                         )
                         Row(modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(copyProgress.currentFile ?: "Preparing files…",
+                            Text(copyProgress.currentFile ?: strings.text("ui.preparing_files"),
                                 maxLines = 1, overflow = TextOverflow.Ellipsis,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.weight(1f))
-                            TextButton(onClick = onCancelCopy) { Text("Cancel copying") }
+                            TextButton(onClick = onCancelCopy) { Text(strings.text("ui.cancel_copying")) }
                         }
                     }
                 }

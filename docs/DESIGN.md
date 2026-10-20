@@ -378,3 +378,7 @@ If the answer to several of these questions is no, the UI should not be consider
 - Make the exact installed development artifact diagnosable: display the embedded product version, GitHub Actions run number, and abbreviated commit hash. Developer/IDE executions show LOCAL BUILD rather than a fictitious CI number.
 - Version is still SemVer for update ordering. A new build number **must not** masquerade as a new stable product release or change the startup updater's version comparator/receipt format.
 - Accept the UI only after verifying clickable controls, drag vs navigation interactions, double-click conventions where supported, resizing and maximized-restore bounds, small-screen layout, and DPI/multiple-monitor behavior on Windows, macOS, and Linux X11/Wayland. These manual cross-platform checks remain pending until actually performed.
+
+## 18. Interface languages
+
+English, Polish and German share the same design system. Keep the language menu compact (current language code with the full language names in its dropdown) beside Your setup; it must not compete with Play. Use translated accessibility descriptions for window/language/account actions. Allow longer German labels and Polish glyphs, retain normal scrolling, and verify wide and narrow layouts in all three languages. Switching changes UI text without resetting drafts, selections, user names, instance data or Minecraft settings. Upstream descriptions and diagnostic details keep their original text.

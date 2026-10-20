@@ -28,11 +28,11 @@ class LocalModManagerTest {
         return instances to LocalModManager(instances)
     }
 
-    private fun jar(path: Path, id: String, requires: String = "{}"): Path {
+    private fun jar(path: Path, id: String, requires: String = "{}", breaks: String = "{}"): Path {
         ZipOutputStream(Files.newOutputStream(path)).use { archive ->
             archive.putNextEntry(ZipEntry("fabric.mod.json"))
             archive.write(
-                """{"schemaVersion":1,"id":"$id","name":"Test $id","version":"1.2.3","depends":$requires}"""
+                """{"schemaVersion":1,"id":"$id","name":"Test $id","version":"1.2.3","depends":$requires,"breaks":$breaks}"""
                     .toByteArray())
             archive.closeEntry()
         }
@@ -160,4 +160,41 @@ class LocalModManagerTest {
         manager.setEnabled(profile.id, "library.jar", false)
         assertTrue(manager.list(profile.id).warnings.any { "requires 'library'" in it })
     }
+    @Test fun declaredConflictDisappearsWhenConflictingModIsDisabled() = runBlocking {
+        val (repo, manager) = setup()
+        val profile = repo.create("Conflict", "26.3", loader = ModLoaderSelection("fabric", "0.18.0"))
+        val source = Files.createTempDirectory("mod-conflict-")
+        manager.importJar(profile.id, jar(source.resolve("alpha.jar"), "alpha", breaks = """{"beta":"*"}"""))
+        val result = manager.importJar(profile.id, jar(source.resolve("beta.jar"), "beta"))
+        assertTrue(result.warnings.any { "conflict with enabled 'beta'" in it })
+        val disabled = manager.setEnabled(profile.id, "beta.jar", false)
+        assertTrue(disabled.warnings.none { "conflict with enabled 'beta'" in it })
+    }
+
+    @Test fun activeInstanceRejectsEveryLocalJarMutationWithoutChangingFiles() = runBlocking {
+        val (repo, manager) = setup()
+        val profile = repo.create("Busy", "26.3", loader = ModLoaderSelection("quilt", "0.28.0"))
+        val source = Files.createTempDirectory("mod-busy-")
+        manager.importJar(profile.id, jar(source.resolve("alpha.jar"), "alpha"))
+        val next = jar(source.resolve("beta.jar"), "beta")
+        val before = manager.list(profile.id)
+        val guard = pl.syntaxdevteam.syntaxlauncher.core.instance.InstanceActivityGuard(
+            repo.gameDirectory(profile).parent.parent.resolve(".activity"))
+        guard.begin(profile.id)
+        try {
+            assertFailsWith<pl.syntaxdevteam.syntaxlauncher.core.instance.InstanceInUseException> {
+                manager.importJar(profile.id, next)
+            }
+            assertFailsWith<pl.syntaxdevteam.syntaxlauncher.core.instance.InstanceInUseException> {
+                manager.setEnabled(profile.id, "alpha.jar", false)
+            }
+            assertFailsWith<pl.syntaxdevteam.syntaxlauncher.core.instance.InstanceInUseException> {
+                manager.remove(profile.id, "alpha.jar")
+            }
+            assertEquals(before, manager.list(profile.id))
+            assertTrue(Files.exists(next))
+        } finally { guard.releasePreparation(profile.id) }
+        assertFalse(manager.setEnabled(profile.id, "alpha.jar", false).mods.single().enabled)
+    }
+
 }

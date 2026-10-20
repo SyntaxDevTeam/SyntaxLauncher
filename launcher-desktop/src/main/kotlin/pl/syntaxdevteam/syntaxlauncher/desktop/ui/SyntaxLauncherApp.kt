@@ -1,5 +1,8 @@
 package pl.syntaxdevteam.syntaxlauncher.desktop.ui
 
+import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.LocalStrings
+import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.LanguagePicker
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.VerticalScrollbar
 import androidx.compose.foundation.border
@@ -103,6 +106,7 @@ fun SyntaxLauncherApp(
     chromeInset: Dp = 0.dp,
     headerDragArea: @Composable (@Composable () -> Unit) -> Unit = { content -> content() },
 ) {
+    val strings = LocalStrings.current
     SyntaxTheme {
         var catalog by remember { mutableStateOf<ManifestState>(ManifestState.Loading) }
         var reloadCatalog by remember { mutableIntStateOf(0) }
@@ -116,7 +120,7 @@ fun SyntaxLauncherApp(
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
-                settingsError = error.message ?: "Cannot read launcher settings."
+                settingsError = error.message ?: strings.text("ui.cannot_read_launcher_settings")
             }
         }
 
@@ -127,7 +131,7 @@ fun SyntaxLauncherApp(
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
-                ManifestState.Error(error.message ?: "Could not load Minecraft versions.")
+                ManifestState.Error(error.message ?: strings.text("ui.could_not_load_minecraft_versions"))
             }
         }
 
@@ -185,14 +189,14 @@ fun SyntaxLauncherApp(
                             containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)),
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
                     ) {
-                        BrandIcon(SyntaxSymbol.Home, description = if (compactShell) "Home" else null)
-                        if (!compactShell) { Spacer(Modifier.width(10.dp)); Text("Home") }
+                        BrandIcon(SyntaxSymbol.Home, description = if (compactShell) strings.text("ui.home") else null)
+                        if (!compactShell) { Spacer(Modifier.width(10.dp)); Text(strings.text("ui.home")) }
                     }
                     TextButton(onClick = { instanceOpenRequest = maxOf(instanceOpenRequest + 1, 1) }) {
                         BrandIcon(SyntaxSymbol.Instances, tint = SyntaxBrand.heroMuted)
                         if (!compactShell) {
                             Spacer(Modifier.width(10.dp))
-                            Text("Instances", color = SyntaxBrand.heroMuted)
+                            Text(strings.text("ui.instances"), color = SyntaxBrand.heroMuted)
                         }
                     }
                 }
@@ -217,22 +221,22 @@ fun SyntaxLauncherApp(
             Box(modifier = Modifier.weight(1f).padding(horizontal = if (compactShell) 12.dp else 20.dp,
                 vertical = 12.dp)) {
                 when (val state = catalog) {
-                    ManifestState.Loading -> CenterMessage("Connecting to Minecraft", "Loading official versions…", true)
+                    ManifestState.Loading -> CenterMessage(strings.text("ui.connecting_to_minecraft"), strings.text("ui.loading_official_versions"), true)
                     is ManifestState.Error -> Column(
                         modifier = Modifier.align(Alignment.Center),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
-                        Text("Could not load versions", style = MaterialTheme.typography.headlineMedium)
+                        Text(strings.text("ui.could_not_load_versions"), style = MaterialTheme.typography.headlineMedium)
                         Text(state.message, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Button(onClick = { reloadCatalog++ }) { Text("Try again") }
+                        Button(onClick = { reloadCatalog++ }) { Text(strings.text("ui.try_again")) }
                     }
                     is ManifestState.Ready -> when {
                         settingsError != null -> CenterMessage(
-                            "Settings need attention",
-                            settingsError.orEmpty() + " — your file was preserved.",
+                            strings.text("ui.settings_need_attention"),
+                            settingsError.orEmpty() + strings.text("ui.your_file_was_preserved"),
                         )
-                        persisted == null -> CenterMessage("Loading profile", "Restoring your settings…", true)
+                        persisted == null -> CenterMessage(strings.text("ui.loading_profile"), strings.text("ui.restoring_your_settings"), true)
                         else -> LauncherPanel(state.manifest, session, persisted!!, instanceOpenRequest)
                     }
                 }
@@ -242,9 +246,9 @@ fun SyntaxLauncherApp(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("SYNTAXDEVTEAM   /   MINECRAFT LAUNCHER", style = MaterialTheme.typography.labelSmall,
+                Text(strings.text("ui.syntaxdevteam_minecraft_launcher"), style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 0.7.sp)
-                if (!compactShell) Text("BUILT FOR THE ADVENTURE", style = MaterialTheme.typography.labelSmall,
+                if (!compactShell) Text(strings.text("ui.built_for_the_adventure"), style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 0.7.sp)
             }
             }
@@ -260,6 +264,7 @@ private fun LauncherPanel(
     saved: LauncherPreferences,
     instanceOpenRequest: Int,
 ) {
+    val strings = LocalStrings.current
     var nickname by remember { mutableStateOf(saved.nickname) }
     var selectedPremiumId by remember { mutableStateOf<String?>(null) }
     var signingInPremium by remember { mutableStateOf(false) }
@@ -311,7 +316,7 @@ private fun LauncherPanel(
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (failure: Exception) {
-                listOf(failure.message ?: "Could not inspect local mods.")
+                listOf(failure.message ?: strings.text("ui.could_not_inspect_local_mods"))
             }
         }
     }
@@ -346,7 +351,7 @@ private fun LauncherPanel(
             instanceError = (inventory?.problems.orEmpty() + trashInventory?.problems.orEmpty())
                 .takeIf { it.isNotEmpty() }?.joinToString("; ")
         }
-        catch (error: Exception) { instanceError = error.message ?: "Cannot load instances" }
+        catch (error: Exception) { instanceError = error.message ?: strings.text("ui.cannot_load_instances") }
     }
 
     fun chooseInstance(id: String) {
@@ -384,7 +389,7 @@ private fun LauncherPanel(
                     .takeIf { it.isNotEmpty() }?.joinToString("; ")
                 if (newSelection != null) chooseInstance(newSelection.id)
             } catch (error: Exception) {
-                instanceError = error.message ?: "Instance operation failed"
+                instanceError = error.message ?: strings.text("ui.instance_operation_failed")
             } finally { mutationBusy = false }
         }
     }
@@ -412,7 +417,7 @@ private fun LauncherPanel(
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
-                instanceError = error.message ?: "Could not inspect the game data."
+                instanceError = error.message ?: strings.text("ui.could_not_inspect_the_game_data")
             } finally {
                 mutationBusy = false
             }
@@ -449,9 +454,9 @@ private fun LauncherPanel(
                 chooseInstance(imported.id)
                 instanceError = null
             } catch (_: CancellationException) {
-                instanceError = "Copy cancelled. Original files were preserved."
+                instanceError = strings.text("ui.copy_cancelled_original_files_were_preserved")
             } catch (error: Exception) {
-                instanceError = error.message ?: "Copy failed; original files were preserved."
+                instanceError = error.message ?: strings.text("ui.copy_failed_original_files_were_preserved")
             } finally {
                 mutationBusy = false
                 copyProgress = null
@@ -486,7 +491,7 @@ private fun LauncherPanel(
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (error: Exception) {
-            VersionMetadataState.Error(error.message ?: "Could not resolve this version.")
+            VersionMetadataState.Error(error.message ?: strings.text("ui.could_not_resolve_this_version"))
         }
     }
     LaunchedEffect(locked) {
@@ -562,12 +567,12 @@ private fun LauncherPanel(
 
     if (accountInfoOpen) {
         AlertDialog(onDismissRequest = { accountInfoOpen = false },
-            title = { Text("Player accounts") },
-            text = { Text("Offline profiles work for local play and servers that accept offline clients. " +
-                "Microsoft sign-in is available when this launcher has an approved application ID. " +
-                "For development, configure SYNTAXLAUNCHER_MICROSOFT_CLIENT_ID. " +
-                "Microsoft sessions currently last until you close the launcher.") },
-            confirmButton = { TextButton(onClick = { accountInfoOpen = false }) { Text("Got it") } })
+            title = { Text(strings.text("ui.player_accounts")) },
+            text = { Text(strings.text("ui.offline_profiles_work_for_local_play_and_servers_that_accept_o") +
+                strings.text("ui.microsoft_sign_in_is_available_when_this_launcher_has_an_appro") +
+                strings.text("ui.for_development_configure_syntaxlauncher_microsoft_client_id") +
+                strings.text("ui.microsoft_sessions_currently_last_until_you_close_the_launcher")) },
+            confirmButton = { TextButton(onClick = { accountInfoOpen = false }) { Text(strings.text("ui.got_it")) } })
     }
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
@@ -600,19 +605,25 @@ private fun LauncherPanel(
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                         Text(
                             when {
-                                isRunning -> "You're in the game"
-                                launch.isPreparing -> "Getting everything ready"
-                                launch.phase == LaunchPhase.FAILED -> "Preparation needs attention"
-                                process.state == MinecraftProcessState.CRASHED -> "Minecraft closed unexpectedly"
-                                else -> "Ready when you are"
+                                isRunning -> strings.text("ui.you_re_in_the_game")
+                                launch.isPreparing -> strings.text("ui.getting_everything_ready")
+                                launch.phase == LaunchPhase.FAILED -> strings.text("ui.preparation_needs_attention")
+                                process.state == MinecraftProcessState.CRASHED -> strings.text("ui.minecraft_closed_unexpectedly")
+                                else -> strings.text("ui.ready_when_you_are")
                             },
                             style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                         Text(
                             when {
-                                isRunning -> "Minecraft is running in a separate window."
-                                launch.isPreparing -> launch.detail
+                                isRunning -> strings.text("ui.minecraft_is_running_in_a_separate_window")
+                                launch.isPreparing -> strings.text(when (launch.phase) {
+                                    LaunchPhase.PREPARING_LOADER -> "launch.loader"
+                                    LaunchPhase.PREPARING_GAME -> "launch.game"
+                                    LaunchPhase.PREPARING_JAVA -> "launch.java"
+                                    LaunchPhase.BUILDING_PLAN -> "launch.plan"
+                                    else -> "launch.start"
+                                })
                                 launch.phase == LaunchPhase.FAILED -> launch.detail
-                                else -> "Your game files and Java are managed automatically."
+                                else -> strings.text("ui.your_game_files_and_java_are_managed_automatically")
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -622,12 +633,12 @@ private fun LauncherPanel(
                     }
                     SurfaceTag(
                         when {
-                            isRunning -> "RUNNING"
-                            launch.isPreparing -> "PREPARING"
+                            isRunning -> strings.text("state.running")
+                            launch.isPreparing -> strings.text("state.preparing")
                             launch.phase == LaunchPhase.FAILED ||
-                                process.state == MinecraftProcessState.CRASHED -> "ERROR"
+                                process.state == MinecraftProcessState.CRASHED -> strings.text("state.error")
                             selectedPremium != null -> "MICROSOFT"
-                            else -> "OFFLINE"
+                            else -> strings.text("ui.offline")
                         },
                         when {
                             launch.phase == LaunchPhase.FAILED ||
@@ -643,7 +654,7 @@ private fun LauncherPanel(
                     if (fraction == null) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                     else LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
                     if (launch.totalFiles > 0) {
-                        Text("${launch.completedFiles} / ${launch.totalFiles} files",
+                        Text(strings.text("ui.0_1_files", launch.completedFiles, launch.totalFiles),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -675,9 +686,9 @@ private fun LauncherPanel(
                     }
                     Text(
                         when {
-                            launch.isPreparing -> "PREPARING MINECRAFT"
-                            isRunning -> "MINECRAFT IS RUNNING"
-                            else -> "PLAY MINECRAFT"
+                            launch.isPreparing -> strings.text("ui.preparing_minecraft")
+                            isRunning -> strings.text("ui.minecraft_is_running")
+                            else -> strings.text("ui.play_minecraft")
                         },
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 2.8.sp,
@@ -686,11 +697,11 @@ private fun LauncherPanel(
                 }
                 if (launch.isPreparing) {
                     OutlinedButton(onClick = session::cancelPreparation, modifier = Modifier.fillMaxWidth()) {
-                        Text("Cancel preparation")
+                        Text(strings.text("ui.cancel_preparation"))
                     }
                 } else if (isRunning) {
                     OutlinedButton(onClick = session::stopGame, modifier = Modifier.fillMaxWidth()) {
-                        Text("Stop Minecraft")
+                        Text(strings.text("ui.stop_minecraft"))
                     }
                 }
             }
@@ -711,14 +722,14 @@ private fun LauncherPanel(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                SectionLabel("INSTANCE", SyntaxSymbol.Cube)
+                SectionLabel(strings.text("instance.label"), SyntaxSymbol.Cube)
                 Box {
-                    SelectorButton(activeInstance?.name ?: if (missingInstance) "Unavailable instance" else "Legacy Vanilla",
+                    SelectorButton(activeInstance?.name ?: if (missingInstance) strings.text("ui.unavailable_instance") else strings.text("ui.legacy_vanilla"),
                         onClick = { instanceMenuOpen = true }, enabled = !locked,
                         symbol = SyntaxSymbol.Cube)
                     DropdownMenu(expanded = instanceMenuOpen && !locked,
                         onDismissRequest = { instanceMenuOpen = false }) {
-                        DropdownMenuItem(text = { Text("Legacy Vanilla") },
+                        DropdownMenuItem(text = { Text(strings.text("ui.legacy_vanilla")) },
                             onClick = { chooseInstance(""); instanceMenuOpen = false })
                         inventory?.instances.orEmpty().forEach { profile ->
                             DropdownMenuItem(text = { Text(profile.name + " · " + profile.id.take(8)) },
@@ -726,23 +737,23 @@ private fun LauncherPanel(
                         }
                     }
                 }
-                SelectorButton("Manage instances (${inventory?.instances?.size ?: 0})",
+                SelectorButton(strings.text("ui.manage_instances_0", inventory?.instances?.size ?: 0),
                     onClick = { managerOpen = true }, enabled = !locked,
                     symbol = SyntaxSymbol.Setup, trailing = SyntaxSymbol.ChevronRight)
                 if (missingInstance) {
-                    Text("Selected instance is unavailable. Choose a valid instance or Legacy Vanilla.",
+                    Text(strings.text("ui.selected_instance_is_unavailable_choose_a_valid_instance_or_le"),
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall)
                 }
                 if (unsavedInstanceSettings) {
-                    Text("Instance settings differ from the saved profile. Re-select it or edit it in Manage instances.",
+                    Text(strings.text("ui.instance_settings_differ_from_the_saved_profile_re_select_it_o"),
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall)
                 }
                 (processProtectionError ?: instanceError)?.let { Text(it, color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall) }
                 if (localModWarnings.isNotEmpty()) {
-                    Text("Local mod warnings — review Instances → Mods",
+                    Text(strings.text("ui.local_mod_warnings_review_instances_mods"),
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.labelMedium)
                     localModWarnings.take(2).forEach { warning ->
@@ -750,15 +761,19 @@ private fun LauncherPanel(
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     if (localModWarnings.size > 2) Text(
-                        "+${localModWarnings.size - 2} additional mod warning(s)",
+                        strings.text("ui.0_additional_mod_warning_s", localModWarnings.size - 2),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f))
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                SectionLabel("YOUR SETUP", SyntaxSymbol.Setup)
-                Text("Make it yours.", modifier = Modifier.padding(start = 34.dp),
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically) {
+                    SectionLabel(strings.text("ui.your_setup"), SyntaxSymbol.Setup)
+                    LanguagePicker()
+                }
+                Text(strings.text("ui.make_it_yours"), modifier = Modifier.padding(start = 34.dp),
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold)
@@ -767,10 +782,10 @@ private fun LauncherPanel(
             Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween) {
-                    SectionLabel("PLAYER", SyntaxSymbol.Player)
+                    SectionLabel(strings.text("ui.player"), SyntaxSymbol.Player)
                     IconButton(onClick = { accountInfoOpen = true }, modifier = Modifier.size(24.dp)) {
                         BrandIcon(SyntaxSymbol.Info, size = 17.dp, tint = SyntaxBrand.heroMuted,
-                            description = "Account information")
+                            description = strings.text("ui.account_information"))
                     }
                 }
                 if (session.microsoftEnabled || premiumAccounts.isNotEmpty()) Row(horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -778,7 +793,7 @@ private fun LauncherPanel(
                     FilterChip(
                         selected = selectedPremiumId == null,
                         onClick = { selectedPremiumId = null },
-                        label = { Text("Offline") },
+                        label = { Text(strings.text("ui.offline_e01fa7")) },
                         enabled = !locked,
                     )
                     if (session.microsoftEnabled) {
@@ -793,24 +808,24 @@ private fun LauncherPanel(
                                     } catch (cancelled: CancellationException) {
                                         throw cancelled
                                     } catch (error: Exception) {
-                                        premiumError = error.message ?: "Microsoft sign-in failed."
+                                        premiumError = error.message ?: strings.text("ui.microsoft_sign_in_failed")
                                     } finally {
                                         signingInPremium = false
                                     }
                                 }
                             },
                             enabled = !locked,
-                        ) { Text(if (signingInPremium) "Signing in…" else "Add Microsoft") }
+                        ) { Text(if (signingInPremium) strings.text("ui.signing_in") else strings.text("ui.add_microsoft")) }
                     }
                 }
                 if (selectedPremiumId == null) {
                     OutlinedTextField(
                         value = nickname, onValueChange = { nickname = it },
-                        label = { Text("Offline nickname") },
+                        label = { Text(strings.text("ui.offline_nickname")) },
                         supportingText = {
                             Text(if (nickname.isNotBlank() && !OfflineAccount.isValidUsername(nickname.trim()))
-                                "Use 3–16 letters, numbers or underscores."
-                                else "For local play and offline-compatible servers.")
+                                strings.text("ui.use_3_16_letters_numbers_or_underscores")
+                                else strings.text("ui.for_local_play_and_offline_compatible_servers"))
                         },
                         isError = nickname.isNotBlank() && !OfflineAccount.isValidUsername(nickname.trim()),
                         enabled = !locked, singleLine = true, modifier = Modifier.fillMaxWidth(),
@@ -821,10 +836,10 @@ private fun LauncherPanel(
                             unfocusedContainerColor = SyntaxBrand.panel.copy(alpha = 0.5f)),
                     )
                 } else {
-                    Text(selectedPremium?.username ?: "This Microsoft session is unavailable.",
+                    Text(selectedPremium?.username ?: strings.text("ui.this_microsoft_session_is_unavailable"),
                         color = if (selectedPremium == null) MaterialTheme.colorScheme.error
                             else MaterialTheme.colorScheme.onSurface)
-                    Text("Verified Minecraft Java profile · Microsoft",
+                    Text(strings.text("ui.verified_minecraft_java_profile_microsoft"),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -841,7 +856,7 @@ private fun LauncherPanel(
                         TextButton(onClick = {
                             session.removePremiumAccount(profile.uuid.toString())
                             if (selectedPremiumId == profile.uuid.toString()) selectedPremiumId = null
-                        }, enabled = !locked) { Text("Sign out") }
+                        }, enabled = !locked) { Text(strings.text("ui.sign_out")) }
                     }
                 }
                 premiumError?.let {
@@ -850,16 +865,16 @@ private fun LauncherPanel(
                 }
             }
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                SectionLabel("GAME VERSION", SyntaxSymbol.Cube)
+                SectionLabel(strings.text("ui.game_version"), SyntaxSymbol.Cube)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ChannelButton("Releases", modifier = Modifier.weight(1f),
+                    ChannelButton(strings.text("ui.releases"), modifier = Modifier.weight(1f),
                         selected = !showSnapshots, enabled = !locked && activeInstance == null,
                         onClick = {
                             showSnapshots = false
                             selected = manifest.versions.firstOrNull { it.id == manifest.latestRelease }
                         },
                     )
-                    ChannelButton("Snapshots", modifier = Modifier.weight(1f),
+                    ChannelButton(strings.text("ui.snapshots"), modifier = Modifier.weight(1f),
                         selected = showSnapshots, enabled = !locked && activeInstance == null,
                         onClick = {
                             showSnapshots = true
@@ -868,7 +883,7 @@ private fun LauncherPanel(
                     )
                 }
                 Box {
-                    SelectorButton(selected?.id ?: "Select version",
+                    SelectorButton(selected?.id ?: strings.text("ui.select_version"),
                         onClick = { menuOpen = true }, enabled = !locked && activeInstance == null)
                     DropdownMenu(
                         expanded = menuOpen && !locked && activeInstance == null,
@@ -888,20 +903,20 @@ private fun LauncherPanel(
                 }
                 when (val state = metadata) {
                     VersionMetadataState.Loading ->
-                        Text("Verifying version…", color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        Text(strings.text("ui.verifying_version"), color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.bodySmall)
                     is VersionMetadataState.Error -> {
                         Text(state.message, color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodySmall)
                         OutlinedButton(onClick = { reloadMetadata++ }, enabled = !locked) {
-                            Text("Retry")
+                            Text(strings.text("ui.retry"))
                         }
                     }
                     is VersionMetadataState.Ready ->
                         Text(
-                            "Verified   •   " +
+                            strings.text("ui.verified") +
                                 (state.metadata.javaRequirement?.let { "Java ${it.majorVersion}" }
-                                    ?: "Java not declared"),
+                                    ?: strings.text("ui.java_not_declared")),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.bodySmall,
                         )
@@ -913,7 +928,7 @@ private fun LauncherPanel(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    SectionLabel("MEMORY ALLOCATION", SyntaxSymbol.Memory)
+                    SectionLabel(strings.text("ui.memory_allocation"), SyntaxSymbol.Memory)
                     Text("${ramMiB.toInt() / 1024} GB", color = MaterialTheme.colorScheme.primary,
                         style = MaterialTheme.typography.labelLarge)
                 }
@@ -925,7 +940,7 @@ private fun LauncherPanel(
                 )
                 if (activeInstance != null) {
                     Text(
-                        "Version, loader and RAM belong to this instance. Edit them under Manage instances → Instance settings.",
+                        strings.text("ui.version_loader_and_ram_belong_to_this_instance_edit_them_under"),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodySmall,
                     )
@@ -943,11 +958,11 @@ private fun LauncherPanel(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f))
             Text(
                 when (process.state) {
-                    MinecraftProcessState.RUNNING -> "Running · PID ${process.pid ?: "?"}"
-                    MinecraftProcessState.STOPPED -> "Last exit code: ${process.exitCode ?: "?"}"
-                    MinecraftProcessState.CRASHED -> process.errorMessage ?: "Minecraft crashed"
-                    else -> if (selectedPremium != null) "Microsoft account · " + selectedPremium.username
-                        else "Offline profile · " + (activeInstance?.loader?.id?.replaceFirstChar { it.uppercase() } ?: "Vanilla")
+                    MinecraftProcessState.RUNNING -> strings.text("ui.running_pid_0", process.pid ?: "?")
+                    MinecraftProcessState.STOPPED -> strings.text("ui.last_exit_code_0", process.exitCode ?: "?")
+                    MinecraftProcessState.CRASHED -> process.errorMessage ?: strings.text("ui.minecraft_crashed")
+                    else -> if (selectedPremium != null) strings.text("ui.microsoft_account") + selectedPremium.username
+                        else strings.text("ui.offline_profile") + (activeInstance?.loader?.id?.replaceFirstChar { it.uppercase() } ?: "Vanilla")
                 },
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall,
@@ -955,7 +970,7 @@ private fun LauncherPanel(
             if (process.state == MinecraftProcessState.CRASHED ||
                 launch.phase == LaunchPhase.FAILED) {
                 process.stderrLog?.parent?.let {
-                    Text("Logs: $it", style = MaterialTheme.typography.bodySmall,
+                    Text(strings.text("ui.logs_0", it), style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -990,10 +1005,11 @@ private fun LauncherPanel(
 
 @Composable
 private fun VersionLabel(version: MinecraftVersion, manifest: MinecraftVersionManifest) {
+    val strings = LocalStrings.current
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(version.id)
         if (version.id == manifest.latestRelease || version.id == manifest.latestSnapshot) {
-            Text("latest", color = MaterialTheme.colorScheme.primary)
+            Text(strings.text("ui.latest"), color = MaterialTheme.colorScheme.primary)
         }
     }
 }

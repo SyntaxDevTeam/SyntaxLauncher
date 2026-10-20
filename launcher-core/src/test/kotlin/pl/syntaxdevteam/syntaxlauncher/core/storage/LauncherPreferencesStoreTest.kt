@@ -51,4 +51,41 @@ class LauncherPreferencesStoreTest {
         assertFailsWith<IllegalArgumentException> { store.save(LauncherPreferences()) }
         assertEquals(original, Files.readString(file))
     }
+    @Test
+    fun languageChoiceSurvivesRestartAndProfileSavesWithoutReplacingUnknownData() = runBlocking {
+        val file = Files.createTempDirectory("syntax-language").resolve("settings.properties")
+        val store = LauncherPreferencesStore(file)
+        assertEquals(null, store.loadLanguage())
+        store.save(LauncherPreferences("PlayerOne", "26.2"))
+        Files.writeString(file, Files.readString(file) + "\nfuture_option=keep\n")
+        for (language in listOf("en", "pl", "de")) {
+            store.saveLanguage(language)
+            assertEquals(language, LauncherPreferencesStore(file).loadLanguage())
+            assertEquals("PlayerOne", store.load().nickname)
+            store.save(store.load().copy(maximumMemoryMiB = 8192))
+            assertEquals(language, store.loadLanguage())
+            assertTrue(Files.readString(file).contains("future_option=keep"))
+        }
+        val original = Files.readString(file)
+        assertFailsWith<IllegalArgumentException> { store.saveLanguage("fr") }
+        assertEquals(original, Files.readString(file))
+    }
+
+    @Test
+    fun legacyAndFutureLanguageSettingsAreReadWithoutDestructiveMigration() = runBlocking {
+        val file = Files.createTempDirectory("syntax-language-schema").resolve("settings.properties")
+        val store = LauncherPreferencesStore(file)
+        store.save(LauncherPreferences("PlayerOne"))
+        assertEquals(null, store.loadLanguage())
+        Files.writeString(file, Files.readString(file) + "\nui_language=fr\n")
+        assertEquals("fr", store.loadLanguage())
+        store.save(store.load())
+        assertEquals("fr", store.loadLanguage())
+        val newer = "schema_version=999\nui_language=fr\nfuture_data=keep\n"
+        Files.writeString(file, newer)
+        assertFailsWith<IllegalArgumentException> { store.loadLanguage() }
+        assertFailsWith<IllegalArgumentException> { store.saveLanguage("pl") }
+        assertEquals(newer, Files.readString(file))
+    }
+
 }

@@ -1,5 +1,10 @@
 package pl.syntaxdevteam.syntaxlauncher.desktop.ui
 
+import androidx.compose.runtime.CompositionLocalProvider
+import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.LocalStrings
+import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.UiStrings
+import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.UiLanguage
+import pl.syntaxdevteam.syntaxlauncher.core.update.StartupUpdateStage
 import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
@@ -16,8 +21,8 @@ class StartupUpdateScreenTest {
     @Test fun compactStartupHasProgressErrorRecoveryAndSafeHandoffStates() {
         for ((name, progress, error) in listOf(
             Triple("checking", StartupUpdateProgress("Checking for launcher updates…"), null),
-            Triple("downloading", StartupUpdateProgress("Downloading SyntaxLauncher 0.3.1…", 0.42f), null),
-            Triple("starting", StartupUpdateProgress("Starting SyntaxLauncher 0.3.1…", canContinue = false), null),
+            Triple("downloading", StartupUpdateProgress("Downloading SyntaxLauncher 0.3.1…", 0.42f, stage = StartupUpdateStage.DOWNLOADING), null),
+            Triple("starting", StartupUpdateProgress("Starting SyntaxLauncher 0.3.1…", canContinue = false, stage = StartupUpdateStage.STARTING), null),
             Triple("error", StartupUpdateProgress("Verifying update…"), "The update could not be verified. Your installed launcher was preserved."),
         )) {
             var continued = false
@@ -50,4 +55,31 @@ class StartupUpdateScreenTest {
             } finally { scene.close() }
         }
     }
+    @Test fun updaterUsesLocalizedStageAndRecoveryLabelsInEveryLanguage() {
+        for (language in UiLanguage.entries) {
+            val strings = UiStrings(language)
+            val scene = ImageComposeScene(440, 600) {
+                CompositionLocalProvider(LocalStrings provides strings) {
+                    SyntaxTheme { StartupUpdateScreen(
+                        StartupUpdateProgress("diagnostic text", 0.4f, stage = StartupUpdateStage.DOWNLOADING),
+                        null, {}, {}) }
+                }
+            }
+            try {
+                repeat(3) { scene.render(System.nanoTime()).close() }
+                fun collect(node: SemanticsNode): List<SemanticsNode> = listOf(node) + node.children.flatMap(::collect)
+                val nodes = scene.semanticsOwners.flatMap { collect(it.rootSemanticsNode) }
+                assertTrue(nodes.any { it.config.getOrNull(SemanticsProperties.Text)?.any { text ->
+                    text.text == strings.text("update.download") } == true })
+                assertTrue(nodes.none { it.config.getOrNull(SemanticsProperties.Text)?.any { text ->
+                    text.text == "diagnostic text" } == true })
+                val output = Path.of("build/reports/ui/startup-${language.code}.png")
+                Files.createDirectories(output.parent)
+                scene.render(System.nanoTime()).use { image ->
+                    image.encodeToData()!!.use { Files.write(output, it.bytes) }
+                }
+            } finally { scene.close() }
+        }
+    }
+
 }

@@ -25,6 +25,19 @@ class VersionManifestParserTest {
         assertEquals(MinecraftVersionType.SNAPSHOT, snapshot.type)
     }
 
+    @Test
+    fun `maps legacy and unknown version types without dropping entries`() {
+        for ((remote, expected) in listOf(
+            "old_beta" to MinecraftVersionType.OLD_BETA,
+            "old_alpha" to MinecraftVersionType.OLD_ALPHA,
+            "future_type" to MinecraftVersionType.UNKNOWN,
+        )) {
+            val manifest = parser.parse(FIXTURE.replace("\"type\": \"release\"", "\"type\": \"$remote\""))
+            assertEquals(2, manifest.versions.size)
+            assertEquals(expected, manifest.versions.first().type)
+        }
+    }
+
     private companion object {
         const val FIXTURE = """
             {

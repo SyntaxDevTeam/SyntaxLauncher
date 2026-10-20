@@ -1,5 +1,7 @@
 package pl.syntaxdevteam.syntaxlauncher.desktop.ui
 
+import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.LocalStrings
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -43,6 +45,7 @@ import pl.syntaxdevteam.syntaxlauncher.core.network.DownloadSha256Exception
 import pl.syntaxdevteam.syntaxlauncher.core.network.DownloadIntegrityException
 import pl.syntaxdevteam.syntaxlauncher.core.network.DownloadSizeMismatchException
 import pl.syntaxdevteam.syntaxlauncher.core.network.DownloadFileSystemException
+import pl.syntaxdevteam.syntaxlauncher.core.update.StartupUpdateStage
 import pl.syntaxdevteam.syntaxlauncher.core.update.StartupUpdateProgress
 import pl.syntaxdevteam.syntaxlauncher.core.update.StartupUpdateResult
 import pl.syntaxdevteam.syntaxlauncher.core.update.StartupUpdater
@@ -56,9 +59,10 @@ internal fun StartupUpdateGate(
     onTransferred: () -> Unit,
     content: @Composable () -> Unit,
 ) {
+    val strings = LocalStrings.current
     var continued by remember { mutableStateOf(updater == null || handoff != null) }
     var attempt by remember { mutableIntStateOf(0) }
-    var progress by remember { mutableStateOf(StartupUpdateProgress("Checking for launcher updates…")) }
+    var progress by remember { mutableStateOf(StartupUpdateProgress(strings.text("ui.checking_for_launcher_updates"))) }
     var error by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(updater, continued, attempt) {
         if (continued || updater == null) return@LaunchedEffect
@@ -73,16 +77,16 @@ internal fun StartupUpdateGate(
             LoggerFactory.getLogger("StartupUpdater").warn("Launcher update failed; installed application preserved", failure)
             error = when (failure) {
                 is DownloadNetworkException, is DownloadHttpException ->
-                    "The update download could not finish. Check your connection or try again later."
+                    strings.text("ui.the_update_download_could_not_finish_check_your_connection_or_")
                 is DownloadSha256Exception, is DownloadIntegrityException, is DownloadSizeMismatchException ->
-                    "The downloaded update failed verification. Your installed launcher was preserved."
+                    strings.text("ui.the_downloaded_update_failed_verification_your_installed_launc")
                 is DownloadFileSystemException, is java.io.IOException ->
-                    "The update could not be saved or installed. Check free disk space and folder permissions."
+                    strings.text("ui.the_update_could_not_be_saved_or_installed_check_free_disk_spa")
                 is IllegalArgumentException ->
-                    "The update package or saved update state could not be verified. Existing files were preserved."
-                else -> if (progress.message.startsWith("Checking"))
-                    "The update server could not provide version information. Try again later or continue."
-                    else failure.message ?: "Could not start the updated launcher. Your installed version is still available."
+                    strings.text("ui.the_update_package_or_saved_update_state_could_not_be_verified")
+                else -> if (progress.stage == StartupUpdateStage.CHECKING)
+                    strings.text("ui.the_update_server_could_not_provide_version_information_try_ag")
+                    else failure.message ?: strings.text("ui.could_not_start_the_updated_launcher_your_installed_version_is")
             }
         }
     }
@@ -108,30 +112,38 @@ internal fun StartupUpdateScreen(
     onRetry: () -> Unit,
     onContinue: () -> Unit,
 ) {
+    val strings = LocalStrings.current
     Surface(Modifier.fillMaxSize(), color = SyntaxBrand.background) {
         Box(Modifier.fillMaxSize().background(Brush.verticalGradient(
             listOf(SyntaxBrand.panelHighlight, SyntaxBrand.background))), contentAlignment = Alignment.Center) {
             Column(Modifier.widthIn(max = 480.dp).verticalScroll(rememberScrollState()).padding(28.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(18.dp)) {
-                Image(painterResource("branding/hero-mark.png"), "SyntaxLauncher logo", Modifier.size(112.dp))
+                Image(painterResource("branding/hero-mark.png"), strings.text("ui.syntaxlauncher_logo"), Modifier.size(112.dp))
                 Text("SyntaxLauncher", style = MaterialTheme.typography.headlineMedium)
                 Text("v" + LauncherBuildInfo.version + "   /   " + LauncherBuildInfo.buildLabel +
                     "   /   " + LauncherBuildInfo.shortCommit,
                     color = SyntaxBrand.cyan, style = MaterialTheme.typography.labelSmall)
-                Text(if (error == null) progress.message else "Update needs attention",
+                Text(if (error == null) strings.text(when (progress.stage) {
+                    StartupUpdateStage.CHECKING -> "ui.checking_for_launcher_updates"
+                    StartupUpdateStage.VERIFYING -> "update.verify"
+                    StartupUpdateStage.DOWNLOADING -> "update.download"
+                    StartupUpdateStage.INSTALLING -> "update.install"
+                    StartupUpdateStage.STARTING -> "update.start"
+                    StartupUpdateStage.PREVIOUS -> "update.previous"
+                }) else strings.text("ui.update_needs_attention"),
                     style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
                 if (error == null) {
                     val fraction = progress.fraction
                     if (fraction == null) CircularProgressIndicator(Modifier.size(26.dp), strokeWidth = 2.dp)
                     else LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
-                    Text("Getting your launcher ready", color = SyntaxBrand.heroMuted,
+                    Text(strings.text("ui.getting_your_launcher_ready"), color = SyntaxBrand.heroMuted,
                         style = MaterialTheme.typography.bodySmall)
                 } else {
                     Text(error, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
-                    Button(onClick = onRetry, modifier = Modifier.fillMaxWidth()) { Text("Try again") }
+                    Button(onClick = onRetry, modifier = Modifier.fillMaxWidth()) { Text(strings.text("ui.try_again")) }
                 }
-                TextButton(onClick = onContinue, enabled = error != null || progress.canContinue) { Text("Continue with installed version") }
+                TextButton(onClick = onContinue, enabled = error != null || progress.canContinue) { Text(strings.text("ui.continue_with_installed_version")) }
             }
         }
     }

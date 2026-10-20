@@ -1,5 +1,7 @@
 package pl.syntaxdevteam.syntaxlauncher.desktop.ui
 
+import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.LocalStrings
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -41,15 +43,16 @@ internal fun WindowControls(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val strings = LocalStrings.current
     Row(modifier, verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        WindowControl("Minimize", SyntaxSymbol.Minimize) { state.isMinimized = true }
+        WindowControl(strings.text("ui.minimize"), SyntaxSymbol.Minimize) { state.isMinimized = true }
         val maximized = state.placement == WindowPlacement.Maximized
-        WindowControl(if (maximized) "Restore" else "Maximize",
+        WindowControl(if (maximized) strings.text("ui.restore") else strings.text("ui.maximize"),
             if (maximized) SyntaxSymbol.Restore else SyntaxSymbol.Maximize) {
             state.placement = if (maximized) WindowPlacement.Floating else WindowPlacement.Maximized
         }
-        WindowControl("Close", SyntaxSymbol.Close, destructive = true, onClick = onClose)
+        WindowControl(strings.text("ui.close"), SyntaxSymbol.Close, destructive = true, onClick = onClose)
     }
 }
 

@@ -1,5 +1,7 @@
 package pl.syntaxdevteam.syntaxlauncher.desktop.ui
 
+import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.LocalStrings
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -37,6 +39,7 @@ fun InstanceSettingsDialog(
     onSave: (MinecraftInstance) -> Unit,
     onCancel: () -> Unit,
 ) {
+    val strings = LocalStrings.current
     var name by remember(instance.id) { mutableStateOf(instance.name) }
     var version by remember(instance.id) { mutableStateOf(instance.minecraftVersionId) }
     var minimum by remember(instance.id) { mutableStateOf(instance.minimumMemoryMiB.toString()) }
@@ -76,7 +79,7 @@ fun InstanceSettingsDialog(
             try {
                 compatible = loadLoaderVersions(loaderId, versionId)
                 if (compatible.isEmpty()) {
-                    loaderError = "Fabric is not available for Minecraft $versionId."
+                    loaderError = strings.text("loader.unavailable", loaderId.replaceFirstChar { it.uppercase() }, versionId)
                 } else if (compatible.none { it.version == fabricVersion }) {
                     fabricVersion = compatible.firstOrNull { it.stable }?.version
                         ?: compatible.first().version
@@ -84,7 +87,7 @@ fun InstanceSettingsDialog(
             } catch (cancelled: kotlinx.coroutines.CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
-                loaderError = error.message ?: "Cannot load compatible Fabric versions."
+                loaderError = error.message ?: strings.text("loader.compatibility_error")
             } finally {
                 loaderLoading = false
             }
@@ -94,7 +97,7 @@ fun InstanceSettingsDialog(
 
     AlertDialog(
         onDismissRequest = onCancel,
-        title = { Text("Instance settings") },
+        title = { Text(strings.text("ui.instance_settings")) },
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth().heightIn(max = 500.dp)
@@ -102,28 +105,28 @@ fun InstanceSettingsDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
-                    "Settings for this instance only. Cancel will discard every change.",
+                    strings.text("ui.settings_for_this_instance_only_cancel_will_discard_every_chan"),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Instance name") },
+                    label = { Text(strings.text("ui.instance_name")) },
                     singleLine = true,
                     isError = !nameValid,
-                    supportingText = { Text("1–48 characters. The instance UUID never changes.") },
+                    supportingText = { Text(strings.text("ui.1_48_characters_the_instance_uuid_never_changes")) },
                     modifier = Modifier.fillMaxWidth(),
                 )
                 OutlinedTextField(
                     value = version,
                     onValueChange = { version = it; suggestions = true },
-                    label = { Text("Minecraft version") },
+                    label = { Text(strings.text("ui.minecraft_version")) },
                     singleLine = true,
                     isError = !versionValid,
                     supportingText = {
-                        Text(if (versionValid) "From the Mojang version catalog."
-                            else "Select an existing version from the catalog.")
+                        Text(if (versionValid) strings.text("ui.from_the_mojang_version_catalog")
+                            else strings.text("ui.select_an_existing_version_from_the_catalog"))
                     },
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -139,13 +142,13 @@ fun InstanceSettingsDialog(
                 }
                 if (versionChanged) {
                     Text(
-                        "Changing the game version does not convert worlds. Back up saves first: " +
-                            "opening newer worlds in older Minecraft versions may permanently damage them.",
+                        strings.text("ui.changing_the_game_version_does_not_convert_worlds_back_up_save") +
+                            strings.text("ui.opening_newer_worlds_in_older_minecraft_versions_may_permanent"),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
-                Text("MOD LOADER", style = MaterialTheme.typography.labelMedium,
+                Text(strings.text("ui.mod_loader"), style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     TextButton(onClick = { loaderId = "vanilla" }) {
@@ -162,18 +165,18 @@ fun InstanceSettingsDialog(
                     OutlinedTextField(
                         value = fabricVersion,
                         onValueChange = { fabricVersion = it },
-                        label = { Text(loaderId.replaceFirstChar { it.uppercase() } + " loader version") },
+                        label = { Text(loaderId.replaceFirstChar { it.uppercase() } + strings.text("ui.loader_version")) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         isError = !fabricValid,
                         supportingText = { Text(
-                            if (loaderLoading) "Checking compatible versions…"
-                            else loaderError ?: "Choose one of the compatible versions below."
+                            if (loaderLoading) strings.text("ui.checking_compatible_versions")
+                            else loaderError ?: strings.text("ui.choose_one_of_the_compatible_versions_below")
                         ) },
                     )
                     compatible.take(7).forEach { choice ->
                         TextButton(onClick = { fabricVersion = choice.version }) {
-                            Text(choice.version + if (choice.stable) " · stable" else " · preview")
+                            Text(choice.version + if (choice.stable) strings.text("ui.stable") else strings.text("ui.preview"))
                         }
                     }
                     if (loaderError != null) {
@@ -185,7 +188,7 @@ fun InstanceSettingsDialog(
                     OutlinedTextField(
                         value = minimum,
                         onValueChange = { minimum = it.filter(Char::isDigit).take(5) },
-                        label = { Text("Minimum RAM (MiB)") },
+                        label = { Text(strings.text("ui.minimum_ram_mib")) },
                         singleLine = true,
                         isError = !ramValid,
                         modifier = Modifier.weight(1f),
@@ -193,30 +196,30 @@ fun InstanceSettingsDialog(
                     OutlinedTextField(
                         value = maximum,
                         onValueChange = { maximum = it.filter(Char::isDigit).take(5) },
-                        label = { Text("Maximum RAM (MiB)") },
+                        label = { Text(strings.text("ui.maximum_ram_mib")) },
                         singleLine = true,
                         isError = !ramValid,
                         modifier = Modifier.weight(1f),
                     )
                 }
                 if (!ramValid) {
-                    Text("Minimum 256 MiB; maximum 1024–16384 MiB and not below minimum.",
+                    Text(strings.text("ui.minimum_256_mib_maximum_1024_16384_mib_and_not_below_minimum"),
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall)
                 }
                 TextButton(onClick = { advanced = !advanced }) {
-                    Text(if (advanced) "Hide advanced JVM arguments" else "Advanced JVM arguments")
+                    Text(if (advanced) strings.text("ui.hide_advanced_jvm_arguments") else strings.text("ui.advanced_jvm_arguments"))
                 }
                 if (advanced) {
                     OutlinedTextField(
                         value = jvmArguments,
                         onValueChange = { jvmArguments = it },
-                        label = { Text("Additional JVM arguments") },
+                        label = { Text(strings.text("ui.additional_jvm_arguments")) },
                         minLines = 3,
                         maxLines = 6,
                         isError = !argumentsValid,
                         supportingText = {
-                            Text("One argument per line, no shell parsing. Up to 32 arguments, 512 characters each.")
+                            Text(strings.text("ui.one_argument_per_line_no_shell_parsing_up_to_32_arguments_512_"))
                         },
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -237,8 +240,8 @@ fun InstanceSettingsDialog(
                         loader = if (loaderId in setOf("fabric", "quilt")) ModLoaderSelection(loaderId, fabricVersion) else null,
                     ))
                 },
-            ) { Text("Save settings") }
+            ) { Text(strings.text("ui.save_settings")) }
         },
-        dismissButton = { TextButton(onClick = onCancel) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onCancel) { Text(strings.text("ui.cancel")) } },
     )
 }

@@ -8,6 +8,161 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+
+## 2026-10-20 — Consolidate and verify all pending changes for repository push
+
+**Milestone:** v0.1, v0.3, v0.4, v0.5, v0.6 and v0.8
+**Author/Agent:** Codex / GPT-6
+**Status:** Completed — local verification and requested commit preparation; hosted CI remains separate
+
+### Completed
+- Reviewed all tracked, staged and untracked source/documentation changes for the maintainer-requested push of all pending work.
+- Included existing localization, preferences, update progress presentation, version-catalog cache, approved-logo icon export, regression tests and milestone acceptance documentation.
+- Included pre-existing AccountManager/OS-vault foundations, bounded callback helper, deterministic tests and opt-in synthetic credential probe. These helpers remain separate from current desktop session/callback wiring; no live credentials were read or native vault probe run in this task.
+- Corrected the Microsoft application record to distinguish submitted descriptions from actual desktop integration: the runtime still requires the client-ID environment setting, sessions remain in memory and approval/live acceptance remain open.
+- Confirmed the local branch matched origin/main before creating the requested commit. No product-version change or release tag is included.
+
+### Changed files
+- All pending source/test/documentation files listed in the resulting commit — consolidated existing work at the user's explicit request.
+- `docs/MICROSOFT_APP.md` — current integration limits alongside the registration/submission record.
+- `docs/ROADMAP.md` — account/vault/callback foundations remain unchecked pending desktop/native acceptance.
+- `docs/WORKLOG.md` — final combined verification and publication scope.
+
+### Verification
+- `./gradlew test` — PASS via `./gradlew --offline test build :launcher-desktop:createDistributable`; 116 core and 16 desktop tests, zero failures/errors/skips (cached tasks reused where inputs were unchanged).
+- `./gradlew build` — PASS in the same invocation.
+- `:launcher-desktop:createDistributable` — PASS, Linux package regenerated with the existing approved-logo icon.
+- `git diff --check HEAD` — PASS before commit preparation.
+- Manual verification — reviewed pending-file inventory and public Client ID versus credentials; no generated builds, local state, private keys or actual access/refresh tokens included. Earlier Compose render inspection remains the visual evidence; native Windows/macOS and live Microsoft/gameplay checks were not repeated.
+
+### Roadmap updates
+- `[x] v0.1 / UI / Existing logo as small icon` — already verified.
+- `[x] v0.1 / Interface languages and catalog cache` — existing passing evidence retained.
+- `[ ] v0.3 / Account/vault/callback integration and native/live acceptance` — explicitly incomplete.
+- Remaining platform/gameplay/loader acceptance gates retain their recorded state.
+
+### Follow-ups / known issues
+- Hosted CI must validate the pushed commit. Real Microsoft approval/login, desktop vault integration and native package appearance remain open.
+
+---
+
+## 2026-10-20 — Add EN/PL/DE localization and reconcile verified milestone work
+
+**Milestone:** v0.1 — requested interface localization; v0.4/v0.5/v0.8 — acceptance and regression closure
+**Author/Agent:** Codex / GPT-6
+**Status:** Completed — requested localization and evidence-backed checklist reconciliation; remaining milestone gates stay open
+
+### Completed
+- Read the current architecture, roadmap, milestone definitions, development/design guidance and latest worklog; preserved pre-existing account/callback/cache work and unrelated index changes.
+- Recorded the maintainer's explicit Fabric/Quilt test confirmation as real loader startup acceptance. Checked Fabric discovery/download/profile/shared launch and Quilt discovery/profile/shared launch items. Did not invent platform/version/log details or infer Forge/NeoForge, all-platform or fault-injection acceptance.
+- Added UTF-8 English, Polish and German resource bundles with stable keys, numbered arguments and English fallback. Localized home/hero/navigation, instance management/editor, local mod controls, Modrinth browsing/review, window actions/accessibility labels and startup update controls/stages.
+- Added a compact live language picker with full native language names, system-language default, persistent choice and an actionable save-failure message. Selection updates the Compose tree without changing global JVM locale, draft/profile/account/game data or Minecraft's own language.
+- Added language-only atomic reads/writes to schema-1 preferences. This additive key requires no destructive migration: missing keys retain legacy behavior, unknown fields/language values remain stored, newer schemas are refused, and ordinary profile saves preserve the selected language.
+- Added typed startup-update stages so presentation translates progress independently of core diagnostic text. Launch progress uses existing typed phases. User/mod/project names, upstream descriptions and detailed technical diagnostics keep their original language.
+- Added deterministic resource/placeholder/Unicode/fallback tests, actual picker interaction and restart coverage, preference compatibility/preservation tests, EN/PL/DE wide/narrow home renders and translated updater renders.
+- Closed 32 stale implementation checklist entries after reviewing code and passing test evidence. Added direct regressions for local-mod mutation rejection while an instance is active, conflict disappearance after disabling the conflicting mod, and legacy/unknown Minecraft version-type parsing.
+- Inspected actual Polish compact and German desktop renders; shortened the language control after finding German header wrapping. Verified all three resource bundles are present in the Linux packaged application JAR.
+
+### Changed files
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/i18n/UiStrings.kt`, `LauncherLanguageHost.kt` — scoped localizer, fallback, argument formatting, persisted language selection and picker.
+- `launcher-desktop/src/main/resources/i18n/en.properties`, `pl.properties`, `de.properties` — UTF-8 translation bundles.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/Main.kt` — language host around home, startup and window controls.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/SyntaxLauncherApp.kt`, `LauncherArtwork.kt`, `InstanceWorkspace.kt`, `InstanceSettingsDialog.kt`, `LocalModsDialog.kt`, `ModrinthBrowsePane.kt`, `StartupUpdateGate.kt`, `WindowChrome.kt` — localized UI, accessibility and typed progress presentation.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/storage/LauncherPreferencesStore.kt` — additive atomic language preference preserving all other fields.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/update/StartupUpdater.kt` — diagnostic-independent update stage enum.
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/storage/LauncherPreferencesStoreTest.kt`, `mods/LocalModManagerTest.kt`, `minecraft/VersionManifestParserTest.kt` — preference compatibility, active-instance protection, conflict and historical-type regressions.
+- `launcher-desktop/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/i18n/UiStringsTest.kt`, `LanguagePickerTest.kt`, `ui/LauncherHomeRenderTest.kt`, `ui/StartupUpdateScreenTest.kt` — resource, switching/restart and multi-language render coverage.
+- `README.md`, `docs/ARCHITECTURE.md`, `docs/DEVELOPMENT.md`, `docs/DESIGN.md`, `docs/ROADMAP.md`, `docs/TESTING_V0.4.md`, `docs/TESTING_V0.5.md`, `docs/TESTING_V0.6.md`, `docs/TESTING_V0.8.md`, `docs/WORKLOG.md` — localization contracts, accurate acceptance records, current limitations and reconciled progress.
+
+### Verification
+- `./gradlew test` — PASS in `./gradlew --offline test build :launcher-desktop:createDistributable`; 116 core + 16 desktop tests, zero failures/errors/skips. Normal tests use mocked HTTP, temporary files and synthetic activity markers; no live credentials are used.
+- `./gradlew build` — PASS in the same verification; existing Compose/Gradle deprecation warnings remain.
+- `:launcher-desktop:createDistributable` — PASS for Linux; packaged application JAR contains EN/PL/DE resources.
+- `git diff --check HEAD` — PASS after representing meaningful resource trailing spaces as Unicode escapes.
+- Manual/visual verification — inspected generated German 1440×810 and Polish 440×740 setup renders; translated updater/home renders generated under desktop build reports. Maintainer-confirmed real Fabric and Quilt tests recorded separately from automated evidence.
+
+### Roadmap updates
+- `[x] v0.1 / Interface languages` — translation resources, live/persistent choice, backward-compatible settings and deterministic/render coverage.
+- `[x] v0.1 / Foundation, offline account and metadata parsers` — reconciled old execution-pending entries with passing implementation evidence.
+- `[x] v0.4 / Fabric` and `[x] v0.8 / Quilt` — common-pipeline startup confirmed by the maintainer; second playable provider proves registry reuse.
+- `[x] v0.5 / Local model, metadata/import/dependency warnings and reversible/protected mutations` — deterministic evidence and added conflict/activity regressions.
+- `[ ] v0.4/v0.8 / Remaining quality gates` — platform/version matrix, loader switching/fault scenarios, missing-profile-hash integrity policy and Forge/NeoForge processors remain open.
+- `[ ] v0.3, v0.6 and later milestones` — Microsoft approval/live premium acceptance, richer dependency reconciliation, crash-resume recovery and unrelated future functionality are not claimed complete.
+
+### Follow-ups / known issues
+- Native Windows/macOS language/font/keyboard/DPI acceptance remains open; local Linux packaging and headless renders do not substitute for those checks.
+- Quilt startup confirmation does not close Forge/NeoForge installer execution or the full v0.8 umbrella. Real mod-management/Modrinth workflow acceptance is distinct from basic Fabric/Quilt boot.
+- No release version bump, publication, tag, push or new commit was requested or performed.
+
+---
+
+
+## 2026-10-20 — Use the existing logo for the small launcher icon
+
+**Milestone:** v0.1
+**Author/Agent:** Codex / GPT-6
+**Status:** Completed — existing-logo icon replacement
+
+### Completed
+- Replaced the old small icon with a transparent 512 × 512 export of the existing approved hero logo, preserving proportions.
+- Restored the original hero logo after an incorrect new-logo interpretation. Removed the newly generated package assets and reverted this task's unrelated Microsoft configuration/help changes, preserving other existing work.
+
+### Changed files
+- `launcher-desktop/src/main/resources/branding/syntaxlauncher-icon.png` — existing logo exported for header/window/Linux icon.
+- `launcher-desktop/src/main/resources/branding/README.md` — export provenance.
+- `docs/ROADMAP.md`, `docs/WORKLOG.md` — scoped tracking and verification.
+
+### Verification
+- `./gradlew test` — PASS via `./gradlew --offline test build`.
+- `./gradlew build` — PASS in the same invocation.
+- Manual verification — inspected the transparent icon and Polish 1440 × 810 Compose render: header and hero use the same existing logo without stretching. Native OS appearance not checked. `git diff --check` passed.
+
+### Roadmap updates
+- `[x] v0.1 / UI / Existing logo as small icon`; native package visual acceptance remains open.
+
+### Follow-ups / known issues
+- Native desktop/package visual acceptance remains open. No new logo, authentication feature or release is part of this change.
+
+---
+
+## 2026-10-20 — Cache the Minecraft version catalog for network outages
+
+**Milestone:** v0.1
+**Author/Agent:** Codex / GPT-6
+**Status:** Completed — catalog cache scope; full offline gameplay and native acceptance remain separate
+
+### Completed
+- Implemented fresh-first Mojang catalog fetching with a 15-second request timeout, explicit HTTP/parse errors and fallback to a revalidated last-known valid catalog.
+- Publish only successfully parsed, non-empty, consistent catalogs through unique sibling temporary files and atomic replacement where supported. Bad remote responses preserve the previous cache; a corrupt cache is retained on failed refresh and repaired by a valid online response.
+- Run disk work on the IO dispatcher, propagate cancellation, and allow successful online startup even when cache storage is unavailable.
+- Wired the desktop catalog to the platform cache directory. Kept existing shared HTTP and UI Retry behavior.
+- Added seven deterministic MockEngine/temp-directory regressions for restart reuse, fresh replacement, HTTP/malformed/incomplete failures, missing/corrupt cache, unavailable storage and cancellation.
+- Restored the missing `jna-platform:5.17.0` dependency required by pre-existing native credential source files; the initial full verification exposed unresolved JNA imports. Existing account/callback work was preserved.
+
+### Changed files
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/minecraft/MinecraftVersionCatalog.kt` — validated cache publication/fallback, background IO and actionable errors.
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/minecraft/MinecraftVersionCatalogTest.kt` — seven deterministic catalog regressions.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/Main.kt` — platform cache path injection.
+- `launcher-core/build.gradle.kts` — missing native credential JNA dependency.
+- `README.md`, `docs/DEVELOPMENT.md`, `docs/ROADMAP.md`, `docs/WORKLOG.md` — cache behavior, limits and verification evidence.
+
+### Verification
+- `./gradlew test` — PASS in `./gradlew --offline test build`; 111 core + 10 desktop tests pass, including seven new catalog regressions; no failures/errors/skips. Initial failure from missing JNA dependency and a test's overly specific assumption about wrapped network exceptions were corrected before final verification.
+- `./gradlew build` — PASS in the same final invocation; existing Kotlin/Compose/Gradle deprecation warnings remain.
+- `git diff --check` — PASS.
+- Manual verification — reviewed desktop path wiring and error/Retry compatibility. No real Mojang outage, native GUI gameplay or premium login was exercised; tests use mocked HTTP and disposable directories.
+
+### Roadmap updates
+- `[x] v0.1 / Minecraft version discovery / Cache version manifest safely`.
+- `[x] v0.1 / v0.1 UI / Cache version manifest to support startup when Mojang is unreachable`.
+- `[ ] v0.1 / Quality gate / Fresh real Minecraft launch and native acceptance` — remain open; cached catalog availability does not prove offline gameplay.
+
+### Follow-ups / known issues
+- Selected-version metadata and missing game/runtime artifacts can still require network access. This slice does not implement fully offline launch or advance loader milestones.
+- Existing premium acceptance, Minecraft Services approval and Windows/macOS native gates remain open. No credentials, existing vault entries, release publication or commits were involved.
+
+---
+
 ## 2026-10-20 — Forge-family installer preflight, Quilt metadata and rollback safety
 
 **Milestone:** v0.6, v0.7 and v0.8  

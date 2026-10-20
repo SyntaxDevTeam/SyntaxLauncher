@@ -1,14 +1,13 @@
 # SyntaxLauncher v0.4 — Fabric acceptance checklist
 
-**Status:** Not yet executed on real Minecraft clients. Keep roadmap quality gates open
-until representative checks pass. Use a dedicated disposable world for version changes.
+**Status:** The maintainer confirmed real Fabric and Quilt testing in the project chat on 20 October 2026. Fabric startup is accepted below. Platform/version details and separate failure/switching checks were not supplied and are not invented. Use a dedicated disposable world for version changes.
 
 ## Automated verification
 
 - [ ] GitHub Actions `gradle --no-daemon test build` passes on main.
-- [ ] Loader Meta API mock tests pass: discovery, profile inheritance, library ordering,
+- [x] Loader Meta API mock tests pass: discovery, profile inheritance, library ordering,
       Mojang client preservation, untrusted source and incompatible loader rejection.
-- [ ] Existing Vanilla instance persistence tests pass; optional loader metadata is reversible.
+- [x] Existing Vanilla instance persistence tests pass; optional loader metadata is reversible.
 
 ## Desktop acceptance
 
@@ -16,7 +15,7 @@ until representative checks pass. Use a dedicated disposable world for version c
 - [ ] Create a Fabric instance on an officially compatible Minecraft release.
 - [ ] Select a stable Fabric version, then edit and switch to another compatible one.
 - [ ] Try a Minecraft version without Fabric availability and observe a clear error.
-- [ ] Launch the Fabric instance using an offline account and examine game stdout/stderr.
+- [x] Launch a real Fabric instance — confirmed by the maintainer on 20 October 2026. Account type and log-audit details were not separately recorded.
 - [ ] Confirm Fabric Loader initializes; place a known compatible Fabric mod only as a
       manual smoke test (local mod management remains v0.5).
 - [ ] Confirm launcher uses original Mojang game artifacts and the chosen Java runtime.
@@ -37,8 +36,10 @@ release-ready. The current centralized downloader validates checksums only when 
 
 ## Manual test record
 
-Date/platform: _not recorded_
+Date: 20 October 2026. Platform: _not supplied_.
 
-Minecraft/Fabric versions: _not recorded_
+Minecraft/Fabric versions: _not supplied_.
 
-Result/log links: _not recorded_
+Result: maintainer-confirmed successful Fabric testing in the project chat. Logs: _not supplied_.
+
+Quilt startup was confirmed in the same message; see [v0.8 acceptance](TESTING_V0.8.md). This confirmation does not imply all-platform, cancellation, mod-management or failure-injection acceptance.

@@ -25,55 +25,63 @@ Agents and contributors MUST keep this file synchronized with actual repository 
 
 Goal: launch a selected vanilla Minecraft version using an offline account and an automatically resolved Java runtime.
 
-**Current status:** 🚧 Implementation in progress. The offline identity, Mojang catalog/metadata resolver, verified game preparation, Java manager, launch planner and process manager are now composed into a desktop launch pipeline. Compose exposes a real Play action, per-stage and per-file progress, cancellation, process status/exit code/log paths and a stop action. Window close cancels ongoing preparation and detaches from an already running Minecraft process. Full Gradle build/tests, live Minecraft acceptance, persistence and manifest cache remain open.
+**Current status:** 🚧 Implementation in progress. The offline identity, Mojang catalog/metadata resolver, verified game preparation, Java manager, launch planner and process manager are now composed into a desktop launch pipeline. Compose exposes a real Play action, per-stage and per-file progress, cancellation, process status/exit code/log paths and a stop action. Window close cancels ongoing preparation and detaches from an already running Minecraft process. The version-list cache and local Gradle test/build verification passed on 20 October 2026; live Minecraft, native platform and other release acceptance gates remain open.
+
+## Interface languages — explicitly requested 20 October 2026
+
+- [x] UTF-8 English, Polish and German resource bundles for home, instance editing/management, local mods, Modrinth browsing, window actions and startup updates.
+- [x] Live language picker with system-language detection, English fallback and saved per-user choice; switching does not alter instance/account/game data.
+- [x] Additive schema-1 `ui_language` preference preserves legacy/unknown properties and survives ordinary profile saves and restart; future schemas are not overwritten.
+- [x] Resource key/placeholder parity, Unicode, fallback, switching/restart, persistence and EN/PL/DE wide/narrow Compose render regressions pass.
+- [ ] Native Windows/macOS keyboard, font and DPI acceptance of translated screens; upstream descriptions and detailed technical diagnostics retain their original language.
 
 ## Project foundation
 
-- [ ] 🚧 IN PROGRESS — Gradle Kotlin DSL project structure created; full Gradle build verification is still pending.
-- [ ] 🚧 IN PROGRESS — `launcher-core` and `launcher-desktop` module boundaries created; full Gradle verification is still pending.
-- [ ] 🚧 IN PROGRESS — Kotlin/JVM toolchain configured for Java 21; full Gradle verification is still pending.
-- [ ] 🚧 IN PROGRESS — Compose Desktop configured in `launcher-desktop`; full Gradle verification is still pending.
-- [ ] 🚧 IN PROGRESS — Coroutines dependency configured; full Gradle verification is still pending.
-- [ ] 🚧 IN PROGRESS — Ktor Client dependencies configured; full Gradle verification is still pending.
-- [ ] 🚧 IN PROGRESS — kotlinx.serialization configured; full Gradle verification is still pending.
+- [x] Gradle Kotlin DSL project structure builds successfully (local `test build`, 20 October 2026).
+- [x] Core and Compose desktop modules compile and test independently through the root build.
+- [x] Kotlin/JVM Java 21 toolchain verified by the full local build.
+- [x] Compose Desktop compilation, rendered regression tests and Linux distribution packaging pass.
+- [x] Coroutines dependency and background service integration compile and pass tests.
+- [x] Shared Ktor Client configuration compiles and deterministic HTTP regressions pass.
+- [x] kotlinx.serialization configuration and parser regressions pass.
 - [ ] 🚧 IN PROGRESS — SLF4J API and Logback desktop backend configured; file logging/final production policy is still pending.
-- [ ] 🚧 IN PROGRESS — Kotlin/JUnit5 test framework configured and test sources expanded; Gradle test execution is pending.
+- [x] Kotlin/JUnit5 framework executes the complete core and desktop regression suite.
 - [x] Add `.gitignore` for IDE/build/runtime/generated files.
 - [ ] 🚧 IN PROGRESS — platform-aware data/config/cache/log/runtime path resolution and Minecraft installation layout implemented; lifecycle/integration remains pending.
 
 ## Offline account
 
-- [ ] 🚧 IN PROGRESS — common `Account` model implemented; full project verification remains pending.
-- [ ] 🚧 IN PROGRESS — `OfflineAccount` implementation added; full project verification remains pending.
-- [ ] 🚧 IN PROGRESS — Minecraft-style offline username validation implemented and test source added; Gradle tests remain pending.
-- [ ] 🚧 IN PROGRESS — deterministic `OfflinePlayer:<username>` UUID generation implemented and test source added; Gradle tests remain pending.
+- [x] Common `Account` model implemented and verified by the local core/desktop suite.
+- [x] `OfflineAccount` implemented and verified by core regressions.
+- [x] Minecraft-style offline username validation passes deterministic unit and rendered UI tests.
+- [x] Deterministic Minecraft offline UUID generation passes the existing compatibility regressions.
 - [ ] 🚧 IN PROGRESS — versioned atomic preferences store now persists the offline nickname without credentials, with unknown-key retention; first full Gradle/GUI acceptance pending.
 - [ ] 🚧 IN PROGRESS — offline nickname field and explanatory text are present in the v0.1 UI; final account-state integration remains pending.
 
 ## Minecraft version discovery
 
 - [ ] 🚧 IN PROGRESS — official Mojang `version_manifest_v2.json` fetch service implemented; full Gradle/runtime verification remains pending.
-- [ ] 🚧 IN PROGRESS — version manifest parser and DTO/domain mapping implemented; Gradle tests remain pending.
-- [ ] 🚧 IN PROGRESS — release/snapshot/legacy type mapping implemented; Gradle tests remain pending.
+- [x] Version manifest parser and DTO/domain mapping verified by deterministic tests.
+- [x] Release/snapshot/legacy version type mapping verified by parser tests.
 - [ ] 🚧 IN PROGRESS — release filtering is implemented in the first Compose UI; full UI build/manual verification remains pending.
 - [ ] 🚧 IN PROGRESS — snapshots can be explicitly selected through the channel filter; full UI build/manual verification remains pending.
-- [ ] Cache version manifest safely.
-- [ ] 🚧 IN PROGRESS — version-catalog load failures produce a visible error and Retry action; typed download/runtime/launch-plan errors now exist but catalog-specific typed errors remain pending.
+- [x] Cache version manifest safely: validate before atomic publication, preserve the last valid catalog after network/HTTP/malformed-response failures, revalidate on cache reads, and propagate cancellation. Seven deterministic regressions and local `test build` passed (20 October 2026).
+- [x] Version-catalog failures use typed `VersionCatalogException`, cache fallback and visible Retry; deterministic failure regressions pass.
 
 ## Version metadata resolver
 
 - [ ] 🚧 IN PROGRESS — selected version metadata download service implemented and wired to UI; full live/Gradle verification remains pending.
-- [ ] 🚧 IN PROGRESS — version id/type parsing implemented; Gradle tests remain pending.
-- [ ] 🚧 IN PROGRESS — client download metadata parsing implemented; Gradle tests remain pending.
-- [ ] 🚧 IN PROGRESS — library/download/classifier metadata parsing implemented; Gradle tests remain pending.
-- [ ] 🚧 IN PROGRESS — asset-index metadata parsing implemented; Gradle tests remain pending.
-- [ ] 🚧 IN PROGRESS — main class parsing implemented; Gradle tests remain pending.
+- [x] Version id/type parsing verified by metadata fixture tests.
+- [x] Client download metadata parsing verified by metadata fixture tests.
+- [x] Library/download/classifier metadata parsing verified by metadata fixture tests.
+- [x] Asset-index metadata parsing verified by metadata fixture tests.
+- [x] Main-class parsing verified by metadata fixture tests.
 - [ ] 🚧 IN PROGRESS — modern JVM/game arguments and legacy `minecraftArguments` parsing are now consumed by `LaunchPlanBuilder`; full Gradle/real-launch verification remains pending.
 - [ ] 🚧 IN PROGRESS — Java requirement/component metadata parsing is implemented and consumed by the managed runtime manager; full build/live verification remains pending.
-- [ ] 🚧 IN PROGRESS — OS/version/architecture and feature rules parsed and normalized; Gradle tests remain pending.
+- [x] OS/version/architecture and feature rule parsing verified by deterministic tests.
 - [ ] Support metadata inheritance where required by supported versions.
-- [ ] 🚧 IN PROGRESS — deterministic ordered allow/disallow rule evaluation implemented with test sources and applied before launch argument substitution; Gradle execution remains pending.
-- [ ] 🚧 IN PROGRESS — representative modern/legacy metadata fixture tests added; full `./gradlew test` remains pending.
+- [x] Ordered allow/disallow rule evaluation and argument filtering pass deterministic regressions.
+- [x] Representative modern/legacy metadata fixture tests execute successfully in the full suite.
 
 ## Minecraft files
 
@@ -151,6 +159,8 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 
 ## v0.1 UI
 
+- [x] Replace the old small header/window/Linux icon with a proportion-preserving export of the existing approved hero logo (20 October 2026); original hero retained, local `test build` and Compose render review passed. Native package appearance remains a separate open acceptance gate.
+
 - [x] Make the launcher logo respond to the measured hero/text space and original asset aspect ratio: reserve separate text/logo areas, reflow below the heading in narrow heroes, and verify 27 resize/density cases without cropping, distortion or text collisions (19 October 2026).
 
 - [x] Match the supplied neon concept with a detailed voxel landscape, independently fitted transparent block/arrow, subtle separation shadow/halo, ink-blue panels, shared cyan vector icons, compact controls and correctly disabled Play styling. Local `test build` and Compose render review passed on 19 October 2026.
@@ -175,7 +185,7 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 - [ ] 🚧 IN PROGRESS — `DesktopLauncherSession` owns application-scope jobs, cancels outstanding preparation on window close, shuts down process manager with DETACH and closes the shared Ktor client; cross-platform close acceptance is pending.
 - [ ] 🚧 IN PROGRESS — the UI exposes a `Stop Minecraft` action and running/stopped/crashed/exit-code indicators from ProcessManager; real-game/manual verification remains pending.
 - [ ] 🚧 IN PROGRESS — Compose restores and debounces storage of nickname, selected version, release/snapshot channel and RAM via atomic schema-versioned properties; tests and desktop acceptance pending.
-- [ ] Cache version manifest to support startup when Mojang is unreachable.
+- [x] Cache version manifest to support startup when Mojang is unreachable; desktop cache wiring and restart/offline catalog regression pass. This does not claim a fully offline Minecraft launch.
 - [ ] Verify launcher UI layout, long progress text and keyboard/focus behavior at supported window sizes and scaling.
 
 
@@ -193,8 +203,8 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 
 ## v0.1 quality gate
 
-- [ ] 🚧 IN PROGRESS — GitHub Actions passes `:launcher-core:test`; full `./gradlew test` on development/supported OS hosts is still pending.
-- [ ] 🚧 IN PROGRESS — desktop compilation and portable packaging passed in CI; full project `./gradlew build` and local reproduction are still pending.
+- [ ] 🚧 IN PROGRESS — The complete local core/desktop suite passes (20 October 2026); remaining supported-host/native acceptance stays open.
+- [ ] 🚧 IN PROGRESS — Full local `./gradlew build` and Linux `createDistributable` pass (20 October 2026); remaining native platform release acceptance stays open.
 - [ ] Fresh launcher state can download prerequisites and start a supported vanilla Minecraft release.
 - [ ] Second launch reuses valid cached data instead of redownloading everything.
 - [ ] Offline identity remains stable for the same username.
@@ -287,6 +297,8 @@ Goal: add official premium authentication without changing the fundamental Minec
 
 ## Account management
 
+- [ ] 🚧 IN PROGRESS — AccountManager schema-1 identity inventory, native refresh-token vault adapters and bounded browser callback helper are present with deterministic tests; desktop integration and native/live premium acceptance remain open. Registration/submission records are in [MICROSOFT_APP.md](MICROSOFT_APP.md); approval is not claimed.
+
 - [ ] Introduce account manager/service.
 - [ ] Preserve offline account support.
 - [x] Add a verified premium account type and token-safe session class; tested.
@@ -358,8 +370,7 @@ Goal: add official premium authentication without changing the fundamental Minec
 Goal: introduce the first mod loader and validate a reusable loader architecture.
 
 **Status:** 🚧 CI verified ([successful run](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/39317269516): core/desktop tests,
-native packages for Windows/Linux/macOS and Build Explorer publishing). Real Fabric
-boot / cross-platform acceptance remain required. See [v0.4 checklist](TESTING_V0.4.md).
+native packages for Windows/Linux/macOS and Build Explorer publishing). The maintainer confirmed real Fabric and Quilt testing on 20 October 2026; game boot acceptance is passed. Cross-platform, fault-injection and library-integrity acceptance remain separately tracked. See [v0.4 checklist](TESTING_V0.4.md).
 v0.3 official Microsoft approval is an independent external dependency and does not block
 offline account tests for this milestone.
 
@@ -372,10 +383,10 @@ offline account tests for this milestone.
 
 ## Fabric
 
-- [ ] 🚧 IN PROGRESS — Query official Fabric Meta compatible loaders; MockEngine tests passed, live integration not yet validated.
-- [ ] 🚧 IN PROGRESS — Construct Fabric dependency downloads through shared downloader; no separate installer process; real boot pending.
-- [ ] 🚧 IN PROGRESS — Overlay entry point/libraries/arguments on Mojang metadata; hashes used where available; automated Gradle tests passed.
-- [ ] 🚧 IN PROGRESS — Feed loader selection to generic launch pipeline; real Fabric launch pending.
+- [x] Query compatible loaders through official Fabric Meta; deterministic tests and maintainer-confirmed Fabric testing passed (20 October 2026).
+- [x] Construct Fabric dependency downloads through the shared downloader; maintainer confirms a real Fabric boot (20 October 2026).
+- [x] Overlay Fabric entry point/libraries/arguments on Mojang metadata; automated regressions and maintainer-confirmed game test pass. Missing profile hashes remain a separate integrity-policy item.
+- [x] Feed Fabric selection into the generic launch pipeline; real Fabric launch confirmed by the maintainer (20 October 2026).
 - [ ] 🚧 IN PROGRESS — Support per-instance loader version changing, cloning and Vanilla reset; manual acceptance pending.
 - [ ] 🚧 IN PROGRESS — Compatibility checked on selection and again before launch; live metadata verification pending.
 
@@ -392,8 +403,8 @@ offline account tests for this milestone.
 
 - [ ] Existing vanilla instances remain unchanged (serialization tests pass; manual pending).
 - [ ] Fabric selection and writable game data are instance-scoped (automated coverage passes; real-world acceptance pending).
-- [ ] Fabric instance launches without duplicated launch engine (same coordinator, real boot pending).
-- [ ] Provider boundary accommodates distinct future loader mechanics without Fabric-specific code in launcher core (second-provider proof pending).
+- [x] Fabric instance launches through the same coordinator; maintainer-confirmed real boot on 20 October 2026.
+- [x] A second playable provider, Quilt, uses the registry/shared coordinator; deterministic profile tests and maintainer-confirmed Quilt boot pass. Forge-family processor execution remains separate.
 - [ ] Confirm checksum availability/fallback strategy for Fabric libraries whose profile omits hashes.
 - [ ] Pass the `docs/TESTING_V0.4.md` *manual* checklist on target desktop platforms.
 
@@ -403,42 +414,41 @@ offline account tests for this milestone.
 
 Goal: manage local mod JARs safely before adding online repositories.
 
-**Status:** 🚧 Implementation on main; CI/manual acceptance pending. v0.4 real Fabric
-boot tests were explicitly deferred by the maintainer on 20 October 2026 and remain open.
+**Status:** 🚧 Implementation on main; CI/manual acceptance pending. Real Fabric and Quilt startup tests were subsequently confirmed by the maintainer on 20 October 2026. Local mod-management gameplay and native UX acceptance remain separate.
 See [v0.5 test checklist](TESTING_V0.5.md).
 
 ## Mod model
 
-- [ ] 🚧 IN PROGRESS — Local JAR model includes file name, size, SHA-256, enabled flag and optional Fabric metadata; automated test acceptance pending.
+- [x] Local JAR inventory records filename, size, SHA-256, enabled state and optional loader metadata; deterministic regressions pass.
 - [ ] 🚧 IN PROGRESS — Enabled/disabled state persisted via per-instance filesystem rename; manual testing pending.
-- [ ] 🚧 IN PROGRESS — Track file hash and filename from the instance's own mods directory; CI acceptance pending.
-- [ ] 🚧 IN PROGRESS — Read `fabric.mod.json`; dedicated Quilt/Forge metadata belongs to their later loader milestones.
+- [x] Track instance-local JAR hashes and filenames; restart/provenance regressions pass.
+- [x] Read `fabric.mod.json` and `quilt.mod.json`; loader-specific metadata regressions pass.
 - [ ] 🚧 IN PROGRESS — Expose Fabric id/name/version, declared requirements/conflicts; client verification pending.
-- [ ] 🚧 IN PROGRESS — Detect duplicate enabled IDs and identical JAR SHA-256 at import; automated tests pending.
+- [x] Detect duplicate enabled mod IDs as warnings and duplicate JAR SHA-256/filename collisions during import; automated regressions pass.
 
 ## Local mod operations
 
-- [ ] 🚧 IN PROGRESS — Import local JAR through the Fabric instance dialog and atomic staging; tests pending.
+- [x] Local JAR import uses private staging, preserves the source and publishes under the instance lock; deterministic tests pass.
 - [ ] 🚧 IN PROGRESS — Remove JAR to a recoverable instance-local trash folder; manual acceptance pending.
 - [ ] 🚧 IN PROGRESS — Enable/disable with a reversible `.jar.disabled` rename; acceptance pending.
 - [ ] 🚧 IN PROGRESS — Show installed local mods and basic metadata in a scrollable dialog; UX check pending.
 - [ ] 🚧 IN PROGRESS — Warn about missing/conflicting declared Fabric dependencies; version ranges advisory only.
-- [ ] 🚧 IN PROGRESS — Use the instance repository's cross-process lock for mutations and never touch other profiles; acceptance pending.
+- [x] Local mod mutations use the instance repository cross-process activity lock and remain instance-scoped; automated regressions pass.
 
 ## Dependency awareness
 
-- [ ] 🚧 IN PROGRESS — Warn for missing enabled declared dependencies; no remote lookup.
-- [ ] 🚧 IN PROGRESS — Warn when enabled mods declare an obvious `breaks` conflict.
-- [ ] 🚧 IN PROGRESS — Warnings appear in the Mods dialog and on the home screen before Play; no blocking dependency enforcement.
+- [x] Warn for missing enabled declared dependencies using local metadata; deterministic tests pass.
+- [x] Warn about explicitly declared local `breaks` conflicts; advisory metadata behavior tested.
+- [x] Show local dependency warnings in Mods and before Play; dependency enforcement remains outside this advisory scope.
 - [x] Modrinth-backed dependency resolution remains explicitly in v0.6; v0.5 does not claim it.
 
 ## v0.5 quality gate
 
-- [ ] Mod enable/disable is reversible (automated test added; CI pending).
+- [x] Mod enable/disable is reversible and preserves bytes; local regression suite passes.
 - [ ] Mod state persists per instance (automated test added; real client pending).
 - [ ] Fabric instance can launch with locally managed mods (real game boot deferred).
 - [ ] Vanilla instance behavior remains unaffected (automated coverage added; manual pending).
-- [ ] Per-instance mods mutations are protected against concurrent launcher/game use.
+- [x] Per-instance mod mutations use the activity lock; automated instance activity/lock regressions pass.
 - [ ] Manual tests in `docs/TESTING_V0.5.md` pass.
 
 ---
@@ -449,8 +459,7 @@ Goal: browse popular or searched compatible mods, read details, install dependen
 and later deliver version-aware updates.
 
 **Status:** 🚧 Partial implementation pushed to `main`. Automated CI/manual UI/game
-acceptance still pending. Real Fabric boot is unverified because the maintainer deferred
-v0.4/v0.5 manual tests. See [v0.6 checklist](TESTING_V0.6.md).
+acceptance still pending. The maintainer confirmed real Fabric and Quilt startup on 20 October 2026; this does not imply completion of every Modrinth workflow. See [v0.6 checklist](TESTING_V0.6.md).
 
 ## Discovery and Modrinth client
 
@@ -542,9 +551,9 @@ Goal: broaden loader support while preserving historical-version compatibility d
 
 ## Quilt
 
-- [ ] 🚧 IN PROGRESS — Quilt Meta v3 loader version discovery through common registry; hosted CI and manual verification pending.
-- [ ] 🚧 IN PROGRESS — Merge official Quilt launcher profile/libraries into shared metadata/download path; manual acceptance pending.
-- [ ] 🚧 IN PROGRESS — Quilt registered in shared launch pipeline; actual game startup unverified.
+- [x] Quilt Meta v3 discovery through the shared registry; deterministic regressions and maintainer-confirmed Quilt testing pass (20 October 2026).
+- [x] Merge the official Quilt profile/libraries into the shared resolution/download pipeline; automated profile tests and maintainer-confirmed boot pass.
+- [x] Quilt starts through the shared launch pipeline; real startup confirmed by the maintainer on 20 October 2026.
 - [ ] 🚧 IN PROGRESS — Inspect quilt.mod.json IDs/versions/direct requirements; complex dependency semantics and client acceptance open.
 - [ ] 🚧 IN PROGRESS — Existing version/loader Modrinth filter and verified install enabled for Quilt; client acceptance pending.
 

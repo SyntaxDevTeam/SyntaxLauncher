@@ -554,3 +554,7 @@ inside each provider's own installation implementation, not in the coordinator.
 downloader can verify supplied SHA-1/size fields, but absent hashes cannot be treated as
 cryptographically verified. Integrity metadata and real-client launch validation are
 acceptance gates before claiming comprehensive loader support.
+
+## 23. Presentation localization
+
+The desktop `i18n` package owns UTF-8 EN/PL/DE resources, locale selection and Compose-scoped `LocalStrings`. Core remains locale/UI independent and exposes typed launch and startup-update stages. Presentation maps those stages to translation keys; logs retain diagnostic text. An additive `ui_language` property uses the existing schema-1 atomic preferences store with dedicated language-only reads/writes so normal profile saves cannot overwrite the selected UI language. Missing language settings preserve backward reading compatibility; unsupported locale tags fall back to English without discarding stored data.

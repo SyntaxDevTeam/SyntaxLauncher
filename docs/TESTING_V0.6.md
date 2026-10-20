@@ -1,6 +1,6 @@
 # v0.6 — Modrinth discovery and installation acceptance
 
-## Automated (pending CI)
+## Automated (local suite passed; hosted acceptance tracked separately)
 - [ ] MockEngine popularity search uses Modrinth `downloads` sort and the exact Fabric/Minecraft facets.
 - [ ] Reading project detail displays the author/description/license without executing remote content.
 - [ ] Version selection rejects incompatible and server-only results.
@@ -11,7 +11,7 @@
 - [ ] Any failed checksum or interrupted preparation preserves installed mods and removes the staging files.
 - [ ] Gradle tests/desktop compilation and native package builds succeed across supported platforms.
 
-## Manual (not run; also blocked on prior v0.4 Fabric boot acceptance)
+## Manual (Modrinth workflows not yet accepted; Fabric/Quilt startup confirmed on 20 October 2026)
 - [ ] Open Fabric instance → Mods → Discover on Modrinth.
 - [ ] Popular list is sorted by download count and filtered for this instance's Minecraft version and loader.
 - [ ] Search a known mod and inspect full project description and Modrinth page.
@@ -24,8 +24,6 @@
 - [ ] Test resizing (400×400 up), keyboard navigation, confirmation and disabling controls while installation is busy.
 - [ ] Confirm external URL opens only the official Modrinth project page.
 
-**Limitations:** This is a v0.6 slice, not the complete milestone. No automatic
-mod updates/project identity persistence, optional dependency choices, comprehensive
-version constraint resolution, or replacement/rollback workflow yet. Source project
+**Limitations:** This is a v0.6 slice, not the complete milestone. Managed project/version persistence, compatible updates, backups and explicit last-update rollback are implemented and deterministically tested. Optional dependency choices, comprehensive version-constraint reconciliation, crash-resume recovery and native/game workflow acceptance remain open. Source project
 and dependencies remain under Modrinth distribution rights. User-installed mods
 execute third-party code when Minecraft loads.

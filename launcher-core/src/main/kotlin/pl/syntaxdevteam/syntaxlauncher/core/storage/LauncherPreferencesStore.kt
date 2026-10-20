@@ -63,18 +63,42 @@ class LauncherPreferencesStore(private val file: Path) {
             properties.setProperty("snapshots", preferences.snapshots.toString())
             properties.setProperty("ram_mib", preferences.maximumMemoryMiB.toString())
             properties.setProperty("selected_instance_id", preferences.selectedInstanceId)
-            Files.createDirectories(file.parent)
-            val temp = file.resolveSibling("." + file.fileName + "." + UUID.randomUUID() + ".part")
+            writeProperties(properties)
+        }
+    }
+
+    /** Additive schema-1 UI preference; ordinary profile saves preserve this key. */
+    suspend fun loadLanguage(): String? = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            val properties = readProperties()
+            if (!properties.isEmpty()) validateSchema(properties)
+            properties.getProperty("ui_language")
+        }
+    }
+
+    suspend fun saveLanguage(code: String) = withContext(Dispatchers.IO) {
+        require(code in setOf("en", "pl", "de")) { "Unsupported interface language." }
+        mutex.withLock {
+            val properties = readProperties()
+            if (!properties.isEmpty()) validateSchema(properties)
+            properties.setProperty("schema_version", "1")
+            properties.setProperty("ui_language", code)
+            writeProperties(properties)
+        }
+    }
+
+    private fun writeProperties(properties: Properties) {
+        Files.createDirectories(file.parent)
+        val temp = file.resolveSibling("." + file.fileName + "." + UUID.randomUUID() + ".part")
+        try {
+            Files.newOutputStream(temp).use { properties.store(it, "SyntaxLauncher v0.1 preferences") }
             try {
-                Files.newOutputStream(temp).use { properties.store(it, "SyntaxLauncher v0.1 preferences") }
-                try {
-                    Files.move(temp, file, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
-                } catch (_: AtomicMoveNotSupportedException) {
-                    Files.move(temp, file, StandardCopyOption.REPLACE_EXISTING)
-                }
-            } finally {
-                Files.deleteIfExists(temp)
+                Files.move(temp, file, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+            } catch (_: AtomicMoveNotSupportedException) {
+                Files.move(temp, file, StandardCopyOption.REPLACE_EXISTING)
             }
+        } finally {
+            Files.deleteIfExists(temp)
         }
     }
 

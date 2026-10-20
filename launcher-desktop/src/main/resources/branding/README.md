@@ -5,7 +5,7 @@ The home hero is composed from two independent local assets:
 - `hero-landscape.jpg` — scenic background, 1862 × 845, optimized JPEG.
 - `hero-mark.png` — transparent block/orbit/arrow foreground, optimized PNG. Keep the alpha channel.
 
-`LauncherArtwork.kt` positions the foreground independently of the scenery. A static radial navy shadow and a very faint cyan halo separate the mark from the landscape. The layout reads the mark’s intrinsic proportions and measures the copy before fitting the logo into its own remaining rectangle. Wide heroes place it to the right; compact heroes place it below the heading, beside the profile. The mark always fits inside the hero without overlapping text, including live resize and DPI changes. No background blur, animated lighting, network image fetch or screenshot of controls is involved. The window/header/package icon remains `syntaxlauncher-icon.png`.
+`LauncherArtwork.kt` positions the foreground independently of the scenery. A static radial navy shadow and a very faint cyan halo separate the mark from the landscape. The layout reads the mark’s intrinsic proportions and measures the copy before fitting the logo into its own remaining rectangle. Wide heroes place it to the right; compact heroes place it below the heading, beside the profile. The mark always fits inside the hero without overlapping text, including live resize and DPI changes. No background blur, animated lighting, network image fetch or screenshot of controls is involved. The window/header/Linux package icon `syntaxlauncher-icon.png` is a transparent 512 × 512 fit of the existing `hero-mark.png`, preserving its original design and aspect ratio (20 October 2026).
 
 ## Generation provenance
 

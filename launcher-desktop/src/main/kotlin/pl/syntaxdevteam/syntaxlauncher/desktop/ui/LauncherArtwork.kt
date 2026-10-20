@@ -1,5 +1,7 @@
 package pl.syntaxdevteam.syntaxlauncher.desktop.ui
 
+import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.LocalStrings
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -34,6 +36,7 @@ import kotlin.math.roundToInt
 /** The landscape may crop; the launcher's identity always has its own reserved layout space. */
 @Composable
 internal fun LauncherHero(version: String?, profile: String?, snapshots: Boolean, modifier: Modifier = Modifier) {
+    val strings = LocalStrings.current
     val shape = RoundedCornerShape(SyntaxBrand.panelRadius)
     val mark = painterResource("branding/hero-mark.png")
     val markAspectRatio = mark.intrinsicSize.width / mark.intrinsicSize.height
@@ -66,32 +69,32 @@ internal fun LauncherHero(version: String?, profile: String?, snapshots: Boolean
                 verticalArrangement = Arrangement.spacedBy(if (tight) 8.dp else 14.dp)) {
                 Box(Modifier.background(Color(0xE6062857), RoundedCornerShape(8.dp))
                     .padding(horizontal = 12.dp, vertical = if (tight) 6.dp else 9.dp)) {
-                    Text("VANILLA MINECRAFT", color = SyntaxBrand.cyan,
+                    Text(strings.text("ui.vanilla_minecraft"), color = SyntaxBrand.cyan,
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
                 }
                 Column {
-                    Text("Your world.", fontSize = titleSize, lineHeight = titleSize * 1.08f,
+                    Text(strings.text("ui.your_world"), fontSize = titleSize, lineHeight = titleSize * 1.08f,
                         fontWeight = FontWeight.ExtraBold, letterSpacing = (-1.6).sp,
                         color = SyntaxBrand.heroText)
-                    Text("Your adventure.", fontSize = titleSize, lineHeight = titleSize * 1.08f,
+                    Text(strings.text("ui.your_adventure"), fontSize = titleSize, lineHeight = titleSize * 1.08f,
                         fontWeight = FontWeight.ExtraBold, letterSpacing = (-1.6).sp,
                         color = SyntaxBrand.playStart)
                 }
-                if (showTagline) Text("No distractions. Just you and Minecraft.",
+                if (showTagline) Text(strings.text("ui.no_distractions_just_you_and_minecraft"),
                     color = SyntaxBrand.heroMuted, fontSize = if (compact) 14.sp else 18.sp,
                     lineHeight = if (compact) 20.sp else 24.sp)
             }
             Column(Modifier.testTag("hero-profile"),
                 verticalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 10.dp)) {
-                Text(profile?.uppercase() ?: "LEGACY VANILLA PROFILE", maxLines = 1,
+                Text(profile?.uppercase() ?: strings.text("ui.legacy_vanilla_profile"), maxLines = 1,
                     overflow = TextOverflow.Ellipsis, color = SyntaxBrand.heroMuted,
                     style = MaterialTheme.typography.labelSmall, letterSpacing = 1.8.sp)
-                Text(version ?: "Choose a version", fontSize = if (compact) 26.sp else 32.sp,
+                Text(version ?: strings.text("ui.choose_a_version"), fontSize = if (compact) 26.sp else 32.sp,
                     maxLines = 1, overflow = TextOverflow.Ellipsis,
                     fontWeight = FontWeight.Bold, color = SyntaxBrand.heroText)
                 HorizontalDivider(color = SyntaxBrand.heroMuted.copy(alpha = 0.35f))
-                Text(if (snapshots) "JAVA EDITION   •   SNAPSHOT" else "JAVA EDITION   •   STABLE RELEASE",
+                Text(if (snapshots) strings.text("ui.java_edition_snapshot") else strings.text("ui.java_edition_stable_release"),
                     style = MaterialTheme.typography.labelSmall, color = SyntaxBrand.heroMuted)
             }
             Box(Modifier.testTag("hero-logo").drawBehind {
@@ -105,7 +108,7 @@ internal fun LauncherHero(version: String?, profile: String?, snapshots: Boolean
                     center = center, radius = size.width * 0.52f),
                     radius = size.width * 0.52f, center = center)
             }) {
-                Image(mark, contentDescription = "SyntaxLauncher logo",
+                Image(mark, contentDescription = strings.text("ui.syntaxlauncher_logo"),
                     contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize())
             }
         }) { measurables, constraints ->

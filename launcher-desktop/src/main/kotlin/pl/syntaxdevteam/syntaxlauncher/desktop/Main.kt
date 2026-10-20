@@ -33,6 +33,7 @@ import pl.syntaxdevteam.syntaxlauncher.core.network.LauncherHttpClientFactory
 import pl.syntaxdevteam.syntaxlauncher.core.storage.LauncherPaths
 import pl.syntaxdevteam.syntaxlauncher.core.storage.LauncherPreferencesStore
 import pl.syntaxdevteam.syntaxlauncher.core.storage.MinecraftInstallationLayout
+import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.LauncherLanguageHost
 import pl.syntaxdevteam.syntaxlauncher.desktop.ui.SyntaxLauncherApp
 import pl.syntaxdevteam.syntaxlauncher.desktop.ui.StartupUpdateGate
 import pl.syntaxdevteam.syntaxlauncher.desktop.ui.WindowControls
@@ -62,7 +63,8 @@ fun main(args: Array<String>) {
         NeoForgeLoaderProvider(httpClient), ForgeLoaderProvider(httpClient),
     ))
     val session = DesktopLauncherSession(
-        versionCatalog = MinecraftVersionCatalog(httpClient),
+        versionCatalog = MinecraftVersionCatalog(
+            httpClient, cacheFile = paths.cacheDir.resolve("minecraft/version_manifest_v2.json")),
         versionResolver = MinecraftVersionResolver(httpClient),
         coordinator = MinecraftLaunchCoordinator(
             preparation = MinecraftPreparationService(downloader),
@@ -105,6 +107,7 @@ fun main(args: Array<String>) {
             resizable = true,
         ) {
             window.minimumSize = java.awt.Dimension(400, 400)
+            LauncherLanguageHost(session.preferences) {
             BoxWithConstraints(Modifier.fillMaxSize()) {
                 StartupUpdateGate(updater, handoff, onTransferred = closeLauncher) {
                     SyntaxLauncherApp(
@@ -120,6 +123,7 @@ fun main(args: Array<String>) {
                     modifier = Modifier.align(Alignment.TopEnd)
                         .padding(end = 16.dp, top = if (maxWidth < 760.dp) 18.dp else 24.dp),
                 )
+            }
             }
         }
     }

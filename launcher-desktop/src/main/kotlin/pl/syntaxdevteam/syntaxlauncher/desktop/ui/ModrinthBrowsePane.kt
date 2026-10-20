@@ -1,5 +1,7 @@
 package pl.syntaxdevteam.syntaxlauncher.desktop.ui
 
+import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.LocalStrings
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -48,6 +50,7 @@ fun ModrinthBrowsePane(
     onInstall: (ModrinthInstallPlan) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val strings = LocalStrings.current
     val scope = rememberCoroutineScope()
     var text by remember(instance.id) { mutableStateOf("") }
     var submitted by remember(instance.id) { mutableStateOf("") }
@@ -73,7 +76,7 @@ fun ModrinthBrowsePane(
             throw cancelled
         } catch (failure: Exception) {
             found = emptyList()
-            error = failure.message ?: "Could not load Modrinth mods."
+            error = failure.message ?: strings.text("ui.could_not_load_modrinth_mods")
         } finally { loading = false }
     }
     LaunchedEffect(selected?.id) {
@@ -86,27 +89,27 @@ fun ModrinthBrowsePane(
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (failure: Exception) {
-            error = failure.message ?: "Could not read mod details."
+            error = failure.message ?: strings.text("ui.could_not_read_mod_details")
         } finally { detailsLoading = false }
     }
 
     Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("DISCOVER MODS · MODRINTH", style = MaterialTheme.typography.labelMedium,
+                Text(strings.text("ui.discover_mods_modrinth"), style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary)
                 Text("Minecraft " + instance.minecraftVersionId + " · " +
                     (instance.loader?.id ?: "Vanilla"),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            TextButton(enabled = !busy && !resolving, onClick = onDismiss) { Text("← Installed mods") }
+            TextButton(enabled = !busy && !resolving, onClick = onDismiss) { Text(strings.text("ui.installed_mods")) }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             OutlinedTextField(
                 value = text,
                 onValueChange = { if (it.length <= 100) text = it },
-                label = { Text("Find a mod") },
+                label = { Text(strings.text("ui.find_a_mod")) },
                 singleLine = true,
                 modifier = Modifier.weight(1f),
                 enabled = !busy,
@@ -114,10 +117,10 @@ fun ModrinthBrowsePane(
             Button(enabled = !loading && !busy, onClick = {
                 submitted = text.trim()
                 offset = 0
-            }) { Text("Search") }
+            }) { Text(strings.text("ui.search")) }
         }
-        Text(if (submitted.isEmpty()) "Most downloaded compatible mods"
-            else "Results for “$submitted”",
+        Text(if (submitted.isEmpty()) strings.text("ui.most_downloaded_compatible_mods")
+            else strings.text("ui.results_for_0", submitted),
             style = MaterialTheme.typography.titleSmall)
         error?.let { Text(it, color = MaterialTheme.colorScheme.error,
             style = MaterialTheme.typography.bodySmall) }
@@ -130,7 +133,7 @@ fun ModrinthBrowsePane(
                 Column(modifier = modifier.verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     if (!loading && found.isEmpty()) Text(
-                        "No mods were found for this Minecraft version and loader.",
+                        strings.text("ui.no_mods_were_found_for_this_minecraft_version_and_loader"),
                         style = MaterialTheme.typography.bodyMedium)
                     found.forEach { project ->
                         val isSelected = selected?.id == project.id
@@ -140,11 +143,11 @@ fun ModrinthBrowsePane(
                         ) {
                             Column(modifier = Modifier.fillMaxWidth(),
                                 verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                Text(project.title + (if (isSelected) " · Selected" else ""),
+                                Text(project.title + (if (isSelected) strings.text("ui.selected") else ""),
                                     fontWeight = FontWeight.SemiBold)
                                 Text(project.summary.take(135),
                                     style = MaterialTheme.typography.bodySmall)
-                                Text("by " + project.author + " · " + project.downloads + " downloads",
+                                Text(strings.text("ui.by") + project.author + " · " + project.downloads + strings.text("ui.downloads"),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
@@ -152,11 +155,11 @@ fun ModrinthBrowsePane(
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick = { offset = (offset - 20).coerceAtLeast(0) },
-                            enabled = offset > 0 && !loading && !busy) { Text("Previous") }
-                        Text("Page " + (offset / 20 + 1), modifier = Modifier.padding(top = 10.dp))
+                            enabled = offset > 0 && !loading && !busy) { Text(strings.text("ui.previous")) }
+                        Text(strings.text("ui.page") + (offset / 20 + 1), modifier = Modifier.padding(top = 10.dp))
                         OutlinedButton(onClick = { offset += 20 },
                             enabled = found.size == 20 && !loading && !busy && offset < 1000) {
-                            Text("Next") }
+                            Text(strings.text("ui.next")) }
                     }
                 }
             }
@@ -165,24 +168,24 @@ fun ModrinthBrowsePane(
                     verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     val current = selected
                     if (current == null) {
-                        Text("Select a mod to read its description and review a compatible download.",
+                        Text(strings.text("ui.select_a_mod_to_read_its_description_and_review_a_compatible_d"),
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     } else {
                         Text(current.title, style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.SemiBold)
                         Text(current.summary, style = MaterialTheme.typography.bodyMedium)
                         detail?.let { info ->
-                            Text("License: " + (info.license ?: "Unknown"),
+                            Text(strings.text("ui.license") + (info.license ?: strings.text("ui.unknown")),
                                 style = MaterialTheme.typography.labelMedium)
                             OutlinedButton(enabled = !busy, onClick = {
                                 runCatching {
                                     if (Desktop.isDesktopSupported()) {
                                         Desktop.getDesktop().browse(URI(info.projectUrl))
                                     }
-                                }.onFailure { error = it.message ?: "Could not open browser." }
-                            }) { Text("Read on Modrinth ↗") }
+                                }.onFailure { error = it.message ?: strings.text("ui.could_not_open_browser") }
+                            }) { Text(strings.text("ui.read_on_modrinth")) }
                             HorizontalDivider()
-                            Text(info.description.ifBlank { "No further project description." }.take(3500),
+                            Text(info.description.ifBlank { strings.text("ui.no_further_project_description") }.take(3500),
                                 style = MaterialTheme.typography.bodySmall)
                         }
                         if (plan == null && !detailsLoading) {
@@ -194,31 +197,31 @@ fun ModrinthBrowsePane(
                                         try { plan = catalog.plan(instance, current) }
                                         catch (cancelled: CancellationException) { throw cancelled }
                                         catch (failure: Exception) {
-                                            error = failure.message ?: "No compatible version found."
+                                            error = failure.message ?: strings.text("ui.no_compatible_version_found")
                                         } finally { resolving = false }
                                     }
-                                }) { Text("Review installation") }
+                                }) { Text(strings.text("ui.review_installation")) }
                         }
                         plan?.let { proposal ->
                             HorizontalDivider()
-                            Text("Ready to install", style = MaterialTheme.typography.titleMedium)
+                            Text(strings.text("ui.ready_to_install"), style = MaterialTheme.typography.titleMedium)
                             proposal.entries.forEach { entry ->
                                 Text("• " + entry.title + " · " + entry.versionNumber +
-                                    (if (entry.dependency) " (required)" else ""),
+                                    (if (entry.dependency) strings.text("ui.required") else ""),
                                     style = MaterialTheme.typography.bodySmall)
                             }
                             proposal.notices.forEach { notice ->
-                                Text("Note: " + notice, style = MaterialTheme.typography.bodySmall,
+                                Text(strings.text("ui.note") + notice, style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.error)
                             }
-                            Text("Downloads are checked against Modrinth SHA-1 and file size. " +
-                                "Mods execute third-party code when Minecraft starts.",
+                            Text(strings.text("ui.downloads_are_checked_against_modrinth_sha_1_and_file_size") +
+                                strings.text("ui.mods_execute_third_party_code_when_minecraft_starts"),
                                 style = MaterialTheme.typography.bodySmall)
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Button(enabled = canModify && !busy,
-                                    onClick = { onInstall(proposal) }) { Text("Install to this instance") }
+                                    onClick = { onInstall(proposal) }) { Text(strings.text("ui.install_to_this_instance")) }
                                 TextButton(enabled = !busy, onClick = { plan = null }) {
-                                    Text("Cancel") }
+                                    Text(strings.text("ui.cancel")) }
                             }
                         }
                     }
@@ -239,8 +242,8 @@ fun ModrinthBrowsePane(
                 }
             }
         }
-        Text("Results are provided by Modrinth. Only listed compatible versions are offered; " +
-            "the loader must already be installed in the selected instance.",
+        Text(strings.text("ui.results_are_provided_by_modrinth_only_listed_compatible_versio") +
+            strings.text("ui.the_loader_must_already_be_installed_in_the_selected_instance"),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     }

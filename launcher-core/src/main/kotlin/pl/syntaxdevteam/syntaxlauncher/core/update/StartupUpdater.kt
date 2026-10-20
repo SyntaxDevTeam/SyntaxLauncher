@@ -21,7 +21,10 @@ import pl.syntaxdevteam.syntaxlauncher.core.network.DownloadManager
 import pl.syntaxdevteam.syntaxlauncher.core.network.DownloadRequest
 
 /** UI-independent startup state. Only a successful child-start receipt publishes an active version. */
-data class StartupUpdateProgress(val message: String, val fraction: Float? = null, val canContinue: Boolean = true)
+enum class StartupUpdateStage { CHECKING, VERIFYING, DOWNLOADING, INSTALLING, STARTING, PREVIOUS }
+
+data class StartupUpdateProgress(val message: String, val fraction: Float? = null,
+    val canContinue: Boolean = true, val stage: StartupUpdateStage = StartupUpdateStage.CHECKING)
 enum class StartupUpdateResult { CONTINUE, HANDED_OFF }
 fun interface UpdatedLauncherStarter {
     fun start(executable: Path, receipt: Path, nonce: String): Process
@@ -61,7 +64,7 @@ class StartupUpdater(
                         val id = state.getProperty(key) ?: return null
                         return try {
                             require(id.matches(Regex("[0-9A-Za-z.+-]{1,200}")) && id !in setOf(".", ".."))
-                            onProgress(StartupUpdateProgress("Verifying installed launcher…"))
+                            onProgress(StartupUpdateProgress("Verifying installed launcher…", stage = StartupUpdateStage.VERIFYING))
                             installer.validate(root.resolve("installations").resolve(id), platform)
                                 .takeIf { it.version > current }
                         } catch (cancelled: CancellationException) { throw cancelled }
@@ -81,16 +84,17 @@ class StartupUpdater(
                         null // Offline startup still uses the most recently verified installed version.
                     }
                     val target = try { if (release != null && release.version > baseline) {
-                        onProgress(StartupUpdateProgress("Downloading SyntaxLauncher ${release.version.value}…", 0f))
+                        onProgress(StartupUpdateProgress("Downloading SyntaxLauncher ${release.version.value}…", 0f, stage = StartupUpdateStage.DOWNLOADING))
                         val archive = archives.resolve("${release.sha256}.zip")
                         downloads.download(DownloadRequest("launcher-${release.version.value}", release.url, archive,
                             expectedSize = release.size, expectedSha256 = release.sha256, requestTimeoutMillis = 15 * 60_000L)) { event ->
                             if (event is DownloadEvent.FileProgress) onProgress(StartupUpdateProgress(
                                 "Downloading SyntaxLauncher ${release.version.value}…",
-                                (event.downloadedBytes.toDouble() / release.size).toFloat().coerceIn(0f, 1f)))
+                                (event.downloadedBytes.toDouble() / release.size).toFloat().coerceIn(0f, 1f),
+                                stage = StartupUpdateStage.DOWNLOADING))
                         }
                         currentCoroutineContext().ensureActive()
-                        onProgress(StartupUpdateProgress("Verifying and installing the update…"))
+                        onProgress(StartupUpdateProgress("Verifying and installing the update…", stage = StartupUpdateStage.INSTALLING))
                         installer.install(archive, release, platform)
                     } else active
                     } catch (cancelled: CancellationException) { throw cancelled }
@@ -101,14 +105,14 @@ class StartupUpdater(
                         active
                     }
                     if (target == null) return@withContext StartupUpdateResult.CONTINUE
-                    onProgress(StartupUpdateProgress("Starting SyntaxLauncher ${target.version.value}…", canContinue = false))
+                    onProgress(StartupUpdateProgress("Starting SyntaxLauncher ${target.version.value}…", canContinue = false, stage = StartupUpdateStage.STARTING))
                     try { startAndActivate(target, state) }
                     catch (cancelled: CancellationException) { throw cancelled }
                     catch (failure: Exception) {
                         if (active == null || active.directory == target.directory) throw failure
                         org.slf4j.LoggerFactory.getLogger(StartupUpdater::class.java)
                             .warn("Updated launcher failed startup; starting verified previous version", failure)
-                        onProgress(StartupUpdateProgress("Starting your previous launcher version…", canContinue = false))
+                        onProgress(StartupUpdateProgress("Starting your previous launcher version…", canContinue = false, stage = StartupUpdateStage.PREVIOUS))
                         startAndActivate(active, state)
                     }
                     StartupUpdateResult.HANDED_OFF

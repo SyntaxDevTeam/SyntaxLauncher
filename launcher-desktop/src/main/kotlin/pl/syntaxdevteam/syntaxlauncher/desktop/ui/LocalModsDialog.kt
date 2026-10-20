@@ -1,5 +1,7 @@
 package pl.syntaxdevteam.syntaxlauncher.desktop.ui
 
+import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.LocalStrings
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -56,6 +58,7 @@ fun LocalModsDialog(
     onBusyChange: (Boolean) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val strings = LocalStrings.current
     val scope = rememberCoroutineScope()
     var inventory by remember(instance.id) { mutableStateOf<LocalModInventory?>(null) }
     var error by remember(instance.id) { mutableStateOf<String?>(null) }
@@ -72,7 +75,7 @@ fun LocalModsDialog(
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (failure: Exception) {
-            error = failure.message ?: "Unable to inspect local mods."
+            error = failure.message ?: strings.text("ui.unable_to_inspect_local_mods")
         }
     }
 
@@ -89,7 +92,7 @@ fun LocalModsDialog(
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (failure: Exception) {
-                error = failure.message ?: "Mod operation failed; original files were preserved."
+                error = failure.message ?: strings.text("ui.mod_operation_failed_original_files_were_preserved")
             } finally {
                 busy = false
                 onBusyChange(false)
@@ -106,7 +109,7 @@ fun LocalModsDialog(
     )
     Dialog(
         onCloseRequest = { if (!busy) onDismiss() },
-        title = "SyntaxLauncher — Local mods",
+        title = strings.text("ui.syntaxlauncher_local_mods"),
         state = rememberDialogState(size = dialogSize),
         resizable = true,
     ) {
@@ -122,30 +125,30 @@ fun LocalModsDialog(
         confirmingUpdates?.let { updates ->
             AlertDialog(
                 onDismissRequest = { if (!busy) confirmingUpdates = null },
-                title = { Text("Install verified Modrinth updates?") },
-                text = { Text("Replace ${updates.size} tracked mod(s). Previous JARs will be saved for rollback. Review dependency notices before continuing.") },
+                title = { Text(strings.text("ui.install_verified_modrinth_updates")) },
+                text = { Text(strings.text("ui.replace_0_tracked_mod_s_previous_jars_will_be_saved_for_rollba", updates.size)) },
                 confirmButton = {
                     TextButton(enabled = canModify && !busy, onClick = {
                         confirmingUpdates = null
                         operate(operation = { installer.update(instance.id, updates) })
-                    }) { Text("Update mods") }
+                    }) { Text(strings.text("ui.update_mods")) }
                 },
-                dismissButton = { TextButton(onClick = { confirmingUpdates = null }) { Text("Cancel") } },
+                dismissButton = { TextButton(onClick = { confirmingUpdates = null }) { Text(strings.text("ui.cancel")) } },
             )
         }
         removing?.let { fileName ->
             AlertDialog(
                 onDismissRequest = { if (!busy) removing = null },
-                title = { Text("Remove local mod?") },
-                text = { Text("Move $fileName to the instance's private mod trash? You can recover the JAR manually.") },
+                title = { Text(strings.text("ui.remove_local_mod")) },
+                text = { Text(strings.text("ui.move_0_to_the_instance_s_private_mod_trash_you_can_recover_the", fileName)) },
                 confirmButton = {
                     TextButton(enabled = canModify && !busy, onClick = {
                         removing = null
                         operate(operation = { manager.remove(instance.id, fileName) })
-                    }) { Text("Move to trash") }
+                    }) { Text(strings.text("ui.move_to_trash")) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { removing = null }) { Text("Cancel") }
+                    TextButton(onClick = { removing = null }) { Text(strings.text("ui.cancel")) }
                 },
             )
         }
@@ -166,34 +169,34 @@ fun LocalModsDialog(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("LOCAL MODS", color = MaterialTheme.colorScheme.primary,
+                        Text(strings.text("ui.local_mods"), color = MaterialTheme.colorScheme.primary,
                             style = MaterialTheme.typography.labelMedium)
                         Text(instance.name, style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.SemiBold)
-                        Text("${instance.loader?.id ?: "Vanilla"} · Minecraft ${instance.minecraftVersionId} · Files stay in this instance",
+                        Text(strings.text("ui.0_minecraft_1_files_stay_in_this_instance", instance.loader?.id ?: "Vanilla", instance.minecraftVersionId),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    OutlinedButton(enabled = !busy, onClick = onDismiss) { Text("Close") }
+                    OutlinedButton(enabled = !busy, onClick = onDismiss) { Text(strings.text("ui.close")) }
                 }
                 HorizontalDivider()
                 Row(modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("${inventory?.mods?.count { it.enabled } ?: 0} enabled / ${inventory?.mods?.size ?: 0} installed",
+                    Text(strings.text("ui.0_enabled_1_installed", inventory?.mods?.count { it.enabled } ?: 0, inventory?.mods?.size ?: 0),
                         style = MaterialTheme.typography.bodyMedium)
                     TextButton(enabled = canModify && !busy,
-                        onClick = { browsing = true }) { Text("Discover on Modrinth") }
+                        onClick = { browsing = true }) { Text(strings.text("ui.discover_on_modrinth")) }
                     Button(enabled = canModify && !busy, onClick = {
                         val picker = JFileChooser().apply {
-                            dialogTitle = "Import a local mod for this instance"
-                            fileFilter = FileNameExtensionFilter("Minecraft mod JAR (*.jar)", "jar")
+                            dialogTitle = strings.text("ui.import_a_local_mod_for_this_instance")
+                            fileFilter = FileNameExtensionFilter(strings.text("ui.minecraft_mod_jar_jar"), "jar")
                             isAcceptAllFileFilterUsed = false
                         }
                         if (picker.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
                             val picked: Path = picker.selectedFile.toPath()
                             operate(operation = { manager.importJar(instance.id, picked) })
                         }
-                    }) { Text("Import JAR") }
+                    }) { Text(strings.text("ui.import_jar")) }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(enabled = !busy && !checkingUpdates && inventory != null,
@@ -206,22 +209,22 @@ fun LocalModsDialog(
                                 } catch (cancelled: CancellationException) {
                                     throw cancelled
                                 } catch (failure: Exception) {
-                                    error = failure.message ?: "Could not check Modrinth updates."
+                                    error = failure.message ?: strings.text("ui.could_not_check_modrinth_updates")
                                 } finally { checkingUpdates = false }
                             }
-                        }) { Text("Check Modrinth updates") }
+                        }) { Text(strings.text("ui.check_modrinth_updates")) }
                     if (checkingUpdates) CircularProgressIndicator()
                 }
                 updateReport?.let { report ->
-                    Text(if (report.updates.isEmpty()) "No newer compatible managed releases found."
-                        else "${report.updates.size} compatible updates found:",
+                    Text(if (report.updates.isEmpty()) strings.text("ui.no_newer_compatible_managed_releases_found")
+                        else strings.text("ui.0_compatible_updates_found", report.updates.size),
                         style = MaterialTheme.typography.titleSmall)
                     report.updates.forEach { item ->
-                        Text("• ${item.fileName} → ${item.newVersionNumber} (available on Modrinth)",
+                        Text(strings.text("ui.0_1_available_on_modrinth", item.fileName, item.newVersionNumber),
                             style = MaterialTheme.typography.bodySmall)
                     }
                     if (report.unmatched.isNotEmpty()) Text(
-                        "${report.unmatched.size} local/unmatched JARs cannot be checked automatically.",
+                        strings.text("ui.0_local_unmatched_jars_cannot_be_checked_automatically", report.unmatched.size),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                     report.notices.forEach { note ->
@@ -232,17 +235,17 @@ fun LocalModsDialog(
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(enabled = canModify && !busy, onClick = {
                                 confirmingUpdates = report.updates
-                            }) { Text("Update all compatible") }
+                            }) { Text(strings.text("ui.update_all_compatible")) }
                             report.updates.forEach { item ->
                                 TextButton(enabled = canModify && !busy, onClick = {
                                     confirmingUpdates = listOf(item)
-                                }) { Text("Update ${item.fileName.take(20)}") }
+                                }) { Text(strings.text("ui.update_0", item.fileName.take(20))) }
                             }
                         }
                     }
                     OutlinedButton(enabled = canModify && !busy,
                         onClick = { operate(operation = { installer.rollback(instance.id) }) }) {
-                        Text("Rollback last Modrinth update")
+                        Text(strings.text("ui.rollback_last_modrinth_update"))
                     }
                 }
                 if (busy) CircularProgressIndicator()
@@ -252,7 +255,7 @@ fun LocalModsDialog(
                 }
                 val warnings = inventory?.warnings.orEmpty()
                 if (warnings.isNotEmpty()) {
-                    Text("Compatibility warnings (local metadata only)",
+                    Text(strings.text("ui.compatibility_warnings_local_metadata_only"),
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.error)
                     Column(modifier = Modifier.fillMaxWidth().heightIn(max = 110.dp)
@@ -268,9 +271,9 @@ fun LocalModsDialog(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     if (inventory == null) {
-                        Text("Scanning instance mods…")
+                        Text(strings.text("ui.scanning_instance_mods"))
                     } else if (inventory!!.mods.isEmpty()) {
-                        Text("No local JARs yet. Import a Fabric mod to get started.",
+                        Text(strings.text("ui.no_local_jars_yet_import_a_fabric_mod_to_get_started"),
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     inventory?.mods.orEmpty().forEach { mod ->
@@ -283,21 +286,21 @@ fun LocalModsDialog(
                                 Text(mod.metadata?.name ?: mod.fileName,
                                     fontWeight = FontWeight.SemiBold)
                                 Text(
-                                    "${mod.metadata?.id ?: "Unknown mod ID"} · " +
-                                        "${mod.metadata?.version ?: "Unknown version"} · " +
+                                    "${mod.metadata?.id ?: strings.text("mod.unknown_id")} · " +
+                                        "${mod.metadata?.version ?: strings.text("mod.unknown_version")} · " +
                                         "${mod.sizeBytes / 1024} KiB",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                                 mod.metadata?.let { info ->
                                     if (info.depends.isNotEmpty()) Text(
-                                        "Requires: " + info.depends.entries.joinToString { "${it.key} ${it.value}" },
+                                        strings.text("ui.requires") + info.depends.entries.joinToString { "${it.key} ${it.value}" },
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
                                 mod.modrinth?.let { source ->
-                                    Text("Modrinth · version ${source.versionId}",
+                                    Text(strings.text("ui.modrinth_version_0", source.versionId),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.primary)
                                 }
@@ -313,13 +316,13 @@ fun LocalModsDialog(
                                 },
                             )
                             TextButton(enabled = canModify && !busy,
-                                onClick = { removing = mod.fileName }) { Text("Remove") }
+                                onClick = { removing = mod.fileName }) { Text(strings.text("ui.remove")) }
                         }
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     }
                 }
-                Text("Disabled JARs are renamed to .jar.disabled. Removed JARs are kept in " +
-                    "game/.syntaxlauncher-mod-trash. External dependencies are not installed automatically.",
+                Text(strings.text("ui.disabled_jars_are_renamed_to_jar_disabled_removed_jars_are_kep") +
+                    strings.text("ui.game_syntaxlauncher_mod_trash_external_dependencies_are_not_in"),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }

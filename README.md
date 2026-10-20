@@ -38,7 +38,7 @@ The v0.2 implementation includes cross-process per-instance file locks, safe clo
 
 The desktop now has a v0.3 development account picker with Offline and in-memory Microsoft Java sessions, native browser PKCE login, account removal and the shared premium/offline launch pipeline. Configure SYNTAXLAUNCHER_MICROSOFT_CLIENT_ID with your own registered public application ID. Secure persistence, real Minecraft approval/testing and full UI acceptance are still outstanding; no tokens are persisted to files. A properly authorized Microsoft public-client app registration will be required. Premium sign-in must never request a Microsoft password or hardcode someone else's application ID.
 
-## v0.4 — Fabric loader (development; manual acceptance pending)
+## v0.4 — Fabric loader (startup accepted; remaining release checks open)
 
 Instances can now store an optional Vanilla/Fabric loader selection with the chosen compatible
 Fabric version. The instance creation and settings dialogs query the official Fabric Meta API
@@ -49,9 +49,7 @@ Vanilla and existing schema-1 instances remain valid; immutable libraries are sh
 mutable game state remains per instance.
 
 The first v0.4 [GitHub Actions validation](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/39317269516) passed core/desktop tests, native packages
-on Linux/Windows/macOS, and Build Explorer publication. **Do not consider v0.4
-release-ready until real Fabric boot and cross-platform instance/loader switching
-tests pass.** Loader choice is stored per instance; library downloads
+on Linux/Windows/macOS, and Build Explorer publication. The maintainer confirmed real Fabric and Quilt startup tests on 20 October 2026. Cross-platform instance/loader switching, fault cases and the library-integrity policy remain separate release checks. Loader choice is stored per instance; library downloads
 occur on the first Fabric launch rather than when the profile settings are saved. See
 [the v0.4 manual checklist](docs/TESTING_V0.4.md).
 
@@ -72,7 +70,7 @@ cross-process activity lock as the launch/clone functions. This phase does not d
 dependencies or treat locally parsed metadata as a complete compatibility resolver.
 Only import JARs from trusted sources: Minecraft executes enabled mod code.
 See [the v0.5 verification checklist](docs/TESTING_V0.5.md).
-**Manual game startup and UX acceptance remain unverified**, including postponed v0.4 checks.
+Fabric and Quilt startup were confirmed by the maintainer on 20 October 2026; local mod-management gameplay and UX acceptance remain separate.
 
 ## Automatic GitHub Releases
 
@@ -102,11 +100,8 @@ touching installed files and explains unmatched local JARs. Managed updates now 
 SHA-256 provenance checks, a persistent backup of previous JARs and an explicit
 last-update rollback action. Updates requiring missing/different dependencies are
 deliberately blocked pending a full dependency reconciliation workflow.
-Optional-dependency choice, richer conflicts and final UI/game acceptance remain open. The launcher currently implements Fabric, so browsing/installing
-for NeoForge/Forge/Quilt is exposed only when those loaders are actually supported
-in later milestones. Local JAR import remains available. See
-[the v0.6 test plan](docs/TESTING_V0.6.md). Real Minecraft acceptance for v0.4
-and v0.5 has been explicitly deferred and was not silently passed.
+Optional-dependency choice, richer conflicts and final UI/game acceptance remain open. Fabric and Quilt use the shared browsing/installing workflow. NeoForge and Forge remain unavailable until their processor-based installation is implemented. Local JAR import remains available. See
+[the v0.6 test plan](docs/TESTING_V0.6.md). Fabric and Quilt startup acceptance was confirmed by the maintainer on 20 October 2026; remaining mod-management and platform checks stay open.
 
 ## Current implementation
 
@@ -150,7 +145,7 @@ The current v0.1 implementation includes:
 - initial unit/integration test sources using Ktor `MockEngine` rather than live Mojang services;
 - a lightweight Compose screen with nickname validation, release/snapshot selection, version selection, RAM control, loading state and retryable metadata errors.
 
-The remaining v0.1 engineering work is complete cross-platform artifact verification, first real vanilla Minecraft launch, manifest cache and UI polish. Schema-versioned preferences for offline nickname/version/channel/RAM are now implemented but need desktop acceptance. The new Play action is functional in code but not yet validated against a real Mojang download and game startup.
+The remaining v0.1 engineering work is complete cross-platform artifact verification, first real vanilla Minecraft launch and UI polish. Schema-versioned preferences for offline nickname/version/channel/RAM are now implemented but need desktop acceptance. The new Play action is functional in code but not yet validated against a real Mojang download and game startup.
 
 ## Continuous integration
 
@@ -165,6 +160,16 @@ Edit only `launcherVersion` in the root [`gradle.properties`](gradle.properties)
 Packaged builds now check the project's stable GitHub Releases before opening the home screen. Eligible updates download with SHA-256 verification, install beside the original application, and become active only after the new window confirms startup. A verified cached version works offline; failed updates preserve the previous launcher, settings and instances. The progress/error screen includes Retry and Continue. IDE/Gradle runs skip automatic updates.
 
 The first build containing the updater must be installed manually. Subsequent releases need the platform-specific update ZIPs and public GitHub asset digests; CI now packages/verifies them and publishes normal releases on stable product-version increases or matching maintainer-created stable tags. No release was published during implementation. Hosted old→new and Windows/macOS acceptance remain open. See [startup update behavior, trust model and release instructions](docs/UPDATING.md).
+
+## Interface languages
+
+The interface supports **English, Polish and German**. Choose **EN / PL / DE** from the compact language menu beside **Your setup**; the new language applies immediately and is restored on the next startup. First startup follows the system language, falling back to English for unsupported languages. Home, instances, local mods, Modrinth controls, window actions and startup updates use UTF-8 translation resources. Project/mod names, Modrinth author descriptions and technical diagnostics retain their source language.
+
+The language choice is an additive schema-1 `ui_language` setting. Existing accounts, instances and preferences remain readable and unknown fields are preserved. Changing the language does not change Minecraft's own language or any game files.
+
+## Minecraft version list cache
+
+The launcher refreshes Mojang’s version list at startup and stores only successfully parsed, non-empty catalogs in the platform cache directory. If the network or Mojang is unavailable, it uses the last valid cached list. Invalid responses do not replace the cache; an unwritable cache does not block a successful online startup. Without a valid cache, the version picker shows an actionable error and Retry. This does not provide fully offline game launch: selected-version metadata and missing game files can still require network access.
 
 ## Preferences
 

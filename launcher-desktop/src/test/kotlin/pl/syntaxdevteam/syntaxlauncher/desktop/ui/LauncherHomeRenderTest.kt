@@ -1,5 +1,9 @@
 package pl.syntaxdevteam.syntaxlauncher.desktop.ui
 
+import androidx.compose.runtime.CompositionLocalProvider
+import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.LocalStrings
+import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.UiStrings
+import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.UiLanguage
 import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
@@ -143,6 +147,39 @@ class LauncherHomeRenderTest {
                     assertFalse(intro.overlaps(profile), "Heading overlaps profile: $context")
                 }
             } finally { scene.close() }
+        }
+    }
+
+    @Test
+    fun translatedHomeKeepsPlayAndSetupUsableAcrossLanguagesAndWindowSizes() = runBlocking(Dispatchers.Swing) {
+        for (language in UiLanguage.entries) for ((width, height) in listOf(1440 to 810, 440 to 740)) {
+            val session = session()
+            val strings = UiStrings(language)
+            val scene = ImageComposeScene(width, height, coroutineContext = Dispatchers.Swing) {
+                CompositionLocalProvider(LocalStrings provides strings) { SyntaxLauncherApp(session) }
+            }
+            try {
+                withTimeout(10000) {
+                    while (scene.nodes().none { it.label() == strings.text("ui.play_minecraft") &&
+                            !it.config.contains(SemanticsProperties.Disabled) }) {
+                        scene.render().close()
+                        delay(20)
+                    }
+                }
+                val play = scene.text(strings.text("ui.play_minecraft"))
+                assertTrue(play.boundsInRoot.left >= 0 && play.boundsInRoot.right <= width)
+                assertNotNull(scene.text(strings.text("ui.your_world")))
+                assertNotNull(scene.text(strings.text("ui.your_adventure")))
+                scene.screenshot("home-${language.code}-${width}x${height}")
+                if (width < 760) {
+                    scene.nodes().first { it.config.contains(SemanticsActions.ScrollBy) }
+                        .config[SemanticsActions.ScrollBy].action!!.invoke(0f, 1000f)
+                    scene.frames()
+                    val memory = scene.text(strings.text("ui.memory_allocation"))
+                    assertTrue(memory.boundsInRoot.bottom > 0 && memory.boundsInRoot.top < height)
+                    scene.screenshot("home-${language.code}-${width}x${height}-setup")
+                }
+            } finally { scene.close(); session.shutdown() }
         }
     }
 
