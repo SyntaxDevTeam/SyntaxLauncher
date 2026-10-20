@@ -95,9 +95,11 @@ collisions never replace existing files. Modrinth remains the source of project 
 download metadata and files; only trusted Modrinth CDN URLs are accepted.
 
 This is the initial v0.6 catalog/install slice, **not** a completed v0.6 release.
-Update matching, saved project/version identity, optional-dependency selection, richer
-conflict detection, alternate compatible-version selection and complete installer UX
-acceptance remain open. The launcher currently implements Fabric, so browsing/installing
+Modrinth-installed JARs now record project/version identity in a versioned, instance-local
+sidecar bound to actual JAR SHA-256; enable/disable keeps this identity. The Local Mods
+screen includes **Check Modrinth updates**: it lists newer compatible versions without
+touching installed files and explains unmatched local JARs. Actual update installation,
+rollback, optional-dependency choice, richer conflicts and final UI acceptance remain open. The launcher currently implements Fabric, so browsing/installing
 for NeoForge/Forge/Quilt is exposed only when those loaders are actually supported
 in later milestones. Local JAR import remains available. See
 [the v0.6 test plan](docs/TESTING_V0.6.md). Real Minecraft acceptance for v0.4

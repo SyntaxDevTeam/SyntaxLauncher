@@ -470,12 +470,12 @@ v0.4/v0.5 manual tests. See [v0.6 checklist](TESTING_V0.6.md).
 - [ ] 🚧 IN PROGRESS — Reject incompatible Minecraft/loader versions, server-only files and malformed or untrusted CDN metadata.
 - [ ] 🚧 IN PROGRESS — Show optional and declared incompatible projects as notices, but comprehensive conflict enforcement remains open.
 - [ ] 🚧 IN PROGRESS — Preflight duplicate filenames/mod IDs and preserve pre-existing local mods.
-- [ ] Store the Modrinth project/version identity per installed mod for matching updates.
+- [ ] 🚧 IN PROGRESS — Persist instance-local project/version and verify saved SHA-256 on read; CI/manual acceptance pending.
 - [ ] Evaluate version-range conflicts and reconcile already-installed dependencies rather than rejecting all duplicates.
 
 ## Updates
 
-- [ ] Detect available compatible updates.
+- [ ] 🚧 IN PROGRESS — Read-only compatible updates for managed files; CI/manual acceptance pending.
 - [ ] Update one mod.
 - [ ] Update all compatible mods.
 - [ ] Preserve rollback/non-destructive replacement.
@@ -487,7 +487,7 @@ v0.4/v0.5 manual tests. See [v0.6 checklist](TESTING_V0.6.md).
 - [ ] 🚧 IN PROGRESS — Project detail and external Modrinth page link.
 - [ ] 🚧 IN PROGRESS — Search, pagination, installation review and install confirmation.
 - [ ] Dependency conflict resolution choices and optional-dependency picker.
-- [ ] Update indicators and bulk update action.
+- [ ] 🚧 IN PROGRESS — Manual update check/results in Mods UI; bulk/single replacement remains open.
 
 ## v0.6 quality gate
 

@@ -43,6 +43,7 @@ import pl.syntaxdevteam.syntaxlauncher.core.mods.LocalModManager
 import pl.syntaxdevteam.syntaxlauncher.core.mods.ModrinthCatalog
 import pl.syntaxdevteam.syntaxlauncher.core.mods.ModrinthInstaller
 import pl.syntaxdevteam.syntaxlauncher.core.mods.ModrinthInstallPlan
+import pl.syntaxdevteam.syntaxlauncher.core.mods.ModrinthUpdateReport
 
 /** Local JARs only; online dependency resolution belongs to v0.6. */
 @Composable
@@ -61,6 +62,8 @@ fun LocalModsDialog(
     var busy by remember { mutableStateOf(false) }
     var removing by remember { mutableStateOf<String?>(null) }
     var browsing by remember { mutableStateOf(false) }
+    var updateReport by remember(instance.id) { mutableStateOf<ModrinthUpdateReport?>(null) }
+    var checkingUpdates by remember(instance.id) { mutableStateOf(false) }
 
     LaunchedEffect(instance.id) {
         try {
@@ -79,6 +82,7 @@ fun LocalModsDialog(
         scope.launch {
             try {
                 inventory = operation()
+                updateReport = null
                 error = null
                 afterSuccess()
             } catch (cancelled: CancellationException) {
@@ -176,6 +180,43 @@ fun LocalModsDialog(
                         }
                     }) { Text("Import JAR") }
                 }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(enabled = !busy && !checkingUpdates && inventory != null,
+                        onClick = {
+                            checkingUpdates = true
+                            error = null
+                            scope.launch {
+                                try {
+                                    updateReport = catalog.checkUpdates(instance, manager.list(instance.id))
+                                } catch (cancelled: CancellationException) {
+                                    throw cancelled
+                                } catch (failure: Exception) {
+                                    error = failure.message ?: "Could not check Modrinth updates."
+                                } finally { checkingUpdates = false }
+                            }
+                        }) { Text("Check Modrinth updates") }
+                    if (checkingUpdates) CircularProgressIndicator()
+                }
+                updateReport?.let { report ->
+                    Text(if (report.updates.isEmpty()) "No newer compatible managed releases found."
+                        else "${report.updates.size} compatible updates found:",
+                        style = MaterialTheme.typography.titleSmall)
+                    report.updates.forEach { item ->
+                        Text("• ${item.fileName} → ${item.newVersionNumber} (available on Modrinth)",
+                            style = MaterialTheme.typography.bodySmall)
+                    }
+                    if (report.unmatched.isNotEmpty()) Text(
+                        "${report.unmatched.size} local/unmatched JARs cannot be checked automatically.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    report.notices.forEach { note ->
+                        Text(note, style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    if (report.updates.isNotEmpty()) Text(
+                        "Update installation is not yet implemented; existing files were not replaced.",
+                        style = MaterialTheme.typography.bodySmall)
+                }
                 if (busy) CircularProgressIndicator()
                 error?.let {
                     Text(it, color = MaterialTheme.colorScheme.error,
@@ -226,6 +267,11 @@ fun LocalModsDialog(
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
+                                }
+                                mod.modrinth?.let { source ->
+                                    Text("Modrinth · version ${source.versionId}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary)
                                 }
                                 Text(mod.fileName + " · SHA-256 " + mod.sha256.take(12) + "…",
                                     style = MaterialTheme.typography.labelSmall,

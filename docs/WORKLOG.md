@@ -8,6 +8,40 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-20 — Managed Modrinth identity and read-only updates
+
+**Milestone:** v0.6 — Modrinth Integration  
+**Author/Agent:** GPT-6  
+**Status:** Partial — committed; hosted CI and gameplay acceptance pending
+
+### Completed
+- Persist project/version identity per Modrinth-installed JAR under the instance game directory; bind records to a locally calculated SHA-256 to avoid matching user-replaced files.
+- Record managed identity in the same inactive-instance transaction as verified batch installation. Roll back newly published JARs if writing records fails.
+- Preserve identity across disable/enable and remove it when moving a JAR to instance trash.
+- Detect newer compatible Modrinth releases by verified project identity, loaded release metadata and publication date; leave unmatched local mods untouched.
+- Display a non-destructive manual update check and managed version provenance inside the Mods dialog.
+- Add MockEngine and temporary-filesystem tests.
+
+### Changed files
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/mods/ModrinthManagedMods.kt`, `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/mods/LocalModManager.kt`, `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/mods/ModrinthInstaller.kt`, `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/mods/ModrinthCatalog.kt`, `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/LocalModsDialog.kt`
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/mods/LocalModManagerTest.kt`, `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/mods/ModrinthCatalogTest.kt`, `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/mods/ModrinthInstallerTest.kt`
+- `README.md`, `docs/ROADMAP.md`, `docs/WORKLOG.md`
+
+### Verification
+- `./gradlew test` — NOT RUN locally; awaiting GitHub Actions.
+- `./gradlew build` — NOT RUN locally; awaiting GitHub Actions.
+- Manual UI and Minecraft/Fabric launch — NOT RUN; owner deferred acceptance.
+
+### Roadmap updates
+- `[ ]` v0.6 Modrinth identity/update discovery/UI marked 🚧, pending verification.
+- `[ ]` v0.6 per-mod and batch replacement, rollback and advanced dependency reconciliation remain open.
+
+### Follow-ups / known issues
+- Implement safe, reviewed mod update replacement and rollback without overwriting untracked local files.
+- Validate live API and cross-platform manual gameplay tests; do not declare v0.6 completed.
+
+---
+
 ## 2026-10-20 — Enforce normal GitHub Releases and advance canonical version
 
 **Milestone:** v0.6 release packaging / early v0.12 CI/CD  

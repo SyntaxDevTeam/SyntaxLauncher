@@ -68,6 +68,8 @@ class ModrinthInstallerTest {
             val installed = installer.install(profile.id, plan)
             assertEquals(setOf("mainmod", "dependency"), installed.mods.mapNotNull { it.metadata?.id }.toSet())
             assertTrue(installed.mods.all { it.enabled })
+            assertEquals(setOf("RELEASEA", "RELEASEB"),
+                installed.mods.mapNotNull { it.modrinth?.versionId }.toSet())
             assertTrue(catalog.list(other.id).mods.isEmpty())
             assertFailsWith<IllegalStateException> { installer.install(profile.id, plan) }
             assertEquals(2, catalog.list(profile.id).mods.size)

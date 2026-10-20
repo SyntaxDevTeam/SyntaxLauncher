@@ -67,6 +67,27 @@ class ModrinthCatalogTest {
         } finally { client.close() }
     }
 
+    @Test fun reportsCompatibleUpdateWithoutGuessingUnmanagedMods() = runBlocking {
+        val old = version("RELEASEA", "ABCDEFGH", "fast.jar")
+            .removePrefix("[").removeSuffix("]")
+            .replace("2026-10-01T00:00:00Z", "2026-09-01T00:00:00Z")
+        val next = version("RELEASEB", "ABCDEFGH", "fast.jar")
+            .removePrefix("[").removeSuffix("]")
+        val client = HttpClient(MockEngine { req ->
+            check(req.url.encodedPath == "/v2/project/ABCDEFGH/version")
+            respond("[$next,$old]")
+        })
+        try {
+            val origin = ModrinthManagedMod("fast.jar", "ABCDEFGH", "RELEASEA", "0".repeat(64))
+            val installed = LocalMod("fast.jar", true, 123, "0".repeat(64), null, origin)
+            val unknown = LocalMod("manual.jar", true, 123, "1".repeat(64), null)
+            val result = ModrinthCatalog(client).checkUpdates(instance(),
+                LocalModInventory(listOf(installed, unknown), emptyList()))
+            assertEquals("RELEASEB", result.updates.single().newVersionId)
+            assertEquals(listOf("manual.jar"), result.unmatched)
+        } finally { client.close() }
+    }
+
     @Test fun refusesWrongLoaderAndUntrustedCdn() = runBlocking {
         val client = HttpClient(MockEngine { req ->
             respond(if (req.url.encodedPath.endsWith("/version"))

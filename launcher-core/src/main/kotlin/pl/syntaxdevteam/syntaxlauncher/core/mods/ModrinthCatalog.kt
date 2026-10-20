@@ -27,6 +27,10 @@ data class ModrinthInstallEntry(val projectId: String, val versionId: String, va
     val versionNumber: String, val file: ModrinthFile, val dependency: Boolean)
 data class ModrinthInstallPlan(val minecraftVersionId: String, val loaderId: String,
     val projectId: String, val entries: List<ModrinthInstallEntry>, val notices: List<String>)
+data class ModrinthAvailableUpdate(val fileName: String, val projectId: String,
+    val currentVersionId: String, val newVersionId: String, val newVersionNumber: String)
+data class ModrinthUpdateReport(val updates: List<ModrinthAvailableUpdate>,
+    val unmatched: List<String>, val notices: List<String>)
 
 /** Modrinth API v2 adapter, isolated from UI and filesystem. */
 class ModrinthCatalog(private val http: HttpClient,
@@ -118,6 +122,31 @@ class ModrinthCatalog(private val http: HttpClient,
         visit(selected, project.title, false, 0)
         return ModrinthInstallPlan(instance.minecraftVersionId, loader, project.id,
             entries.values.toList(), notices)
+    }
+
+    /** Detect only newer, compatible versions for checksum-matched Modrinth installs. */
+    suspend fun checkUpdates(instance: MinecraftInstance, inventory: LocalModInventory): ModrinthUpdateReport {
+        val loader = instance.loader?.id ?: error("Updates require a modded instance.")
+        checkLoader(loader)
+        val updates = mutableListOf<ModrinthAvailableUpdate>()
+        val notices = mutableListOf<String>()
+        for (mod in inventory.mods) {
+            val origin = mod.modrinth ?: continue
+            val compatible = versions(origin.projectId, loader, instance.minecraftVersionId)
+            val current = compatible.firstOrNull { it.id == origin.versionId }
+            if (current == null) {
+                notices += "${mod.fileName}: installed version is no longer listed as compatible."
+                continue
+            }
+            val latest = compatible.firstOrNull()
+            if (latest != null && latest.id != current.id &&
+                latest.published > current.published && latest.files.isNotEmpty()) {
+                updates += ModrinthAvailableUpdate(
+                    mod.fileName, origin.projectId, origin.versionId, latest.id, latest.number)
+            }
+        }
+        return ModrinthUpdateReport(updates,
+            inventory.mods.filter { it.modrinth == null }.map { it.fileName }, notices)
     }
 
     private suspend fun versions(projectId: String, loader: String, game: String): List<ModrinthVersion> {

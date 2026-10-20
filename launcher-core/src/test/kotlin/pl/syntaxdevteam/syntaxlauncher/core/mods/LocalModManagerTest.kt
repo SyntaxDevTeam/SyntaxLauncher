@@ -98,6 +98,37 @@ class LocalModManagerTest {
         assertFailsWith<IllegalArgumentException> { manager.setEnabled(fabric.id, "../path.jar", false) }
     }
 
+    @Test fun managedIdentitySurvivesRestartToggleAndRemoval() = runBlocking {
+        val (repo, manager) = setup()
+        val instance = repo.create("Managed", "26.3", loader = ModLoaderSelection("fabric", "0.18.0"))
+        val input = jar(Files.createTempDirectory("managed").resolve("tracked.jar"), "tracked")
+        val installed = manager.importBatch(instance.id, listOf(input),
+            listOf(ModrinthManagedInstall("tracked.jar", "ABCDEFGH", "RELEASEA")))
+        assertEquals("ABCDEFGH", installed.mods.single().modrinth?.projectId)
+        val reloaded = LocalModManager(repo)
+        assertEquals("RELEASEA", reloaded.list(instance.id).mods.single().modrinth?.versionId)
+        val disabled = reloaded.setEnabled(instance.id, "tracked.jar", false).mods.single()
+        assertEquals("ABCDEFGH", disabled.modrinth?.projectId)
+        val enabled = reloaded.setEnabled(instance.id, disabled.fileName, true).mods.single()
+        assertEquals("ABCDEFGH", enabled.modrinth?.projectId)
+        reloaded.remove(instance.id, enabled.fileName)
+        assertTrue(reloaded.list(instance.id).mods.isEmpty())
+        assertTrue(Files.readString(repo.gameDirectory(instance).resolve(".syntaxlauncher-modrinth.json"))
+            .contains("\"entries\": []"))
+    }
+
+    @Test fun editedJarCannotInheritPreviousModrinthOrigin() = runBlocking {
+        val (repo, manager) = setup()
+        val instance = repo.create("Managed", "26.3", loader = ModLoaderSelection("fabric", "0.18.0"))
+        val input = jar(Files.createTempDirectory("managed").resolve("tracked.jar"), "tracked")
+        manager.importBatch(instance.id, listOf(input),
+            listOf(ModrinthManagedInstall("tracked.jar", "ABCDEFGH", "RELEASEA")))
+        jar(repo.gameDirectory(instance).resolve("mods").resolve("tracked.jar"), "changed")
+        val scanned = manager.list(instance.id)
+        assertEquals(null, scanned.mods.single().modrinth)
+        assertTrue(scanned.warnings.any { "changed since its Modrinth" in it })
+    }
+
     @Test fun disabledModDoesNotSatisfyRequiredDependency() = runBlocking {
         val (repo, manager) = setup()
         val profile = repo.create("Fabric", "26.3", loader = ModLoaderSelection("fabric", "0.18.0"))

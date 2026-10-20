@@ -58,7 +58,8 @@ class ModrinthInstaller(
                     )
                 }
                 downloads.downloadAll(requests)
-                mods.importBatch(instanceId, requests.map { it.target })
+                mods.importBatch(instanceId, requests.map { it.target },
+                    pending.map { ModrinthManagedInstall(it.file.filename, it.projectId, it.versionId) })
             } finally {
                 pending.forEach { entry ->
                     Files.deleteIfExists(staging.resolve(entry.file.filename + ".part"))

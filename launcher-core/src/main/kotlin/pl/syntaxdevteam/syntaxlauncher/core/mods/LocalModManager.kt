@@ -33,6 +33,7 @@ data class LocalMod(
     val sizeBytes: Long,
     val sha256: String,
     val metadata: LocalModMetadata?,
+    val modrinth: ModrinthManagedMod? = null,
 )
 
 data class LocalModInventory(
@@ -46,6 +47,7 @@ data class LocalModInventory(
  */
 class LocalModManager(private val instances: MinecraftInstanceRepository) {
     private val json = Json { ignoreUnknownKeys = true }
+    private val managedStore = ModrinthManagedModStore()
     private val maximumJarBytes = 512L * 1024 * 1024
 
     suspend fun list(instanceId: String): LocalModInventory = withContext(Dispatchers.IO) {
@@ -94,9 +96,15 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
      * All filenames, archives, hashes and collisions are checked before the first published JAR.
      * Failure rolls back only files created by this operation; pre-existing user files are never replaced.
      */
-    suspend fun importBatch(instanceId: String, sources: List<Path>): LocalModInventory =
+    suspend fun importBatch(
+        instanceId: String, sources: List<Path>,
+        managed: List<ModrinthManagedInstall> = emptyList(),
+    ): LocalModInventory =
         withContext(Dispatchers.IO) {
             require(sources.isNotEmpty() && sources.size <= 32) { "Invalid Modrinth batch size." }
+            require(managed.isEmpty() || managed.size == sources.size) {
+                "Managed identity must match each downloaded JAR."
+            }
             instances.withInactiveInstance(instanceId) { instance ->
                 require(instance.loader?.id == "fabric") { "Only Fabric installation is available." }
                 val mods = modsDirectory(instance, create = true)
@@ -110,6 +118,10 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
                         "The instance already contains $name; no files were changed."
                     }
                 }
+                require(managed.isEmpty() || managed.map { it.fileName } == names) {
+                    "Managed identity and staged JAR filename differ."
+                }
+                val previous = managedStore.read(instances.gameDirectory(instance))
                 val existing = inspect(instance).mods
                 val staging = mods.resolve(".batch-" + UUID.randomUUID())
                 Files.createDirectory(staging)
@@ -143,6 +155,14 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
                         }
                         move(staging.resolve(name), target)
                         published.add(target)
+                    }
+                    if (managed.isNotEmpty()) {
+                        val records = previous.toMutableMap()
+                        managed.forEachIndexed { index, item ->
+                            records[names[index]] = ModrinthManagedMod(
+                                names[index], item.projectId, item.versionId, hashes[index])
+                        }
+                        managedStore.save(instances.gameDirectory(instance), records.values)
                     }
                     inspect(instance)
                 } catch (failure: Throwable) {
@@ -188,7 +208,18 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
                 require(Files.isDirectory(trash, LinkOption.NOFOLLOW_LINKS)) {
                     "Mod trash is not a normal directory."
                 }
-                move(from, trash.resolve("${UUID.randomUUID()}-${from.fileName}"))
+                val records = managedStore.read(instances.gameDirectory(instance))
+                val target = trash.resolve("${UUID.randomUUID()}-${from.fileName}")
+                move(from, target)
+                try {
+                    if (records.containsKey(requireFileName(fileName))) {
+                        managedStore.save(instances.gameDirectory(instance),
+                            records.filterKeys { it != requireFileName(fileName) }.values)
+                    }
+                } catch (failure: Throwable) {
+                    move(target, from)
+                    throw failure
+                }
                 inspect(instance)
             }
         }
@@ -199,6 +230,11 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
             return LocalModInventory(emptyList(), emptyList())
         }
         val warnings = mutableListOf<String>()
+        val tracked = runCatching { managedStore.read(instances.gameDirectory(instance)) }
+            .getOrElse {
+                warnings += "Modrinth metadata is invalid; managed updates are unavailable."
+                emptyMap()
+            }
         val found = mutableListOf<LocalMod>()
         Files.newDirectoryStream(mods).use { paths ->
             for (path in paths) {
@@ -217,8 +253,15 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
                     warnings += "$filename is not a valid readable JAR."
                     null
                 }
+                val checksum = sha256(path)
+                val base = if (disabled) filename.dropLast(".disabled".length) else filename
+                val origin = tracked[base]
+                if (origin != null && origin.sha256 != checksum) {
+                    warnings += "$filename changed since its Modrinth installation; updates disabled."
+                }
                 found += LocalMod(
-                    filename, enabled, Files.size(path), sha256(path), metadata,
+                    filename, enabled, Files.size(path), checksum, metadata,
+                    origin?.takeIf { it.sha256 == checksum },
                 )
             }
         }
