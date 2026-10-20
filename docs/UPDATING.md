@@ -52,18 +52,28 @@ The bootstrap starts the fixed platform executable with a single-use receipt pat
 
 The existing CI workflow now runs core and desktop tests plus the stdlib Python packaging tests. All three platform jobs produce the existing portable archive and a manifest-driven update ZIP, then install/revalidate their update ZIP through `verifyUpdateBundle` without executing it.
 
-Only a maintainer-pushed `v*` tag **matching the `launcherVersion` in the tagged commit's `gradle.properties`** enables the release publishing job; CI rejects mismatched tags before building. That job waits for all platform jobs, creates/reuses a draft, uploads all six assets and then publishes the complete release. Reruns refuse to overwrite an already published release. Tags with a hyphen publish as prereleases and are excluded from automatic stable updates. Normal branch pushes and pull requests do not publish releases. Only the tag publishing job has `contents: write`.
+### Automatic GitHub Releases
 
-A release should follow the project's current acceptance policy. Set `launcherVersion=0.3.1` in the root `gradle.properties`, commit the version change, complete the release checks, then tag that exact commit:
+Edit **only** `launcherVersion` in the root `gradle.properties` and push the commit to `main`. For example, changing `0.3.0` to `0.4.0` makes the build eligible for an automatic stable GitHub Release. The existing [build workflow](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/workflows/build.yml) compares the new value with the previous pushed `main` revision. An increase to stable SemVer `X.Y.Z`, or promotion from `X.Y.Z-dev` / `X.Y.Z-rc.1` to the same stable `X.Y.Z`, qualifies. Ordinary code changes, unchanged or lower versions, and development qualifiers do not publish a GitHub Release.
+
+The complete Gradle/Python test phase and Linux x64, Windows x64, macOS ARM64 packaging/verification matrix must succeed first. The publisher then checks all six non-empty portable/update assets, creates or validates `vX.Y.Z` against the exact verified commit, stages the release as a draft, uploads everything and publishes the finished release. Stable releases enter the launcher's stable auto-update channel. Existing published releases and tags pointing to another commit cannot be overwritten.
+
+The tag is created and artifacts published in the *same* Actions run: GitHub does not start another workflow from a tag created with `GITHUB_TOKEN`. Only the publishing job has `contents: write`. A build failure cannot publish incomplete assets. A failed upload can leave a draft for inspection/retry.
+
+**Treat a stable version bump as a reviewed public release action**, not an arbitrary development milestone. Live Minecraft, UI and native installer acceptance gates remain separate. The first actual automatic version-bump publication still needs verification.
+
+### Manual version-tag publication
+
+The former manual `v*` tag-push publishing route remains available, provided the tagged commit's canonical `launcherVersion` exactly matches its tag; CI rejects mismatches. For a commit with `launcherVersion=0.4.0`:
 
 ```bash
 python3 scripts/launcher_version.py
-git tag v0.3.1
-python3 scripts/launcher_version.py --github-ref refs/tags/v0.3.1
-git push origin v0.3.1
+git tag v0.4.0
+python3 scripts/launcher_version.py --github-ref refs/tags/v0.4.0
+git push origin v0.4.0
 ```
 
-Branch builds retain the source value (e.g. `0.3.0-dev`), while release tags can never silently override it. After publication, bump the source version for further development.
+Tags with a prerelease qualifier remain GitHub prereleases, excluded from stable startup updates. After a stable release, advance the property to the next development version, e.g. `0.4.1-dev`, while continuing work.
 
 No release/tag was created as part of implementing this feature. On 19 October 2026 the unauthenticated latest-release endpoint returned HTTP 404. This can mean no public stable release or a private/unavailable repository; no live hosted self-update is claimed. Publicly accessible assets are required for this token-free channel.
 

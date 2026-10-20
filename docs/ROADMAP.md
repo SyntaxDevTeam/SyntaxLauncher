@@ -684,7 +684,7 @@ Goal: prepare the launcher for stable public release.
 - [x] Install app images beside the original, reuse verified images, repair into a fresh stage and atomically publish installation/state; a matching child startup receipt activates the image. Local Linux full-bundle extraction/revalidation passes.
 - [x] Preserve active/previous state and original executable, terminate failed/timed-out children and fall back to a verified cached application; tested with a real Java child plus failure/cancellation/offline fixtures.
 - [x] Generate consistent semantic build metadata, manifest-driven update ZIPs and an explicit full-bundle verification task; Python fixture tests pass.
-- [ ] 🚧 IN PROGRESS — CI now runs desktop tests and packages/verifies all three update bundles, then publishes complete six-asset releases only for version tags. Hosted workflow/tag publication and native Windows/macOS acceptance are not yet executed for this change.
+- [ ] 🚧 IN PROGRESS — CI now runs desktop tests and packages/verifies all three update bundles, then publishes complete six-asset releases for matching version tags or eligible stable version bumps on `main`. Hosted workflow/tag publication and native Windows/macOS acceptance are not yet executed for this change.
 - [ ] Live old→new GitHub-hosted update, original-shortcut relaunch, offline/cancel/failed-child recovery, native permissions/trust and user-data continuity on Windows/Linux/macOS.
 - [ ] Release signing/notarization and cache/old-version cleanup policy before production distribution; current integrity trust is the project's HTTPS GitHub publishing account.
 
@@ -710,6 +710,7 @@ Goal: prepare the launcher for stable public release.
 
 ## CI/CD
 
+- [ ] 🚧 IN PROGRESS — Publish complete GitHub Releases automatically when canonical `launcherVersion` increases to a stable SemVer version on `main`, after all platform CI checks; source and regression tests committed, first hosted release publication still pending.
 - [ ] Build/test CI.
 - [ ] Cross-platform build validation.
 - [ ] Release artifact generation.

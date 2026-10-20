@@ -8,6 +8,37 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-20 — Automatically publish GitHub Releases on stable version bumps
+
+**Milestone:** v0.12 — Production Hardening (early CI/CD slice)  
+**Author/Agent:** GPT-6  
+**Status:** Partial — source committed; first live automated release unverified
+
+### Completed
+- Reused the single canonical `launcherVersion` property; compare current and previous `main` versions to detect intentional stable SemVer increments or prerelease-to-stable promotions.
+- Reused existing Gradle/Python verification, all-platform portable builds and six verified update/archive assets before release publication.
+- Create or validate the exact-commit tag, stage a draft, upload all artifacts and publish it; protect published tags/releases against overwrite, while keeping manual tag publishing.
+- Added deterministic tests for release eligibility and documented how to publish stable releases.
+
+### Changed files
+- `.github/workflows/build.yml` — automatic version-triggered publishing in existing CI.
+- `scripts/launcher_version.py`, `scripts/auto_release.py`, `scripts/test_auto_release.py` — canonical historical version comparison and tests.
+- `docs/UPDATING.md`, `docs/DEVELOPMENT.md`, `README.md` — release and versioning instructions.
+- `docs/ROADMAP.md` — outstanding hosted release acceptance.
+- `docs/WORKLOG.md` — this entry.
+
+### Verification
+- Python tests — NOT RUN locally; GitHub CI executes `python3 -m unittest discover -s scripts -p 'test_*.py'`.
+- Gradle `test` / `build` — NOT RUN locally; regular GitHub CI pending.
+- Live automatic GitHub Release — NOT RUN; current version remains `0.3.0-dev` to avoid an unreviewed public release.
+
+### Roadmap updates
+- `[ ]` v0.12 / CI/CD / automatic stable GitHub Releases — first hosted version-bump test is still open.
+
+### Follow-ups / known issues
+- For the first reviewed stable version bump, verify the GitHub tag, six assets, release status and end-to-end old→new update.
+- Remaining manual Minecraft and native package acceptance is independent of CI success.
+
 ## 2026-10-20 — Consolidate SyntaxLauncher version into gradle.properties
 
 **Milestone:** Cross-milestone build/release ergonomics; v0.12 updater/CI slice  

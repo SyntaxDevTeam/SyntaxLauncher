@@ -74,6 +74,10 @@ Only import JARs from trusted sources: Minecraft executes enabled mod code.
 See [the v0.5 verification checklist](docs/TESTING_V0.5.md).
 **Manual game startup and UX acceptance remain unverified**, including postponed v0.4 checks.
 
+## Automatic GitHub Releases
+
+The sole product version is `launcherVersion` in [`gradle.properties`](gradle.properties). Changing it to a **higher stable SemVer** value (for example `0.3.0` → `0.4.0`) and pushing to `main` automatically publishes a matching `vX.Y.Z` GitHub Release after all Gradle/Python tests and Windows/Linux/macOS packaging succeed. Ordinary commits and development versions (e.g. `0.3.0-dev`) do not publish Releases. Matching manual version tags remain supported. Stable releases are eligible for the launcher's auto-updater; release readiness and manual tests must therefore be reviewed before bumping the product version. See [publishing instructions](docs/UPDATING.md).
+
 ## Current implementation
 
 The current v0.1 implementation includes:
