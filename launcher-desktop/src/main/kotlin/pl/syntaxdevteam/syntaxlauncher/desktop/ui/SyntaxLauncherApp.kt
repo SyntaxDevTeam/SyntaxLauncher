@@ -301,6 +301,21 @@ private fun LauncherPanel(
     var mutationBusy by remember { mutableStateOf(false) }
     var instanceError by remember { mutableStateOf<String?>(null) }
     val activeInstance = inventory?.instances?.firstOrNull { it.id == instanceId }
+    var localModWarnings by remember { mutableStateOf<List<String>>(emptyList()) }
+    LaunchedEffect(activeInstance?.id, modsBusy) {
+        localModWarnings = emptyList()
+        val current = activeInstance
+        if (current?.loader?.id == "fabric" && !modsBusy) {
+            localModWarnings = try {
+                session.modManager.list(current.id).warnings
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (failure: Exception) {
+                listOf(failure.message ?: "Could not inspect local mods.")
+            }
+        }
+    }
+
     val launch by session.coordinator.status.collectAsState()
     val process by session.processManager.status.collectAsState()
     val processProtectionError by session.launchIssue.collectAsState()
@@ -724,6 +739,19 @@ private fun LauncherPanel(
                 }
                 (processProtectionError ?: instanceError)?.let { Text(it, color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall) }
+                if (localModWarnings.isNotEmpty()) {
+                    Text("Local mod warnings — review Instances → Mods",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.labelMedium)
+                    localModWarnings.take(2).forEach { warning ->
+                        Text("• $warning", style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    if (localModWarnings.size > 2) Text(
+                        "+${localModWarnings.size - 2} additional mod warning(s)",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f))
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
