@@ -23,7 +23,7 @@ class ModrinthInstaller(
         withContext(Dispatchers.IO) {
             val instance = instances.get(instanceId)
             require(instance.loader?.id in setOf("fabric", "quilt") &&
-                instance.loader.id == plan.loaderId &&
+                instance.loader?.id == plan.loaderId &&
                 instance.minecraftVersionId == plan.minecraftVersionId) {
                 "Instance loader or Minecraft version changed. Review the installation again."
             }
