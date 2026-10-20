@@ -51,7 +51,8 @@ class NeoForgeLoaderProvider(http: HttpClient) : InstallerBackedLoaderProvider(
         val parts = minecraftVersionId.split('.')
         val prefix = when {
             parts.size >= 3 && parts[0] == "1" -> parts[1] + "." + parts[2] + "."
-            parts.size >= 2 && parts[0].toIntOrNull() != null -> minecraftVersionId + "."
+            parts.size == 2 && parts[0].toIntOrNull() != null -> minecraftVersionId + ".0."
+            parts.size >= 3 && parts[0].toIntOrNull() != null -> minecraftVersionId + "."
             else -> return emptyList()
         }
         return metadata().asReversed().filter { it.startsWith(prefix) }.map {

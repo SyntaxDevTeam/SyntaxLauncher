@@ -14,6 +14,7 @@ import pl.syntaxdevteam.syntaxlauncher.core.minecraft.ResolvedMinecraftVersion
 class InstallerLoaderDiscoveryTest {
     private val metadata = """<metadata><versioning><versions>
         <version>26.3.0.84</version><version>26.2.0.76</version>
+        <version>26.1.1.11-beta</version><version>26.1.0.19-beta</version>
         <version>1.21.1-52.1.0</version><version>1.21.1-52.0.1</version>
         <version>21.1.48</version>
         </versions></versioning></metadata>"""
@@ -23,6 +24,8 @@ class InstallerLoaderDiscoveryTest {
         try {
             val neo = NeoForgeLoaderProvider(http)
             assertEquals(listOf("26.3.0.84"), neo.compatibleVersions("26.3").map { it.version })
+            assertEquals(listOf("26.1.0.19-beta"), neo.compatibleVersions("26.1").map { it.version })
+            assertEquals(listOf("26.1.1.11-beta"), neo.compatibleVersions("26.1.1").map { it.version })
             assertEquals(listOf("21.1.48"), neo.compatibleVersions("1.21.1").map { it.version })
             val forge = ForgeLoaderProvider(http)
             assertEquals(listOf("52.0.1", "52.1.0"),

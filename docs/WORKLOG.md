@@ -15,6 +15,7 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 **Status:** Partial — code pushed; final hosted CI and Minecraft acceptance pending
 
 ### Completed
+- Scoped NeoForge Maven builds to the exact Minecraft patch line (e.g. 26.1 → 26.1.0.x, not 26.1.1.x).
 - Added a read-only version-2 Forge/NeoForge JAR inspector for install_profile.json, version.json, required Maven libraries, client-side processor descriptions and embedded data keys.
 - Rejected malformed/oversized archives, unsafe artifacts, missing client processors and cross-Minecraft version profiles rather than attempting unsupported launch.
 - Added synthetic installer archive tests, Modrinth transactional update tests, and Quilt mod descriptor tests.
