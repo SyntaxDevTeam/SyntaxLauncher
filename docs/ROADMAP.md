@@ -476,9 +476,9 @@ v0.4/v0.5 manual tests. See [v0.6 checklist](TESTING_V0.6.md).
 ## Updates
 
 - [ ] 🚧 IN PROGRESS — Read-only compatible updates for managed files; CI/manual acceptance pending.
-- [ ] Update one mod.
-- [ ] Update all compatible mods.
-- [ ] Preserve rollback/non-destructive replacement.
+- [ ] 🚧 IN PROGRESS — Install selected compatible update with reviewed hash and prior-byte backup; CI and gameplay acceptance pending.
+- [ ] 🚧 IN PROGRESS — Batch update of managed mods with no missing/different required dependency; UI/CI acceptance pending.
+- [ ] 🚧 IN PROGRESS — Transactional per-instance JAR replacement, retained backup and explicit last-update rollback; CI/manual acceptance pending.
 - [ ] Explain unmatched local mods.
 
 ## v0.6 UI

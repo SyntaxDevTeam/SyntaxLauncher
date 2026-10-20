@@ -98,8 +98,11 @@ This is the initial v0.6 catalog/install slice, **not** a completed v0.6 release
 Modrinth-installed JARs now record project/version identity in a versioned, instance-local
 sidecar bound to actual JAR SHA-256; enable/disable keeps this identity. The Local Mods
 screen includes **Check Modrinth updates**: it lists newer compatible versions without
-touching installed files and explains unmatched local JARs. Actual update installation,
-rollback, optional-dependency choice, richer conflicts and final UI acceptance remain open. The launcher currently implements Fabric, so browsing/installing
+touching installed files and explains unmatched local JARs. Managed updates now offer per-mod and batch confirmation, SHA-1-verified download,
+SHA-256 provenance checks, a persistent backup of previous JARs and an explicit
+last-update rollback action. Updates requiring missing/different dependencies are
+deliberately blocked pending a full dependency reconciliation workflow.
+Optional-dependency choice, richer conflicts and final UI/game acceptance remain open. The launcher currently implements Fabric, so browsing/installing
 for NeoForge/Forge/Quilt is exposed only when those loaders are actually supported
 in later milestones. Local JAR import remains available. See
 [the v0.6 test plan](docs/TESTING_V0.6.md). Real Minecraft acceptance for v0.4

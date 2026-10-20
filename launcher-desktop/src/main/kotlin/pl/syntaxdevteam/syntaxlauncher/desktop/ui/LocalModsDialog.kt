@@ -61,6 +61,7 @@ fun LocalModsDialog(
     var error by remember(instance.id) { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
     var removing by remember { mutableStateOf<String?>(null) }
+    var confirmingUpdates by remember { mutableStateOf<List<pl.syntaxdevteam.syntaxlauncher.core.mods.ModrinthAvailableUpdate>?>(null) }
     var browsing by remember { mutableStateOf(false) }
     var updateReport by remember(instance.id) { mutableStateOf<ModrinthUpdateReport?>(null) }
     var checkingUpdates by remember(instance.id) { mutableStateOf(false) }
@@ -118,6 +119,20 @@ fun LocalModsDialog(
                 modifier = Modifier.fillMaxSize().padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+        confirmingUpdates?.let { updates ->
+            AlertDialog(
+                onDismissRequest = { if (!busy) confirmingUpdates = null },
+                title = { Text("Install verified Modrinth updates?") },
+                text = { Text("Replace ${updates.size} tracked mod(s). Previous JARs will be saved for rollback. Review dependency notices before continuing.") },
+                confirmButton = {
+                    TextButton(enabled = canModify && !busy, onClick = {
+                        confirmingUpdates = null
+                        operate { installer.update(instance.id, updates) }
+                    }) { Text("Update mods") }
+                },
+                dismissButton = { TextButton(onClick = { confirmingUpdates = null }) { Text("Cancel") } },
+            )
+        }
         removing?.let { fileName ->
             AlertDialog(
                 onDismissRequest = { if (!busy) removing = null },
@@ -213,9 +228,22 @@ fun LocalModsDialog(
                         Text(note, style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    if (report.updates.isNotEmpty()) Text(
-                        "Update installation is not yet implemented; existing files were not replaced.",
-                        style = MaterialTheme.typography.bodySmall)
+                    if (report.updates.isNotEmpty()) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(enabled = canModify && !busy, onClick = {
+                                confirmingUpdates = report.updates
+                            }) { Text("Update all compatible") }
+                            report.updates.forEach { item ->
+                                TextButton(enabled = canModify && !busy, onClick = {
+                                    confirmingUpdates = listOf(item)
+                                }) { Text("Update ${item.fileName.take(20)}") }
+                            }
+                        }
+                    }
+                    OutlinedButton(enabled = canModify && !busy,
+                        onClick = { operate { installer.rollback(instance.id) } }) {
+                        Text("Rollback last Modrinth update")
+                    }
                 }
                 if (busy) CircularProgressIndicator()
                 error?.let {

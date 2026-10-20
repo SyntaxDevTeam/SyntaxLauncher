@@ -28,7 +28,8 @@ data class ModrinthInstallEntry(val projectId: String, val versionId: String, va
 data class ModrinthInstallPlan(val minecraftVersionId: String, val loaderId: String,
     val projectId: String, val entries: List<ModrinthInstallEntry>, val notices: List<String>)
 data class ModrinthAvailableUpdate(val fileName: String, val projectId: String,
-    val currentVersionId: String, val newVersionId: String, val newVersionNumber: String)
+    val currentVersionId: String, val newVersionId: String, val newVersionNumber: String,
+    val newFile: ModrinthFile? = null, val currentSha256: String = "")
 data class ModrinthUpdateReport(val updates: List<ModrinthAvailableUpdate>,
     val unmatched: List<String>, val notices: List<String>)
 
@@ -141,8 +142,18 @@ class ModrinthCatalog(private val http: HttpClient,
             val latest = compatible.firstOrNull()
             if (latest != null && latest.id != current.id &&
                 latest.published > current.published && latest.files.isNotEmpty()) {
+                val installedProjects = inventory.mods.mapNotNull { it.modrinth }.associateBy { it.projectId }
+                val missing = latest.dependencies.filter { it.type == "required" }.filter { dependency ->
+                    val present = dependency.projectId?.let { installedProjects[it] }
+                    present == null || (dependency.versionId != null && present.versionId != dependency.versionId)
+                }
+                if (missing.isNotEmpty()) {
+                    notices += "${mod.fileName}: newer release needs new or different dependencies; update blocked until dependency reconciliation."
+                    continue
+                }
                 updates += ModrinthAvailableUpdate(
-                    mod.fileName, origin.projectId, origin.versionId, latest.id, latest.number)
+                    mod.fileName, origin.projectId, origin.versionId, latest.id, latest.number,
+                    latest.files.first(), mod.sha256)
             }
         }
         return ModrinthUpdateReport(updates,

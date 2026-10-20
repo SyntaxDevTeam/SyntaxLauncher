@@ -8,6 +8,40 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-20 — Transactional managed Modrinth updates and rollback
+
+**Milestone:** v0.6 — Modrinth Integration  
+**Author/Agent:** GPT-6  
+**Status:** Partial — committed; CI and real-game acceptance pending
+
+### Completed
+- Added per-mod and bulk Modrinth updates with user confirmation and verified SHA-1 download.
+- Added cross-process inactive-instance-locked JAR replacement, stale SHA-256 checks, duplicate mod-id/filename preflight, and permanent copies of replaced JARs.
+- Added explicit rollback of the most recent completed batch, including managed project/version records; reject rollback if files changed.
+- Fail closed for upgrades introducing different or missing required Modrinth project dependencies; do not silently claim full dependency reconciliation.
+
+### Changed files
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/mods/ModrinthUpdateTransactions.kt` — backup receipt types.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/mods/ModrinthCatalog.kt` — update metadata/dependency gates.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/mods/ModrinthInstaller.kt` — verified update downloads.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/mods/LocalModManager.kt` — guarded replacements and rollback.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/LocalModsDialog.kt` — update confirmation and rollback controls.
+- `README.md`, `docs/ROADMAP.md`, `docs/WORKLOG.md` — scope and acceptance tracking.
+
+### Verification
+- `./gradlew test`, `./gradlew build` — NOT RUN locally (GitHub-hosted CI required).
+- Manual game/GUI startup — NOT RUN; previously deferred by maintainer.
+
+### Roadmap updates
+- v0.6 update and rollback entries 🚧 pending hosted CI and user acceptance.
+- Full dependency graph reconciliation, optional dependencies and automatic repair remain open.
+
+### Follow-ups / known issues
+- Verify interrupted update and rollback fault injection, crash recovery, and legacy/manual JAR handling.
+- Record an explicit durability journal for hard process crash mid-update; current rollback handles exceptions while the process is alive.
+
+---
+
 ## 2026-10-20 — Managed Modrinth identity and read-only updates
 
 **Milestone:** v0.6 — Modrinth Integration  

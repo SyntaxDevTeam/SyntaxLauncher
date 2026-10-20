@@ -48,6 +48,7 @@ data class LocalModInventory(
 class LocalModManager(private val instances: MinecraftInstanceRepository) {
     private val json = Json { ignoreUnknownKeys = true }
     private val managedStore = ModrinthManagedModStore()
+    private val backupStore = ModrinthUpdateBackupStore()
     private val maximumJarBytes = 512L * 1024 * 1024
 
     suspend fun list(instanceId: String): LocalModInventory = withContext(Dispatchers.IO) {
@@ -171,6 +172,184 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
                 } finally {
                     names.forEach { Files.deleteIfExists(staging.resolve(it)) }
                     Files.deleteIfExists(staging)
+                }
+            }
+        }
+
+
+    /**
+     * Transactional replacement of verified managed JARs, never user-managed files.
+     * A completed update keeps the exact prior bytes in an instance-local backup.
+     */
+    suspend fun replaceManaged(instanceId: String, replacements: List<ModrinthReplacement>): LocalModInventory =
+        withContext(Dispatchers.IO) {
+            require(replacements.isNotEmpty() && replacements.size <= 32)
+            instances.withInactiveInstance(instanceId) { instance ->
+                require(instance.loader?.id == "fabric") { "Managed updates require a Fabric instance." }
+                val game = instances.gameDirectory(instance)
+                val mods = modsDirectory(instance)
+                val tracked = managedStore.read(game)
+                val current = inspect(instance).mods
+                val oldNames = replacements.map { it.oldFileName }
+                val newNames = replacements.map { it.source.fileName.toString() }
+                require(oldNames.distinct().size == oldNames.size &&
+                    newNames.distinct().size == newNames.size && newNames.all(::validJarName)) {
+                    "Conflicting update filenames."
+                }
+                val replacedNames = oldNames.toSet()
+                val oldPaths = replacements.map { item ->
+                    val name = item.oldFileName
+                    val base = requireFileName(name)
+                    val previous = tracked[base]
+                        ?: error("$name was not installed from Modrinth; refusing to overwrite.")
+                    require(previous.projectId == item.projectId &&
+                        previous.versionId == item.oldVersionId &&
+                        previous.sha256 == item.currentSha256) { "Update review expired for $name." }
+                    val file = mods.resolve(name)
+                    require(Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS) &&
+                        sha256(file) == previous.sha256) { "$name changed; review updates again." }
+                    file
+                }
+                newNames.forEach { name ->
+                    require(name !in current.map { it.fileName }.filterNot { it in replacedNames }) {
+                        "Another local mod already uses filename $name."
+                    }
+                    require(name + ".disabled" !in current.map { it.fileName }.filterNot { it in replacedNames }) {
+                        "A disabled local mod already uses filename $name."
+                    }
+                }
+                val temp = Files.createDirectory(mods.resolve(".update-" + UUID.randomUUID()))
+                val backup = backupStore.newDirectory(game)
+                val published = mutableListOf<Path>()
+                var changed = false
+                try {
+                    val incoming = replacements.mapIndexed { index, item ->
+                        require(Files.isRegularFile(item.source, LinkOption.NOFOLLOW_LINKS))
+                        require(Files.size(item.source) in 1..maximumJarBytes)
+                        val staged = temp.resolve(newNames[index])
+                        Files.copy(item.source, staged)
+                        readMetadata(staged)
+                        val checksum = sha256(staged)
+                        Triple(staged, checksum, readMetadata(staged)?.id)
+                    }
+                    val unaffected = current.filterNot { it.fileName in replacedNames }
+                    require(incoming.mapNotNull { it.third }.distinct().size == incoming.mapNotNull { it.third }.size &&
+                        incoming.mapNotNull { it.third }.none { id -> unaffected.any { it.metadata?.id == id } }) {
+                        "Updated JAR conflicts with another mod ID."
+                    }
+                    require(incoming.map { it.second }.distinct().size == incoming.size &&
+                        incoming.none { pair -> unaffected.any { it.sha256 == pair.second } }) {
+                        "Updated JAR duplicates an installed mod."
+                    }
+                    val receipt = ModrinthUpdateReceipt(items = replacements.mapIndexed { index, item ->
+                        val old = tracked.getValue(requireFileName(item.oldFileName))
+                        ModrinthReplacementReceipt(
+                            old, ModrinthManagedMod(newNames[index], item.projectId, item.newVersionId,
+                                incoming[index].second),
+                            item.oldFileName.endsWith(".jar.disabled", ignoreCase = true),
+                        )
+                    })
+                    // Durable, byte-for-byte backups precede every destructive operation.
+                    oldPaths.forEachIndexed { index, from ->
+                        Files.copy(from, backup.resolve("old-$index.jar"))
+                    }
+                    backupStore.write(backup, receipt)
+                    oldPaths.forEach { Files.delete(it) }
+                    changed = true
+                    incoming.forEachIndexed { index, triple ->
+                        val enabledName = newNames[index]
+                        val name = if (receipt.items[index].wasDisabled) "$enabledName.disabled" else enabledName
+                        val target = mods.resolve(name)
+                        check(!Files.exists(target, LinkOption.NOFOLLOW_LINKS))
+                        move(triple.first, target)
+                        published += target
+                    }
+                    val records = tracked.toMutableMap()
+                    receipt.items.forEach { item ->
+                        records.remove(item.previous.fileName)
+                        records[item.replacement.fileName] = item.replacement
+                    }
+                    managedStore.save(game, records.values)
+                    backupStore.complete(backup)
+                    inspect(instance)
+                } catch (failure: Throwable) {
+                    if (changed) {
+                        published.forEach { Files.deleteIfExists(it) }
+                        oldPaths.forEachIndexed { index, target ->
+                            if (!Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
+                                Files.copy(backup.resolve("old-$index.jar"), target)
+                            }
+                        }
+                        managedStore.save(game, tracked.values)
+                    }
+                    throw failure
+                } finally {
+                    newNames.forEach { Files.deleteIfExists(temp.resolve(it)) }
+                    Files.deleteIfExists(temp)
+                }
+            }
+        }
+
+    /** Restore the most recent completed update; refuse to overwrite user changes. */
+    suspend fun rollbackLastManagedUpdate(instanceId: String): LocalModInventory =
+        withContext(Dispatchers.IO) {
+            instances.withInactiveInstance(instanceId) { instance ->
+                val game = instances.gameDirectory(instance)
+                val mods = modsDirectory(instance)
+                val (folder, receipt) = backupStore.latest(game)
+                val records = managedStore.read(game)
+                receipt.items.forEachIndexed { index, item ->
+                    val name = if (item.wasDisabled) item.replacement.fileName + ".disabled"
+                        else item.replacement.fileName
+                    val installed = mods.resolve(name)
+                    val backup = folder.resolve("old-$index.jar")
+                    require(Files.isRegularFile(installed, LinkOption.NOFOLLOW_LINKS) &&
+                        sha256(installed) == item.replacement.sha256 &&
+                        records[item.replacement.fileName] == item.replacement) {
+                        "$name has changed; rollback would lose local edits."
+                    }
+                    require(Files.isRegularFile(backup, LinkOption.NOFOLLOW_LINKS) &&
+                        sha256(backup) == item.previous.sha256) { "Modrinth backup is damaged." }
+                    val originalName = if (item.wasDisabled) item.previous.fileName + ".disabled"
+                        else item.previous.fileName
+                    require(originalName == name || !Files.exists(mods.resolve(originalName),
+                        LinkOption.NOFOLLOW_LINKS)) { "Original filename is now occupied." }
+                }
+                val replaced = mutableListOf<Pair<Path, Path>>()
+                try {
+                    receipt.items.forEachIndexed { index, item ->
+                        val installedName = item.replacement.fileName +
+                            if (item.wasDisabled) ".disabled" else ""
+                        val oldName = item.previous.fileName +
+                            if (item.wasDisabled) ".disabled" else ""
+                        val installed = mods.resolve(installedName)
+                        val savedNew = folder.resolve("new-$index.jar")
+                        Files.copy(installed, savedNew)
+                        Files.delete(installed)
+                        val original = mods.resolve(oldName)
+                        Files.copy(folder.resolve("old-$index.jar"), original)
+                        replaced += original to savedNew
+                    }
+                    val restored = records.toMutableMap()
+                    receipt.items.forEach {
+                        restored.remove(it.replacement.fileName)
+                        restored[it.previous.fileName] = it.previous
+                    }
+                    managedStore.save(game, restored.values)
+                    Files.delete(folder.resolve("complete"))
+                    inspect(instance)
+                } catch (failure: Throwable) {
+                    replaced.forEach { (old, _) -> Files.deleteIfExists(old) }
+                    receipt.items.forEachIndexed { index, item ->
+                        val name = item.replacement.fileName +
+                            if (item.wasDisabled) ".disabled" else ""
+                        val current = mods.resolve(name)
+                        val saved = folder.resolve("new-$index.jar")
+                        if (!Files.exists(current, LinkOption.NOFOLLOW_LINKS) &&
+                            Files.isRegularFile(saved, LinkOption.NOFOLLOW_LINKS)) Files.copy(saved, current)
+                    }
+                    managedStore.save(game, records.values)
+                    throw failure
                 }
             }
         }
