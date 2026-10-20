@@ -122,7 +122,7 @@ fun LocalModsDialog(
                 confirmButton = {
                     TextButton(enabled = canModify && !busy, onClick = {
                         removing = null
-                        operate { manager.remove(instance.id, fileName) }
+                        operate(operation = { manager.remove(instance.id, fileName) })
                     }) { Text("Move to trash") }
                 },
                 dismissButton = {
@@ -172,7 +172,7 @@ fun LocalModsDialog(
                         }
                         if (picker.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
                             val picked: Path = picker.selectedFile.toPath()
-                            operate { manager.importJar(instance.id, picked) }
+                            operate(operation = { manager.importJar(instance.id, picked) })
                         }
                     }) { Text("Import JAR") }
                 }
@@ -235,7 +235,7 @@ fun LocalModsDialog(
                                 checked = mod.enabled,
                                 enabled = canModify && !busy,
                                 onCheckedChange = { next ->
-                                    operate { manager.setEnabled(instance.id, mod.fileName, next) }
+                                    operate(operation = { manager.setEnabled(instance.id, mod.fileName, next) })
                                 },
                             )
                             TextButton(enabled = canModify && !busy,
