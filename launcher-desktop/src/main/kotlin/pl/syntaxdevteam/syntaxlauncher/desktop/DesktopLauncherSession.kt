@@ -22,6 +22,9 @@ import kotlinx.coroutines.flow.StateFlow
 import java.time.Instant
 import pl.syntaxdevteam.syntaxlauncher.core.loader.ModLoaderRegistry
 import pl.syntaxdevteam.syntaxlauncher.core.mods.LocalModManager
+import pl.syntaxdevteam.syntaxlauncher.core.mods.ModrinthCatalog
+import pl.syntaxdevteam.syntaxlauncher.core.mods.ModrinthInstaller
+import pl.syntaxdevteam.syntaxlauncher.core.network.DownloadManager
 import pl.syntaxdevteam.syntaxlauncher.core.instance.MinecraftInstance
 import pl.syntaxdevteam.syntaxlauncher.core.instance.MinecraftInstanceRepository
 import pl.syntaxdevteam.syntaxlauncher.core.launch.LaunchOptions
@@ -53,6 +56,8 @@ class DesktopLauncherSession(
     private val microsoftSignIn: DesktopMicrosoftSignIn? = null,
 ) {
     val modManager = LocalModManager(instances)
+    val modrinthCatalog = ModrinthCatalog(httpClient)
+    val modrinthInstaller = ModrinthInstaller(instances, modManager, DownloadManager(httpClient))
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val lock = Any()
     private val closing = AtomicBoolean(false)

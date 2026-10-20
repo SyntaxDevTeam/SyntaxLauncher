@@ -40,12 +40,17 @@ import kotlinx.coroutines.launch
 import pl.syntaxdevteam.syntaxlauncher.core.instance.MinecraftInstance
 import pl.syntaxdevteam.syntaxlauncher.core.mods.LocalModInventory
 import pl.syntaxdevteam.syntaxlauncher.core.mods.LocalModManager
+import pl.syntaxdevteam.syntaxlauncher.core.mods.ModrinthCatalog
+import pl.syntaxdevteam.syntaxlauncher.core.mods.ModrinthInstaller
+import pl.syntaxdevteam.syntaxlauncher.core.mods.ModrinthInstallPlan
 
 /** Local JARs only; online dependency resolution belongs to v0.6. */
 @Composable
 fun LocalModsDialog(
     instance: MinecraftInstance,
     manager: LocalModManager,
+    catalog: ModrinthCatalog,
+    installer: ModrinthInstaller,
     canModify: Boolean,
     onBusyChange: (Boolean) -> Unit,
     onDismiss: () -> Unit,
@@ -55,6 +60,7 @@ fun LocalModsDialog(
     var error by remember(instance.id) { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
     var removing by remember { mutableStateOf<String?>(null) }
+    var browsing by remember { mutableStateOf(false) }
 
     LaunchedEffect(instance.id) {
         try {
@@ -66,7 +72,7 @@ fun LocalModsDialog(
         }
     }
 
-    fun operate(operation: suspend () -> LocalModInventory) {
+    fun operate(operation: suspend () -> LocalModInventory, afterSuccess: () -> Unit = {}) {
         if (busy || !canModify) return
         busy = true
         onBusyChange(true)
@@ -74,6 +80,7 @@ fun LocalModsDialog(
             try {
                 inventory = operation()
                 error = null
+                afterSuccess()
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (failure: Exception) {
@@ -125,6 +132,16 @@ fun LocalModsDialog(
         }
 
 
+                if (browsing) {
+                    ModrinthBrowsePane(
+                        instance = instance, catalog = catalog,
+                        busy = busy, canModify = canModify,
+                        onInstall = { plan: ModrinthInstallPlan ->
+                            operate({ installer.install(instance.id, plan) }) { browsing = false }
+                        },
+                        onDismiss = { browsing = false },
+                    )
+                } else {
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth(),
@@ -145,6 +162,8 @@ fun LocalModsDialog(
                     horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("${inventory?.mods?.count { it.enabled } ?: 0} enabled / ${inventory?.mods?.size ?: 0} installed",
                         style = MaterialTheme.typography.bodyMedium)
+                    TextButton(enabled = canModify && !busy,
+                        onClick = { browsing = true }) { Text("Discover on Modrinth") }
                     Button(enabled = canModify && !busy, onClick = {
                         val picker = JFileChooser().apply {
                             dialogTitle = "Import a local Fabric mod"
@@ -229,6 +248,7 @@ fun LocalModsDialog(
                     "game/.syntaxlauncher-mod-trash. External dependencies are not installed automatically.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
         }
     }

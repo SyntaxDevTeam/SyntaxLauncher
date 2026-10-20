@@ -552,6 +552,8 @@ private fun LauncherPanel(
         LocalModsDialog(
             instance = target,
             manager = session.modManager,
+            catalog = session.modrinthCatalog,
+            installer = session.modrinthInstaller,
             canModify = !isRunning && !launch.isPreparing && !mutationBusy,
             onBusyChange = { modsBusy = it },
             onDismiss = { if (!modsBusy) managingMods = null },
