@@ -8,6 +8,35 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-20 — Add pre-launch mod warnings and confirm dialog scope
+
+**Milestone:** v0.5 — Local Mod Manager  
+**Author/Agent:** GPT-6  
+**Status:** Partial — submitted to main; final CI and manual verification pending
+
+### Completed
+- Show a concise warning summary for the selected Fabric instance in the home sidebar before Play; the full diagnostic list remains in Instances → Mods.
+- Scope mod-removal confirmation to its own active modal window so it is not obscured by the Instances/Mods window.
+
+### Changed files
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/SyntaxLauncherApp.kt` — refresh warnings asynchronously on selection and after mod mutations.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/LocalModsDialog.kt` — confirm removal inside the mod dialog.
+- `docs/ROADMAP.md` — note pre-launch summaries.
+- `docs/WORKLOG.md` — this entry.
+
+### Verification
+- `./gradlew test` — NOT RUN locally; final GitHub Actions pending.
+- `./gradlew build` — NOT RUN locally; final GitHub Actions pending.
+- Manual — NOT RUN; v0.4/v0.5 real Fabric launch validation deferred.
+
+### Roadmap updates
+- `[ ]` pre-launch warning UI remains 🚧 until acceptance.
+- `[ ]` manual acceptance for v0.4/v0.5 remains open.
+
+### Follow-ups / known issues
+- Check CI and address regressions.
+- Verify whether warnings are surfaced without excessive latency on large mod directories.
+
 ## 2026-10-20 — Begin v0.5 instance-local Fabric mod management
 
 **Milestone:** v0.5 — Local Mod Manager  

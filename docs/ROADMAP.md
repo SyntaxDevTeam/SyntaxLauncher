@@ -428,7 +428,7 @@ See [v0.5 test checklist](TESTING_V0.5.md).
 
 - [ ] 🚧 IN PROGRESS — Warn for missing enabled declared dependencies; no remote lookup.
 - [ ] 🚧 IN PROGRESS — Warn when enabled mods declare an obvious `breaks` conflict.
-- [ ] 🚧 IN PROGRESS — Warnings appear in the mods dialog before launch; no blocking pre-launch check yet.
+- [ ] 🚧 IN PROGRESS — Warnings appear in the Mods dialog and on the home screen before Play; no blocking dependency enforcement.
 - [x] Modrinth-backed dependency resolution remains explicitly in v0.6; v0.5 does not claim it.
 
 ## v0.5 quality gate

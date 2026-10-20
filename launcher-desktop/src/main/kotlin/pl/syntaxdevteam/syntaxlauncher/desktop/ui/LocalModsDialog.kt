@@ -85,23 +85,6 @@ fun LocalModsDialog(
         }
     }
 
-    removing?.let { fileName ->
-        AlertDialog(
-            onDismissRequest = { if (!busy) removing = null },
-            title = { Text("Remove local mod?") },
-            text = { Text("Move $fileName to the instance's private mod trash? You can recover the JAR manually.") },
-            confirmButton = {
-                TextButton(enabled = canModify && !busy, onClick = {
-                    removing = null
-                    operate { manager.remove(instance.id, fileName) }
-                }) { Text("Move to trash") }
-            },
-            dismissButton = {
-                TextButton(onClick = { removing = null }) { Text("Cancel") }
-            },
-        )
-    }
-
     Dialog(
         onCloseRequest = { if (!busy) onDismiss() },
         title = "SyntaxLauncher — Local mods",
@@ -117,6 +100,24 @@ fun LocalModsDialog(
                 modifier = Modifier.fillMaxSize().padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+        removing?.let { fileName ->
+            AlertDialog(
+                onDismissRequest = { if (!busy) removing = null },
+                title = { Text("Remove local mod?") },
+                text = { Text("Move $fileName to the instance's private mod trash? You can recover the JAR manually.") },
+                confirmButton = {
+                    TextButton(enabled = canModify && !busy, onClick = {
+                        removing = null
+                        operate { manager.remove(instance.id, fileName) }
+                    }) { Text("Move to trash") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { removing = null }) { Text("Cancel") }
+                },
+            )
+        }
+
+
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth(),
