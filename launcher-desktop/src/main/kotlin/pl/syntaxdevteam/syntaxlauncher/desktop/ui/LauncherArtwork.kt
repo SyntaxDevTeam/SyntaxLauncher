@@ -35,7 +35,7 @@ import kotlin.math.roundToInt
 
 /** The landscape may crop; the launcher's identity always has its own reserved layout space. */
 @Composable
-internal fun LauncherHero(version: String?, profile: String?, snapshots: Boolean, modifier: Modifier = Modifier) {
+internal fun LauncherHero(version: String?, profile: String?, snapshots: Boolean, modifier: Modifier = Modifier, modded: Boolean = false) {
     val strings = LocalStrings.current
     val shape = RoundedCornerShape(SyntaxBrand.panelRadius)
     val mark = painterResource("branding/hero-mark.png")
@@ -69,7 +69,7 @@ internal fun LauncherHero(version: String?, profile: String?, snapshots: Boolean
                 verticalArrangement = Arrangement.spacedBy(if (tight) 8.dp else 14.dp)) {
                 Box(Modifier.background(Color(0xE6062857), RoundedCornerShape(8.dp))
                     .padding(horizontal = 12.dp, vertical = if (tight) 6.dp else 9.dp)) {
-                    Text(strings.text("ui.vanilla_minecraft"), color = SyntaxBrand.cyan,
+                    Text(strings.text(if (modded) "game.modded_minecraft" else "ui.vanilla_minecraft"), color = SyntaxBrand.cyan,
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
                 }
@@ -87,7 +87,7 @@ internal fun LauncherHero(version: String?, profile: String?, snapshots: Boolean
             }
             Column(Modifier.testTag("hero-profile"),
                 verticalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 10.dp)) {
-                Text(profile?.uppercase() ?: strings.text("ui.legacy_vanilla_profile"), maxLines = 1,
+                Text(profile?.uppercase() ?: strings.text("game.vanilla_profile"), maxLines = 1,
                     overflow = TextOverflow.Ellipsis, color = SyntaxBrand.heroMuted,
                     style = MaterialTheme.typography.labelSmall, letterSpacing = 1.8.sp)
                 Text(version ?: strings.text("ui.choose_a_version"), fontSize = if (compact) 26.sp else 32.sp,

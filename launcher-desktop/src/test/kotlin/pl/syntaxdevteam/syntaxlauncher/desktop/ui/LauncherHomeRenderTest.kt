@@ -19,6 +19,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.security.MessageDigest
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -29,6 +30,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.swing.Swing
 import kotlinx.coroutines.withTimeout
 import org.junit.jupiter.api.io.TempDir
+import pl.syntaxdevteam.syntaxlauncher.core.loader.ModLoaderSelection
 import pl.syntaxdevteam.syntaxlauncher.core.instance.MinecraftInstanceRepository
 import pl.syntaxdevteam.syntaxlauncher.core.java.MojangJavaRuntimeManager
 import pl.syntaxdevteam.syntaxlauncher.core.launch.LaunchPlanBuilder
@@ -73,7 +75,7 @@ class LauncherHomeRenderTest {
         val scene = ImageComposeScene(1440, 810, coroutineContext = Dispatchers.Swing) { SyntaxLauncherApp(session) }
         try {
             scene.awaitReady()
-            scene.text("Legacy Vanilla").click()
+            scene.text("My Vanilla game").click()
             scene.frames()
             scene.nodes().first { it.label().startsWith("Survival · ") }.click()
             scene.frames()
@@ -101,7 +103,7 @@ class LauncherHomeRenderTest {
                     assertTrue(play.boundsInRoot.bottom <= height, "Play must fit at $width x $height")
                 } else {
                     val scroll = scene.nodes().first { it.config.contains(SemanticsActions.ScrollBy) }
-                    scroll.config[SemanticsActions.ScrollBy].action!!.invoke(0f, 1000f)
+                    scroll.config[SemanticsActions.ScrollBy].action!!.invoke(0f, 5000f)
                     scene.frames()
                     scene.screenshot("home-${width}x${height}-scrolled")
                     val memory = scene.text("MEMORY ALLOCATION")
@@ -173,7 +175,7 @@ class LauncherHomeRenderTest {
                 scene.screenshot("home-${language.code}-${width}x${height}")
                 if (width < 760) {
                     scene.nodes().first { it.config.contains(SemanticsActions.ScrollBy) }
-                        .config[SemanticsActions.ScrollBy].action!!.invoke(0f, 1000f)
+                        .config[SemanticsActions.ScrollBy].action!!.invoke(0f, 5000f)
                     scene.frames()
                     val memory = scene.text(strings.text("ui.memory_allocation"))
                     assertTrue(memory.boundsInRoot.bottom > 0 && memory.boundsInRoot.top < height)
@@ -181,6 +183,57 @@ class LauncherHomeRenderTest {
                 }
             } finally { scene.close(); session.shutdown() }
         }
+    }
+
+    @Test
+    fun gameTypeButtonsReuseQuiltAndRestoreSavedVanillaWithoutTouchingWorlds() = runBlocking(Dispatchers.Swing) {
+        val session = session()
+        val vanilla = session.instances.create("My Vanilla", "26.3")
+        val quilt = session.instances.create("My mods", "26.3", loader = ModLoaderSelection("quilt", "0.28.0"))
+        val world = session.instances.gameDirectory(vanilla).resolve("saves/keep.txt")
+        Files.createDirectories(world.parent)
+        Files.writeString(world, "my world")
+        session.preferences.save(session.preferences.load().copy(selectedInstanceId = vanilla.id))
+        val scene = ImageComposeScene(1440, 810, coroutineContext = Dispatchers.Swing) { SyntaxLauncherApp(session) }
+        try {
+            scene.awaitReady()
+            assertNotNull(scene.text("MY VANILLA"))
+            scene.text("With mods").click()
+            scene.frames()
+            assertNotNull(scene.text("MY MODS"))
+            assertNotNull(scene.text("MINECRAFT WITH MODS"))
+            assertNotNull(scene.text("Choose mods"))
+            scene.screenshot("home-modded-1440x810")
+            scene.text("Vanilla").click()
+            scene.frames()
+            assertNotNull(scene.text("MY VANILLA"))
+            scene.text("With mods").click()
+            scene.frames()
+            assertNotNull(scene.text("MY MODS"))
+            assertEquals(2, session.instances.list().instances.size)
+            assertEquals(vanilla, session.instances.get(vanilla.id))
+            assertEquals(quilt, session.instances.get(quilt.id))
+            assertEquals("my world", Files.readString(world))
+        } finally { scene.close(); session.shutdown() }
+        assertEquals(quilt.id, session.preferences.load().selectedInstanceId)
+    }
+
+    @Test
+    fun withModsOffersSetupAndCancelKeepsOriginalVanillaSelection() = runBlocking(Dispatchers.Swing) {
+        val session = session()
+        val scene = ImageComposeScene(1440, 810, coroutineContext = Dispatchers.Swing) { SyntaxLauncherApp(session) }
+        try {
+            scene.awaitReady()
+            scene.text("With mods").click()
+            scene.frames()
+            assertNotNull(scene.text("Let’s play with mods"))
+            assertTrue(session.instances.list().instances.isEmpty())
+            scene.text("Cancel").click()
+            scene.frames()
+            assertNotNull(scene.text("My Vanilla game"))
+            assertTrue(session.instances.list().instances.isEmpty())
+        } finally { scene.close(); session.shutdown() }
+        assertEquals("", session.preferences.load().selectedInstanceId)
     }
 
     private suspend fun session(): DesktopLauncherSession {

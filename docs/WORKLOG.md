@@ -8,6 +8,53 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-20 — Make Vanilla and modded play obvious on the home screen
+
+**Milestone:** v0.4 / v0.6 — existing loader and mod-discovery UX
+**Author/Agent:** Codex / GPT-6
+**Status:** Completed — implementation/local verification; native child-usability acceptance remains separate
+
+### Completed
+- Added a direct Vanilla / With mods choice on the normal home screen. Switching reuses an existing Fabric/Quilt game and restores the prior Vanilla selection within the session; the active selection still persists through the existing preferences.
+- Added a short first-time setup that discovers compatible versions through registered providers, prefers the selected Minecraft version and a stable loader, and checks at most seven additional manifest releases if the selected version is unsupported. Network failures never silently select an older version; explicit advanced version choices disable automatic fallback.
+- Kept all compatibility lookup read-only and bounded by cancellation/a 20-second deadline. Only Choose mods confirmation creates a UUID profile using the existing repository, selects it and opens Modrinth discovery. Cancel creates nothing; duplicate confirmation and close-during-save are guarded.
+- Kept existing Vanilla worlds/data untouched; no automatic conversion, clone or copy. Advanced name/Minecraft/Fabric/Quilt choices remain behind More options.
+- Replaced home instance/legacy terminology with My games/My Vanilla game and a clear modded hero badge. Added direct Choose mods access and a compact managed-game version/RAM summary with Game settings instead of disabled technical controls.
+- Added EN/PL/DE strings, localized states and accessibility labels. Kept ordinary existing manager/installed-mod entry points available.
+- Added four deterministic compatibility-policy tests, three rendered setup/repository regressions, and two home interaction regressions. Verified stable preference, bounded fallback, explicit version selection, cancellation/network retry, duplicate clicks, isolated profile creation, Vanilla world preservation, Quilt reuse, and saved active selection. Updated scrolling tests to scroll to the end rather than assume a fixed 1000px content length.
+- Inspected actual compact Polish setup and English modded-home/German Vanilla renders, including the minimum 400×400 setup. Used existing brand surfaces and kept Play as the dominant home action.
+
+### Changed files
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ModdedGameSetup.kt` — read-only bounded compatibility suggestion through existing providers.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/QuickModdedGameDialog.kt` — friendly setup, advanced disclosure, retry/cancel/save states and confirmation guard.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/SyntaxLauncherApp.kt` — mode switching, existing-profile reuse, new-profile selection, direct discovery and simpler managed-game settings.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/LauncherArtwork.kt`, `LocalModsDialog.kt` — accurate modded badge/friendly Vanilla profile name and optional initial discovery view.
+- `launcher-desktop/src/main/resources/i18n/en.properties`, `pl.properties`, `de.properties` — translated simple-play controls, help and error states.
+- `launcher-desktop/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ModdedGameSetupTest.kt`, `ui/QuickModdedGameDialogTest.kt`, `ui/LauncherHomeRenderTest.kt` — compatibility, rendered setup/isolation and mode-switch/persistence regressions.
+- `README.md`, `docs/DESIGN.md`, `docs/DEVELOPMENT.md`, `docs/MILESTONES.md`, `docs/TESTING_V0.4.md`, `docs/ROADMAP.md`, `docs/WORKLOG.md` — simple entry point, safety/compatibility contract, acceptance and verification evidence.
+
+### Verification
+- `./gradlew test` — PASS via `./gradlew --offline test build :launcher-desktop:createDistributable`; 116 core + 24 desktop tests, zero failures/errors/skips. Mock HTTP/provider responses, synthetic JARs and temporary profiles only; no real account/world state used.
+- `./gradlew build` — PASS in the same full verification.
+- `:launcher-desktop:createDistributable` — PASS for Linux; no product version bump or new release tag.
+- `git diff --check` — PASS.
+- Python repository checks — PASS: 8 script tests and 6 publisher tests.
+- Manual/visual verification — reviewed generated `quick-game-pl-400x400.png`, translated compact setup images and wide home renders. Native Modrinth/file-chooser/gameplay flow and observation with children remain separate open acceptance checks.
+- Repository publication — maintainer explicitly requested all work be committed and pushed at the end; normal non-force publication follows local verification.
+
+### Roadmap updates
+- `[x] v0.4 / UI / Simple Vanilla–With mods entry point, automatic setup and compact managed-profile controls`.
+- `[x] v0.6 / UI / Direct home Choose mods entry and initial Modrinth discovery`.
+- `[ ] v0.4 / UI / Native end-to-end and child-usability acceptance` — remains open; headless renders do not prove these tests.
+- Existing Minecraft Services, Forge/NeoForge, loader integrity-policy and other release gates remain unchanged.
+
+### Follow-ups / known issues
+- New modded games intentionally start with their own empty game directory; existing Vanilla worlds are not automatically imported. Explicit clone/import remains in My games.
+- Advanced users can keep Quilt and older version choices. No unsupported Forge/NeoForge choices were introduced and no mod is installed without its existing review/confirmation flow.
+- Hosted CI/native supported-platform acceptance applies to the pushed commit; local package verification is Linux only.
+
+---
+
 
 ## 2026-10-20 — Consolidate and verify all pending changes for repository push
 

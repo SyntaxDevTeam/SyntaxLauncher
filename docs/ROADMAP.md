@@ -392,6 +392,11 @@ offline account tests for this milestone.
 
 ## v0.4 UI
 
+- [x] Add a child-friendly home Vanilla / With mods choice; reuse saved Fabric/Quilt games and keep Vanilla worlds unchanged. Rendered mode-switch/persistence and isolation regressions pass.
+- [x] Offer first-time modded-game setup with automatic compatible Minecraft/loader selection, explicit confirmation and immediate Modrinth discovery; advanced naming/version/loader choices stay behind More options. Loading, retry, cancellation, duplicate-click protection and EN/PL/DE 400×400/440×640 setup regressions pass.
+- [x] Replace disabled managed-profile version/RAM controls with a compact summary and Game settings entry; keep Play dominant and use My games rather than requiring instance terminology on the normal home screen.
+- [ ] Validate the complete simplified discovery/install/Play flow on native supported platforms and observe first-time child users; no child usability or all-platform acceptance is inferred from renders.
+
 - [ ] 🚧 IN PROGRESS — Vanilla/Fabric creation and settings controls implemented; manual desktop usability pending.
 - [ ] 🚧 IN PROGRESS — Vanilla remains explicit; profile compatibility and data preservation test pending.
 - [ ] 🚧 IN PROGRESS — Fabric version picker from API, stable version preferred; keyboard/small-window acceptance pending.
@@ -492,6 +497,7 @@ acceptance still pending. The maintainer confirmed real Fabric and Quilt startup
 
 ## v0.6 UI
 
+- [x] Expose Choose mods directly from the home screen and open Modrinth discovery first for newly created modded games; the advanced manager retains the installed-mod view.
 - [ ] 🚧 IN PROGRESS — Popular mods in a loader/version-filtered browser inside Instances → Mods.
 - [ ] 🚧 IN PROGRESS — Project detail and external Modrinth page link.
 - [ ] 🚧 IN PROGRESS — Search, pagination, installation review and install confirmation.

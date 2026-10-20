@@ -43,3 +43,14 @@ Minecraft/Fabric versions: _not supplied_.
 Result: maintainer-confirmed successful Fabric testing in the project chat. Logs: _not supplied_.
 
 Quilt startup was confirmed in the same message; see [v0.8 acceptance](TESTING_V0.8.md). This confirmation does not imply all-platform, cancellation, mod-management or failure-injection acceptance.
+
+## Simple home entry point — 20 October 2026
+
+- [x] Read-only compatibility discovery prefers the current version, falls back only on incompatibility and prefers a stable loader; deterministic tests pass.
+- [x] Home Vanilla / With mods reuses an existing Quilt profile, restores the previous saved Vanilla profile and preserves both identities/world data; rendered interaction regression passes.
+- [x] First-time setup cancellation creates nothing; failed compatibility lookup can retry; confirmation creates one isolated profile despite duplicate clicks; deterministic UI/repository regressions pass.
+- [x] Advanced choices stay hidden initially; EN/PL/DE compact setup controls render and remain reachable.
+- [ ] Native keyboard/file-dialog acceptance of Choose mods → Modrinth → install → Play on supported operating systems.
+- [ ] Observe first-time child users completing the flow without explaining instances or loader terminology.
+
+These checks do not replace the existing real loader startup record or all-platform gameplay gates.

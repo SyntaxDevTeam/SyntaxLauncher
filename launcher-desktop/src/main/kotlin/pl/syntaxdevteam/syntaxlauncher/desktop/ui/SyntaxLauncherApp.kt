@@ -58,6 +58,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -193,10 +194,10 @@ fun SyntaxLauncherApp(
                         if (!compactShell) { Spacer(Modifier.width(10.dp)); Text(strings.text("ui.home")) }
                     }
                     TextButton(onClick = { instanceOpenRequest = maxOf(instanceOpenRequest + 1, 1) }) {
-                        BrandIcon(SyntaxSymbol.Instances, tint = SyntaxBrand.heroMuted)
+                        BrandIcon(SyntaxSymbol.Instances, tint = SyntaxBrand.heroMuted, description = strings.text("game.my_games"))
                         if (!compactShell) {
                             Spacer(Modifier.width(10.dp))
-                            Text(strings.text("ui.instances"), color = SyntaxBrand.heroMuted)
+                            Text(strings.text("game.my_games"), color = SyntaxBrand.heroMuted)
                         }
                     }
                 }
@@ -295,6 +296,10 @@ private fun LauncherPanel(
     var managerOpen by remember { mutableStateOf(false) }
     var editingInstance by remember { mutableStateOf<MinecraftInstance?>(null) }
     var managingMods by remember { mutableStateOf<MinecraftInstance?>(null) }
+    var browseModsFirst by remember { mutableStateOf(false) }
+    var quickSetupOpen by remember { mutableStateOf(false) }
+    var lastVanillaId by remember { mutableStateOf("") }
+    var lastModdedId by remember { mutableStateOf(saved.selectedInstanceId) }
     var modsBusy by remember { mutableStateOf(false) }
     var copyPreview by remember { mutableStateOf<InstanceCopyPreview?>(null) }
     var copyProgress by remember { mutableStateOf<InstanceCopyProgress?>(null) }
@@ -306,11 +311,12 @@ private fun LauncherPanel(
     var mutationBusy by remember { mutableStateOf(false) }
     var instanceError by remember { mutableStateOf<String?>(null) }
     val activeInstance = inventory?.instances?.firstOrNull { it.id == instanceId }
+    val withMods = activeInstance?.loader?.id in setOf("fabric", "quilt")
     var localModWarnings by remember { mutableStateOf<List<String>>(emptyList()) }
     LaunchedEffect(activeInstance?.id, modsBusy) {
         localModWarnings = emptyList()
         val current = activeInstance
-        if (current?.loader?.id == "fabric" && !modsBusy) {
+        if (current != null && current.loader?.id in setOf("fabric", "quilt") && !modsBusy) {
             localModWarnings = try {
                 session.modManager.list(current.id).warnings
             } catch (cancelled: CancellationException) {
@@ -361,6 +367,9 @@ private fun LauncherPanel(
             legacySnapshots = showSnapshots
         }
         instanceId = id
+        val target = inventory?.instances?.firstOrNull { it.id == id }
+        if (id.isBlank() || target?.loader == null) lastVanillaId = id
+        else if (target.loader?.id in setOf("fabric", "quilt")) lastModdedId = id
         if (id.isBlank()) {
             selected = manifest.versions.firstOrNull { it.id == legacyVersionId }
                 ?: manifest.versions.firstOrNull {
@@ -375,6 +384,23 @@ private fun LauncherPanel(
                 showSnapshots = selected?.type == MinecraftVersionType.SNAPSHOT
             }
         }
+    }
+
+    fun selectVanillaMode() {
+        if (locked || inventory == null || !withMods) return
+        lastModdedId = instanceId
+        val previous = inventory?.instances?.firstOrNull { it.id == lastVanillaId && it.loader == null }
+        chooseInstance(previous?.id.orEmpty())
+    }
+
+    fun selectModdedMode() {
+        if (locked || inventory == null || withMods) return
+        lastVanillaId = instanceId
+        val profiles = inventory?.instances.orEmpty().filter { it.loader?.id in setOf("fabric", "quilt") }
+        val existing = profiles.firstOrNull { it.id == lastModdedId }
+            ?: profiles.firstOrNull { it.minecraftVersionId == selected?.id }
+            ?: profiles.firstOrNull()
+        if (existing != null) chooseInstance(existing.id) else quickSetupOpen = true
     }
 
     fun modifyInstance(action: suspend () -> MinecraftInstance?) {
@@ -498,6 +524,31 @@ private fun LauncherPanel(
         if (locked) { menuOpen = false; instanceMenuOpen = false }
     }
 
+    if (quickSetupOpen) {
+        val baseName = strings.text("game.default_name")
+        val names = inventory?.instances.orEmpty().map { it.name }.toSet()
+        val suggestedName = generateSequence(1) { it + 1 }
+            .map { if (it == 1) baseName else "$baseName $it" }.first { it !in names }
+        QuickModdedGameDialog(
+            preferredVersion = selected?.id ?: manifest.latestRelease,
+            releases = manifest.versions.filter { it.type == MinecraftVersionType.RELEASE }.map { it.id },
+            defaultName = suggestedName,
+            loadVersions = { id, game -> session.loaders?.compatibleVersions(id, game).orEmpty() },
+            create = { name, game, loader ->
+                session.instances.create(name, game, maximumMemoryMiB = ramMiB.toInt(), loader = loader)
+            },
+            onCreated = { created ->
+                val previous = inventory ?: InstanceInventory(emptyList(), emptyList())
+                inventory = previous.copy(instances = (previous.instances + created).sortedBy { it.name.lowercase() })
+                chooseInstance(created.id)
+                quickSetupOpen = false
+                browseModsFirst = true
+                managingMods = created
+            },
+            onDismiss = { quickSetupOpen = false },
+        )
+    }
+
     val editing = editingInstance
     if (editing != null) {
         InstanceSettingsDialog(
@@ -533,7 +584,7 @@ private fun LauncherPanel(
                 session.instances.create(name, version, maximumMemoryMiB = ramMiB.toInt(), loader = loader)
             } },
             onEdit = { instance -> editingInstance = instance },
-            onManageMods = { instance -> managingMods = instance },
+            onManageMods = { instance -> browseModsFirst = false; managingMods = instance },
             onClonePreview = { instance, name ->
                 previewCopy(instance, name, instance.minecraftVersionId)
             },
@@ -556,6 +607,7 @@ private fun LauncherPanel(
     managingMods?.let { target ->
         LocalModsDialog(
             instance = target,
+            initialBrowse = browseModsFirst,
             manager = session.modManager,
             catalog = session.modrinthCatalog,
             installer = session.modrinthInstaller,
@@ -588,7 +640,7 @@ private fun LauncherPanel(
             verticalArrangement = Arrangement.spacedBy(SyntaxBrand.panelGap),
         ) {
             LauncherHero(selected?.id, activeInstance?.name, showSnapshots,
-                Modifier.weight(1f).fillMaxWidth())
+                Modifier.weight(1f).fillMaxWidth(), modded = withMods)
             Column(
                 modifier = Modifier.fillMaxWidth()
                     .clip(RoundedCornerShape(SyntaxBrand.panelRadius))
@@ -722,14 +774,20 @@ private fun LauncherPanel(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                SectionLabel(strings.text("instance.label"), SyntaxSymbol.Cube)
+                SectionLabel(strings.text("game.style"), SyntaxSymbol.Gamepad)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ChannelButton(strings.text("game.vanilla"), !withMods, !locked && inventory != null,
+                        ::selectVanillaMode, Modifier.weight(1f).testTag("game-style-vanilla"))
+                    ChannelButton(strings.text("game.with_mods"), withMods, !locked && inventory != null,
+                        ::selectModdedMode, Modifier.weight(1f).testTag("game-style-modded"))
+                }
                 Box {
-                    SelectorButton(activeInstance?.name ?: if (missingInstance) strings.text("ui.unavailable_instance") else strings.text("ui.legacy_vanilla"),
+                    SelectorButton(activeInstance?.name ?: if (missingInstance) strings.text("ui.unavailable_instance") else strings.text("game.vanilla_game"),
                         onClick = { instanceMenuOpen = true }, enabled = !locked,
                         symbol = SyntaxSymbol.Cube)
                     DropdownMenu(expanded = instanceMenuOpen && !locked,
                         onDismissRequest = { instanceMenuOpen = false }) {
-                        DropdownMenuItem(text = { Text(strings.text("ui.legacy_vanilla")) },
+                        DropdownMenuItem(text = { Text(strings.text("game.vanilla_game")) },
                             onClick = { chooseInstance(""); instanceMenuOpen = false })
                         inventory?.instances.orEmpty().forEach { profile ->
                             DropdownMenuItem(text = { Text(profile.name + " · " + profile.id.take(8)) },
@@ -737,9 +795,17 @@ private fun LauncherPanel(
                         }
                     }
                 }
-                SelectorButton(strings.text("ui.manage_instances_0", inventory?.instances?.size ?: 0),
-                    onClick = { managerOpen = true }, enabled = !locked,
-                    symbol = SyntaxSymbol.Setup, trailing = SyntaxSymbol.ChevronRight)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically) {
+                    if (withMods) TextButton(onClick = {
+                        browseModsFirst = true
+                        managingMods = activeInstance
+                    }, enabled = !locked) { Text(strings.text("game.choose_mods")) }
+                    else Text(strings.text("game.vanilla_hint"), style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                    TextButton(onClick = { managerOpen = true }, enabled = !locked,
+                        modifier = Modifier.testTag("manage-games")) { Text(strings.text("game.my_games")) }
+                }
                 if (missingInstance) {
                     Text(strings.text("ui.selected_instance_is_unavailable_choose_a_valid_instance_or_le"),
                         color = MaterialTheme.colorScheme.error,
@@ -866,39 +932,49 @@ private fun LauncherPanel(
             }
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 SectionLabel(strings.text("ui.game_version"), SyntaxSymbol.Cube)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ChannelButton(strings.text("ui.releases"), modifier = Modifier.weight(1f),
-                        selected = !showSnapshots, enabled = !locked && activeInstance == null,
-                        onClick = {
-                            showSnapshots = false
-                            selected = manifest.versions.firstOrNull { it.id == manifest.latestRelease }
-                        },
-                    )
-                    ChannelButton(strings.text("ui.snapshots"), modifier = Modifier.weight(1f),
-                        selected = showSnapshots, enabled = !locked && activeInstance == null,
-                        onClick = {
-                            showSnapshots = true
-                            selected = manifest.versions.firstOrNull { it.id == manifest.latestSnapshot }
-                        },
-                    )
-                }
-                Box {
-                    SelectorButton(selected?.id ?: strings.text("ui.select_version"),
-                        onClick = { menuOpen = true }, enabled = !locked && activeInstance == null)
-                    DropdownMenu(
-                        expanded = menuOpen && !locked && activeInstance == null,
-                        onDismissRequest = { menuOpen = false },
-                    ) {
-                        manifest.versions.asSequence()
-                            .filter { it.type == if (showSnapshots)
-                                MinecraftVersionType.SNAPSHOT else MinecraftVersionType.RELEASE }
-                            .take(80)
-                            .forEach { version ->
-                                DropdownMenuItem(
-                                    text = { VersionLabel(version, manifest) },
-                                    onClick = { selected = version; menuOpen = false },
-                                )
-                            }
+                if (activeInstance != null) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Minecraft " + activeInstance.minecraftVersionId)
+                        Text("${ramMiB.toInt() / 1024} GB", color = MaterialTheme.colorScheme.primary)
+                    }
+                    TextButton(onClick = { editingInstance = activeInstance }, enabled = !locked) {
+                        Text(strings.text("game.settings"))
+                    }
+                } else {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ChannelButton(strings.text("ui.releases"), modifier = Modifier.weight(1f),
+                            selected = !showSnapshots, enabled = !locked,
+                            onClick = {
+                                showSnapshots = false
+                                selected = manifest.versions.firstOrNull { it.id == manifest.latestRelease }
+                            },
+                        )
+                        ChannelButton(strings.text("ui.snapshots"), modifier = Modifier.weight(1f),
+                            selected = showSnapshots, enabled = !locked,
+                            onClick = {
+                                showSnapshots = true
+                                selected = manifest.versions.firstOrNull { it.id == manifest.latestSnapshot }
+                            },
+                        )
+                    }
+                    Box {
+                        SelectorButton(selected?.id ?: strings.text("ui.select_version"),
+                            onClick = { menuOpen = true }, enabled = !locked)
+                        DropdownMenu(
+                            expanded = menuOpen && !locked,
+                            onDismissRequest = { menuOpen = false },
+                        ) {
+                            manifest.versions.asSequence()
+                                .filter { it.type == if (showSnapshots)
+                                    MinecraftVersionType.SNAPSHOT else MinecraftVersionType.RELEASE }
+                                .take(80)
+                                .forEach { version ->
+                                    DropdownMenuItem(
+                                        text = { VersionLabel(version, manifest) },
+                                        onClick = { selected = version; menuOpen = false },
+                                    )
+                                }
+                        }
                     }
                 }
                 when (val state = metadata) {
@@ -912,7 +988,7 @@ private fun LauncherPanel(
                             Text(strings.text("ui.retry"))
                         }
                     }
-                    is VersionMetadataState.Ready ->
+                    is VersionMetadataState.Ready -> if (activeInstance == null)
                         Text(
                             strings.text("ui.verified") +
                                 (state.metadata.javaRequirement?.let { "Java ${it.majorVersion}" }
@@ -923,7 +999,7 @@ private fun LauncherPanel(
                     VersionMetadataState.Idle -> Unit
                 }
             }
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            if (activeInstance == null) Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -936,15 +1012,8 @@ private fun LauncherPanel(
                     value = ramMiB, onValueChange = { ramMiB = it },
                     valueRange = 1024f..16384f, steps = 14,
                     modifier = Modifier.height(32.dp),
-                    enabled = !locked && activeInstance == null,
+                    enabled = !locked,
                 )
-                if (activeInstance != null) {
-                    Text(
-                        strings.text("ui.version_loader_and_ram_belong_to_this_instance_edit_them_under"),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,

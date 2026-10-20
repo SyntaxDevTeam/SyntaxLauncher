@@ -38,6 +38,12 @@ The v0.2 implementation includes cross-process per-instance file locks, safe clo
 
 The desktop now has a v0.3 development account picker with Offline and in-memory Microsoft Java sessions, native browser PKCE login, account removal and the shared premium/offline launch pipeline. Configure SYNTAXLAUNCHER_MICROSOFT_CLIENT_ID with your own registered public application ID. Secure persistence, real Minecraft approval/testing and full UI acceptance are still outstanding; no tokens are persisted to files. A properly authorized Microsoft public-client app registration will be required. Premium sign-in must never request a Microsoft password or hardcode someone else's application ID.
 
+## Pick Vanilla or play with mods
+
+Start with **Vanilla** or **With mods** directly on the home screen. Vanilla keeps your existing game selected. With mods reuses a saved Fabric/Quilt game when available; the first time, a short setup chooses a compatible Minecraft and mod-loader version for you. Confirm **Choose mods** to create a separate game and open Modrinth discovery immediately. Your Vanilla worlds are never converted or copied by this action.
+
+The current game version is preferred. If it has no compatible loader, the setup checks up to seven recent releases and clearly shows the version it proposes before creating anything. Offline/errors offer Retry and Cancel. **More options** exposes a name, Minecraft version and Fabric/Quilt details; **My games** retains the full instance manager for existing profiles, cloning/import and advanced settings. Existing profiles and loader selections keep their format. Returning to either mode reuses its previous selection within the session; the active game is saved across launcher restarts.
+
 ## v0.4 — Fabric loader (startup accepted; remaining release checks open)
 
 Instances can now store an optional Vanilla/Fabric loader selection with the chosen compatible

@@ -57,6 +57,7 @@ fun LocalModsDialog(
     canModify: Boolean,
     onBusyChange: (Boolean) -> Unit,
     onDismiss: () -> Unit,
+    initialBrowse: Boolean = false,
 ) {
     val strings = LocalStrings.current
     val scope = rememberCoroutineScope()
@@ -65,7 +66,7 @@ fun LocalModsDialog(
     var busy by remember { mutableStateOf(false) }
     var removing by remember { mutableStateOf<String?>(null) }
     var confirmingUpdates by remember { mutableStateOf<List<pl.syntaxdevteam.syntaxlauncher.core.mods.ModrinthAvailableUpdate>?>(null) }
-    var browsing by remember { mutableStateOf(false) }
+    var browsing by remember(instance.id) { mutableStateOf(initialBrowse) }
     var updateReport by remember(instance.id) { mutableStateOf<ModrinthUpdateReport?>(null) }
     var checkingUpdates by remember(instance.id) { mutableStateOf(false) }
 

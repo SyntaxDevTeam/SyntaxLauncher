@@ -176,6 +176,10 @@ The user can create/edit an instance and select:
 - Vanilla; or
 - Fabric plus a compatible loader version.
 
+### Simple entry point (requested 20 October 2026)
+
+Home offers Vanilla / With mods. A new player can confirm an automatically compatible, separate modded game and immediately choose mods, without navigating the instance manager or choosing loader versions. Existing Fabric/Quilt games are reused; Vanilla worlds remain unchanged. More options and My games retain advanced controls. This is an entry point to existing v0.4/v0.6 capabilities, not a new loader or world migration.
+
 ### Internal scope
 
 Introduce a loader provider/adapter boundary capable of representing:

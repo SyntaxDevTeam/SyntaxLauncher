@@ -382,3 +382,9 @@ If the answer to several of these questions is no, the UI should not be consider
 ## 18. Interface languages
 
 English, Polish and German share the same design system. Keep the language menu compact (current language code with the full language names in its dropdown) beside Your setup; it must not compete with Play. Use translated accessibility descriptions for window/language/account actions. Allow longer German labels and Polish glyphs, retain normal scrolling, and verify wide and narrow layouts in all three languages. Switching changes UI text without resetting drafts, selections, user names, instance data or Minecraft settings. Upstream descriptions and diagnostic details keep their original text.
+
+## 19. Simple Vanilla / With mods entry point
+
+The launcher is aimed at children as well as experienced players. The normal home screen must offer a plain-language Vanilla / With mods choice, without requiring knowledge of instances, loader installation or loader versions. Keep Play as the sole dominant action. Reuse existing games when changing mode. Show a quiet Choose mods action for the selected modded game; My games opens the advanced manager.
+
+When no modded game exists, a short setup automatically suggests a compatible game and prefers a stable Fabric loader. Show the chosen Minecraft version before confirmation. Do not create or change files during compatibility discovery. Explicit Choose mods creates a separate UUID profile and opens discovery. State clearly that Vanilla worlds remain unchanged. Cancel writes nothing. More options reveals naming/version/loader controls, including Quilt; unavailable versions, network failures, loading and saving must have clear states. Never silently change an explicitly chosen Minecraft version. Preserve selections, drafts and worlds when switching modes and retain keyboard access, scrolling and EN/PL/DE labels on small screens.
