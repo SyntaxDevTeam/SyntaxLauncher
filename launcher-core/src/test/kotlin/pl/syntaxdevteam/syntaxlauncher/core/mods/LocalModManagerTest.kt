@@ -129,6 +129,25 @@ class LocalModManagerTest {
         assertTrue(scanned.warnings.any { "changed since its Modrinth" in it })
     }
 
+    @Test fun parsesQuiltModMetadataWithoutFabricManifest() = runBlocking {
+        val (repo, manager) = setup()
+        val profile = repo.create("Quilt", "1.21.1", loader = ModLoaderSelection("quilt", "0.28.0"))
+        val file = Files.createTempDirectory("quilt-meta").resolve("quilt-only.jar")
+        ZipOutputStream(Files.newOutputStream(file)).use { archive ->
+            archive.putNextEntry(ZipEntry("quilt.mod.json"))
+            archive.write("""{"schema_version":1,"quilt_loader":{
+                "id":"quilt_mod","version":"2.0","group":"example",
+                "metadata":{"name":"Quilt Example"},
+                "depends":[{"id":"quilt_loader","versions":">=0.26"}]}}""".toByteArray())
+            archive.closeEntry()
+        }
+        val inventory = manager.importJar(profile.id, file)
+        assertEquals("quilt_mod", inventory.mods.single().metadata?.id)
+        assertEquals("Quilt Example", inventory.mods.single().metadata?.name)
+        assertEquals("2.0", inventory.mods.single().metadata?.version)
+        assertEquals(">=0.26", inventory.mods.single().metadata?.depends?.get("quilt_loader"))
+    }
+
     @Test fun disabledModDoesNotSatisfyRequiredDependency() = runBlocking {
         val (repo, manager) = setup()
         val profile = repo.create("Fabric", "26.3", loader = ModLoaderSelection("fabric", "0.18.0"))

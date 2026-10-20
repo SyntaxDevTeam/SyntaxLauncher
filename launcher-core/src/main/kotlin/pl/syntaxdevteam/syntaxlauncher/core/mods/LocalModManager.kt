@@ -12,6 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
@@ -502,23 +503,41 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
 
     private fun readMetadata(path: Path): LocalModMetadata? {
         ZipFile(path.toFile()).use { jar ->
-            val entry = jar.getEntry("fabric.mod.json") ?: return null
-            require(entry.size <= 256 * 1024L) { "Fabric metadata exceeds 256 KiB." }
+            val fabric = jar.getEntry("fabric.mod.json")
+            val quilt = jar.getEntry("quilt.mod.json")
+            val entry = fabric ?: quilt ?: return null
+            require(entry.size <= 256 * 1024L) { "Mod metadata exceeds 256 KiB." }
             val bytes = jar.getInputStream(entry).use { it.readNBytes(256 * 1024 + 1) }
-            require(bytes.size <= 256 * 1024) { "Fabric metadata exceeds 256 KiB." }
+            require(bytes.size <= 256 * 1024) { "Mod metadata exceeds 256 KiB." }
             val obj = json.parseToJsonElement(bytes.toString(Charsets.UTF_8)).jsonObject
-            val id = obj.string("id") ?: return null
+            if (fabric != null) {
+                val id = obj.string("id") ?: return null
+                if (!id.matches(Regex("[a-z][a-z0-9_-]{0,63}"))) return null
+                return LocalModMetadata(
+                    id, obj.string("name") ?: id, obj.string("version") ?: "unknown",
+                    obj.string("environment"), requirementMap(obj["depends"] as? JsonObject),
+                    requirementMap(obj["breaks"] as? JsonObject),
+                )
+            }
+            val root = obj["quilt_loader"] as? JsonObject ?: return null
+            val id = root.string("id") ?: return null
             if (!id.matches(Regex("[a-z][a-z0-9_-]{0,63}"))) return null
+            val metadata = root["metadata"] as? JsonObject
             return LocalModMetadata(
-                id = id,
-                name = obj.string("name") ?: id,
-                version = obj.string("version") ?: "unknown",
-                environment = obj.string("environment"),
-                depends = requirementMap(obj["depends"] as? JsonObject),
-                breaks = requirementMap(obj["breaks"] as? JsonObject),
+                id, metadata?.string("name") ?: id, root.string("version") ?: "unknown",
+                null, quiltRequirements(root["depends"] as? JsonArray),
+                quiltRequirements(root["breaks"] as? JsonArray),
             )
         }
     }
+
+    private fun quiltRequirements(entries: JsonArray?): Map<String, String> =
+        entries?.mapNotNull { entry ->
+            val item = entry as? JsonObject ?: return@mapNotNull null
+            val id = item.string("id") ?: return@mapNotNull null
+            if (!id.matches(Regex("[a-z][a-z0-9_-]{0,63}"))) return@mapNotNull null
+            id to ((item["versions"] as? JsonPrimitive)?.contentOrNull ?: "*")
+        }?.toMap().orEmpty()
 
     private fun JsonObject.string(key: String): String? =
         (this[key] as? JsonPrimitive)?.contentOrNull?.take(120)
