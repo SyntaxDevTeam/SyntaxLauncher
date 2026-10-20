@@ -74,6 +74,36 @@ class ModrinthInstallerTest {
         } finally { client.close() }
     }
 
+    @Test fun reusesAlreadyInstalledIdenticalRequiredDependency() = runBlocking {
+        val (instances, game) = setup()
+        val profile = instances.create("Fabric", game, loader = ModLoaderSelection("fabric", "0.18.0"))
+        val dep = jar("dependency")
+        val mod = jar("mainmod")
+        val src = Files.createTempDirectory("existing-dependency").resolve("dependency.jar")
+        Files.write(src, dep)
+        val catalog = LocalModManager(instances)
+        catalog.importJar(profile.id, src)
+        val client = HttpClient(MockEngine { req ->
+            check(req.url.encodedPath.endsWith("/main.jar")) {
+                "Identical required dependency should not be re-downloaded."
+            }
+            respond(mod)
+        })
+        try {
+            val installer = ModrinthInstaller(instances, catalog,
+                DownloadManager(client, retryPolicy = DownloadRetryPolicy(maxAttempts = 1)))
+            val plan = ModrinthInstallPlan(game, "fabric", "ABCDEFGH", listOf(
+                ModrinthInstallEntry("BCDEFGHI", "RELEASEB", "dep", "1.0",
+                    ModrinthFile("dependency.jar", "https://cdn.modrinth.com/data/dep/dependency.jar",
+                        sha1(dep), dep.size.toLong()), true),
+                ModrinthInstallEntry("ABCDEFGH", "RELEASEA", "main", "1.0",
+                    ModrinthFile("main.jar", "https://cdn.modrinth.com/data/main/main.jar",
+                        sha1(mod), mod.size.toLong()), false),
+            ), emptyList())
+            assertEquals(2, installer.install(profile.id, plan).mods.size)
+        } finally { client.close() }
+    }
+
     @Test fun badChecksumRejectsEntireInstallationWithoutPublishingJars() = runBlocking {
         val (instances, game) = setup()
         val profile = instances.create("A", game, loader = ModLoaderSelection("fabric", "0.18.0"))
