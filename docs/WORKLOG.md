@@ -8,6 +8,46 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-20 — Implement popular Modrinth discovery and verified installation slice
+
+**Milestone:** v0.6 — Modrinth Integration  
+**Author/Agent:** GPT-6  
+**Status:** Partial — pushed to main; CI and real-game acceptance pending
+
+### Completed
+- Replaced the idea of a static popular-mod list with Modrinth API sorting by downloads, and exact instance loader/Minecraft version search facets.
+- Added project detail retrieval, license/description, external project link and manual search/pagination.
+- Planned latest compatible release (release channel before beta) and recursively resolved required Modrinth dependencies into a user-visible installation proposal.
+- Added SHA-1/size checked staging through shared DownloadManager and guarded atomic batch import, protecting existing filenames/identities and keeping all writes instance-scoped.
+- Connected the catalog to a new Discover view inside the existing Fabric Mods workspace; local imports remain intact.
+- Added deterministic MockEngine tests for filtering/dependency plans plus verified installation and checksum failure.
+- Updated README, architecture and milestone checklist.
+
+### Changed files
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/mods/ModrinthCatalog.kt` — official API and dependency resolver.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/mods/ModrinthInstaller.kt` — SHA-1-verified staging.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/mods/LocalModManager.kt` — atomic, preflighted importBatch.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/ModrinthBrowsePane.kt` — popular mods, search, detail and confirmation.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/LocalModsDialog.kt`, `SyntaxLauncherApp.kt`, `DesktopLauncherSession.kt` — browsing and installation wiring.
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/mods/ModrinthCatalogTest.kt`, `ModrinthInstallerTest.kt` — tests.
+- `README.md`, `docs/ARCHITECTURE.md`, `docs/ROADMAP.md`, `docs/TESTING_V0.6.md`, `docs/WORKLOG.md` — developer/user documentation.
+
+### Verification
+- `./gradlew test` — NOT RUN locally; GitHub Actions pending.
+- `./gradlew build` — NOT RUN locally; GitHub Actions pending.
+- Manual Modrinth installation, actual Fabric boot and UI on target systems — NOT RUN; remains explicitly open.
+
+### Roadmap updates
+- `[ ]` v0.6 browsing/installation slice marked 🚧 pending verification.
+- `[ ]` v0.6 identity persistence/updates and more advanced conflicts remain unimplemented.
+- `[ ]` previous v0.4/v0.5 manual acceptance remains deferred, not passed.
+
+### Follow-ups / known issues
+- Investigate CI if compilation/test failures arise.
+- Verify Modrinth rate-limit behavior and API release metadata against live responses.
+- Add durable Modrinth project/version tracking for update matching, optional dependencies, update plans and rollback.
+- Verify actual client launch and Compose UI operation on Windows, macOS and Linux.
+
 ## 2026-10-20 — Preserve in-flight stable version builds
 
 **Milestone:** v0.12 — CI/CD  

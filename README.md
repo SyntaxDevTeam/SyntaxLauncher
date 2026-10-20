@@ -78,6 +78,31 @@ See [the v0.5 verification checklist](docs/TESTING_V0.5.md).
 
 The sole product version is `launcherVersion` in [`gradle.properties`](gradle.properties). Changing it to a **higher stable SemVer** value (for example `0.3.0` → `0.4.0`) and pushing to `main` automatically publishes a matching `vX.Y.Z` GitHub Release after all Gradle/Python tests and Windows/Linux/macOS packaging succeed. Ordinary commits and development versions (e.g. `0.3.0-dev`) do not publish Releases. Matching manual version tags remain supported. Stable releases are eligible for the launcher's auto-updater; release readiness and manual tests must therefore be reviewed before bumping the product version. See [publishing instructions](docs/UPDATING.md).
 
+## v0.6 — Browse and install popular Modrinth mods (development)
+
+Open **Instances → Mods → Discover on Modrinth** for a Fabric instance. The discover
+view loads the **most downloaded** compatible mods from Modrinth dynamically
+(filtered by the instance's actual Minecraft version and loader), offers a search box,
+project summaries, a readable description and a link to the project's Modrinth page.
+No fixed ranking is bundled with SyntaxLauncher.
+
+**Review installation** resolves a compatible published version and required Modrinth
+dependencies recursively before showing the user which JAR files will be installed.
+**Install to this instance** downloads the reviewed set through SyntaxLauncher's shared
+download infrastructure, verifies each upstream SHA-1 and expected byte count, and
+publishes the entire batch under the instance activity lock. Filename and detected mod-id
+collisions never replace existing files. Modrinth remains the source of project descriptions,
+download metadata and files; only trusted Modrinth CDN URLs are accepted.
+
+This is the initial v0.6 catalog/install slice, **not** a completed v0.6 release.
+Update matching, saved project/version identity, optional-dependency selection, richer
+conflict detection, alternate compatible-version selection and complete installer UX
+acceptance remain open. The launcher currently implements Fabric, so browsing/installing
+for NeoForge/Forge/Quilt is exposed only when those loaders are actually supported
+in later milestones. Local JAR import remains available. See
+[the v0.6 test plan](docs/TESTING_V0.6.md). Real Minecraft acceptance for v0.4
+and v0.5 has been explicitly deferred and was not silently passed.
+
 ## Current implementation
 
 The current v0.1 implementation includes:

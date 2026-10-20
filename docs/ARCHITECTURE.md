@@ -404,6 +404,19 @@ It should resolve candidate versions using at least:
 
 The dependency resolver should return a plan before mutating the instance so the operation can be shown, validated and cancelled.
 
+### Initial Modrinth browser and installation slice (October 2026)
+
+`core/mods/ModrinthCatalog.kt` owns API v2 popularity/search facets, detail metadata,
+compatible release selection and required dependency plan expansion. It does not touch
+files or reference Compose; returned `ModrinthInstallPlan` captures the selected
+Minecraft version, loader, projects, versions, and SHA-1-verified CDN artifacts.
+The shared `DownloadManager` stages every planned artifact, while
+`ModrinthInstaller` calls the per-instance `LocalModManager.importBatch`
+under the same cross-process lock used by clone and launching. Batch preflight
+checks existing file and mod-id conflicts and restores the initial set on failure.
+Installed-mod identity and updates remain a later v0.6 increment; do not present
+the initial browser as a complete dependency compatibility resolver.
+
 ## 16. OptiFine, shaders and resource packs — v0.9
 
 OptiFine should not distort the generic loader architecture. Treat graphics enhancements as instance components/integrations with their own compatibility rules.

@@ -445,50 +445,58 @@ See [v0.5 test checklist](TESTING_V0.5.md).
 
 # v0.6 — Modrinth Integration
 
-Goal: search, install, update and resolve dependencies for compatible Modrinth content.
+Goal: browse popular or searched compatible mods, read details, install dependencies,
+and later deliver version-aware updates.
 
-## Modrinth client
+**Status:** 🚧 Partial implementation pushed to `main`. Automated CI/manual UI/game
+acceptance still pending. Real Fabric boot is unverified because the maintainer deferred
+v0.4/v0.5 manual tests. See [v0.6 checklist](TESTING_V0.6.md).
 
-- [ ] Add isolated Modrinth API adapter.
-- [ ] Search projects.
-- [ ] Fetch project/version metadata.
-- [ ] Filter versions by Minecraft version.
-- [ ] Filter versions by loader.
-- [ ] Filter for client-side compatibility/environment where relevant.
-- [ ] Respect API usage/rate-limit expectations.
+## Discovery and Modrinth client
 
-## Installation
+- [ ] 🚧 IN PROGRESS — Isolated Modrinth API v2 adapter for popular mod charts and search; CI pending.
+- [ ] 🚧 IN PROGRESS — Sort popular mods by Modrinth download count, not a hardcoded list.
+- [ ] 🚧 IN PROGRESS — Search projects and retrieve project body/license.
+- [ ] 🚧 IN PROGRESS — List compatible releases and filter by exact Minecraft version and loader.
+- [ ] 🚧 IN PROGRESS — Exclude server-only versions from desktop installation.
+- [ ] 🚧 IN PROGRESS — Respect platform API limits with modest page sizes and a descriptive User-Agent; production rate-limit/retry UX pending.
+- [ ] 🚧 IN PROGRESS — Support installed Fabric loader now, other loader types after their own implementation.
 
-- [ ] Build installation plan before mutating instance.
-- [ ] Download selected compatible version.
-- [ ] Verify hashes where provided.
-- [ ] Install required dependencies automatically with user-visible plan.
-- [ ] Handle optional dependencies explicitly.
-- [ ] Detect dependency conflicts.
-- [ ] Persist Modrinth project/version identity for future updates.
+## Installation and dependencies
+
+- [ ] 🚧 IN PROGRESS — Resolve transitive required Modrinth dependencies into a reviewable plan.
+- [ ] 🚧 IN PROGRESS — Include compatible files, versions, sizes and SHA-1 checksums before downloads.
+- [ ] 🚧 IN PROGRESS — Download staged JARs through the shared downloader, then atomically import the batch under an instance lock.
+- [ ] 🚧 IN PROGRESS — Reject incompatible Minecraft/loader versions, server-only files and malformed or untrusted CDN metadata.
+- [ ] 🚧 IN PROGRESS — Show optional and declared incompatible projects as notices, but comprehensive conflict enforcement remains open.
+- [ ] 🚧 IN PROGRESS — Preflight duplicate filenames/mod IDs and preserve pre-existing local mods.
+- [ ] Store the Modrinth project/version identity per installed mod for matching updates.
+- [ ] Evaluate version-range conflicts and reconcile already-installed dependencies rather than rejecting all duplicates.
 
 ## Updates
 
 - [ ] Detect available compatible updates.
 - [ ] Update one mod.
 - [ ] Update all compatible mods.
-- [ ] Preserve ability to roll back or avoid destructive replacement where practical.
-- [ ] Clearly report mods that cannot be matched to Modrinth.
+- [ ] Preserve rollback/non-destructive replacement.
+- [ ] Explain unmatched local mods.
 
 ## v0.6 UI
 
-- [ ] Modrinth search/browser.
-- [ ] Compatibility-filtered install button.
-- [ ] Dependency plan confirmation.
-- [ ] Update indicators.
-- [ ] Bulk update action.
+- [ ] 🚧 IN PROGRESS — Popular mods in a loader/version-filtered browser inside Instances → Mods.
+- [ ] 🚧 IN PROGRESS — Project detail and external Modrinth page link.
+- [ ] 🚧 IN PROGRESS — Search, pagination, installation review and install confirmation.
+- [ ] Dependency conflict resolution choices and optional-dependency picker.
+- [ ] Update indicators and bulk update action.
 
 ## v0.6 quality gate
 
-- [ ] Incompatible loader/Minecraft versions are not silently installed.
-- [ ] Required dependencies are resolved deterministically or produce an actionable conflict.
-- [ ] Local mods remain supported.
-- [ ] Repository-specific logic does not leak into generic mod manager unnecessarily.
+- [ ] Compatible mods are installed and incompatible ones are rejected.
+- [ ] Required dependencies are installed correctly or yield actionable diagnostics.
+- [ ] Existing local mods and other instances are preserved.
+- [ ] No Modrinth metadata code leaks into the generic launcher.
+- [ ] Automated tests and multi-platform packaging pass.
+- [ ] Manual discovery/read/install and actual Fabric game startup pass.
 
 ---
 
