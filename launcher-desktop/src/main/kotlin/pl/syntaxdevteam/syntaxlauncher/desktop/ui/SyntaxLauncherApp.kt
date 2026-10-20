@@ -289,6 +289,8 @@ private fun LauncherPanel(
     var instanceId by remember { mutableStateOf(saved.selectedInstanceId) }
     var managerOpen by remember { mutableStateOf(false) }
     var editingInstance by remember { mutableStateOf<MinecraftInstance?>(null) }
+    var managingMods by remember { mutableStateOf<MinecraftInstance?>(null) }
+    var modsBusy by remember { mutableStateOf(false) }
     var copyPreview by remember { mutableStateOf<InstanceCopyPreview?>(null) }
     var copyProgress by remember { mutableStateOf<InstanceCopyProgress?>(null) }
     var copyJob by remember { mutableStateOf<Job?>(null) }
@@ -305,7 +307,7 @@ private fun LauncherPanel(
 
     val isRunning = process.state == MinecraftProcessState.RUNNING ||
         process.state == MinecraftProcessState.STARTING
-    val locked = isRunning || launch.isPreparing || mutationBusy || signingInPremium
+    val locked = isRunning || launch.isPreparing || mutationBusy || modsBusy || signingInPremium
     val validName = if (selectedPremiumId != null) selectedPremium != null
         else nickname.isNotBlank() && OfflineAccount.isValidUsername(nickname.trim())
     val resolved = (metadata as? VersionMetadataState.Ready)?.metadata
@@ -511,6 +513,7 @@ private fun LauncherPanel(
                 session.instances.create(name, version, maximumMemoryMiB = ramMiB.toInt(), loader = loader)
             } },
             onEdit = { instance -> editingInstance = instance },
+            onManageMods = { instance -> managingMods = instance },
             onClonePreview = { instance, name ->
                 previewCopy(instance, name, instance.minecraftVersionId)
             },
@@ -527,6 +530,16 @@ private fun LauncherPanel(
                 session.instances.restoreFromTrash(entry.entryName)
             } },
             onDismiss = { managerOpen = false; copyPreview = null },
+        )
+    }
+
+    managingMods?.let { target ->
+        LocalModsDialog(
+            instance = target,
+            manager = session.modManager,
+            canModify = !isRunning && !launch.isPreparing && !mutationBusy,
+            onBusyChange = { modsBusy = it },
+            onDismiss = { if (!modsBusy) managingMods = null },
         )
     }
 

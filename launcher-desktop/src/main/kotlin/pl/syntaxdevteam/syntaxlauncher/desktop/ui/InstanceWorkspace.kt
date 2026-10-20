@@ -86,6 +86,7 @@ fun InstanceWorkspace(
     onSelect: (String) -> Unit,
     onCreate: (String, String, ModLoaderSelection?) -> Unit,
     onEdit: (MinecraftInstance) -> Unit,
+    onManageMods: (MinecraftInstance) -> Unit,
     onClonePreview: (MinecraftInstance, String) -> Unit,
     onLegacyPreview: (String, String) -> Unit,
     onCancelPreview: () -> Unit,
@@ -259,6 +260,10 @@ fun InstanceWorkspace(
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Button(onClick = { onEdit(selected) }, enabled = canModify) {
                                     Text("Settings")
+                                }
+                                if (selected.loader?.id == "fabric") {
+                                    OutlinedButton(onClick = { onManageMods(selected) },
+                                        enabled = canModify) { Text("Mods") }
                                 }
                                 OutlinedButton(onClick = { confirmDelete = selected },
                                     enabled = canModify) { Text("Move to trash") }
