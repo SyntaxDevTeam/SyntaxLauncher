@@ -358,8 +358,8 @@ Loader support is intentionally staged:
 
 - Fabric — v0.4
 - NeoForge — v0.7
-- Forge — v0.8
-- Quilt — v0.8
+- Forge — v0.8 (official Maven discovery; processor installation not yet implemented)
+- Quilt — v0.8 (official Quilt Meta v3 profile and instance selection; actual game acceptance pending)
 
 Local mod management arrives in v0.5, followed by Modrinth integration and dependency resolution in v0.6.
 

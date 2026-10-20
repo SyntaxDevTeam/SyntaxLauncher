@@ -127,7 +127,7 @@ fun LocalModsDialog(
                 confirmButton = {
                     TextButton(enabled = canModify && !busy, onClick = {
                         confirmingUpdates = null
-                        operate { installer.update(instance.id, updates) }
+                        operate(operation = { installer.update(instance.id, updates) })
                     }) { Text("Update mods") }
                 },
                 dismissButton = { TextButton(onClick = { confirmingUpdates = null }) { Text("Cancel") } },
@@ -170,7 +170,7 @@ fun LocalModsDialog(
                             style = MaterialTheme.typography.labelMedium)
                         Text(instance.name, style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.SemiBold)
-                        Text("Fabric · Minecraft ${instance.minecraftVersionId} · Files stay in this instance",
+                        Text("${instance.loader?.id ?: "Vanilla"} · Minecraft ${instance.minecraftVersionId} · Files stay in this instance",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -185,7 +185,7 @@ fun LocalModsDialog(
                         onClick = { browsing = true }) { Text("Discover on Modrinth") }
                     Button(enabled = canModify && !busy, onClick = {
                         val picker = JFileChooser().apply {
-                            dialogTitle = "Import a local Fabric mod"
+                            dialogTitle = "Import a local mod for this instance"
                             fileFilter = FileNameExtensionFilter("Minecraft mod JAR (*.jar)", "jar")
                             isAcceptAllFileFilterUsed = false
                         }
@@ -241,7 +241,7 @@ fun LocalModsDialog(
                         }
                     }
                     OutlinedButton(enabled = canModify && !busy,
-                        onClick = { operate { installer.rollback(instance.id) } }) {
+                        onClick = { operate(operation = { installer.rollback(instance.id) }) }) {
                         Text("Rollback last Modrinth update")
                     }
                 }

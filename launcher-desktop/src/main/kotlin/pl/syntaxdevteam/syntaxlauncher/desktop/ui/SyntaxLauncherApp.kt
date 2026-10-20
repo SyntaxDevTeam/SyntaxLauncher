@@ -498,7 +498,7 @@ private fun LauncherPanel(
         InstanceSettingsDialog(
             instance = editing,
             availableVersions = manifest.versions.map { it.id },
-            loadFabricVersions = { game -> session.loaders?.compatibleVersions("fabric", game).orEmpty() },
+            loadLoaderVersions = { id, game -> session.loaders?.compatibleVersions(id, game).orEmpty() },
             onSave = { updated ->
                 modifyInstance { session.instances.update(updated) }
                 editingInstance = null
@@ -519,7 +519,7 @@ private fun LauncherPanel(
             // not an unrelated newer release that might convert world data.
             latestVersion = legacyVersionId.ifBlank { manifest.latestRelease },
             availableVersions = manifest.versions.map { it.id },
-            loadFabricVersions = { game -> session.loaders?.compatibleVersions("fabric", game).orEmpty() },
+            loadLoaderVersions = { id, game -> session.loaders?.compatibleVersions(id, game).orEmpty() },
             error = instanceError,
             preview = copyPreview,
             copyProgress = copyProgress,

@@ -33,7 +33,7 @@ import pl.syntaxdevteam.syntaxlauncher.core.loader.ModLoaderVersion
 fun InstanceSettingsDialog(
     instance: MinecraftInstance,
     availableVersions: List<String>,
-    loadFabricVersions: suspend (String) -> List<ModLoaderVersion> = { emptyList() },
+    loadLoaderVersions: suspend (String, String) -> List<ModLoaderVersion> = { _, _ -> emptyList() },
     onSave: (MinecraftInstance) -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -71,10 +71,10 @@ fun InstanceSettingsDialog(
     LaunchedEffect(versionId, loaderId) {
         compatible = emptyList()
         loaderError = null
-        if (loaderId == "fabric" && versionValid) {
+        if (loaderId in setOf("fabric", "quilt") && versionValid) {
             loaderLoading = true
             try {
-                compatible = loadFabricVersions(versionId)
+                compatible = loadLoaderVersions(loaderId, versionId)
                 if (compatible.isEmpty()) {
                     loaderError = "Fabric is not available for Minecraft $versionId."
                 } else if (compatible.none { it.version == fabricVersion }) {
@@ -154,12 +154,15 @@ fun InstanceSettingsDialog(
                     TextButton(onClick = { loaderId = "fabric" }) {
                         Text(if (loaderId == "fabric") "✓ Fabric" else "Fabric")
                     }
+                    TextButton(onClick = { loaderId = "quilt" }) {
+                        Text(if (loaderId == "quilt") "✓ Quilt" else "Quilt")
+                    }
                 }
-                if (loaderId == "fabric") {
+                if (loaderId in setOf("fabric", "quilt")) {
                     OutlinedTextField(
                         value = fabricVersion,
                         onValueChange = { fabricVersion = it },
-                        label = { Text("Fabric loader version") },
+                        label = { Text(loaderId.replaceFirstChar { it.uppercase() } + " loader version") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         isError = !fabricValid,
@@ -231,7 +234,7 @@ fun InstanceSettingsDialog(
                         minimumMemoryMiB = minRam!!,
                         maximumMemoryMiB = maxRam!!,
                         extraJvmArguments = args,
-                        loader = if (loaderId == "fabric") ModLoaderSelection("fabric", fabricVersion) else null,
+                        loader = if (loaderId in setOf("fabric", "quilt")) ModLoaderSelection(loaderId, fabricVersion) else null,
                     ))
                 },
             ) { Text("Save settings") }

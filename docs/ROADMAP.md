@@ -506,7 +506,7 @@ Goal: add a second major loader and prove the loader architecture is genuinely r
 
 ## NeoForge provider
 
-- [ ] Discover compatible NeoForge versions.
+- [ ] 🚧 IN PROGRESS — Discover official NeoForge Maven versions; processor installation and actual launch remain unimplemented.
 - [ ] Parse/install NeoForge metadata/processors as required.
 - [ ] Resolve required libraries.
 - [ ] Integrate generated/processed artifacts safely.
@@ -533,7 +533,7 @@ Goal: broaden loader support while preserving historical-version compatibility d
 
 ## Forge
 
-- [ ] Discover compatible Forge versions.
+- [ ] 🚧 IN PROGRESS — Discover official Forge Maven versions; processor installation and actual launch remain unimplemented.
 - [ ] Support required Forge installation metadata/processors for targeted Minecraft ranges.
 - [ ] Document exact supported Minecraft/Forge range if universal support is not practical.
 - [ ] Launch Forge through common pipeline.

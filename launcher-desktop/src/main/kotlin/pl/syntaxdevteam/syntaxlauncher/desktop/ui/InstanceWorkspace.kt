@@ -79,7 +79,7 @@ fun InstanceWorkspace(
     hasLegacyGame: Boolean,
     latestVersion: String,
     availableVersions: List<String>,
-    loadFabricVersions: suspend (String) -> List<ModLoaderVersion> = { emptyList() },
+    loadLoaderVersions: suspend (String, String) -> List<ModLoaderVersion> = { _, _ -> emptyList() },
     error: String?,
     preview: InstanceCopyPreview?,
     copyProgress: InstanceCopyProgress?,
@@ -114,10 +114,10 @@ fun InstanceWorkspace(
     LaunchedEffect(newVersion, newLoader) {
         compatible = emptyList()
         fabricError = null
-        if (newLoader == "fabric" && newVersion in availableVersions) {
+        if (newLoader in setOf("fabric", "quilt") && newVersion in availableVersions) {
             fabricLoading = true
             try {
-                compatible = loadFabricVersions(newVersion)
+                compatible = loadLoaderVersions(newLoader, newVersion)
                 if (compatible.isEmpty()) {
                     fabricError = "Fabric is not available for Minecraft $newVersion."
                 } else if (compatible.none { it.version == newFabricVersion }) {
@@ -261,7 +261,7 @@ fun InstanceWorkspace(
                                 Button(onClick = { onEdit(selected) }, enabled = canModify) {
                                     Text("Settings")
                                 }
-                                if (selected.loader?.id == "fabric") {
+                                if (selected.loader?.id in setOf("fabric", "quilt")) {
                                     OutlinedButton(onClick = { onManageMods(selected) },
                                         enabled = canModify) { Text("Mods") }
                                 }
@@ -309,12 +309,15 @@ fun InstanceWorkspace(
                             TextButton(onClick = { newLoader = "fabric" }, enabled = canModify) {
                                 Text(if (newLoader == "fabric") "✓ Fabric" else "Fabric")
                             }
+                            TextButton(onClick = { newLoader = "quilt" }, enabled = canModify) {
+                                Text(if (newLoader == "quilt") "✓ Quilt" else "Quilt")
+                            }
                         }
-                        if (newLoader == "fabric") {
+                        if (newLoader in setOf("fabric", "quilt")) {
                             OutlinedTextField(
                                 value = newFabricVersion,
                                 onValueChange = { newFabricVersion = it },
-                                label = { Text("Fabric loader version") },
+                                label = { Text(newLoader.replaceFirstChar { it.uppercase() } + " loader version") },
                                 singleLine = true, enabled = canModify,
                                 isError = !fabricValid,
                                 modifier = Modifier.fillMaxWidth(),
@@ -332,9 +335,12 @@ fun InstanceWorkspace(
                                 color = MaterialTheme.colorScheme.error,
                                 style = MaterialTheme.typography.bodySmall)
                         }
+                        Text("NeoForge and Forge need processor-based installation; not selectable yet.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Button(onClick = {
                             onCreate(newName.trim(), newVersion.trim(),
-                                if (newLoader == "fabric") ModLoaderSelection("fabric", newFabricVersion) else null)
+                                if (newLoader in setOf("fabric", "quilt")) ModLoaderSelection(newLoader, newFabricVersion) else null)
                         },
                             enabled = canModify && newName.trim().length in 1..48 &&
                                 newVersion in availableVersions && fabricValid) { Text("Create instance") }

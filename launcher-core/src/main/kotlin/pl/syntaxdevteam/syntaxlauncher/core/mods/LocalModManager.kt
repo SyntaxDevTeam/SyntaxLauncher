@@ -59,7 +59,7 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
     suspend fun importJar(instanceId: String, source: Path): LocalModInventory =
         withContext(Dispatchers.IO) {
             instances.withInactiveInstance(instanceId) { instance ->
-                require(instance.loader?.id == "fabric") {
+                require(instance.loader?.id in setOf("fabric", "quilt")) {
                     "Local mod imports currently require a Fabric instance."
                 }
                 require(Files.isRegularFile(source, LinkOption.NOFOLLOW_LINKS)) {
@@ -107,7 +107,7 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
                 "Managed identity must match each downloaded JAR."
             }
             instances.withInactiveInstance(instanceId) { instance ->
-                require(instance.loader?.id == "fabric") { "Only Fabric installation is available." }
+                require(instance.loader?.id in setOf("fabric", "quilt")) { "Only Fabric installation is available." }
                 val mods = modsDirectory(instance, create = true)
                 val names = sources.map { it.fileName.toString() }
                 require(names.distinct().size == names.size && names.all(::validJarName)) {
@@ -185,7 +185,7 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
         withContext(Dispatchers.IO) {
             require(replacements.isNotEmpty() && replacements.size <= 32)
             instances.withInactiveInstance(instanceId) { instance ->
-                require(instance.loader?.id == "fabric") { "Managed updates require a Fabric instance." }
+                require(instance.loader?.id in setOf("fabric", "quilt")) { "Managed updates require a Fabric instance." }
                 val game = instances.gameDirectory(instance)
                 val mods = modsDirectory(instance)
                 val tracked = managedStore.read(game)
@@ -446,7 +446,7 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
         }
         val sorted = found.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.fileName })
         val active = sorted.filter { it.enabled }
-        if (active.isNotEmpty() && instance.loader?.id != "fabric") {
+        if (active.isNotEmpty() && instance.loader?.id !in setOf("fabric", "quilt")) {
             warnings += "Local JARs are present, but this instance has no Fabric loader."
         }
         val identifiers = active.mapNotNull { mod -> mod.metadata?.id?.let { it to mod.fileName } }

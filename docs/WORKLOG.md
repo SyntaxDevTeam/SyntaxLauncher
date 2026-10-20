@@ -8,6 +8,39 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-20 — Quilt loader integration and Forge-family discovery
+
+**Milestone:** v0.7 NeoForge / v0.8 Forge and Quilt  
+**Author/Agent:** GPT-6  
+**Status:** Partial — GitHub CI and game acceptance pending
+
+### Completed
+- Added Quilt Meta v3 provider with compatible loader versions and official profile merge, reusing generic loader boundaries.
+- Added Quilt to instance creation/editing and instance-scoped local/Modrinth JAR operation.
+- Registered NeoForge and Forge Maven version-discovery adapters with safe metadata parsing and fail-closed launch behavior.
+- Explicitly withheld the NeoForge/Forge UI choices until processor-based installation is implemented; exposing a download as a playable loader would be misleading.
+
+### Changed files
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/loader/*`, `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/loader/*`
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/Main.kt`
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/InstanceWorkspace.kt`, `InstanceSettingsDialog.kt`, `SyntaxLauncherApp.kt`, `LocalModsDialog.kt`
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/mods/LocalModManager.kt`, `ModrinthInstaller.kt`
+- `README.md`, `docs/ROADMAP.md`, `docs/WORKLOG.md`
+
+### Verification
+- `./gradlew test`, `./gradlew build` — NOT RUN locally; hosted CI required.
+- Real game launch — NOT RUN; Quilt support is unverified, Forge and NeoForge are intentionally not launchable.
+
+### Roadmap updates
+- v0.7/v0.8 official version discovery and Quilt adapter marked 🚧.
+- Forge/NeoForge processors and generated artifacts remain unchecked.
+
+### Follow-ups / known issues
+- Implement verified official installer processors, generated libraries and Minecraft-version-specific support matrix for NeoForge/Forge.
+- Confirm Quilt API and actual game boot on real installations before declaring v0.8 complete.
+
+---
+
 ## 2026-10-20 — Transactional managed Modrinth updates and rollback
 
 **Milestone:** v0.6 — Modrinth Integration  

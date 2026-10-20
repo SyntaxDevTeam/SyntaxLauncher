@@ -18,6 +18,9 @@ import pl.syntaxdevteam.syntaxlauncher.core.java.MojangJavaRuntimeManager
 import pl.syntaxdevteam.syntaxlauncher.core.instance.MinecraftInstanceRepository
 import pl.syntaxdevteam.syntaxlauncher.core.loader.ModLoaderRegistry
 import pl.syntaxdevteam.syntaxlauncher.core.loader.FabricLoaderProvider
+import pl.syntaxdevteam.syntaxlauncher.core.loader.QuiltLoaderProvider
+import pl.syntaxdevteam.syntaxlauncher.core.loader.NeoForgeLoaderProvider
+import pl.syntaxdevteam.syntaxlauncher.core.loader.ForgeLoaderProvider
 import pl.syntaxdevteam.syntaxlauncher.core.launch.LaunchPlanBuilder
 import pl.syntaxdevteam.syntaxlauncher.core.launch.MinecraftLaunchCoordinator
 import pl.syntaxdevteam.syntaxlauncher.core.launch.MinecraftProcessManager
@@ -54,7 +57,10 @@ fun main(args: Array<String>) {
             LauncherVersion.parse(LauncherBuildInfo.version))
     } else null
     val processManager = MinecraftProcessManager(paths.logsDir)
-    val modLoaders = ModLoaderRegistry(listOf(FabricLoaderProvider(httpClient)))
+    val modLoaders = ModLoaderRegistry(listOf(
+        FabricLoaderProvider(httpClient), QuiltLoaderProvider(httpClient),
+        NeoForgeLoaderProvider(httpClient), ForgeLoaderProvider(httpClient),
+    ))
     val session = DesktopLauncherSession(
         versionCatalog = MinecraftVersionCatalog(httpClient),
         versionResolver = MinecraftVersionResolver(httpClient),
