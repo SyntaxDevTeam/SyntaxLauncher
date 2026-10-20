@@ -254,15 +254,15 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
                         Files.copy(from, backup.resolve("old-$index.jar"))
                     }
                     backupStore.write(backup, receipt)
-                    oldPaths.forEach { Files.delete(it) }
                     changed = true
+                    oldPaths.forEach { Files.delete(it) }
                     incoming.forEachIndexed { index, triple ->
                         val enabledName = newNames[index]
                         val name = if (receipt.items[index].wasDisabled) "$enabledName.disabled" else enabledName
                         val target = mods.resolve(name)
                         check(!Files.exists(target, LinkOption.NOFOLLOW_LINKS))
                         move(triple.first, target)
-                        published += target
+                        published.add(target)
                     }
                     val records = tracked.toMutableMap()
                     receipt.items.forEach { item ->
