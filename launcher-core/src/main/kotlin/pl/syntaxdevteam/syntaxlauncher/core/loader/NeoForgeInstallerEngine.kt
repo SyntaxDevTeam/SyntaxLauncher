@@ -15,6 +15,9 @@ import java.util.UUID
 import java.util.jar.JarFile
 import java.util.zip.ZipFile
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -310,7 +313,7 @@ class NeoForgeInstallerEngine(
         return digest.digest().joinToString("") { "%02x".format(it.toInt() and 255) }
     }
 
-    private fun runProcessor(
+    private suspend fun runProcessor(
         runtime: JavaRuntime, staging: Path, index: Int, main: String,
         classpath: List<Path>, args: List<String>,
     ) {
@@ -320,17 +323,26 @@ class NeoForgeInstallerEngine(
         val process = ProcessBuilder(command).directory(staging.toFile())
             .redirectErrorStream(true).redirectOutput(log.toFile()).start()
         try {
-            if (!process.waitFor(180, java.util.concurrent.TimeUnit.SECONDS)) {
-                process.destroyForcibly()
-                throw ModLoaderException("NeoForge processor timed out (step " + index + ").")
+            withTimeout(600_000) {
+                while (process.isAlive) delay(150)
             }
             if (process.exitValue() != 0) {
-                throw ModLoaderException("NeoForge processor " + index + " exited with " + process.exitValue())
+                val details = runCatching {
+                    Files.readString(log).takeLast(1500).trim()
+                }.getOrDefault("")
+                throw ModLoaderException(
+                    "NeoForge processor " + index + " exited with " + process.exitValue() +
+                        if (details.isEmpty()) "" else ": " + details
+                )
             }
-        } catch (e: InterruptedException) {
+        } catch (timeout: TimeoutCancellationException) {
             process.destroyForcibly()
-            Thread.currentThread().interrupt()
-            throw CancellationException("NeoForge installer interrupted.")
+            throw ModLoaderException("NeoForge processor " + index + " exceeded its ten-minute limit.")
+        } catch (cancelled: CancellationException) {
+            process.destroyForcibly()
+            throw cancelled
+        } finally {
+            if (process.isAlive) process.destroyForcibly()
         }
     }
 
