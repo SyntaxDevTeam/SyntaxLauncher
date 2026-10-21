@@ -194,7 +194,7 @@ class LauncherHomeRenderTest {
             scene.frames()
             assertNotNull(scene.text("MY MODS"))
             assertNotNull(scene.text("MINECRAFT WITH MODS"))
-            assertNotNull(scene.text("Choose mods"))
+            assertNotNull(scene.text("Choose extras"))
             scene.screenshot("home-modded-1440x810")
             scene.text("Vanilla").click()
             scene.frames()

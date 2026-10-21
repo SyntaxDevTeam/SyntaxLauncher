@@ -9,6 +9,107 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 ---
 
 
+## 2026-10-21 — Make child-first catalog installation mandatory and deliver Mods/Textures
+
+**Milestone:** v0.6 — simplified mod catalog; v0.9 — resource-pack catalog; cross-milestone UX
+**Author/Agent:** Codex / GPT-6
+**Status:** Completed
+
+Scope: mandatory child-first policy and the working Mods/Textures catalog slice. Shader/OptiFine/modpack catalog completion remains open.
+
+### Completed
+- Persisted the maintainer's non-negotiable requirement in AGENTS.md and DESIGN.md: children browse an in-launcher catalog, choose a single item or ready-made set and Install/Play; compatible versions, loaders, Java, renderers and dependencies belong to the launcher. Manual files and technical plans are advanced tools; backend-only support and placeholder categories never count as completion.
+- Added a shared translated Mods/Textures catalog as the normal home/new-modded-game entry. Results offer direct Install, Installing, Installed, Retry and Cancel states; mod versions/dependencies resolve automatically without the former technical review screen. Installed-mod management remains a secondary action. Vanilla managed instances expose textures without asking for a loader.
+- Added Modrinth resource-pack search/popularity, exact game/project-type validation and transitive required resource-pack resolution with bounded recursion, cycle/conflicting-version checks, safe filenames and strict CDN/SHA-1/size validation through the shared downloader. Cross-type dependencies are rejected instead of copied to the wrong folder.
+- Extended LocalPackManager with instance-locked whole-batch validation/publication, expected game-version checks, collision preflight and rollback of only newly published files. Identical installed ZIPs are reused without replacement; source ZIPs, other instances and pre-existing bytes are retained.
+- Added explicit resource-pack activation through ResourcePackSelection: append dependencies/main pack to Minecraft's resourcePacks option, preserve previous order, unknown options and LF/CRLF, back up exact original bytes and publish settings atomically. Malformed/unsupported selection, invalid encoding, redirected/changed settings fail without rewriting unknown state. Core removal deselects only the removed pack and restores its ZIP if options publication fails.
+- Made repeated installation of an already tracked, enabled and byte-identical mod project idempotent without redownload/replacement; existing unrelated, changed and disabled JARs are not silently replaced or enabled.
+- Added backend dependency/rollback/settings regressions and three Compose tests for one-click/duplicate guards, errors/retry/running-game disabling, cancellation/cleanup/retry and EN/PL/DE wide/400×400 render/interaction. Updated the home regression for Choose extras and reviewed actual Polish catalog images with production Surface colors.
+
+### Changed files
+- `AGENTS.md`, `docs/DESIGN.md` — permanent mandatory child-first catalog and acceptance rules.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/content/{LocalPackManager,ModrinthResourcePacks,ResourcePackSelection}.kt` — transactional pack batch/selection and online resource-pack catalog installation.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/mods/ModrinthInstaller.kt` — idempotent tracked enabled main-mod installation.
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/content/ModrinthResourcePacksTest.kt`, `mods/ModrinthInstallerTest.kt` — compatible dependency install, repeat operations, settings/backup/encoding preservation, negative metadata/batch cases and thread-safe download counting.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/{DesktopLauncherSession,ui/ContentCatalog,ui/SyntaxLauncherApp}.kt` — catalog service wiring, child-first dialog and home/new-game entry.
+- `launcher-desktop/src/main/resources/i18n/{en,pl,de}.properties` — simple translated catalog actions/states/errors.
+- `launcher-desktop/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/{ContentCatalogTest,LauncherHomeRenderTest}.kt` — one-click/cancellation/compact translated catalog and home regression coverage.
+- `README.md`, `docs/{ARCHITECTURE,DEVELOPMENT,MILESTONES,ROADMAP,TESTING_V0.9,WORKLOG}.md` — workflow, option/backup contract, evidence and clearly open shader/OptiFine/modpack work.
+
+### Verification
+- `./gradlew test` — PASS via final `./gradlew --offline test build`; 157 core and 30 desktop tests passed, two opt-in live installer tests skipped, zero failures/errors.
+- `./gradlew build` — PASS in the same final full invocation. Desktop tests were already up to date from the preceding successful full run; final core test additions reran successfully.
+- Focused `LocalPackManagerTest`, `ModrinthResourcePacksTest` and `ContentCatalogTest` — PASS. Corrected the old home label assertion for the deliberate UI rename and changed the test's plain integer HTTP counter to AtomicInteger because dependency downloads are concurrent.
+- Manual visual review — inspected Polish catalog renders at 400×400 with production foreground/background colors; main action and success state are readable without a technical review. EN/PL/DE 820×650 and 400×400 semantics/button bounds assertions pass.
+- Live/native acceptance — NOT RUN for this new catalog/texture activation. HTTP/ZIP/settings tests use local fixtures and temporary instances; no actual child/game/user data accessed. Hosted CI/new native packages were not triggered.
+- `git diff --check` — PASS.
+
+### Roadmap updates
+- `[x] Mandatory child-first content experience / Persistent AGENTS.md and DESIGN.md rule`.
+- `[x] Mandatory child-first content experience / Shared direct Mods/Textures catalog and automatic supported dependencies`.
+- `[x] v0.9 / Resource packs / Compatible catalog, verified batch install and backed-up automatic selection` — deterministic implementation/UI checks pass; live-game release acceptance remains separate.
+- `[ ] v0.9 / Full installed-pack controls, reorder/recovery, shader catalog and automatic renderer setup, OptiFine and native/gameplay acceptance` — remain open.
+- `[ ] v0.10 / Browse/install ready-made modpacks/sets through the same simple catalog` — explicitly tracked; no premature pack-format installer or placeholder category added.
+
+### Follow-ups / known issues
+- Next catalog categories must complete automatic compatible renderer/dependency/activation flows for shaders and OptiFine; ready-made modpacks/sets follow their roadmap scope. None is currently presented as a functioning category.
+- Installed badges are scoped to the open catalog session. Repeat actions safely revalidate/reuse identical files; durable project badges, thumbnails and full resource-pack management/recovery remain open.
+- Full version-range/cross-project conflicts and renderer-dependent/cross-type texture dependencies are not solved by this slice. Existing metadata/pack format declarations do not certify every game/renderer combination; real-game/native acceptance is still required.
+- Game-owned options.txt keeps its existing format; no launcher settings/instance schema migration or product-version change is introduced. Existing worlds/accounts/loader settings are preserved. Prior uncommitted work is retained; no commit, push or release was performed.
+
+---
+
+
+## 2026-10-21 — Accept bounded v0.8 and start local graphics-pack core for v0.9
+
+**Milestone:** v0.8 — Forge/Quilt acceptance; v0.9 — local resource/shader packs
+**Author/Agent:** Codex / GPT-6
+**Status:** Completed
+
+Scope: v0.8 audit and the initial v0.9 core slice. Full v0.9 remains in progress.
+
+### Completed
+- Audited the v0.8 checklist, common coordinator, actual loader adapters and installer/metadata tests. Recorded the maintainer's direct private-test confirmation for actual Forge startup and Forge/Quilt mod installation/startup. No OS matrix, exact Quilt/mod versions or logs were supplied and none are inferred.
+- Inspected hosted evidence through the connected GitHub tools: CI 39634747655 (`0ecf5b0`) passed core/desktop checks, official Forge/NeoForge installer processors and Windows/Linux/macOS packages; the newer baseline run 39647415857 (`3fdf34e`) also completed successfully with all three packages. These baseline runs do not contain the newly added audit/pack tests.
+- Added a full synthetic coordinator matrix using every real provider (Vanilla/Fabric/Quilt/NeoForge/Forge), local HTTP profiles/installers, actual fixture processor JVMs and intercepted final `java -version` launches. Verified common runtime/plan/process wiring, loader arguments/entry points, generated runtime artifacts, one cached Vanilla client and five separate game directories with preserved save markers. This is not a graphical Minecraft boot.
+- Added explicit negative historical/persisted-profile regressions: Forge 1.12.2/V1 is rejected, unsupported historical selections fail before network access, and unverified modern Forge selections cannot fetch installers. Documented metadata-declared Java selection (including explicit Java 8), legacy shared argument planning, and early rejection when Java metadata is absent.
+- Accepted v0.8 only for its pre-existing bounded Forge 1.21.1/52.1.20 matrix and shared Quilt integration. Broader historical Forge, full dependency semantics and native OS/gameplay matrices remain visibly unchecked as optional expansion or existing platform gates; no universal compatibility or test waiver is claimed.
+- Started v0.9 with UI-independent instance-local resource/shader ZIP inventory, staged import and recoverable removal, reusing the existing cross-process activity lock. Imports retain sources and existing targets, check ZIP paths/payload CRCs/structure and bounded metadata, and clean temporary files. Removal retains the original ZIP under the same instance's pack trash. No extraction, game settings edits, network client or persisted schema is introduced.
+- Added seven pack tests covering isolation/restart/recovery, destination preservation, malformed/wrong-kind/unsafe ZIPs and oversized metadata, CRC corruption, active-instance locking, filenames/traversal and Unix symlink refusal. Updated architecture/development guidance, milestone status, support matrix and a new v0.9 checklist.
+
+### Changed files
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/content/LocalPackManager.kt` — local ZIP pack service, instance-locked safe mutations and recoverable removal.
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/content/LocalPackManagerTest.kt` — seven deterministic data-preservation/archive/activity regressions.
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/launch/LoaderPipelineMatrixTest.kt` — all real loader adapters through one coordinator/process contract with synthetic artifacts.
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/loader/{InstallerLoaderDiscoveryTest,InstallerProfileInspectorTest}.kt` — historical and persisted unsupported Forge selections/V1 rejection.
+- `README.md`, `docs/{ARCHITECTURE,DEVELOPMENT,MILESTONES,ROADMAP,TESTING_V0.8,TESTING_V0.9,WORKLOG}.md` — accepted scope/evidence, explicit compatibility limits and initial v0.9 service/remaining work.
+
+### Verification
+- `./gradlew test` — PASS via `./gradlew --offline test build`; 153 core and 27 desktop tests passed, two opt-in live installer tests skipped, zero failures/errors. The pre-existing untracked download cancellation test from the preceding task remains present and is included in these local counts.
+- `./gradlew build` — PASS in the same final full invocation.
+- Focused loader/policy/pack tests — PASS, including actual fixture processor JVM execution for Forge and NeoForge.
+- Hosted baseline CI — PASS as described above; current uncommitted audit/pack changes have not been pushed or run in hosted CI.
+- Manual verification — maintainer privately confirmed Forge startup and Forge/Quilt mod workflow in this chat; no additional game/pack/native interaction tests were performed by the agent.
+- `git diff --check` — PASS.
+
+### Roadmap updates
+- `[x] v0.8 / Forge and Quilt / Shared integration, bounded metadata and private startup/mod acceptance` — completed within the documented matrix.
+- `[x] v0.8 / Historical compatibility / Explicit Java/argument policy and negative legacy/unsupported-pair tests` — does not claim old Forge gameplay support.
+- `[x] v0.8 / Quality gate / Shared core, adapter boundary and documented/tested supported matrix`.
+- `[ ] v0.8 / Optional compatibility expansion` — historical/V2 expansion, full constraint parsing and explicit native OS/game/mod evidence remain open; they are not silently marked passed or moved to another version.
+- `[x] v0.9 / Local pack foundation / Core instance-local ZIP inventory/import/recoverable removal`.
+- `[ ] v0.9 / Shader and resource pack workflows — IN PROGRESS` — core is ready; desktop controls, metadata/icons, selection/order and renderer/game acceptance remain open.
+- `[ ] v0.9 / OptiFine` — integration strategy, installation and compatibility remain open.
+
+### Follow-ups / known issues
+- Next: translated instance content workspace with busy/error/cancellation/progress and recovery guidance, then renderer/pack compatibility and real-game acceptance. Folder packs are unmanaged; no automatic selection or in-app restore is implemented.
+- Core ZIP import validates structure and CRCs, not authenticity or renderer/Minecraft-version compatibility. A shader ZIP does not install a renderer.
+- The Unix symlink test intentionally skips Windows hosts without assuming link-creation privileges. Full native acceptance and new-change hosted CI remain open.
+- Canonical product version, release tags, publishing, current loader support filtering and existing UI/test warnings remain unchanged. No commit/push or release was performed by the agent.
+
+---
+
+
 ## 2026-10-21 — Clean partial downloads after coroutine cancellation
 
 **Milestone:** v0.1 — download infrastructure

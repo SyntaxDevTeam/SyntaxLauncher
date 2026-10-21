@@ -7,6 +7,7 @@ import java.io.ByteArrayOutputStream
 import java.nio.file.Files
 import java.nio.file.Path
 import java.security.MessageDigest
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import kotlin.test.Test
@@ -50,7 +51,9 @@ class ModrinthInstallerTest {
         val other = instances.create("B", game, loader = ModLoaderSelection("fabric", "0.18.0"))
         val first = jar("dependency")
         val second = jar("mainmod")
+        val requests = AtomicInteger()
         val client = HttpClient(MockEngine { req ->
+            requests.incrementAndGet()
             respond(if (req.url.encodedPath.endsWith("/dependency.jar")) first else second)
         })
         try {
@@ -71,7 +74,8 @@ class ModrinthInstallerTest {
             assertEquals(setOf("RELEASEA", "RELEASEB"),
                 installed.mods.mapNotNull { it.modrinth?.versionId }.toSet())
             assertTrue(catalog.list(other.id).mods.isEmpty())
-            assertFailsWith<IllegalStateException> { installer.install(profile.id, plan) }
+            assertEquals(installed, installer.install(profile.id, plan))
+            assertEquals(2, requests.get(), "Reinstalling the same tracked project must not redownload or replace JARs.")
             assertEquals(2, catalog.list(profile.id).mods.size)
         } finally { client.close() }
     }

@@ -4,6 +4,8 @@ This document describes the intent, scope, implementation boundaries and accepta
 
 `docs/ROADMAP.md` is the canonical checkbox tracker. This file explains what each milestone is supposed to mean.
 
+**Mandatory across all milestones:** the target user is a child. A content feature is not complete until its normal path is an in-launcher catalog with a simple Install/Play action and automatic compatible components/dependencies. This applies equally to single mods, modpacks/ready-made sets, textures, shaders and OptiFine. Backend services and manual imports remain implementation/advanced tools; no nonfunctional future categories are exposed. See AGENTS.md and DESIGN.md.
+
 ---
 
 ## v0.1 — Minimal Vanilla Launcher
@@ -289,6 +291,8 @@ If adding NeoForge requires rewriting Fabric-specific assumptions in core, those
 
 ## v0.8 — Forge and Quilt
 
+**Accepted scope, 21 October 2026:** [TESTING_V0.8.md](TESTING_V0.8.md) records private maintainer Forge/Quilt mod/startup acceptance, hosted official-installer/three-platform build evidence and the shared five-adapter coordinator regression. Forge support remains limited to Minecraft 1.21.1 / 52.1.20; V1 and other V2 pairs are intentionally rejected. Additional historical/platform/version-range work stays explicitly open rather than being claimed complete. No product-version or release publication change accompanies this milestone transition.
+
 ### Objective
 
 Broaden loader support and handle historical compatibility explicitly.
@@ -305,7 +309,7 @@ Quilt should reuse the generic loader boundary while keeping Quilt-specific meta
 
 ### Java/legacy impact
 
-This milestone should verify that runtime selection and launch argument resolution can support representative older Minecraft versions, not only current releases.
+This milestone should verify that runtime selection and launch argument resolution can support representative older Minecraft versions, not only current releases. The accepted boundary is metadata-declared component/major selection (including Java 8), legacy argument/classpath/native planning, early rejection of absent Java requirements and negative tests for unsupported historical Forge. These tests do not certify old Forge gameplay, absent runtime distributions, general inherited metadata or legacy virtual asset materialization. Expansion requires its own positive installer/runtime/game evidence; there is no guessed Minecraft-ID-to-Java table.
 
 ### Definition of successful v0.8
 
@@ -314,6 +318,8 @@ One launcher core supports Vanilla, Fabric, NeoForge, Forge and Quilt through ad
 ---
 
 ## v0.9 — OptiFine, Shaders and Resource Packs
+
+**Development started, 21 October 2026:** a core local ZIP service now backs a child-first Mods/Textures catalog. Resource-pack versions/dependencies are automatically selected, verified and activated; original game settings are backed up and preserved. Shader ZIP management remains core-only, awaiting renderer setup and a complete catalog workflow. Resource packs and shader packs remain separate content kinds; neither becomes a mod-loader provider. Installed-pack presentation/reordering/recovery, shader renderer setup and OptiFine integration remain incomplete; see [TESTING_V0.9.md](TESTING_V0.9.md).
 
 ### Objective
 

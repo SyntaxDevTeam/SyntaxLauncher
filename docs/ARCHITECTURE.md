@@ -419,6 +419,18 @@ the initial browser as a complete dependency compatibility resolver.
 
 ## 16. OptiFine, shaders and resource packs — v0.9
 
+### Child-first catalog boundary
+
+Desktop `ContentCatalog` presents one shared Mods/Textures search/list/Install workflow with no version/hash/file-plan controls. Supported mod projects use the existing Modrinth resolver/installer; `ModrinthResourcePacks` owns resource-pack search, project-type/version validation, transitive required ZIP dependencies and central verified downloads. It passes the entire set to LocalPackManager with the expected game version and explicit selected main pack. Game-version checks, collision checks, all ZIP validation and publication/selection occur under the existing activity lock. No loader/world conversion is performed to make a result fit. Shader/OptiFine/modpack categories must not appear until their full compatible installation path works.
+
+`ResourcePackSelection` preserves the Minecraft-owned options.txt format: only the JSON resourcePacks line is changed, selected required packs/main pack are appended in dependency order without duplicates, and unrelated lines, existing order and LF/CRLF are retained. Unknown/malformed selection or encoding, redirected files and changed settings fail before commit. Existing bytes are backed up under .syntaxlauncher-pack-settings before atomic options publication. A batch failure rolls back only files it published; pre-existing identical ZIPs are reused without replacement. No new launcher persisted format or schema migration is introduced.
+
+### Initial local pack service (October 2026)
+
+`core/content/LocalPackManager` owns ZIP inventory, staged import and recoverable removal for `resourcepacks` and `shaderpacks` inside a repository-managed instance game directory. Both Vanilla and modded instances can own packs; the service does not assume a loader or renderer. All IO runs on the IO dispatcher; mutations hold `MinecraftInstanceRepository.withInactiveInstance`, sharing the process lock/lease used by game preparation and other mutations. Read-only inventory can run while the game is active. No HTTP client, Compose class, loader branch or new persistence schema is introduced.
+
+Imports copy to a unique same-directory temporary file, validate the archive before a non-replacing move, and clean temporary files on failure/cancellation. Validation bounds archive/expanded/metadata sizes and entry count, rejects unsafe/duplicate ZIP paths, reads payloads and checks entry CRC/size. Resource metadata must contain a root `pack` object; shaders require nonempty files under root `shaders/`. These structural checks do not establish game-version/renderer compatibility. No extraction occurs. Manual imports leave options unchanged; the explicit catalog selection path updates only the resourcePacks option through ResourcePackSelection, with original-byte backups and atomic publication. Removal deselects the removed resource pack while preserving other options, and restores the moved ZIP if the settings update fails. Removal moves the ZIP into the same instance’s `.syntaxlauncher-pack-trash` with a unique name for manual recovery; sources, other instances, mods and settings are untouched. Redirected directories/files are rejected. Folder packs and metadata/icon presentation remain future UI work.
+
 OptiFine should not distort the generic loader architecture. Treat graphics enhancements as instance components/integrations with their own compatibility rules.
 
 Shaders and resource packs are instance-managed content with enablement/configuration handled without polluting core launch logic.

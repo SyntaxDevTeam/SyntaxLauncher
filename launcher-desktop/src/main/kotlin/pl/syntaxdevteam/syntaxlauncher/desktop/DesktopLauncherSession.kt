@@ -55,6 +55,9 @@ class DesktopLauncherSession(
     val loaders: ModLoaderRegistry? = null,
     private val microsoftSignIn: DesktopMicrosoftSignIn? = null,
 ) {
+    val packManager = pl.syntaxdevteam.syntaxlauncher.core.content.LocalPackManager(instances)
+    val resourcePackCatalog = pl.syntaxdevteam.syntaxlauncher.core.content.ModrinthResourcePacks(
+        httpClient, instances, packManager, DownloadManager(httpClient))
     val modManager = LocalModManager(instances)
     val modrinthCatalog = ModrinthCatalog(httpClient)
     val modrinthInstaller = ModrinthInstaller(instances, modManager, DownloadManager(httpClient))

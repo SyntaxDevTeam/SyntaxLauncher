@@ -14,6 +14,12 @@ A successful screen should look interesting at first glance while remaining easy
 
 ## 1. Core design principle
 
+### Mandatory child-first catalog workflow
+
+The launcher is for children. Extraordinary ease of use is an acceptance requirement, not optional polish. Browse a catalog inside the launcher, choose a single item or compatible ready-made set and press Install; then Play. This applies to mods, modpacks, shaders, resource packs, OptiFine and future content. Compatible versions, loaders, Java, renderers and required dependencies are the launcher’s responsibility. Do not make a child pick files, folders, hashes or dependency versions, or navigate technical review screens as the normal path. Show short names, short explanations and clear Installing/Installed/Retry states. Keep local import and technical details behind secondary controls. Preserve existing games/worlds and never silently downgrade/convert a game to make an item fit.
+
+Only expose working catalog categories. Backend-only support, downloaded ZIPs without required renderer setup, placeholder tabs and an Install button that cannot finish the job do not satisfy this requirement. Ready-made sets belong in the same catalog experience when their milestone is implemented.
+
 SyntaxLauncher must balance two goals that are equally important:
 
 1. **Visual appeal** — the application should feel premium, contemporary and recognizable.

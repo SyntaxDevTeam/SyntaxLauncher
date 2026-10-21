@@ -262,6 +262,8 @@ If any of these cannot be answered, the repository state is not fully documented
 
 ## 15. Mandatory UI/UX direction
 
+**Non-negotiable audience requirement (21 October 2026):** SyntaxLauncher is for children playing Minecraft and must be extraordinarily simple to use. The normal path is a catalog inside the launcher: choose a single mod, modpack, shader, resource pack, OptiFine enhancement or compatible ready-made set, then use one clear Install/Play action. The launcher chooses compatible versions, loaders, Java and required dependencies; children must not manage JAR/ZIP files, paths, renderer internals or technical installation plans. Advanced/manual import remains secondary. A backend or file copier alone does not complete a user-facing feature. Never show a nonfunctional future category as available, or claim an installation is ready when required components are missing. This requirement governs every milestone and must be reflected in acceptance tests and docs/DESIGN.md.
+
 All UI/UX work must follow `docs/DESIGN.md`.
 
 The design objective is not generic minimalism. SyntaxLauncher should be visually memorable and clearly modern while remaining light, calm and easy to understand.

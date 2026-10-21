@@ -37,15 +37,18 @@ class ModrinthInstaller(
                 "Instance game directory is unsafe."
             }
             // Already-installed, enabled and byte-identical dependencies need no second download.
-            // Never silently replace/enable an unrelated local JAR or the requested main mod.
+            // A tracked identical main project is idempotent too; never replace/enable unrelated local JARs.
             val enabled = mods.list(instanceId).mods.filter { it.enabled }
             val pending = plan.entries.filter { entry ->
-                !entry.dependency || enabled.none { local ->
+                enabled.none { local ->
+                    (entry.dependency || (local.modrinth?.projectId == entry.projectId &&
+                        local.modrinth.versionId == entry.versionId)) &&
                     local.sizeBytes == entry.file.bytes &&
                         Files.isRegularFile(game.resolve("mods").resolve(local.fileName), LinkOption.NOFOLLOW_LINKS) &&
                         sha1(game.resolve("mods").resolve(local.fileName)).equals(entry.file.sha1, ignoreCase = true)
                 }
             }
+            if (pending.isEmpty()) return@withContext mods.list(instanceId)
             val staging = Files.createTempDirectory(game, ".modrinth-download-")
             try {
                 val requests = pending.map { entry ->

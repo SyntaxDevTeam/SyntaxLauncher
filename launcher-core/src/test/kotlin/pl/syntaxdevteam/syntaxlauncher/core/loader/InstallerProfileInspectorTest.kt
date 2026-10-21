@@ -59,4 +59,14 @@ class InstallerProfileInspectorTest {
                 install.replace("net.example:dependency:1.0", "../../outside"), version), "1.21.1")
         }
     }
+
+    @Test fun rejectsHistoricalForgeV1RatherThanTreatingItsEmbeddedVersionInfoAsV2() {
+        val legacy = installer("""{"install":{"minecraft":"1.12.2"},
+            "versionInfo":{"id":"1.12.2-forge-fixture","inheritsFrom":"1.12.2",
+                "mainClass":"net.minecraft.launchwrapper.Launch",
+                "minecraftArguments":"--tweakClass fixture.Tweaker"}}""", null)
+        assertFailsWith<ModLoaderException> {
+            InstallerProfileInspector().inspect(legacy, "1.12.2")
+        }
+    }
 }

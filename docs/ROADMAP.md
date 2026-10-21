@@ -12,6 +12,12 @@ Agents and contributors MUST keep this file synchronized with actual repository 
 
 ---
 
+## Mandatory child-first content experience (21 October 2026)
+
+- [x] Record the non-negotiable audience/workflow in AGENTS.md and DESIGN.md: children browse inside the launcher, choose a single item or ready-made set and Install/Play; versions, loaders, Java, renderers and required dependencies belong to the launcher, not the child. Manual files and technical plans stay advanced.
+- [x] Introduce the shared one-click Mods/Textures catalog for saved games, translated search/install/status/retry/cancel controls and automatic compatible mod/resource-pack dependency selection. Resource packs are selected automatically with original game-settings backups; deterministic backend/EN/PL/DE compact/wide UI regressions pass.
+- [ ] Complete the same simple catalog experience for shaders with automatic renderer setup, OptiFine and ready-made modpacks; a ZIP copy, backend-only service or placeholder category does not satisfy this acceptance requirement. Native/live-game usability remains open.
+
 ## Cross-milestone desktop development ergonomics (October 2026)
 
 - [x] Replace deprecated desktop resource/dialog calls with Compose resource bitmap decoding and `DialogWindow`; align OfflineAccount copy visibility with its private constructor and remove redundant loader null checks. Full local tests/build and Linux package verification pass; native window acceptance remains separate.
@@ -551,42 +557,57 @@ Goal: add a second major loader and prove the loader architecture is genuinely r
 
 # v0.8 — Forge and Quilt
 
+**Status: accepted for the documented support scope (21 October 2026).** The maintainer confirmed private Forge startup and Forge/Quilt mod installation/startup in this chat. No OS matrix or exact Quilt/mod versions were supplied. [The acceptance record and support matrix](TESTING_V0.8.md) distinguish that confirmation, official hosted installer tests and deterministic pipeline tests. Historical Forge V1 and unverified Forge V2 versions remain unsupported; acceptance does not claim universal historical or native-platform compatibility. Development now proceeds to v0.9; no release/tag or product-version change is implied.
+
 Goal: broaden loader support while preserving historical-version compatibility deliberately.
 
 ## Forge
 
-- [x] Discover official Forge Maven versions with compatibility filtering; restrict v0.8 test selection to the verified 1.21.1 / Forge 52.1.20 pair.
-- [x] Download and SHA-1 verify Forge V2 installer; inspect client processors and execute official 1.21.1/52.1.20 installation smoke (GitHub Actions 39560642818 passed).
-- [x] Initial supported V2 installer test matrix scoped to Minecraft 1.21.1 / Forge 52.1.20; unsupported versions absent from selector. Historical Forge V1 support intentionally excluded.
-- [ ] 🚧 IN PROGRESS — Forge V2 is installed through common PreparedModLoaderProvider and ProcessorInstallerV2Engine; official artifact installation passed, actual Forge Minecraft client startup acceptance remains open.
-- [ ] 🚧 IN PROGRESS — Read Forge/NeoForge mod identity plus explicitly declared required/incompatible dependencies from bounded TOML subsets, prefer instance-matching manifests and warn on wrong loader families; complex TOML and actual gameplay remain open.
-- [ ] 🚧 IN PROGRESS — Forge version and loader-filtered Modrinth browser is available for explicit v0.8 test profiles; real Forge mod install and game startup still need manual acceptance.
+- [x] Discover official Forge Maven versions with compatibility filtering; restrict v0.8 selection to the verified 1.21.1 / Forge 52.1.20 pair.
+- [x] Download and SHA-1 verify Forge V2 installer; inspect client processors and execute official 1.21.1/52.1.20 installation smoke (GitHub Actions 39560642818; reconfirmed by 39634747655).
+- [x] Initial supported V2 installer matrix scoped to Minecraft 1.21.1 / Forge 52.1.20; unsupported versions absent from selector and rejected on install even for persisted profiles. Historical Forge V1 support intentionally excluded and covered by rejection tests.
+- [x] Forge V2 uses common PreparedModLoaderProvider and ProcessorInstallerV2Engine; official installation smoke, synthetic full coordinator regression and maintainer-confirmed private startup pass.
+- [x] Read Forge/NeoForge mod identity and explicit required/incompatible dependencies from bounded TOML subsets, prefer instance-matching manifests and warn on wrong loader families; deterministic regressions pass. Full TOML/version-range solving is outside this bounded parser contract.
+- [x] Forge version and loader-filtered Modrinth browser available for the supported profile; private mod installation/startup confirmed by the maintainer on 21 October 2026.
 
 ## Quilt
 
 - [x] Quilt Meta v3 discovery through the shared registry; deterministic regressions and maintainer-confirmed Quilt testing pass (20 October 2026).
 - [x] Merge the official Quilt profile/libraries into the shared resolution/download pipeline; automated profile tests and maintainer-confirmed boot pass.
-- [x] Quilt starts through the shared launch pipeline; real startup confirmed by the maintainer on 20 October 2026.
-- [ ] 🚧 IN PROGRESS — Inspect quilt.mod.json IDs/versions/direct requirements; client compatibility and complex dependency semantics remain open.
-- [ ] 🚧 IN PROGRESS — Existing version/loader Modrinth filter and verified install enabled for Quilt; client acceptance pending.
+- [x] Quilt starts through the shared launch pipeline; real startup confirmed by the maintainer on 20 October 2026 and shared coordinator regression added on 21 October.
+- [x] Inspect quilt.mod.json IDs/versions/direct requirements with bounded advisory semantics; deterministic inventory regressions pass. This does not promise complete dependency constraint solving.
+- [x] Existing version/loader Modrinth filter and verified install enabled for Quilt; private mod installation/startup confirmed by the maintainer on 21 October 2026.
 
 ## Historical compatibility
 
-- [ ] Define policy for legacy Minecraft Java requirements.
-- [ ] Test representative old/new Forge-era versions.
-- [ ] Handle legacy argument/metadata differences through resolvers rather than UI hacks.
+- [x] Define legacy Java policy: use the component/major supplied by Mojang metadata, including Java 8 when explicitly declared; fail before download when absent rather than guessing from the Minecraft ID. The existing managed-runtime platform/component availability rules still apply.
+- [x] Test representative old/new Forge-era behavior within the bounded matrix: legacy 1.12.2 V1 and unsupported persisted selections fail closed, modern 1.21.1/52.1.20 official installation and private startup pass. Legacy Java-8 launch planning is tested separately, without claiming a historical Forge boot.
+- [x] Legacy argument tokenization, classpath/native fallback and modern JVM/game arguments remain in core resolvers/planner; missing runtime metadata is rejected by the coordinator. No UI-era launch recipes introduced.
 
 ## v0.8 quality gate
 
-- [ ] Vanilla/Fabric/NeoForge/Forge/Quilt use one launcher core.
-- [ ] Loader-specific behavior stays in adapters.
-- [ ] Supported version matrix is documented and tested.
+- [x] Vanilla/Fabric/NeoForge/Forge/Quilt use one launcher core; a deterministic regression exercises all five real adapters, preparation, runtime selection, plan/process wiring, shared client cache and separate game directories. It uses synthetic metadata and Java subprocesses, not a Minecraft game boot.
+- [x] Loader-specific behavior stays in adapters; core account/process layers have no loader-ID branches. Official Forge/NeoForge installer CI and shared pipeline regressions pass.
+- [x] Supported version matrix, negative historical cases, metadata-driven Java policy and evidence boundaries are documented in TESTING_V0.8.md and tested. Hosted baselines 39634747655 and 39647415857 passed, including all three portable packages; the newly added audit/pack tests have local verification and await their own CI run.
+
+## Optional compatibility expansion outside the accepted matrix
+
+- [ ] Expand historical Forge/V1 and additional V2 support only with explicit installer/runtime/real-game tests; current rejection is intentional.
+- [ ] Complete complex TOML/Quilt dependency and version-range semantics; current direct advisory warnings are not a full solver (see also v0.6 dependency reconciliation).
+- [ ] Record an explicit OS/version/mod matrix for mixed-loader gameplay, native UI and interruption/recovery; existing cross-milestone/platform release gates remain open.
 
 ---
 
 # v0.9 — OptiFine, Shaders and Resource Packs
 
 Goal: manage graphics-related instance content without treating every component as a generic mod loader.
+
+**Status:** 🚧 v0.9 development in progress. The shared child-first catalog now supports mods and textures with direct compatible installation. Texture batches are selected automatically with preserved/backup settings. Shader renderer setup, shader/OptiFine catalog completion, advanced pack management and real-game/native acceptance remain open.
+
+## Local pack foundation
+
+- [x] Add a UI-independent core service for instance-local resource/shader ZIP listing, validated staged import and recoverable removal under the existing activity lock. Preserve original ZIPs, existing destinations, other instances, mods and game settings; reject redirected paths, malformed/unsafe archives, invalid metadata and corrupt entry checksums. Deterministic regressions and local `test build` pass.
+- [ ] 🚧 IN PROGRESS — The translated catalog exposes online texture install/automatic selection with loading, empty, busy, error, retry and cancel states. Shader/local pack inventory/removal/recovery controls and real game/native acceptance remain open.
 
 ## OptiFine
 
@@ -597,17 +618,19 @@ Goal: manage graphics-related instance content without treating every component 
 
 ## Shaders
 
-- [ ] Manage shader packs per instance.
-- [ ] Import/remove shader packs.
+- [ ] 🚧 IN PROGRESS — Core shader ZIP inventory/import/removal is instance-scoped; desktop workflow and gameplay acceptance remain open.
+- [ ] 🚧 IN PROGRESS — Validated local ZIP import and recoverable removal implemented in core; desktop controls pending.
 - [ ] Track enabled/selected shader where integration permits.
 - [ ] Surface renderer requirements such as Iris/OptiFine where relevant.
 
 ## Resource packs
 
-- [ ] Manage resource packs per instance.
-- [ ] Import/remove packs.
+- [x] Browse/search compatible resource packs in the launcher; resolve required pack dependencies, verify/download/validate a whole batch and activate it with one Install action. Keep previous pack order and unrelated options, back up original settings, reject collisions/changed game versions and reuse identical files. Mocked HTTP/filesystem and translated catalog render/interaction tests pass; actual Minecraft activation remains a separate release check.
+
+- [ ] 🚧 IN PROGRESS — Core ZIP management and the online texture catalog are instance-scoped; full installed-pack management and gameplay acceptance remain open.
+- [ ] 🚧 IN PROGRESS — Online texture Install is available; local file import/recoverable removal remain core-only pending their secondary desktop controls.
 - [ ] Show metadata/icon where available.
-- [ ] Preserve order/selection if launcher chooses to manage it.
+- [ ] 🚧 IN PROGRESS — Catalog installation atomically selects dependencies/main texture pack and preserves prior order/unknown options, with backup; installed-pack reorder UI and real-game acceptance remain open.
 
 ## v0.9 quality gate
 
@@ -630,6 +653,8 @@ Goal: install/export repeatable instance definitions and support a mainstream mo
 - [ ] Keep user-created mutable data safe on update/reinstall.
 
 ## Modrinth modpacks
+
+- [ ] Browse compatible ready-made modpacks/sets in the same child-first launcher catalog and create an isolated playable game with one primary action; file import remains secondary.
 
 - [ ] Import `.mrpack`.
 - [ ] Resolve Minecraft version and loader.

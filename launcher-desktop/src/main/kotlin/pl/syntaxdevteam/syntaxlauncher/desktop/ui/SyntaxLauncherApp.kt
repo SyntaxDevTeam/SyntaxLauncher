@@ -610,7 +610,11 @@ private fun LauncherPanel(
     }
 
     managingMods?.let { target ->
-        LocalModsDialog(
+        if (browseModsFirst) ContentCatalogDialog(target, session,
+            canModify = !isRunning && !launch.isPreparing && !mutationBusy,
+            onBusyChange = { modsBusy = it }, onManage = { browseModsFirst = false },
+            onDismiss = { if (!modsBusy) managingMods = null })
+        else LocalModsDialog(
             instance = target,
             initialBrowse = browseModsFirst,
             manager = session.modManager,
@@ -802,10 +806,10 @@ private fun LauncherPanel(
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically) {
-                    if (withMods) TextButton(onClick = {
+                    if (activeInstance != null) TextButton(onClick = {
                         browseModsFirst = true
                         managingMods = activeInstance
-                    }, enabled = !locked) { Text(strings.text("game.choose_mods")) }
+                    }, enabled = !locked) { Text(strings.text("catalog.open")) }
                     else Text(strings.text("game.vanilla_hint"), style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
                     TextButton(onClick = { managerOpen = true }, enabled = !locked,
