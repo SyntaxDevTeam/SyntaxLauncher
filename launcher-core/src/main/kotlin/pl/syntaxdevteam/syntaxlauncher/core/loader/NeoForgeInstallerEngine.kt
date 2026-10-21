@@ -153,7 +153,7 @@ class ProcessorInstallerV2Engine(
                         else -> throw ModLoaderException("Unsupported NeoForge data value.")
                     }
                 }
-                manifest.inspection.processors.forEachIndexed { index, processor ->
+                inspection.processors.forEachIndexed { index, processor ->
                     val paths = (listOf(processor.artifact) + processor.classpath).distinct().map {
                         libraryRoot.resolve(mavenPath(it)).also { file ->
                             check(Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) {
