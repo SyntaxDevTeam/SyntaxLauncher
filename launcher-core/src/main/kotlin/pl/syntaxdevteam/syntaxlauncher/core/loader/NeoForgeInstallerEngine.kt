@@ -99,8 +99,11 @@ class ProcessorInstallerV2Engine(
                     require(declaredPath == null || declaredPath == relative) {
                         "NeoForge library path differs from its Maven coordinate."
                     }
-                    val root = str(lib, "url")?.trimEnd('/')
-                    val url = str(artifact, "url") ?: root?.let { it + "/" + relative }
+                    // Forge V2 uses an empty URL for processor-generated libraries.
+                    // Treat empty metadata as absent rather than a relative download URL.
+                    val root = str(lib, "url")?.trim()?.takeIf(String::isNotEmpty)?.trimEnd('/')
+                    val declaredUrl = str(artifact, "url")?.trim()?.takeIf(String::isNotEmpty)
+                    val url = declaredUrl ?: root?.let { it + "/" + relative }
                         ?: defaultMaven(name) + relative
                     checkUrl(url)
                     sources[name] = url
@@ -113,7 +116,7 @@ class ProcessorInstallerV2Engine(
                                 "Embedded NeoForge library checksum mismatch: " + name
                             }
                         }
-                    } else if (str(artifact, "url") != null || root != null) {
+                    } else if (declaredUrl != null || root != null) {
                         downloads.download(DownloadRequest(
                             id = "neo-library:" + name,
                             url = url, target = target,
