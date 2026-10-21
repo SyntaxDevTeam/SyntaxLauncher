@@ -17,10 +17,13 @@ import java.security.MessageDigest
 import java.util.LinkedHashMap
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
@@ -209,6 +212,7 @@ class DownloadManager(
                     val buffer = ByteArray(BUFFER_SIZE)
 
                     while (true) {
+                        currentCoroutineContext().ensureActive()
                         val read = try {
                             channel.readAvailable(buffer, 0, buffer.size)
                         } catch (cancelled: CancellationException) {
@@ -247,6 +251,7 @@ class DownloadManager(
                     actualSha1 = digest.digest().toHex(),
                     actualSha256 = sha256?.digest()?.toHex(),
                 )
+                currentCoroutineContext().ensureActive()
                 moveIntoPlace(partial, request.target)
             }
         } catch (cancelled: CancellationException) {
@@ -315,7 +320,8 @@ class DownloadManager(
 
     private suspend fun cleanupPartialFile(request: DownloadRequest) {
         runCatching {
-            withContext(Dispatchers.IO) {
+            // Cancellation must wait for this bounded cleanup after the output stream closes.
+            withContext(NonCancellable + Dispatchers.IO) {
                 Files.deleteIfExists(partialPath(request.target))
             }
         }.onFailure { failure ->

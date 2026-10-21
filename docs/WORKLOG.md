@@ -8,6 +8,43 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+
+## 2026-10-21 — Clean partial downloads after coroutine cancellation
+
+**Milestone:** v0.1 — download infrastructure
+**Author/Agent:** Codex / GPT-6
+**Status:** Completed
+
+### Completed
+- Reproduced cancellation leaving `.part` files behind: cleanup switched to the IO dispatcher with the already-cancelled job and therefore never performed the deletion. Both initial single-download and queued-batch regression tests failed on the original implementation.
+- Shielded only partial-file deletion with `NonCancellable + Dispatchers.IO`, after the output stream has closed. Original cancellation still propagates and deletion failures retain the existing diagnostic without replacing the original cause.
+- Added explicit cancellation checks in the buffered copy loop and immediately before verified publication, so already-buffered responses cannot bypass cancellation checks until the next suspending operation.
+- Added controlled tests for cancellation preserving an existing destination, successful retry, two simultaneous active partial files, cancellation of queued work, and absence of spurious retry/failure/completion events. Tests use temporary storage and MockEngine, without external services or game data.
+
+### Changed files
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/network/DownloadManager.kt` — cancellation-safe cleanup and cooperative copy/publication checks.
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/network/DownloadCancellationTest.kt` — single-file/retry and concurrent-batch cancellation regressions.
+- `docs/DEVELOPMENT.md` — cleanup ordering, cancellation contract and test guidance.
+- `docs/ROADMAP.md` — mark the v0.1 structured download cancellation item complete, retaining separate native acceptance.
+- `docs/WORKLOG.md` — reproduction, scope and verification evidence.
+
+### Verification
+- `./gradlew test` — PASS via `./gradlew --offline test build`; 143 core and 27 desktop tests passed, two opt-in live installer tests skipped, zero failures/errors.
+- `./gradlew build` — PASS in the same full invocation.
+- Focused `DownloadCancellationTest` — initial two regressions FAIL before the fix due to retained partial files; PASS after the fix. The final full suite also passes the strengthened two-concurrent-partial regression.
+- Manual verification — NOT RUN; no real Minecraft preparation or native UI/platform cancellation acceptance claimed.
+- `git diff --check` — PASS.
+
+### Roadmap updates
+- `[x] v0.1 / Download infrastructure / Structured coroutine cancellation propagates through batches and removes partial files` — deterministic single-file and concurrent/queued batch behavior verified.
+- `[ ] v0.1 / Native preparation cancellation and real Minecraft/platform acceptance` — existing manual release gates remain open; this fix does not certify gameplay or cross-platform acceptance.
+
+### Follow-ups / known issues
+- Abrupt process termination or filesystem refusal can still leave partial files; this change handles cooperative coroutine cancellation. Already-published verified artifacts remain cached.
+- No UI, authentication, loader, persisted-schema, canonical product-version or release/publication changes were introduced.
+
+---
+
 ## 2026-10-21 — Automatically select supported Minecraft when changing loader
 
 **Milestone:** v0.4 — shared loader selection / v0.8 — Quilt compatibility correction

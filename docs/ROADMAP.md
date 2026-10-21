@@ -103,7 +103,7 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 ## Download infrastructure
 
 - [ ] 🚧 IN PROGRESS — centralized `DownloadManager` now streams all planned artifacts through the shared Ktor client; full Gradle/runtime verification remains pending.
-- [ ] 🚧 IN PROGRESS — structured coroutine cancellation propagates through batches and removes partial files; dedicated cancellation test/manual verification remains pending.
+- [x] Structured coroutine cancellation propagates through batches and removes active `.part` files before completion, preserving existing targets and cancelling queued requests. Deterministic single/concurrent-batch cancellation and retry regressions plus local `test build` pass (21 October 2026); native cancel-during-game-preparation acceptance remains separate.
 - [ ] 🚧 IN PROGRESS — batch downloads use a coroutine `Semaphore` with configurable bounded parallelism (default 6); Gradle execution remains pending.
 - [ ] 🚧 IN PROGRESS — typed batch/file start, progress, retry, complete and failure events are exposed to application callers; Compose progress UI is not wired yet.
 - [ ] 🚧 IN PROGRESS — retry policy handles transient network failures, HTTP 408/425/429/5xx and integrity/size failures with bounded backoff; controlled retry test source added.

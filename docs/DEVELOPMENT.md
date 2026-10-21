@@ -157,6 +157,8 @@ Required behaviors as milestones need them:
 
 A failed checksum is not a successful download.
 
+Download cancellation must leave the coroutine cancelled, without retry/failure/completion events for unfinished artifacts. `DownloadManager` checks cancellation during buffered copying and before publication, then closes the output stream before deleting its `.part` in a bounded `NonCancellable + Dispatchers.IO` cleanup. Only cleanup is shielded; downloads, retry waits and queue workers remain cancellable. Existing target bytes stay intact until verified publication; artifacts already published before cancellation remain usable. Cleanup failures are logged and must not mask the original failure/cancellation. `DownloadCancellationTest` uses controlled progress barriers, temporary directories and MockEngine to verify single-file cancellation/retry, two simultaneous partials and queued-request cancellation without live services.
+
 ## 10. Java runtime rules
 
 Do not map Minecraft version strings directly to Java versions in UI code.
