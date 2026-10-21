@@ -26,6 +26,8 @@ data class LocalModMetadata(
     val environment: String?,
     val depends: Map<String, String>,
     val breaks: Map<String, String>,
+    /** Metadata descriptor that was actually read, not a guarantee of runtime compatibility. */
+    val sourceLoader: String? = null,
 )
 
 data class LocalMod(
@@ -431,7 +433,7 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
                     continue
                 }
                 val metadata = try {
-                    readMetadata(path)
+                    readMetadata(path, instance.loader?.id)
                 } catch (_: Exception) {
                     warnings += "$filename is not a valid readable JAR."
                     null
@@ -452,6 +454,19 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
         val active = sorted.filter { it.enabled }
         if (active.isNotEmpty() && instance.loader?.id !in setOf("fabric", "quilt", "neoforge", "forge")) {
             warnings += "Local JARs are present, but this instance has no Fabric loader."
+        }
+        active.forEach { mod ->
+            val declared = mod.metadata?.sourceLoader ?: return@forEach
+            val selected = instance.loader?.id ?: return@forEach
+            val compatible = declared == selected ||
+                (selected == "quilt" && declared == "fabric")
+            when {
+                compatible -> Unit
+                selected == "neoforge" && declared == "forge" ->
+                    warnings += "${mod.fileName} uses Forge metadata; verify NeoForge compatibility before launching."
+                else ->
+                    warnings += "${mod.fileName} declares the ${declared} loader, but this instance uses ${selected}."
+            }
         }
         val identifiers = active.mapNotNull { mod -> mod.metadata?.id?.let { it to mod.fileName } }
             .groupBy({ it.first }, { it.second })
@@ -504,27 +519,41 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
             value.endsWith(".jar", ignoreCase = true) &&
             value != ".." && value.none { it == '/' || it == '\\' || it.code < 32 || it.code == 127 }
 
-    private fun readMetadata(path: Path): LocalModMetadata? {
+    private fun readMetadata(path: Path, loaderId: String?): LocalModMetadata? {
         ZipFile(path.toFile()).use { jar ->
             val fabric = jar.getEntry("fabric.mod.json")
             val quilt = jar.getEntry("quilt.mod.json")
             val neoForge = jar.getEntry("META-INF/neoforge.mods.toml")
             val forge = jar.getEntry("META-INF/mods.toml")
-            val entry = fabric ?: quilt ?: neoForge ?: forge ?: return null
+            val preferred = when (loaderId) {
+                "forge" -> forge ?: neoForge ?: fabric ?: quilt
+                "neoforge" -> neoForge ?: forge ?: fabric ?: quilt
+                "quilt" -> quilt ?: fabric ?: neoForge ?: forge
+                else -> fabric ?: quilt ?: neoForge ?: forge
+            }
+            val entry = preferred ?: return null
+            val format = when (entry) {
+                fabric -> "fabric"
+                quilt -> "quilt"
+                neoForge -> "neoforge"
+                else -> "forge"
+            }
             require(entry.size <= 256 * 1024L) { "Mod metadata exceeds 256 KiB." }
             val bytes = jar.getInputStream(entry).use { it.readNBytes(256 * 1024 + 1) }
             require(bytes.size <= 256 * 1024) { "Mod metadata exceeds 256 KiB." }
-            if (fabric == null && quilt == null) {
+            if (format == "forge" || format == "neoforge") {
                 return ForgeTomlMetadataReader.parse(bytes.toString(Charsets.UTF_8))
+                    ?.copy(sourceLoader = format)
             }
             val obj = json.parseToJsonElement(bytes.toString(Charsets.UTF_8)).jsonObject
-            if (fabric != null) {
+            if (format == "fabric") {
                 val id = obj.string("id") ?: return null
                 if (!id.matches(Regex("[a-z][a-z0-9_-]{0,63}"))) return null
                 return LocalModMetadata(
                     id, obj.string("name") ?: id, obj.string("version") ?: "unknown",
                     obj.string("environment"), requirementMap(obj["depends"] as? JsonObject),
                     requirementMap(obj["breaks"] as? JsonObject),
+                    sourceLoader = "fabric",
                 )
             }
             val root = obj["quilt_loader"] as? JsonObject ?: return null
@@ -535,6 +564,7 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
                 id, metadata?.string("name") ?: id, root.string("version") ?: "unknown",
                 null, quiltRequirements(root["depends"] as? JsonArray),
                 quiltRequirements(root["breaks"] as? JsonArray),
+                sourceLoader = "quilt",
             )
         }
     }
