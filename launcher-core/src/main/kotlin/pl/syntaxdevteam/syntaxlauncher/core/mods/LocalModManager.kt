@@ -82,7 +82,7 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
                     Files.copy(source, staging)
                     check(Files.size(staging) in 1..maximumJarBytes) { "Imported mod is too large." }
                     // Validate the archive before publishing. Metadata is optional for local JARs.
-                    readMetadata(staging)
+                    readMetadata(staging, instance.loader?.id)
                     val checksum = sha256(staging)
                     check(inspect(instance).mods.none { it.sha256 == checksum }) {
                         "This JAR is already installed in this instance."
@@ -140,7 +140,7 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
                         require(Files.size(source) in 1..maximumJarBytes) { "Downloaded mod size is invalid." }
                         val target = staging.resolve(names[index])
                         Files.copy(source, target)
-                        val info = readMetadata(target)
+                        val info = readMetadata(target, instance.loader?.id)
                         info?.id?.let(ids::add)
                         hashes += sha256(target)
                     }
@@ -231,9 +231,9 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
                         require(Files.size(item.source) in 1..maximumJarBytes)
                         val staged = temp.resolve(newNames[index])
                         Files.copy(item.source, staged)
-                        readMetadata(staged)
+                        readMetadata(staged, instance.loader?.id)
                         val checksum = sha256(staged)
-                        Triple(staged, checksum, readMetadata(staged)?.id)
+                        Triple(staged, checksum, readMetadata(staged, instance.loader?.id)?.id)
                     }
                     val unaffected = current.filterNot { it.fileName in replacedNames }
                     require(incoming.mapNotNull { it.third }.distinct().size == incoming.mapNotNull { it.third }.size &&
