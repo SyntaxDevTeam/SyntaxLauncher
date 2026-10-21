@@ -12,7 +12,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 import kotlinx.coroutines.runBlocking
 import pl.syntaxdevteam.syntaxlauncher.core.network.DownloadManager
 import pl.syntaxdevteam.syntaxlauncher.core.network.DownloadRetryPolicy
@@ -83,7 +82,8 @@ class NeoForgeInstallerPreflightTest {
     @Test fun rejectsBadChecksumWithoutPublishingInstaller() = runBlocking {
         val bytes = installer()
         val client = HttpClient(MockEngine { request ->
-            respond(if (request.url.encodedPath.endsWith(".sha256")) "0".repeat(64) else bytes)
+            if (request.url.encodedPath.endsWith(".sha256")) respond("0".repeat(64))
+            else respond(bytes)
         })
         try {
             val cache = Files.createTempDirectory("neoforge-mismatch")
@@ -101,7 +101,8 @@ class NeoForgeInstallerPreflightTest {
         val bytes = installer(game = "1.21.2")
         val sha256 = digest(bytes)
         val client = HttpClient(MockEngine { request ->
-            respond(if (request.url.encodedPath.endsWith(".sha256")) sha256 else bytes)
+            if (request.url.encodedPath.endsWith(".sha256")) respond(sha256)
+            else respond(bytes)
         })
         try {
             val preflight = NeoForgeInstallerPreflight(
@@ -120,7 +121,6 @@ class NeoForgeInstallerPreflightTest {
             assertFailsWith<ModLoaderException> {
                 NeoForgeInstallerChecksum.parse("<html>not a checksum</html>", jarName)
             }
-            assertTrue(Files.size(Files.createTempFile("preflight-unrelated", ".txt")) == 0L)
         } finally {
             client.close()
         }
