@@ -135,7 +135,7 @@ internal fun QuickModdedGameDialog(
                     }
                     Text(strings.text("game.technical_options"), style = MaterialTheme.typography.labelSmall)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        for (id in listOf("fabric", "quilt")) ChannelButton(
+                        for (id in listOf("fabric", "quilt", "neoforge")) ChannelButton(
                             id.replaceFirstChar { it.uppercase() }, loader == id, !saving, { loader = id })
                     }
                     if (resolved != null) Box {

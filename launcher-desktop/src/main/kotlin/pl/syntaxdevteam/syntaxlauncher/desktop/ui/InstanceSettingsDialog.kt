@@ -74,7 +74,7 @@ fun InstanceSettingsDialog(
     LaunchedEffect(versionId, loaderId) {
         compatible = emptyList()
         loaderError = null
-        if (loaderId in setOf("fabric", "quilt") && versionValid) {
+        if (loaderId in setOf("fabric", "quilt", "neoforge") && versionValid) {
             loaderLoading = true
             try {
                 compatible = loadLoaderVersions(loaderId, versionId)
@@ -160,8 +160,11 @@ fun InstanceSettingsDialog(
                     TextButton(onClick = { loaderId = "quilt" }) {
                         Text(if (loaderId == "quilt") "✓ Quilt" else "Quilt")
                     }
+                    TextButton(onClick = { loaderId = "neoforge" }) {
+                        Text(if (loaderId == "neoforge") "✓ NeoForge" else "NeoForge")
+                    }
                 }
-                if (loaderId in setOf("fabric", "quilt")) {
+                if (loaderId in setOf("fabric", "quilt", "neoforge")) {
                     OutlinedTextField(
                         value = fabricVersion,
                         onValueChange = { fabricVersion = it },
@@ -237,7 +240,7 @@ fun InstanceSettingsDialog(
                         minimumMemoryMiB = minRam!!,
                         maximumMemoryMiB = maxRam!!,
                         extraJvmArguments = args,
-                        loader = if (loaderId in setOf("fabric", "quilt")) ModLoaderSelection(loaderId, fabricVersion) else null,
+                        loader = if (loaderId in setOf("fabric", "quilt", "neoforge")) ModLoaderSelection(loaderId, fabricVersion) else null,
                     ))
                 },
             ) { Text(strings.text("ui.save_settings")) }

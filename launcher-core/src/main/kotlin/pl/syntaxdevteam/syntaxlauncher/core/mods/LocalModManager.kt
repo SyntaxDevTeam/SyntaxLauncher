@@ -508,10 +508,29 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
         ZipFile(path.toFile()).use { jar ->
             val fabric = jar.getEntry("fabric.mod.json")
             val quilt = jar.getEntry("quilt.mod.json")
-            val entry = fabric ?: quilt ?: return null
+            val neoForge = jar.getEntry("META-INF/neoforge.mods.toml")
+            val entry = fabric ?: quilt ?: neoForge ?: return null
             require(entry.size <= 256 * 1024L) { "Mod metadata exceeds 256 KiB." }
             val bytes = jar.getInputStream(entry).use { it.readNBytes(256 * 1024 + 1) }
             require(bytes.size <= 256 * 1024) { "Mod metadata exceeds 256 KiB." }
+            if (fabric == null && quilt == null) {
+                // Identify the first NeoForge [[mods]] record; do not pretend to resolve
+                // TOML dependency/version expressions with a permissive regex.
+                val text = bytes.toString(Charsets.UTF_8)
+                val block = text.substringAfter("[[mods]]", "")
+                    .substringBefore("[[mods]]").substringBefore("[[dependencies.")
+                fun field(name: String): String? = Regex(
+                    """(?m)^\s*""" + name + """\s*=\s*["']([^"'\r\n]{1,120})["']\s*(?:#.*)?$"""
+                ).find(block)?.groupValues?.get(1)
+                val id = field("modId") ?: return null
+                if (!id.matches(Regex("[a-z][a-z0-9_-]{0,63}"))) return null
+                return LocalModMetadata(
+                    id = id, name = field("displayName") ?: id,
+                    version = field("version") ?: "unknown",
+                    environment = null,
+                    depends = emptyMap(), breaks = emptyMap(),
+                )
+            }
             val obj = json.parseToJsonElement(bytes.toString(Charsets.UTF_8)).jsonObject
             if (fabric != null) {
                 val id = obj.string("id") ?: return null
