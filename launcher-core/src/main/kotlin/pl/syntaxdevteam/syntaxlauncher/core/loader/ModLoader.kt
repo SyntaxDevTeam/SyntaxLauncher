@@ -2,6 +2,8 @@ package pl.syntaxdevteam.syntaxlauncher.core.loader
 
 import kotlinx.serialization.Serializable
 import pl.syntaxdevteam.syntaxlauncher.core.minecraft.ResolvedMinecraftVersion
+import pl.syntaxdevteam.syntaxlauncher.core.java.JavaRuntime
+import pl.syntaxdevteam.syntaxlauncher.core.storage.MinecraftInstallationLayout
 
 /** Null instance loader means Vanilla; this is backward compatible with schema 1. */
 @Serializable
@@ -23,6 +25,14 @@ interface ModLoaderProvider {
     suspend fun resolve(base: ResolvedMinecraftVersion, version: String): ResolvedMinecraftVersion
 }
 
+/** Processor-based loaders prepare files after base Minecraft and Java are ready. */
+interface PreparedModLoaderProvider : ModLoaderProvider {
+    suspend fun install(
+        base: ResolvedMinecraftVersion, version: String,
+        layout: MinecraftInstallationLayout, runtime: JavaRuntime,
+    ): ResolvedMinecraftVersion
+}
+
 /** Providers may have distinct installation mechanisms; only resolved metadata is shared. */
 class ModLoaderRegistry(providers: List<ModLoaderProvider>) {
     private val providersById = providers.associateBy { it.id }
@@ -33,6 +43,17 @@ class ModLoaderRegistry(providers: List<ModLoaderProvider>) {
 
     suspend fun resolve(base: ResolvedMinecraftVersion, selected: ModLoaderSelection?): ResolvedMinecraftVersion =
         if (selected == null) base else provider(selected.id).resolve(base, selected.version)
+
+    fun requiresInstallation(id: String): Boolean = provider(id) is PreparedModLoaderProvider
+
+    suspend fun install(
+        base: ResolvedMinecraftVersion, selected: ModLoaderSelection,
+        layout: MinecraftInstallationLayout, runtime: JavaRuntime,
+    ): ResolvedMinecraftVersion {
+        val installed = provider(selected.id) as? PreparedModLoaderProvider
+            ?: throw ModLoaderException("Loader has no installer support: " + selected.id)
+        return installed.install(base, selected.version, layout, runtime)
+    }
 
     private fun provider(id: String): ModLoaderProvider =
         providersById[id] ?: throw ModLoaderException("Unsupported loader '$id'. Select a registered loader or Vanilla.")

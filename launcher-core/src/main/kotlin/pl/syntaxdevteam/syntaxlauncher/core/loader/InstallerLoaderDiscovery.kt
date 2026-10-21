@@ -5,6 +5,9 @@ import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.isSuccess
 import pl.syntaxdevteam.syntaxlauncher.core.minecraft.ResolvedMinecraftVersion
+import pl.syntaxdevteam.syntaxlauncher.core.java.JavaRuntime
+import pl.syntaxdevteam.syntaxlauncher.core.storage.MinecraftInstallationLayout
+import pl.syntaxdevteam.syntaxlauncher.core.network.DownloadManager
 
 /** Parse Maven version tags without XML entities, external DTDs or arbitrary URLs. */
 internal object InstallerMavenVersions {
@@ -42,10 +45,22 @@ abstract class InstallerBackedLoaderProvider(
     }
 }
 
-class NeoForgeLoaderProvider(http: HttpClient) : InstallerBackedLoaderProvider(
+class NeoForgeLoaderProvider(http: HttpClient, private val downloads: DownloadManager? = null) : InstallerBackedLoaderProvider(
     http, "https://maven.neoforged.net/releases/net/neoforged/neoforge/maven-metadata.xml",
-) {
+) , PreparedModLoaderProvider {
     override val id = "neoforge"
+
+    override suspend fun install(
+        base: ResolvedMinecraftVersion, version: String,
+        layout: MinecraftInstallationLayout, runtime: JavaRuntime,
+    ): ResolvedMinecraftVersion {
+        ModLoaderSelection(id, version)
+        if (compatibleVersions(base.id).none { it.version == version }) {
+            throw IncompatibleModLoaderException("NeoForge " + version + " is incompatible with " + base.id)
+        }
+        val downloader = downloads ?: throw ModLoaderException("NeoForge installer downloader is unavailable.")
+        return NeoForgeInstallerEngine(http, downloader).install(base, version, layout, runtime)
+    }
     override suspend fun compatibleVersions(minecraftVersionId: String): List<ModLoaderVersion> {
         require(minecraftVersionId.matches(Regex("[A-Za-z0-9._-]{1,80}")))
         val parts = minecraftVersionId.split('.')

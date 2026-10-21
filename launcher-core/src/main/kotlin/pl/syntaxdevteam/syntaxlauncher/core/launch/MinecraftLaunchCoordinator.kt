@@ -72,13 +72,14 @@ class MinecraftLaunchCoordinator(
                 ?: throw IllegalArgumentException(
                     "Minecraft does not declare a supported Java runtime.",
                 )
-            val effectiveVersion = if (loader == null) version else {
+            val delayedInstaller = loader != null && loaders?.requiresInstallation(loader.id) == true
+            val effectiveVersion = if (loader == null || delayedInstaller) version else {
                 stage(LaunchPhase.PREPARING_LOADER, "Resolving ${loader.id} ${loader.version}")
                 val registry = loaders ?: throw ModLoaderException("Mod loader service is not configured.")
                 registry.resolve(version, loader)
             }
             stage(LaunchPhase.PREPARING_GAME, "Preparing Minecraft ${version.id}")
-            val prepared = preparation.prepare(effectiveVersion, platform, instanceLayout) { event ->
+            val vanillaPrepared = preparation.prepare(effectiveVersion, platform, instanceLayout) { event ->
                 when (event) {
                     is MinecraftPreparationEvent.StageChanged -> {
                         val name = when (event.stage) {
@@ -107,6 +108,16 @@ class MinecraftLaunchCoordinator(
                 }
             }
 
+            val prepared = if (delayedInstaller) {
+                val selected = loader ?: error("Missing installed loader selection")
+                stage(LaunchPhase.PREPARING_LOADER, "Installing " + selected.id + " " + selected.version)
+                val installed = loaders?.install(version, selected, instanceLayout, runtime)
+                    ?: throw ModLoaderException("Mod loader installer is not configured.")
+                stage(LaunchPhase.PREPARING_GAME, "Verifying installed NeoForge files")
+                preparation.prepare(installed, platform, instanceLayout) { event ->
+                    if (event is MinecraftPreparationEvent.Download) downloaded(event.event)
+                }
+            } else vanillaPrepared
             stage(LaunchPhase.BUILDING_PLAN, "Preparing launch arguments")
             val plan = plans.build(
                 LaunchRequest(
