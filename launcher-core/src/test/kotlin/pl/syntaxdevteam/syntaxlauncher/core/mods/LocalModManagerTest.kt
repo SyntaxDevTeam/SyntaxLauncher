@@ -286,4 +286,45 @@ class LocalModManagerTest {
         assertTrue(disabled.warnings.any { "requires 'missinglibrary'" in it })
     }
 
+
+    @Test fun choosesCorrectManifestWhenOneJarSupportsMultipleLoaders() = runBlocking {
+        val (repo, manager) = setup()
+        val forge = repo.create("Forge", "1.21.1", loader = ModLoaderSelection("forge", "52.1.20"))
+        val fabric = repo.create("Fabric", "1.21.1", loader = ModLoaderSelection("fabric", "0.18.0"))
+        val hybrid = Files.createTempDirectory("hybrid-mod").resolve("hybrid.jar")
+        ZipOutputStream(Files.newOutputStream(hybrid)).use { zip ->
+            zip.putNextEntry(ZipEntry("fabric.mod.json"))
+            zip.write("""{"schemaVersion":1,"id":"fabricpart","version":"1.0"}""".toByteArray())
+            zip.closeEntry()
+            zip.putNextEntry(ZipEntry("META-INF/mods.toml"))
+            zip.write("[[mods]]\nmodId=\"forgepart\"\nversion=\"2.0\"".toByteArray())
+            zip.closeEntry()
+        }
+        val forgeInventory = manager.importJar(forge.id, hybrid)
+        val fabricInventory = manager.importJar(fabric.id, hybrid)
+        assertEquals("forgepart", forgeInventory.mods.single().metadata?.id)
+        assertEquals("forge", forgeInventory.mods.single().metadata?.sourceLoader)
+        assertEquals("fabricpart", fabricInventory.mods.single().metadata?.id)
+        assertEquals("fabric", fabricInventory.mods.single().metadata?.sourceLoader)
+        assertFalse(forgeInventory.warnings.any { "declares the fabric loader" in it })
+        assertFalse(fabricInventory.warnings.any { "declares the forge loader" in it })
+    }
+
+    @Test fun warnsWhenEnabledJarIsFromTheWrongLoaderFamily() = runBlocking {
+        val (repo, manager) = setup()
+        val fabric = repo.create("Fabric", "1.21.1", loader = ModLoaderSelection("fabric", "0.18.0"))
+        val neoforge = repo.create("NeoForge", "1.21.1",
+            loader = ModLoaderSelection("neoforge", "21.1.213"))
+        val forgeJar = Files.createTempDirectory("forge-only").resolve("forge-mod.jar")
+        ZipOutputStream(Files.newOutputStream(forgeJar)).use { zip ->
+            zip.putNextEntry(ZipEntry("META-INF/mods.toml"))
+            zip.write("[[mods]]\nmodId=\"forgeonly\"\nversion=\"1.0\"".toByteArray())
+            zip.closeEntry()
+        }
+        val wrong = manager.importJar(fabric.id, forgeJar)
+        assertTrue(wrong.warnings.any { "declares the forge loader, but this instance uses fabric" in it })
+        val compatibility = manager.importJar(neoforge.id, forgeJar)
+        assertTrue(compatibility.warnings.any { "verify NeoForge compatibility" in it })
+    }
+
 }
