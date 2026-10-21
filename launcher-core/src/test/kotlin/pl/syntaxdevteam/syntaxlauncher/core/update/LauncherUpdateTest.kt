@@ -35,6 +35,30 @@ class LauncherUpdateTest {
     private val entries get() = listOf(UpdateBundleEntry(executable, size = content.size.toLong(),
         sha256 = hash(content), executable = true))
 
+    @Test fun defaultStarterKeepsChildStderrAndPrivateLogPermissions() = runBlocking {
+        // java rejects the launcher handoff flag before any application or external service runs.
+        val javaExecutable = Path.of(System.getProperty("java.home"), "bin",
+            if (System.getProperty("os.name").lowercase().contains("win")) "java.exe" else "java")
+        val receipt = temp.resolve("startup-fixture.ready")
+        val builder = ProcessUpdatedLauncherStarter.processBuilder(javaExecutable, receipt, "fixture",
+            mapOf("_JPACKAGE_LAUNCHER" to "12345", "DISPLAY" to ":fixture"))
+        assertFalse(builder.environment().containsKey("_JPACKAGE_LAUNCHER"))
+        assertEquals(":fixture", builder.environment()["DISPLAY"])
+        assertEquals(listOf(javaExecutable.toString(), StartupUpdater.HANDOFF_FLAG, receipt.toString(), "fixture"),
+            builder.command())
+        val child = ProcessUpdatedLauncherStarter.start(javaExecutable, receipt, "fixture")
+        try {
+            assertTrue(child.waitFor(10, java.util.concurrent.TimeUnit.SECONDS))
+            assertTrue(child.exitValue() != 0)
+            val log = ProcessUpdatedLauncherStarter.logFile(receipt)
+            assertTrue(Files.readString(log).contains(StartupUpdater.HANDOFF_FLAG))
+            if ("posix" in log.fileSystem.supportedFileAttributeViews()) {
+                assertEquals(java.nio.file.attribute.PosixFilePermissions.fromString("rw-------"),
+                    Files.getPosixFilePermissions(log))
+            }
+        } finally { if (child.isAlive) child.destroyForcibly().waitFor() }
+    }
+
     @Test fun semanticVersionsNeverDowngradeOrCompareLexicographically() {
         val ordered = listOf("0.3.0-dev", "0.3.0", "0.3.1-2", "0.3.1-10", "0.3.1-alpha", "0.3.1", "0.10.0", "1.0.0")
         ordered.zipWithNext().forEach { (a, b) -> assertTrue(LauncherVersion.parse(a) < LauncherVersion.parse(b)) }

@@ -27,6 +27,7 @@ dependencies {
 tasks.test {
     useJUnitPlatform()
     systemProperty("java.awt.headless", "true")
+    jvmArgs("--enable-native-access=ALL-UNNAMED")
 }
 
 val launcherVersion = providers.gradleProperty("launcherVersion")
@@ -97,6 +98,7 @@ tasks.register<JavaExec>("verifyUpdateBundle") {
 compose.desktop {
     application {
         mainClass = "pl.syntaxdevteam.syntaxlauncher.desktop.MainKt"
+        jvmArgs += "--enable-native-access=ALL-UNNAMED"
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)

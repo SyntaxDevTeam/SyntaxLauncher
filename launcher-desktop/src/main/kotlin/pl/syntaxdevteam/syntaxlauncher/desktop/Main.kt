@@ -57,7 +57,7 @@ fun main(args: Array<String>) {
             GitHubLauncherReleases(httpClient), downloader,
             updateRoot, paths.cacheDir.resolve("launcher-updates"), updatePlatform,
             LauncherVersion.parse(LauncherBuildInfo.version),
-            selectedChannel = { preferences.loadUpdateChannel() },
+            selectedChannel = { preferences.initializeUpdateChannel(LauncherBuildInfo.updateChannel) },
             currentChannel = LauncherBuildInfo.updateChannel, currentBuild = LauncherBuildInfo.revision)
     } else null
     val processManager = MinecraftProcessManager(paths.logsDir)

@@ -88,12 +88,14 @@ class LauncherPreferencesStore(private val file: Path) {
         }
     }
 
-    suspend fun loadUpdateChannel(): LauncherUpdateChannel = withContext(Dispatchers.IO) {
+    suspend fun loadUpdateChannel(
+        defaultChannel: LauncherUpdateChannel = LauncherUpdateChannel.STABLE,
+    ): LauncherUpdateChannel = withContext(Dispatchers.IO) {
         mutex.withLock {
             val properties = readProperties()
             if (!properties.isEmpty()) validateSchema(properties)
             LauncherUpdateChannel.fromId(
-                properties.getProperty("launcher_update_channel", "stable"))
+                properties.getProperty("launcher_update_channel", defaultChannel.id))
         }
     }
 
@@ -106,6 +108,22 @@ class LauncherPreferencesStore(private val file: Path) {
             writeProperties(properties)
         }
     }
+
+    /** Pin a fresh packaged build's channel so identical Stable/DEV images keep the user's track. */
+    suspend fun initializeUpdateChannel(defaultChannel: LauncherUpdateChannel): LauncherUpdateChannel =
+        withContext(Dispatchers.IO) {
+            mutex.withLock {
+                val properties = readProperties()
+                if (!properties.isEmpty()) validateSchema(properties)
+                val stored = properties.getProperty("launcher_update_channel")
+                if (stored != null) LauncherUpdateChannel.fromId(stored) else {
+                    properties.setProperty("schema_version", "1")
+                    properties.setProperty("launcher_update_channel", defaultChannel.id)
+                    writeProperties(properties)
+                    defaultChannel
+                }
+            }
+        }
 
     private fun writeProperties(properties: Properties) {
         Files.createDirectories(file.parent)

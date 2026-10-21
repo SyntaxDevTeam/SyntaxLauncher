@@ -8,6 +8,49 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-21 — Fix Linux packaged update handoff and native access
+
+**Milestone:** v0.12 — startup updates; v0.1 — desktop runtime compatibility
+**Author/Agent:** Codex / GPT-6
+**Status:** Completed
+
+### Completed
+- Reproduced the reported early child exit with a real packaged DEV parent and the existing verified Stable 0.6.0 image, entirely under temporary XDG/user-home directories. Newly retained child output exposed `Unrecognized option: --syntaxlauncher-update-handoff` before JVM startup.
+- Removed the inherited `_JPACKAGE_LAUNCHER` marker when starting another packaged image. OpenJDK's Linux launcher otherwise assumes the command already contains JVM arguments and skips its own configuration, misinterpreting the application's handoff flag. All other environment values, including display variables, are retained.
+- Added unique retained child stdout/stderr logs alongside startup receipts, POSIX owner-only permissions, and actionable early-exit code/log-path and timeout/log-path errors. Activation, integrity, receipt verification, cancellation and previous-image fallback remain intact.
+- Enabled classpath native access for Skiko/JNA in packaged/Gradle application launches and desktop tests. Actual native startup no longer emits the restricted-System.load warning in the new package.
+- Fixed missing channel preferences being treated as an explicit return from DEV to Stable. Packaged startup atomically initializes the choice from embedded channel metadata once; the picker uses the same fallback. Existing saved choices remain authoritative, including intentional older Stable selection. Missing/legacy settings and unknown properties are retained; unsupported schemas/channel IDs fail without rewrite.
+- Extended deterministic preference regressions and added a real failing Java child test for stderr retention, private log permissions, command argument integrity and removal of a simulated inherited marker.
+
+### Changed files
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/update/ProcessUpdatedLauncherStarter.kt`, `StartupUpdater.kt` — clean jpackage child environment and preserve diagnostics/exit codes.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/storage/LauncherPreferencesStore.kt` — embedded-channel fallback and atomic first-start initialization.
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/update/{LauncherChannelsTest,LauncherUpdateTest}.kt` — preference/schema compatibility and real child/environment regressions.
+- `launcher-desktop/build.gradle.kts` — explicit native-access JVM option for application images/runs and tests.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/Main.kt`, `ui/LauncherUpdateChannelPicker.kt` — consistent startup and UI channel semantics.
+- `README.md`, `docs/{DESIGN,DEVELOPMENT,ROADMAP,UPDATING,WORKLOG}.md` — channel defaults, native handoff/log contract and verification.
+
+### Verification
+- `./gradlew test` — PASS via `./gradlew --offline --no-daemon -PlauncherBuildNumber=157 -PlauncherCommit=c54c72ae80aaac338b24db15ae86f42e5ec42e8e -PlauncherUpdateChannel=dev test build :launcher-desktop:createDistributable --no-build-cache`; 137 core and 25 desktop tests passed, two opt-in live installer tests skipped.
+- `./gradlew build` — PASS in the same invocation.
+- `:launcher-desktop:createDistributable`, `scripts/package_update.py`, `:launcher-desktop:verifyUpdateBundle` — PASS for Linux.
+- Native Linux reproduction before fix — FAIL as reported: child exited 1 with unrecognized JVM option; stable image alone started successfully, isolating the packaged-parent environment as the trigger.
+- Native Linux reproduction after fix — PASS: the new image wrote a startup receipt; an explicit Stable handoff to the actual verified 0.6.0 image received its receipt, activated the image and exited the parent with code 0. New image emitted no restricted native-access warning; the historical unmodified 0.6.0 image still emits its old warning.
+- Fresh DEV native startup — PASS: writes `launcher_update_channel=dev`, remains running and emits no restricted native-access warning. All probes used temporary configuration/data/cache/home directories; existing user settings, accounts and worlds were not changed.
+- Debugger — observed DEV current 2.0.0 / selected Stable / candidate 1.0.0 entering activation in the existing explicit-switch regression, and verified the paused call chain. Removed agent breakpoints and finished the session.
+- `git diff --check` — PASS.
+
+### Roadmap updates
+- `[x] v0.12 / Self-update / Isolate Linux jpackage child state, diagnostics, native access and initial channel selection` — verified by deterministic tests and actual packaged parent/child startup.
+- `[ ] v0.12 / Full hosted Windows/Linux/macOS update/channel-switch acceptance` — remains open; this Linux reproduction does not certify every platform/failure mode.
+
+### Follow-ups / known issues
+- Existing installed bootstrap binaries need one manual replacement to gain the corrected child-launch behavior; merely publishing a new target cannot repair an old parent that fails before the child JVM starts.
+- Startup diagnostic logs are retained; automatic cleanup/signing and upstream Compose/Hot Reload Gradle deprecations remain separate work.
+- No historical Stable release was modified or republished, no product-version bump introduced and no existing game data migrated.
+
+---
+
 ## 2026-10-21 — Migrate deprecated Kotlin and Compose APIs
 
 **Milestone:** v0.1 — existing core/UI maintenance; v0.12 — build compatibility

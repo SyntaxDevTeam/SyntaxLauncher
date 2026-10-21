@@ -140,7 +140,15 @@ class LauncherChannelsTest {
         val file = root.resolve("settings.properties")
         val store = LauncherPreferencesStore(file)
         assertEquals(LauncherUpdateChannel.STABLE, store.loadUpdateChannel())
+        assertEquals(LauncherUpdateChannel.DEV, store.loadUpdateChannel(LauncherUpdateChannel.DEV))
         store.save(LauncherPreferences("PlayerOne", "26.2"))
+        assertEquals(LauncherUpdateChannel.DEV, store.loadUpdateChannel(LauncherUpdateChannel.DEV))
+        assertFalse(Files.readString(file).contains("launcher_update_channel"))
+        assertEquals(LauncherUpdateChannel.DEV, store.initializeUpdateChannel(LauncherUpdateChannel.DEV))
+        assertEquals(LauncherUpdateChannel.DEV, store.initializeUpdateChannel(LauncherUpdateChannel.STABLE))
+        store.saveUpdateChannel(LauncherUpdateChannel.STABLE)
+        assertEquals(LauncherUpdateChannel.STABLE, store.initializeUpdateChannel(LauncherUpdateChannel.DEV))
+        assertEquals(LauncherUpdateChannel.STABLE, store.loadUpdateChannel(LauncherUpdateChannel.DEV))
         store.saveLanguage("pl")
         Files.writeString(file, Files.readString(file) + "\nunknown=value\n")
         for (channel in LauncherUpdateChannel.entries) {
@@ -154,11 +162,13 @@ class LauncherChannelsTest {
         val future = "schema_version=999\nunknown=keep\n"
         Files.writeString(file, future)
         assertFailsWith<IllegalArgumentException> { store.loadUpdateChannel() }
+        assertFailsWith<IllegalArgumentException> { store.initializeUpdateChannel(LauncherUpdateChannel.DEV) }
         assertFailsWith<IllegalArgumentException> { store.saveUpdateChannel(LauncherUpdateChannel.DEV) }
         assertEquals(future, Files.readString(file))
         val unknown = "schema_version=1\nlauncher_update_channel=future\nunknown=keep\n"
         Files.writeString(file, unknown)
         assertFailsWith<IllegalArgumentException> { store.loadUpdateChannel() }
+        assertFailsWith<IllegalArgumentException> { store.initializeUpdateChannel(LauncherUpdateChannel.DEV) }
         assertEquals(unknown, Files.readString(file))
     }
 

@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 import pl.syntaxdevteam.syntaxlauncher.core.storage.LauncherPreferencesStore
 import pl.syntaxdevteam.syntaxlauncher.core.update.LauncherUpdateChannel
 import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.LocalStrings
+import pl.syntaxdevteam.syntaxlauncher.desktop.LauncherBuildInfo
 
 @Composable
 internal fun LauncherUpdateChannelPicker(store: LauncherPreferencesStore, enabled: Boolean = true) {
@@ -27,7 +28,7 @@ internal fun LauncherUpdateChannelPicker(store: LauncherPreferencesStore, enable
     val scope = rememberCoroutineScope()
     suspend fun load() {
         saving = true
-        try { channel = store.loadUpdateChannel(); failed = false }
+        try { channel = store.loadUpdateChannel(LauncherBuildInfo.updateChannel); failed = false }
         catch (cancelled: CancellationException) { throw cancelled }
         catch (_: Exception) { failed = true }
         finally { saving = false }

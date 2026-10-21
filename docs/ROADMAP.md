@@ -706,6 +706,7 @@ Goal: prepare the launcher for stable public release.
 **Explicit early delivery request (19 October 2026):** implement this v0.12 slice during current launcher development. Other v0.12 features and existing release gates remain unchanged. See [UPDATING.md](UPDATING.md).
 
 - [x] Define update channel strategy: Stable uses non-prerelease GitHub Releases and SemVer; opt-in DEV/SNAPSHOT use isolated pre-releases and numeric CI run/attempt identity. Explicit channel switches may select an older product version.
+- [x] Isolate Linux jpackage child-launch state, preserve private startup diagnostics/exit codes, enable Skiko/JNA native access and initialize missing channel choices from the installed build; local native handoff and regression verification pass.
 - [ ] 🚧 IN PROGRESS — Publish immutable DEV after verified main pushes and SNAPSHOT via manual main dispatch; persist translated launcher-channel choice and isolate cached recovery per channel. Local tests/build, translated 400×400 dialog renders and Linux Stable/DEV packages pass; hosted publication and native channel-switch acceptance pending.
 - [x] Implement pre-home packaged startup checks, bounded network checks and Retry/Continue UI; development runs bypass execution. Mocked HTTP and Compose receipt/recovery tests pass.
 - [x] Download through the shared client/downloader with SHA-256, length verification, cancellation, retries, `.part` staging and cached archive revalidation.

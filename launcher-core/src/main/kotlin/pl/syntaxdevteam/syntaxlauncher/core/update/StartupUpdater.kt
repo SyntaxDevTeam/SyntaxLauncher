@@ -37,13 +37,7 @@ class StartupUpdater(
     archives: Path,
     private val platform: UpdatePlatform,
     private val current: LauncherVersion,
-    private val starter: UpdatedLauncherStarter = UpdatedLauncherStarter { executable, receipt, nonce ->
-        ProcessBuilder(executable.toString(), HANDOFF_FLAG, receipt.toString(), nonce)
-            .directory(executable.parent.toFile())
-            .redirectOutput(ProcessBuilder.Redirect.DISCARD)
-            .redirectError(ProcessBuilder.Redirect.DISCARD)
-            .start()
-    },
+    private val starter: UpdatedLauncherStarter = ProcessUpdatedLauncherStarter,
     private val startupTimeoutMillis: Long = 30_000,
     private val selectedChannel: suspend () -> LauncherUpdateChannel = { LauncherUpdateChannel.STABLE },
     private val currentChannel: LauncherUpdateChannel = LauncherUpdateChannel.STABLE,
@@ -167,8 +161,13 @@ class StartupUpdater(
                 currentCoroutineContext().ensureActive()
                 if (Files.isRegularFile(receipt, NOFOLLOW_LINKS) && Files.size(receipt) <= 512 &&
                     Files.readString(receipt) == "$nonce\n${target.version.value}") break
-                check(child.isAlive) { "The updated launcher could not start. Your previous version is still available." }
-                check(System.nanoTime() < deadline) { "The updated launcher did not become ready. Your previous version was kept." }
+                check(child.isAlive) {
+                    "The updated launcher exited with code ${child.exitValue()}. Your previous version is still available." +
+                        childLogHint(receipt)
+                }
+                check(System.nanoTime() < deadline) {
+                    "The updated launcher did not become ready. Your previous version was kept." + childLogHint(receipt)
+                }
                 delay(100)
             }
             currentCoroutineContext().ensureActive()
@@ -190,6 +189,11 @@ class StartupUpdater(
             }
             Files.deleteIfExists(receipt)
         }
+    }
+
+    private fun childLogHint(receipt: Path): String {
+        val log = ProcessUpdatedLauncherStarter.logFile(receipt)
+        return if (Files.isRegularFile(log, NOFOLLOW_LINKS)) " Startup log: $log" else ""
     }
 
     private fun loadState(): Properties {
