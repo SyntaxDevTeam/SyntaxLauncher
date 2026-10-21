@@ -8,6 +8,38 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-21 — Confirm v0.7 CI and publish version 0.7.0
+
+**Milestone:** v0.7 — NeoForge
+**Author/Agent:** GPT-6
+**Status:** Released with documented limitations; additional compatibility checks deferred
+
+### Completed
+- Verified the latest v0.7 `main` CI run 39548448140 succeeded: core/desktop tests, official NeoForge 21.1.213 installer smoke, portable app builds for Windows/Linux/macOS and Build Explorer publication.
+- Recorded maintainer's 21 October confirmation that testing is finished and instructed progress to the next milestone. No OS, Minecraft gameplay log, mod-set or matrix detail was provided; none is claimed.
+- Reconciled implementation status in roadmap and acceptance docs; left incomplete broader gameplay, interrupted recovery and compatibility quality gates unchecked.
+- Advanced the sole canonical product version from 0.6.0 to 0.7.0. The CI workflow on this version-change push is configured to publish an **ordinary stable GitHub Release** once all checks and platform packaging pass. No pre-releases.
+- Prepared v0.8 as the next engineering focus; do not bundle incomplete Forge code in the 0.7.0 release.
+
+### Changed files
+- `gradle.properties`, `README.md`, `docs/ROADMAP.md`, `docs/TESTING_V0.7.md`, `docs/WORKLOG.md`.
+
+### Verification
+- Previous commit CI: **PASS** — https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/39548448140.
+- Version-change release pipeline: **pending** until hosted CI completes; do not claim the release exists without verifying it.
+- Manual verification: maintainer reports completed tests, test matrix and detailed results unspecified.
+
+### Roadmap updates
+- `[x] v0.7 / Official installer preflight/processor smoke; adapter integration`.
+- `[ ] v0.7 / Full interruption and supported-platform graphical gameplay matrix` — explicitly remains open.
+
+### Follow-ups / known issues
+- A passing official installer smoke verifies generated NeoForge artifacts, not a Minecraft graphical boot.
+- Follow-up v0.8 work must not overwrite or silently alter release candidate assets while release CI is processing.
+
+---
+
+
 ## 2026-10-21 — NeoForge V2 processor integration and hosted acceptance gate
 
 **Milestone:** v0.7 — NeoForge  

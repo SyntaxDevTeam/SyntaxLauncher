@@ -517,18 +517,20 @@ acceptance still pending. The maintainer confirmed real Fabric and Quilt startup
 
 # v0.7 — NeoForge
 
+**Release decision (21 October 2026):** maintainer reported tests complete and requested moving to v0.8. Full official NeoForge installer smoke, core/desktop CI and three-platform packaging succeeded in [CI 39548448140](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/39548448140). Public v0.7.0 is released with a *bounded* support claim; still-open optional compatibility, interruption and undocumented gameplay matrix checks stay unchecked. No undocumented test environments/results are inferred.
+
 Goal: add a second major loader and prove the loader architecture is genuinely reusable.
 
 ## NeoForge provider
 
-- [ ] 🚧 IN PROGRESS — Discover official NeoForge Maven versions; processor installation and actual launch remain unimplemented.
-- [ ] 🚧 IN PROGRESS — Inspect NeoForge installer V2 metadata and list client processors in read-only preflight; execution/generated artifacts remain open.
-- [ ] 🚧 IN PROGRESS — Fetch official NeoForge installer and SHA-256, verify the cache and inspect V2 client steps. Synthetic tests pass; live Maven/processor acceptance required before completion. See [v0.7 tests](TESTING_V0.7.md).
-- [ ] 🚧 IN PROGRESS — Execute NeoForge V2 processors in a child Java process using a temporary workspace, check declared output files, stage generated libraries and merge runtime version metadata. Synthetic fixtures integrated; official installation/game startup and failure-recovery matrix are not yet accepted.
-- [ ] 🚧 IN PROGRESS — Download processor libraries through verified shared download infrastructure and resolve generated output paths. Official Maven dependency matrix not yet accepted.
-- [ ] 🚧 IN PROGRESS — Stage generated/processed artifacts with collision checks; interrupted/concurrent processor recovery and real versions still require verification.
+- [x] Discover NeoForge versions through official Maven metadata; installer runtime is wired into the common pipeline (v0.7 CI 21 October 2026).
+- [x] Inspect modern NeoForge V2 install_profile.json/version.json; identify client processors and libraries.
+- [x] Fetch official NeoForge installer SHA-256, use verified cache and inspect V2 data; real 1.21.1/21.1.213 official CI smoke passed on 21 October 2026.
+- [x] Run V2 client processors in a child JVM, stage and verify generated output libraries; real official smoke passed. Wider game/OS compatibility remains an explicit limitation.
+- [x] Resolve required V2 processor libraries through verified shared download infrastructure and stage generated artifact paths; validated against official 1.21.1/21.1.213 smoke.
+- [ ] 🚧 IN PROGRESS — Stage generated/processed artifacts with collision checks; interruption, concurrency and multi-version recovery matrix remain open.
 - [x] Store NeoForge loader id/version using the existing instance metadata schema and expose the compatible-version selector in desktop creation/editing.
-- [ ] 🚧 IN PROGRESS — Wire NeoForge processing after base client/Java preparation into common launch pipeline. Actual NeoForge game startup remains to be demonstrated.
+- [x] Wire processor-backed NeoForge into common coordinator after Vanilla preparation and managed Java resolution; synthetic launch and official installer CI pass.
 
 ## Compatibility
 
@@ -538,9 +540,9 @@ Goal: add a second major loader and prove the loader architecture is genuinely r
 
 ## v0.7 quality gate
 
-- [ ] Fabric implementation requires no regression-causing redesign.
-- [ ] NeoForge can be added through loader adapter boundaries.
-- [ ] Vanilla/Fabric/NeoForge instances coexist independently.
+- [x] NeoForge added through adapter boundary; Fabric and Quilt compile/run regression suite remains green.
+- [x] NeoForge uses generic prepared-loader adapter; no NeoForge-specific branch added to account/process layers.
+- [ ] 🚧 IN PROGRESS — Per-instance isolation is implemented; explicit multi-platform mixed-loader gameplay matrix remains unrecorded.
 
 ---
 

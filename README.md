@@ -2,7 +2,7 @@
 
 SyntaxLauncher is a modern Minecraft launcher from SyntaxDevTeam, written primarily in Kotlin and developed incrementally from a minimal vanilla launcher into a modular launcher with premium authentication, isolated instances, mod loaders, Modrinth integration, modpacks and diagnostics.
 
-The project has implemented a v0.2 Instance Manager, reached **v0.6 Modrinth development** and begun v0.7/v0.8 loader work. NeoForge/Forge official version discovery and installer preflight are implemented, but executing installer processors is not; Quilt Meta profile integration has been added. Microsoft app approval, v0.3 real-account acceptance and real Minecraft startup verification remain pending. The Kotlin/Compose launcher now connects the offline account, Mojang metadata, verified game preparation, automatic Java runtime installation, metadata-driven LaunchPlan and MinecraftProcessManager to an actual desktop Play workflow. A real clean-machine Minecraft launch is not yet verified.
+The project has implemented a v0.2 Instance Manager, reached **v0.6 Modrinth development** and begun v0.7/v0.8 loader work. NeoForge processor execution is implemented and verified with an official Maven smoke test; Forge remains in preflight; Quilt Meta profile integration has been added. Microsoft app approval, v0.3 real-account acceptance and real Minecraft startup verification remain pending. The Kotlin/Compose launcher now connects the offline account, Mojang metadata, verified game preparation, automatic Java runtime installation, metadata-driven LaunchPlan and MinecraftProcessManager to an actual desktop Play workflow. A real clean-machine Minecraft launch is not yet verified.
 
 ## Project philosophy
 
@@ -80,9 +80,9 @@ Fabric and Quilt startup were confirmed by the maintainer on 20 October 2026; lo
 
 ## Automatic GitHub Releases
 
-The sole product version is `launcherVersion` in [`gradle.properties`](gradle.properties), now `0.6.0`. Changing it to a higher **plain `X.Y.Z` version** (e.g. `0.6.0` → `0.7.0`) and pushing to `main` automatically publishes a normal GitHub Release `vX.Y.Z` after all Gradle/Python tests and Windows/Linux/macOS packaging succeed. **No GitHub pre-releases are published.** Ordinary code changes do not issue new releases. Matching plain-version manual tags remain supported. Each published release is eligible for the stable launcher updater; remaining gameplay and distribution acceptance limitations are recorded in the roadmap. See [publishing instructions](docs/UPDATING.md).
+The sole product version is `launcherVersion` in [`gradle.properties`](gradle.properties), now `0.7.0`. Changing it to a higher **plain `X.Y.Z` version** (e.g. `0.7.0` → `0.8.0`) and pushing to `main` automatically publishes a normal GitHub Release `vX.Y.Z` after all Gradle/Python tests and Windows/Linux/macOS packaging succeed. **No GitHub pre-releases are published.** Ordinary code changes do not issue new releases. Matching plain-version manual tags remain supported. Each published release is eligible for the stable launcher updater; remaining gameplay and distribution acceptance limitations are recorded in the roadmap. See [publishing instructions](docs/UPDATING.md).
 
-## v0.7 — NeoForge (in development, not yet released)
+## v0.7 — NeoForge (stable-version release; scoped acceptance)
 
 A processor-backed NeoForge installer adapter is now connected to the existing
 instance and launch pipeline. The desktop can discover compatible NeoForge Maven
@@ -94,9 +94,11 @@ directory. A generated runtime profile is merged back into the shared launch
 pipeline. Local mod inventory can recognize the first NeoForge mods.toml record,
 and the existing Modrinth loader filter follows the selected NeoForge instance.
 
-**Not a certified working NeoForge release:** official installer smoke, real
-Minecraft boot, cancellation/recovery checks, and native platform acceptance
-must pass before marking v0.7 complete. Do not use this stage with your only
+**Acceptance scope:** automated installer and official Maven smoke tests passed on
+21 October 2026. The maintainer reported that testing is complete, but did not
+provide an OS/version matrix or logs. This is a v0.7 development-line release,
+not a certification of every NeoForge/Minecraft/mod combination. Cancellation,
+recovery and broader loader compatibility remain tracked in the roadmap. Do not use this stage with your only
 world save or assume filesystem staging is a security sandbox. See
 [the v0.7 acceptance checklist](docs/TESTING_V0.7.md).
 
@@ -124,7 +126,7 @@ touching installed files and explains unmatched local JARs. Managed updates now 
 SHA-256 provenance checks, a persistent backup of previous JARs and an explicit
 last-update rollback action. Updates requiring missing/different dependencies are
 deliberately blocked pending a full dependency reconciliation workflow.
-Optional-dependency choice, richer conflicts and final UI/game acceptance remain open. Fabric and Quilt use the shared browsing/installing workflow. NeoForge and Forge remain unavailable until their processor-based installation is implemented. Local JAR import remains available. See
+Optional-dependency choice, richer conflicts and final UI/game acceptance remain open. Fabric and Quilt use the shared browsing/installing workflow. NeoForge has processor-backed installation; Forge's processor integration remains the v0.8 target. Local JAR import remains available. See
 [the v0.6 test plan](docs/TESTING_V0.6.md). Fabric and Quilt startup acceptance was confirmed by the maintainer on 20 October 2026; remaining mod-management and platform checks stay open.
 
 ## Current implementation
