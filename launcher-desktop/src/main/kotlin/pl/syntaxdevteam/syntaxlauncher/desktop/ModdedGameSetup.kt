@@ -21,7 +21,7 @@ internal suspend fun suggestModdedGame(
     automaticFallback: Boolean = true,
     loadVersions: suspend (String, String) -> List<ModLoaderVersion>,
 ): ModdedGameSetup? {
-    require(loaderId in setOf("fabric", "quilt", "neoforge"))
+    require(loaderId in setOf("fabric", "quilt", "neoforge", "forge"))
     val candidates = if (automaticFallback) (listOf(preferredVersion) + releaseVersions).distinct().take(8)
         else listOf(preferredVersion)
     for (game in candidates.filter(String::isNotBlank)) {

@@ -135,9 +135,17 @@ internal fun QuickModdedGameDialog(
                     }
                     Text(strings.text("game.technical_options"), style = MaterialTheme.typography.labelSmall)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        for (id in listOf("fabric", "quilt", "neoforge")) ChannelButton(
+                        for (id in listOf("fabric", "quilt")) ChannelButton(
                             id.replaceFirstChar { it.uppercase() }, loader == id, !saving, { loader = id })
                     }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        for (id in listOf("neoforge", "forge")) ChannelButton(
+                            id.replaceFirstChar { it.uppercase() }, loader == id, !saving, { loader = id })
+                    }
+                    if (loader == "forge") Text(
+                        strings.text("ui.forge_v2_test_only"),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
                     if (resolved != null) Box {
                         SelectorButton(chosenLoader, onClick = { loaderMenu = true }, enabled = !saving)
                         DropdownMenu(loaderMenu, onDismissRequest = { loaderMenu = false }) {

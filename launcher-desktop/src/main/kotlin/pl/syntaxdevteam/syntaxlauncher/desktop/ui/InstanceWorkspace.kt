@@ -118,7 +118,7 @@ fun InstanceWorkspace(
     LaunchedEffect(newVersion, newLoader) {
         compatible = emptyList()
         fabricError = null
-        if (newLoader in setOf("fabric", "quilt", "neoforge") && newVersion in availableVersions) {
+        if (newLoader in setOf("fabric", "quilt", "neoforge", "forge") && newVersion in availableVersions) {
             fabricLoading = true
             try {
                 compatible = loadLoaderVersions(newLoader, newVersion)
@@ -265,7 +265,7 @@ fun InstanceWorkspace(
                                 Button(onClick = { onEdit(selected) }, enabled = canModify) {
                                     Text(strings.text("ui.settings"))
                                 }
-                                if (selected.loader?.id in setOf("fabric", "quilt", "neoforge")) {
+                                if (selected.loader?.id in setOf("fabric", "quilt", "neoforge", "forge")) {
                                     OutlinedButton(onClick = { onManageMods(selected) },
                                         enabled = canModify) { Text(strings.text("ui.mods")) }
                                 }
@@ -320,7 +320,17 @@ fun InstanceWorkspace(
                                 Text(if (newLoader == "neoforge") "✓ NeoForge" else "NeoForge")
                             }
                         }
-                        if (newLoader in setOf("fabric", "quilt", "neoforge")) {
+                        TextButton(onClick = { newLoader = "forge" }, enabled = canModify) {
+                            Text(if (newLoader == "forge") "✓ Forge (v0.8)" else "Forge (v0.8)")
+                        }
+                        if (newLoader == "forge") Text(
+                            strings.text("ui.forge_v2_test_only"),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        }
+                        if (newLoader in setOf("fabric", "quilt", "neoforge", "forge")) {
                             OutlinedTextField(
                                 value = newFabricVersion,
                                 onValueChange = { newFabricVersion = it },
@@ -342,12 +352,10 @@ fun InstanceWorkspace(
                                 color = MaterialTheme.colorScheme.error,
                                 style = MaterialTheme.typography.bodySmall)
                         }
-                        Text("Forge requires an installer and remains unavailable.",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+
                         Button(onClick = {
                             onCreate(newName.trim(), newVersion.trim(),
-                                if (newLoader in setOf("fabric", "quilt", "neoforge")) ModLoaderSelection(newLoader, newFabricVersion) else null)
+                                if (newLoader in setOf("fabric", "quilt", "neoforge", "forge")) ModLoaderSelection(newLoader, newFabricVersion) else null)
                         },
                             enabled = canModify && newName.trim().length in 1..48 &&
                                 newVersion in availableVersions && fabricValid) { Text(strings.text("ui.create_instance")) }

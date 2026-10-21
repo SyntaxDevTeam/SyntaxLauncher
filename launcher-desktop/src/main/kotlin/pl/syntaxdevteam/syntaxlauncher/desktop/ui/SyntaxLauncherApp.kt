@@ -311,12 +311,12 @@ private fun LauncherPanel(
     var mutationBusy by remember { mutableStateOf(false) }
     var instanceError by remember { mutableStateOf<String?>(null) }
     val activeInstance = inventory?.instances?.firstOrNull { it.id == instanceId }
-    val withMods = activeInstance?.loader?.id in setOf("fabric", "quilt", "neoforge")
+    val withMods = activeInstance?.loader?.id in setOf("fabric", "quilt", "neoforge", "forge")
     var localModWarnings by remember { mutableStateOf<List<String>>(emptyList()) }
     LaunchedEffect(activeInstance?.id, modsBusy) {
         localModWarnings = emptyList()
         val current = activeInstance
-        if (current != null && current.loader?.id in setOf("fabric", "quilt", "neoforge") && !modsBusy) {
+        if (current != null && current.loader?.id in setOf("fabric", "quilt", "neoforge", "forge") && !modsBusy) {
             localModWarnings = try {
                 session.modManager.list(current.id).warnings
             } catch (cancelled: CancellationException) {
@@ -369,7 +369,7 @@ private fun LauncherPanel(
         instanceId = id
         val target = inventory?.instances?.firstOrNull { it.id == id }
         if (id.isBlank() || target?.loader == null) lastVanillaId = id
-        else if (target.loader?.id in setOf("fabric", "quilt", "neoforge")) lastModdedId = id
+        else if (target.loader?.id in setOf("fabric", "quilt", "neoforge", "forge")) lastModdedId = id
         if (id.isBlank()) {
             selected = manifest.versions.firstOrNull { it.id == legacyVersionId }
                 ?: manifest.versions.firstOrNull {
@@ -396,7 +396,7 @@ private fun LauncherPanel(
     fun selectModdedMode() {
         if (locked || inventory == null || withMods) return
         lastVanillaId = instanceId
-        val profiles = inventory?.instances.orEmpty().filter { it.loader?.id in setOf("fabric", "quilt", "neoforge") }
+        val profiles = inventory?.instances.orEmpty().filter { it.loader?.id in setOf("fabric", "quilt", "neoforge", "forge") }
         val existing = profiles.firstOrNull { it.id == lastModdedId }
             ?: profiles.firstOrNull { it.minecraftVersionId == selected?.id }
             ?: profiles.firstOrNull()

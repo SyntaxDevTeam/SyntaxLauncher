@@ -74,7 +74,7 @@ fun InstanceSettingsDialog(
     LaunchedEffect(versionId, loaderId) {
         compatible = emptyList()
         loaderError = null
-        if (loaderId in setOf("fabric", "quilt", "neoforge") && versionValid) {
+        if (loaderId in setOf("fabric", "quilt", "neoforge", "forge") && versionValid) {
             loaderLoading = true
             try {
                 compatible = loadLoaderVersions(loaderId, versionId)
@@ -164,7 +164,18 @@ fun InstanceSettingsDialog(
                         Text(if (loaderId == "neoforge") "✓ NeoForge" else "NeoForge")
                     }
                 }
-                if (loaderId in setOf("fabric", "quilt", "neoforge")) {
+                TextButton(onClick = { loaderId = "forge" }) {
+                    Text(if (loaderId == "forge") "✓ Forge (v0.8)" else "Forge (v0.8)")
+                }
+                if (loaderId == "forge") Text(
+                    strings.text("ui.forge_v2_test_only"),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                // Keep the original group layout for compatible-version selection.
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                }
+                if (loaderId in setOf("fabric", "quilt", "neoforge", "forge")) {
                     OutlinedTextField(
                         value = fabricVersion,
                         onValueChange = { fabricVersion = it },
@@ -240,7 +251,7 @@ fun InstanceSettingsDialog(
                         minimumMemoryMiB = minRam!!,
                         maximumMemoryMiB = maxRam!!,
                         extraJvmArguments = args,
-                        loader = if (loaderId in setOf("fabric", "quilt", "neoforge")) ModLoaderSelection(loaderId, fabricVersion) else null,
+                        loader = if (loaderId in setOf("fabric", "quilt", "neoforge", "forge")) ModLoaderSelection(loaderId, fabricVersion) else null,
                     ))
                 },
             ) { Text(strings.text("ui.save_settings")) }
