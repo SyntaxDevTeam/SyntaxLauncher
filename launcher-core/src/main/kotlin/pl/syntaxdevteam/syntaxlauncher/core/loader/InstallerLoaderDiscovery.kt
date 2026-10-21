@@ -98,10 +98,16 @@ class ForgeLoaderProvider(http: HttpClient, private val downloader: DownloadMana
             http, downloads, flavor = InstallerV2Flavor.FORGE,
         ).install(base, version, layout, runtime)
     }
+    // v0.8 initial acceptance matrix. Do not offer historical/V1 or unverified versions.
+    private val verifiedV2Versions = mapOf("1.21.1" to setOf("52.1.20"))
+
     override suspend fun compatibleVersions(minecraftVersionId: String): List<ModLoaderVersion> {
         require(minecraftVersionId.matches(Regex("[A-Za-z0-9._-]{1,80}")))
+        val verified = verifiedV2Versions[minecraftVersionId] ?: return emptyList()
         val prefix = minecraftVersionId + "-"
-        return metadata().asReversed().filter { it.startsWith(prefix) }.map {
+        return metadata().asReversed().filter {
+            it.startsWith(prefix) && it.removePrefix(prefix) in verified
+        }.map {
             ModLoaderVersion(it.removePrefix(prefix), !it.contains("beta", ignoreCase = true))
         }
     }
