@@ -72,7 +72,7 @@ class NeoForgeInstallerEngineTest {
         val versionProfile = """{
             "id":"neoforge-fixture","inheritsFrom":"1.21.1",
             "mainClass":"example.Launcher",
-            "libraries":[{"name":"net.example:generated:1.0"}],
+            "libraries":[{"name":"net.example:generated:1.0","url":""}],
             "arguments":{"game":["--test-neo"],"jvm":[]}
         }"""
         val bytes = ByteArrayOutputStream()
