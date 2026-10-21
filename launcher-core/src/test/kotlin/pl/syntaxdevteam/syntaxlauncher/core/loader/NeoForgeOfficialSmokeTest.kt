@@ -54,12 +54,14 @@ class NeoForgeOfficialSmokeTest {
                 vanilla, "21.1.213", layout, runtime,
             )
             assertTrue(result.mainClass.isNotBlank())
-            assertTrue(result.libraries.any { it.name.contains("neoforge") })
-            assertTrue(result.libraries.all { library ->
+            val baseNames = vanilla.libraries.map { it.name }.toSet()
+            val loaderLibraries = result.libraries.filter { it.name !in baseNames }
+            assertTrue(loaderLibraries.isNotEmpty(), "No NeoForge runtime libraries were installed.")
+            assertTrue(loaderLibraries.all { library ->
                 library.downloads.artifact?.let { artifact ->
                     Files.isRegularFile(layout.librariesDir.resolve(artifact.path ?: "missing"))
-                } ?: true
-            })
+                } ?: false
+            }, "Not every new NeoForge runtime library exists in the shared cache.")
             assertTrue(Files.notExists(layout.gameDir), "The installer may not modify the instance")
         } finally { http.close() }
     }
