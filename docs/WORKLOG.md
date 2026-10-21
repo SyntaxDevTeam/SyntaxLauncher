@@ -8,6 +8,39 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-21 — Verify official Forge V2 and enable bounded desktop test profiles
+
+**Milestone:** v0.8 — Forge and Quilt  
+**Author/Agent:** GPT-6  
+**Status:** Partial — Forge official processor smoke passed, interactive game acceptance still open
+
+### Completed
+- Corrected Forge V2 runtime metadata that gives empty Maven URLs for generated processor libraries; do not interpret empty strings as relative or untrusted network destinations.
+- Added regression fixture with an empty generated-library URL and safer diagnostics for rejected Maven sources.
+- GitHub Actions 39560642818 passed the official Minecraft 1.21.1 + Forge 52.1.20 processor smoke, full core/desktop tests and official NeoForge smoke; native packaging jobs also completed successfully.
+- Restricted Forge version discovery to the one verified Minecraft/Forge version pair for v0.8 testing; incompatible/historical versions are rejected in selection.
+- Added a guarded Forge (v0.8) choice in game creation, instance settings and advanced modded-game setup, with EN/PL/DE warnings. Home modded mode and instance-local Mods support Forge.
+
+### Changed files
+- `NeoForgeInstallerEngine.kt`, `NeoForgeInstallerEngineTest.kt`, `InstallerLoaderDiscovery.kt`, `InstallerLoaderDiscoveryTest.kt` — Forge V2 URL and matrix validation.
+- `InstanceSettingsDialog.kt`, `InstanceWorkspace.kt`, `QuickModdedGameDialog.kt`, `ModdedGameSetup.kt`, `SyntaxLauncherApp.kt`, `i18n/*` — gated test UI.
+- `docs/ROADMAP.md`, `docs/TESTING_V0.8.md`, `README.md`, `docs/WORKLOG.md` — state and evidence.
+
+### Verification
+- Official Forge/NeoForge installer and tests — PASS, Actions 39560642818.
+- New constrained UI changes — CI pending on the latest commit; no real Minecraft Forge game boot claimed.
+- v0.7.0 GitHub Release — still blocked by GitHub HTTP 403; separate write-authorized release token/permission required.
+
+### Roadmap updates
+- `[x] v0.8 / Official Forge V2 processor smoke and compatibility selection restrictions`.
+- `[ ] v0.8 / Real Forge game startup, Modrinth mod and historical compatibility acceptance` — remains open.
+
+### Follow-ups / known issues
+- The v0.8 test picker must never offer an unverified Forge/Minecraft combination.
+- Product version remains 0.7.0 until v0.8 is verified and explicitly prepared for release.
+
+---
+
 ## 2026-10-21 — Begin Forge V2 milestone and diagnose v0.7.0 publication
 
 **Milestone:** v0.8 — Forge/Quilt  

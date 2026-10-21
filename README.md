@@ -2,7 +2,7 @@
 
 SyntaxLauncher is a modern Minecraft launcher from SyntaxDevTeam, written primarily in Kotlin and developed incrementally from a minimal vanilla launcher into a modular launcher with premium authentication, isolated instances, mod loaders, Modrinth integration, modpacks and diagnostics.
 
-The project has implemented a v0.2 Instance Manager, reached **v0.6 Modrinth development** and begun v0.7/v0.8 loader work. NeoForge processor execution is implemented and verified with an official Maven smoke test; Forge has a V2 installer adapter under CI validation; Quilt Meta profile integration has been added. Microsoft app approval, v0.3 real-account acceptance and real Minecraft startup verification remain pending. The Kotlin/Compose launcher now connects the offline account, Mojang metadata, verified game preparation, automatic Java runtime installation, metadata-driven LaunchPlan and MinecraftProcessManager to an actual desktop Play workflow. A real clean-machine Minecraft launch is not yet verified.
+The project has implemented a v0.2 Instance Manager, reached **v0.6 Modrinth development** and begun v0.7/v0.8 loader work. NeoForge processor execution is implemented and verified with an official Maven smoke test; Forge 1.21.1/52.1.20 V2 installer smoke passed and its test profile is selectable; Quilt Meta profile integration has been added. Microsoft app approval, v0.3 real-account acceptance and real Minecraft startup verification remain pending. The Kotlin/Compose launcher now connects the offline account, Mojang metadata, verified game preparation, automatic Java runtime installation, metadata-driven LaunchPlan and MinecraftProcessManager to an actual desktop Play workflow. A real clean-machine Minecraft launch is not yet verified.
 
 ## Project philosophy
 
@@ -87,7 +87,7 @@ The sole product version is `launcherVersion` in [`gradle.properties`](gradle.pr
 
 ## v0.8 — Forge and Quilt (development)
 
-Forge modern installer V2 now shares a staged processor engine with NeoForge, while official installer discovery and SHA-1 verification remain loader-specific. Initial target: Minecraft 1.21.1 / Forge 52.1.20. The local mod manager recognizes basic `META-INF/mods.toml` identity and supports isolated Forge instances. Historical Forge V1 and older Java compatibility are not implemented. Forge stays unavailable as a public loader option until official installation and real game startup pass. See [v0.8 acceptance](docs/TESTING_V0.8.md).
+Forge modern installer V2 now shares a staged processor engine with NeoForge, while official installer discovery and SHA-1 verification remain loader-specific. Initial target: Minecraft 1.21.1 / Forge 52.1.20. The local mod manager recognizes basic `META-INF/mods.toml` identity and supports isolated Forge instances. Historical Forge V1 and older Java compatibility are not implemented. Forge 1.21.1 / 52.1.20 is selectable in the advanced game and instance settings as a clearly marked v0.8 **test** option after official V2 installer smoke passed. It is not yet production-certified: an actual Minecraft Forge game/mod startup remains to be validated. See [v0.8 acceptance](docs/TESTING_V0.8.md).
 
 ## v0.7 — NeoForge (v0.7.0 version set; public Release not yet available)
 
@@ -396,7 +396,7 @@ Loader support is intentionally staged:
 
 - Fabric — v0.4
 - NeoForge — v0.7
-- Forge — v0.8 (official SHA-1-verified V2 installer and shared processor adapter; game boot not yet accepted)
+- Forge — v0.8 (official SHA-1-verified V2 installation passed for 1.21.1/52.1.20; in-game startup not yet accepted)
 - Quilt — v0.8 (official Quilt Meta v3 profile and instance selection; actual game acceptance pending)
 
 Local mod management arrives in v0.5, followed by Modrinth integration and dependency resolution in v0.6.

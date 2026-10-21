@@ -552,12 +552,12 @@ Goal: broaden loader support while preserving historical-version compatibility d
 
 ## Forge
 
-- [x] Discover official Forge Maven versions with Minecraft compatibility filtering; Forge V2 processor adapter added, live acceptance pending.
-- [ ] 🚧 IN PROGRESS — Verified SHA-1 Forge installer download and modern V2 profile/processor inspection implemented; synthetic and live CI pending.
-- [ ] 🚧 IN PROGRESS — Initial modern V2 target Minecraft 1.21.1 / Forge 52.1.20; legacy Forge V1 and historical Java combinations are intentionally unsupported until tested.
-- [ ] 🚧 IN PROGRESS — Forge uses shared ProcessorInstallerV2Engine and PreparedModLoaderProvider through common coordinator; actual Forge Minecraft boot acceptance remains open.
-- [ ] 🚧 IN PROGRESS — Read Forge META-INF/mods.toml IDs, names and versions and permit local mod operations under isolated Forge instances; complete TOML dependency semantics remain open.
-- [ ] 🚧 IN PROGRESS — Forge loader facet is supported in shared Modrinth adapter; installer/gameplay acceptance required before exposing Forge as supported in the desktop picker.
+- [x] Discover official Forge Maven versions with compatibility filtering; restrict v0.8 test selection to the verified 1.21.1 / Forge 52.1.20 pair.
+- [x] Download and SHA-1 verify Forge V2 installer; inspect client processors and execute official 1.21.1/52.1.20 installation smoke (GitHub Actions 39560642818 passed).
+- [x] Initial supported V2 installer test matrix scoped to Minecraft 1.21.1 / Forge 52.1.20; unsupported versions absent from selector. Historical Forge V1 support intentionally excluded.
+- [ ] 🚧 IN PROGRESS — Forge V2 is installed through common PreparedModLoaderProvider and ProcessorInstallerV2Engine; official artifact installation passed, actual Forge Minecraft client startup acceptance remains open.
+- [ ] 🚧 IN PROGRESS — Parse basic Forge META-INF/mods.toml identity and allow instance-local JAR operations (deterministic core CI passed); complete TOML dependency semantics and gameplay still open.
+- [ ] 🚧 IN PROGRESS — Forge version and loader-filtered Modrinth browser is available for explicit v0.8 test profiles; real Forge mod install and game startup still need manual acceptance.
 
 ## Quilt
 
