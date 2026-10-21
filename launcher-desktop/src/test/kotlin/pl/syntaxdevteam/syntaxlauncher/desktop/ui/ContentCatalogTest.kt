@@ -129,6 +129,40 @@ class ContentCatalogTest {
         } finally { scene.close() }
     }
 
+    @Test fun graphicsCategoriesInstallInOneClickAtSmallAndLargeSizesInEveryLanguage() = runBlocking(Dispatchers.Swing) {
+        for (language in UiLanguage.entries) for ((width, height) in listOf(820 to 650, 400 to 400)) {
+            val strings = UiStrings(language)
+            val profile = instance(true)
+            val installed = mutableListOf<CatalogSection>()
+            val scene = ImageComposeScene(width, height, coroutineContext = Dispatchers.Swing) {
+                CompositionLocalProvider(LocalStrings provides strings) {
+                    CatalogTestTheme { ContentCatalog(profile, true,
+                        search = { _, _, _ -> listOf(project) }, install = { section, _ -> installed += section },
+                        onBusyChange = {}, onManage = {}, onDismiss = {},
+                        shaderAvailable = true, optiFineAvailable = true, onManagePacks = {}) }
+                }
+            }
+            try {
+                for (section in listOf(CatalogSection.SHADERS, CatalogSection.OPTIFINE)) {
+                    scene.until { nodes -> nodes.any { it.label() == strings.text(section.label) } }
+                    scene.text(strings.text(section.label)).click()
+                    scene.frames()
+                    scene.until { nodes -> nodes.any { it.config.getOrNull(SemanticsProperties.TestTag) == "catalog-install-PACKROOT" } }
+                    val install = scene.tag("catalog-install-PACKROOT")
+                    assertTrue(install.boundsInRoot.height >= 40 && install.boundsInRoot.bottom <= height,
+                        "Visible Install required for $language $section $width")
+                    install.click()
+                    scene.until { nodes -> nodes.any { it.label() == strings.text("catalog.installed") } }
+                    val dir = Path.of("build/reports/ui").also(Files::createDirectories)
+                    scene.render(System.nanoTime()).use { image -> Files.write(
+                        dir.resolve("catalog-${section.name.lowercase()}-${language.code}-$width.png"),
+                        image.encodeToData()!!.use { it.bytes }) }
+                }
+                assertEquals(listOf(CatalogSection.SHADERS, CatalogSection.OPTIFINE), installed)
+            } finally { scene.close() }
+        }
+    }
+
     @androidx.compose.runtime.Composable
     private fun CatalogTestTheme(content: @androidx.compose.runtime.Composable () -> Unit) {
         SyntaxTheme {

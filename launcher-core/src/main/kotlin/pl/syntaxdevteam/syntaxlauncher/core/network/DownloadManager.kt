@@ -3,7 +3,8 @@ package pl.syntaxdevteam.syntaxlauncher.core.network
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.ResponseException
 import io.ktor.client.plugins.timeout
-import io.ktor.client.request.get
+import io.ktor.client.request.prepareGet
+import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsChannel
 import io.ktor.http.isSuccess
 import io.ktor.utils.io.readAvailable
@@ -164,22 +165,21 @@ class DownloadManager(
         request: DownloadRequest,
         emitter: SerialDownloadEventEmitter,
     ): DownloadResult {
-        val response = try {
-            httpClient.get(request.url) {
+        return try {
+            httpClient.prepareGet(request.url) {
                 request.requestTimeoutMillis?.let { duration -> timeout { requestTimeoutMillis = duration } }
-            }
+            }.execute { response -> downloadResponse(request, emitter, response) }
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (responseError: ResponseException) {
-            throw DownloadHttpException(
-                downloadId = request.id,
-                statusCode = responseError.response.status.value,
-                cause = responseError,
-            )
-        } catch (failure: Throwable) {
+            throw DownloadHttpException(request.id, responseError.response.status.value, responseError)
+        } catch (failure: IOException) {
             throw DownloadNetworkException(request.id, failure)
         }
+    }
 
+    private suspend fun downloadResponse(request: DownloadRequest, emitter: SerialDownloadEventEmitter,
+        response: HttpResponse): DownloadResult {
         if (!response.status.isSuccess()) {
             throw DownloadHttpException(request.id, response.status.value)
         }
@@ -224,14 +224,17 @@ class DownloadManager(
                         if (read < 0) break
                         if (read == 0) continue
 
-                        output.write(buffer, 0, read)
-                        digest.update(buffer, 0, read)
-                        sha256?.update(buffer, 0, read)
                         downloadedBytes += read
+                        request.maximumBytes?.let { limit ->
+                            if (downloadedBytes > limit) throw DownloadTooLargeException(request.id, limit)
+                        }
                         request.expectedSize?.let { expected ->
                             if (downloadedBytes > expected) throw DownloadSizeMismatchException(request.id, expected, downloadedBytes)
                         }
 
+                        output.write(buffer, 0, read)
+                        digest.update(buffer, 0, read)
+                        sha256?.update(buffer, 0, read)
                         if (downloadedBytes - lastReportedBytes >= PROGRESS_INTERVAL_BYTES) {
                             lastReportedBytes = downloadedBytes
                             emitter.emit(
@@ -348,7 +351,8 @@ class DownloadManager(
                 existing.url != request.url ||
                 existing.expectedSha1 != request.expectedSha1 ||
                 existing.expectedSha256 != request.expectedSha256 ||
-                existing.expectedSize != request.expectedSize
+                existing.expectedSize != request.expectedSize ||
+                existing.maximumBytes != request.maximumBytes
             ) {
                 throw DownloadTargetConflictException(request.target)
             }

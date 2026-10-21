@@ -9,6 +9,63 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 ---
 
 
+
+## 2026-10-21 — Complete bounded v0.9 graphics workflows and start v0.10 planning
+
+**Milestone:** v0.9 — bounded acceptance; v0.10 — first read-only manifest-planning phase
+**Author/Agent:** Codex / GPT-6
+**Status:** Completed
+
+Scope: the documented v0.9 implementation/support matrix and initial v0.10 planner. This does not claim complete modpack installation or universal native/platform acceptance.
+
+### Completed
+- Extended the child-first shared catalog with supported shaders and OptiFine: compatible choices, one Install action, automatic required components, error/retry/cancel states and renewed compatibility discovery after source failures. Compact layouts retain a reachable action in EN/PL/DE.
+- Added Iris renderer preparation through the existing Modrinth resolver/installer, preserving compatible tracked versions, enabling byte-identical required disabled components and refusing untracked replacement or OptiFine/Iris mixing. Shader ZIPs validate before renderer work; game/loader/all required renderer hashes are checked again under the final pack activity lock. Stale mod installation plans now recheck the profile at publication too.
+- Added Iris shader selection with correct Java Properties encoding, unknown-value retention and exact original-byte backups. My packs presents installed metadata/icons, Use/Turn off, texture priority, recoverable Remove/Undo and secondary ZIP import. Undo never overwrites collisions; its receipt lasts for the open dialog while removed ZIPs/backups remain retained. A successful restore followed by failed shader reactivation leaves an inactive restored file available for Use/retry.
+- Implemented official private OptiFine download/installation for Vanilla 1.21.1 / HD U J1 only. Managed Java executes the official installer's own logic in a headless staged worker; generated artifacts are hashed/content-addressed and merged through an independent graphics component resolver in the common launch pipeline. No OptiFine binary is bundled/mirrored, no loader provider was added, and no worlds are converted. Retained logs, timeout/cancellation and unknown-future-schema refusal are included; staging is not an OS security sandbox.
+- Added additive schema-1 instance graphics state with backward-compatible absence, preserved unknown root data, original-byte backups and per-launch artifact/game/loader validation. Disable recovers ordinary Vanilla even when artifacts are missing; future schemas remain untouched.
+- Changed the shared downloader to a streamed response lifetime and optional maximumBytes limit because the official OptiFine source does not supply Content-Length. Oversize downloads fail without retries, do not publish partial data and preserve existing destinations. Generated artifact hashes are local integrity records, not upstream signatures.
+- Ran the actual official private OptiFine installer/overlay smoke twice successfully after correcting the Content-Length assumption; this is distinct from starting graphical Minecraft. Source binaries/temp games stay outside tracked source. The latest smoke report is retained under launcher-core/build/reports/official-optifine-smoke.xml locally.
+- The maintainer subsequently selected the explicit confirmation of v0.9 in-game textures, a shader with automatic Iris and Vanilla 1.21.1 / OptiFine J1 startup. No OS, exact loader/Iris/pack versions or logs were supplied. Recorded bounded acceptance without inventing those details. Moved the broader native/platform/extended recovery matrix from v0.9 to the v1.0 quality gate, where it remains unchecked; the private confirmation is not a waiver or a claim those checks ran.
+- Started v0.10 with a deterministic read-only Modrinth index planner: exact requested game/known single-loader mapping, required/optional/server-only roles, SHA-1/SHA-512 metadata, bounded HTTPS mirrors and portable safe/nonconflicting file destinations. Unknown manifest metadata is retained; malformed/future formats and unsupported mandatory components fail without network, extraction or instance writes. This is not ZIP import, payload verification or a working modpack catalog.
+
+### Changed files
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/content/{IrisRendererSetup,ShaderPackSelection,GameSettingsWrite,LocalGraphicsProfile,OptiFineCatalog}.kt` — automatic renderer setup, settings safety and separate OptiFine component lifecycle.
+- `launcher-core/src/main/java/pl/syntaxdevteam/syntaxlauncher/core/content/OptiFineInstallWorker.java` — JDK-only official installer child entry point, usable from the packaged core JAR.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/content/{LocalPackManager,ResourcePackSelection,ModrinthResourcePacks}.kt` — shader catalog/batch activation, installed metadata/state, selection/priority and safe recovery.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/{launch/MinecraftLaunchCoordinator,mods/LocalModManager,mods/ModrinthCatalog,mods/ModrinthInstaller}.kt` — common graphics overlay, selected renderer version resolution and stale-profile checks.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/network/{DownloadManager,DownloadModels,DownloadExceptions,DownloadIntegrityVerifier}.kt` — streaming lifetime and optional hard size cap.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/modpack/ModrinthModpackPlanner.kt` — first v0.10 manifest/plan model and validation, without installation side effects.
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/{content/ShaderCatalogTest,content/GraphicsProfileTest,content/OptiFineOfficialSmokeTest,network/DownloadManagerTest,modpack/ModrinthModpackPlannerTest}.kt` — deterministic graphics/download/plan regressions and separate official live smoke.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/{DesktopLauncherSession,Main,ui/ContentCatalog,ui/InstalledPacks}.kt` — shared services and asynchronous graphics/installed-pack workflows.
+- `launcher-desktop/src/main/resources/i18n/{en,pl,de}.properties`, `launcher-desktop/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/{ContentCatalogTest,InstalledPacksTest}.kt` — translated states/actions and small/large interaction/render coverage.
+- `README.md`, `docs/{ARCHITECTURE,DEVELOPMENT,DESIGN,MILESTONES,ROADMAP,TESTING_V0.9,WORKLOG}.md` — bounded support, acceptance evidence, recovery/schema contracts, broader unverified matrix and first v0.10 scope.
+
+### Verification
+- `./gradlew test` — PASS via final `./gradlew --offline test build :launcher-desktop:createDistributable`; 167 core tests and 32 desktop tests passed, three opt-in live tests skipped, zero failures/errors (199 passed / 202 discovered).
+- `./gradlew build` — PASS in the same full invocation.
+- `./gradlew --offline :launcher-desktop:createDistributable` — PASS, local Linux app image; not a cross-platform native certification.
+- `SYNTAXLAUNCHER_OPTIFINE_LIVE_SMOKE=1 ./gradlew --offline :launcher-core:test --tests '*OptiFineOfficialSmokeTest' --rerun-tasks` — PASS with official private installer and Mojang inputs; generated profile/arguments/artifacts, unchanged save marker and disable verified; no graphical game boot by the agent.
+- Manual verification — reviewed compact Polish/German graphics catalog and installed-pack screenshots. Maintainer confirmed the requested v0.9 gameplay flows separately, without an exact platform/pack matrix. Native focus/DPI/platform and extended recovery checks remain unverified.
+- `git diff --check` — PASS.
+
+### Roadmap updates
+- `[x] v0.9 / Local foundation / Installed UI and bounded streaming download support`
+- `[x] v0.9 / OptiFine / Strategy, bounded discovery, component integration and unsupported combinations`
+- `[x] v0.9 / Shaders / Instance inventory/import/removal, selection and automatic compatible renderer closure`
+- `[x] v0.9 / Resource packs / Installed management, metadata/icon and explicit priority`
+- `[x] v0.9 / Quality gate / Scoped graphics, separate OptiFine architecture, mod regressions and private maintainer gameplay acceptance`
+- `[x] v0.10 / Modpack model / Read-only deterministic installation plan and strict index validation`
+- `[ ] v0.10 / Remaining installer/catalog/override/export/quality items — no complete playable modpack installation yet`
+- `[ ] v1.0 / Quality gate / Broader native graphics/catalog/platform/extended recovery acceptance — moved explicitly from v0.9 after bounded confirmation; no test result is fabricated`
+
+### Follow-ups / known issues
+- Next v0.10 phase: safe `.mrpack` ZIP/override handling, exact compatibility discovery, both-hash payload verification, staged new-instance publication and the one-action catalog. Optional content remains a separate plan list; nothing is silently installed by this phase.
+- OptiFine support is Vanilla 1.21.1 / J1 only; shaders currently target Iris-compatible published combinations. OptiFine shader selection, Forge shaders and historical/mixed OptiFine stacks are outside this matrix.
+- Catalog badges are session-scoped, last-removal Undo is dialog-scoped, and retained trash/backups have no automatic cleanup or persistent recovery browser. Folder packs remain unmanaged. Native/platform/extended recovery acceptance stays open under v1.0.
+- Canonical launcherVersion, release/tag state and Git history were not changed; no commit or push was made.
+
+
 ## 2026-10-21 — Make child-first catalog installation mandatory and deliver Mods/Textures
 
 **Milestone:** v0.6 — simplified mod catalog; v0.9 — resource-pack catalog; cross-milestone UX

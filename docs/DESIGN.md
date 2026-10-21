@@ -398,3 +398,9 @@ When no modded game exists, a short setup automatically suggests a compatible ga
 ## 20. Launcher update channels
 
 Keep Launcher updates as a quiet secondary action in Your setup. Its compact dialog shows the saved Stable/SNAPSHOT/DEV choice, a brief preview explanation, loading/disabled/error/Retry states and an explicit next-start message. Without a saved choice, show the running build’s embedded channel: Stable for releases, DEV/SNAPSHOT for preview archives. Explain that switching can install an older launcher, independently of Minecraft snapshot selection. Keep network/disk work off the UI thread; update checks continue through the existing branded startup screen. Retain EN/PL/DE labels, keyboard access and the 400×400 minimum.
+
+## 21. Graphics catalog and My packs
+
+Choose extras shares one Install interaction across compatible Mods, Textures, Shaders and OptiFine. Show graphics categories only for supported games; never promise that an arbitrary shader ZIP is ready without renderer setup. Install automatically resolves compatible Iris and required components. OptiFine initially appears only for supported Vanilla 1.21.1; no silent loader/game/world conversion is allowed.
+
+More → My packs is secondary to discovery. Present installed texture/shader names, optional descriptions/icons and a clear active state. Use/Turn off, Remove/Undo and texture priority must describe their effect plainly; local ZIP import is an advanced option. Keep one main action per pack, guard concurrent operations, allow cancellation and preserve recoverable files. Small windows must retain scrollable content and reachable controls. EN/PL/DE screenshots and deterministic interactions supplement actual native focus/DPI/gameplay acceptance.

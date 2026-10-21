@@ -15,6 +15,7 @@ class DownloadIntegrityVerifier {
                 return@withContext false
             }
 
+            if (request.maximumBytes != null && Files.size(target) > request.maximumBytes) return@withContext false
             request.expectedSize?.let { expected ->
                 if (Files.size(target) != expected) {
                     return@withContext false

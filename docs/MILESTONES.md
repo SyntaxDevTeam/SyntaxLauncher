@@ -319,7 +319,7 @@ One launcher core supports Vanilla, Fabric, NeoForge, Forge and Quilt through ad
 
 ## v0.9 — OptiFine, Shaders and Resource Packs
 
-**Development started, 21 October 2026:** a core local ZIP service now backs a child-first Mods/Textures catalog. Resource-pack versions/dependencies are automatically selected, verified and activated; original game settings are backed up and preserved. Shader ZIP management remains core-only, awaiting renderer setup and a complete catalog workflow. Resource packs and shader packs remain separate content kinds; neither becomes a mod-loader provider. Installed-pack presentation/reordering/recovery, shader renderer setup and OptiFine integration remain incomplete; see [TESTING_V0.9.md](TESTING_V0.9.md).
+**Bounded acceptance, 21 October 2026:** the maintainer confirmed private v0.9 texture activation, shaders with automatic Iris and Vanilla 1.21.1 / OptiFine J1 startup; no exact OS/loader/renderer/pack matrix was supplied. Broader native/platform and extended recovery acceptance remains open under v1.0. The child-first catalog installs textures and Iris shaders with required dependencies and automatic selection. My packs supplies installed metadata/icons, enable/disable, resource priority, recoverable remove/Undo and secondary ZIP import. OptiFine uses an official private installer and the common launch pipeline as a separate instance component, initially Vanilla 1.21.1 / HD U J1 only. Official installer smoke passed; this is not a real Minecraft graphics-startup result. No general Forge/OptiFine support or complete v0.10 modpack workflow is claimed. See [TESTING_V0.9.md](TESTING_V0.9.md).
 
 ### Objective
 
@@ -346,6 +346,8 @@ Graphics-related features remain optional instance components and do not contami
 ---
 
 ## v0.10 — Modpacks
+
+**Started, 21 October 2026:** a deterministic read-only Modrinth index planner validates requested versions/components, client environments, hashes, sources and portable destinations. This first phase does not import ZIPs, download files, create an instance or expose a working modpack catalog; the complete one-action workflow remains required.
 
 ### Objective
 

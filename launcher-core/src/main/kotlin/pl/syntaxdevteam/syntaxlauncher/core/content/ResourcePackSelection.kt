@@ -42,7 +42,7 @@ internal class ResourcePackSelection private constructor(
     }
 
     companion object {
-        fun prepare(game: Path, fileNames: List<String>, remove: Boolean = false): ResourcePackSelection? {
+        fun prepare(game: Path, fileNames: List<String>, remove: Boolean = false, priorityStep: Int = 0): ResourcePackSelection? {
             val target = game.resolve("options.txt")
             val original = if (Files.exists(target, NOFOLLOW_LINKS)) {
                 if (!Files.isRegularFile(target, NOFOLLOW_LINKS) || Files.size(target) > 1024 * 1024) {
@@ -70,7 +70,16 @@ internal class ResourcePackSelection private constructor(
                 throw LocalPackException("Unrecognized resource pack selection; existing settings were preserved.")
             }
             val chosen = fileNames.map { JsonPrimitive("file/$it") }
-            val value = "resourcePacks:" + JsonArray(packs.filter { it !in chosen } + if (remove) emptyList() else chosen)
+            val reordered = if (priorityStep != 0) {
+                require(priorityStep == -1 || priorityStep == 1)
+                val current = packs.toMutableList()
+                val from = current.indexOf(chosen.single())
+                if (from < 0) throw LocalPackException("Select this texture pack before changing its priority.")
+                val to = (from + priorityStep).coerceIn(0, current.lastIndex)
+                if (from != to) java.util.Collections.swap(current, from, to)
+                current
+            } else packs.filter { it !in chosen } + if (remove) emptyList() else chosen
+            val value = "resourcePacks:" + JsonArray(reordered)
             val index = indexes.firstOrNull()
             if (index != null) lines[index] = value
             else {

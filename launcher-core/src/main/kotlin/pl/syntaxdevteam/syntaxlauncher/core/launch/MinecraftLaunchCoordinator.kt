@@ -51,6 +51,8 @@ class MinecraftLaunchCoordinator(
     private val layout: MinecraftInstallationLayout,
     private val platform: MinecraftPlatform,
     private val loaders: ModLoaderRegistry? = null,
+    private val graphics: pl.syntaxdevteam.syntaxlauncher.core.content.GraphicsProfileResolver =
+        pl.syntaxdevteam.syntaxlauncher.core.content.LocalGraphicsProfileResolver(),
 ) {
     private val log = LoggerFactory.getLogger(MinecraftLaunchCoordinator::class.java)
     private val launchMutex = Mutex()
@@ -73,11 +75,12 @@ class MinecraftLaunchCoordinator(
                     "Minecraft does not declare a supported Java runtime.",
                 )
             val delayedInstaller = loader != null && loaders?.requiresInstallation(loader.id) == true
-            val effectiveVersion = if (loader == null || delayedInstaller) version else {
+            val loaderVersion = if (loader == null || delayedInstaller) version else {
                 stage(LaunchPhase.PREPARING_LOADER, "Resolving ${loader.id} ${loader.version}")
                 val registry = loaders ?: throw ModLoaderException("Mod loader service is not configured.")
                 registry.resolve(version, loader)
             }
+            val effectiveVersion = graphics.resolve(loaderVersion, instanceLayout, loader)
             stage(LaunchPhase.PREPARING_GAME, "Preparing Minecraft ${version.id}")
             val vanillaPrepared = preparation.prepare(effectiveVersion, platform, instanceLayout) { event ->
                 when (event) {
@@ -194,6 +197,7 @@ class MinecraftLaunchCoordinator(
 
     private fun messageFor(error: Exception): String {
         val reason = when (error) {
+            is pl.syntaxdevteam.syntaxlauncher.core.content.GraphicsEnhancementException -> error.message ?: "Cannot prepare graphics enhancement."
             is ModLoaderException -> error.message ?: "Could not prepare the mod loader."
             is MinecraftProcessException -> "Cannot start Minecraft. Check the game logs."
             is LaunchPlanException -> "Cannot construct launch arguments for this version."

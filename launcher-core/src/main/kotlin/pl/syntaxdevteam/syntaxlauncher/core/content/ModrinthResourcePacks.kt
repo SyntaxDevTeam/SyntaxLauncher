@@ -22,19 +22,30 @@ import pl.syntaxdevteam.syntaxlauncher.core.network.DownloadManager
 import pl.syntaxdevteam.syntaxlauncher.core.network.DownloadRequest
 
 /** The child chooses a project; version/dependency selection and verified ZIP installation stay here. */
-class ModrinthResourcePacks(
+class ModrinthPackCatalog(
     private val http: HttpClient,
     private val instances: MinecraftInstanceRepository,
     private val packs: LocalPackManager,
     private val downloads: DownloadManager,
     private val api: String = "https://api.modrinth.com/v2",
+    private val kind: LocalPackKind = LocalPackKind.RESOURCE_PACK,
+    private val renderer: ShaderRendererSetup? = null,
 ) {
+    private val projectType get() = if (kind == LocalPackKind.SHADER_PACK) "shader" else "resourcepack"
+    private val packLoader get() = if (kind == LocalPackKind.SHADER_PACK) "iris" else "minecraft"
+    suspend fun available(instance: MinecraftInstance): Boolean =
+        kind != LocalPackKind.SHADER_PACK || renderer?.available(instance) == true
+
     suspend fun search(instance: MinecraftInstance, text: String = "", offset: Int = 0): List<ModrinthProject> {
         require(text.length <= 100 && offset in 0..1000 &&
             instance.minecraftVersionId.matches(Regex("[A-Za-z0-9._+-]{1,100}")))
+        if (!available(instance)) throw LocalPackException("No compatible shader renderer is available for this game.")
         val payload = http.get("$api/search") {
             parameter("query", text.trim())
-            parameter("facets", """[["project_type:resourcepack"],["versions:${instance.minecraftVersionId}"]]""")
+            val facets = mutableListOf(JsonArray(listOf(JsonPrimitive("project_type:$projectType"))),
+                JsonArray(listOf(JsonPrimitive("versions:${instance.minecraftVersionId}"))))
+            if (kind == LocalPackKind.SHADER_PACK) facets += JsonArray(listOf(JsonPrimitive("categories:iris")))
+            parameter("facets", JsonArray(facets).toString())
             parameter("index", if (text.isBlank()) "downloads" else "relevance")
             parameter("limit", 20)
             parameter("offset", offset)
@@ -57,20 +68,20 @@ class ModrinthResourcePacks(
             require(validId(projectId) && (versionId == null || validId(versionId)))
             check(depth < 16 && selected.size < 32) { "Too many required resource packs." }
             val info = objectFrom(http.get("$api/project/$projectId").bodyAsText())
-            check(info.string("id") == projectId && info.string("project_type") == "resourcepack") {
+            check(info.string("id") == projectId && info.string("project_type") == projectType) {
                 "A required project is not a resource pack."
             }
             val versions = if (versionId != null) listOf(objectFrom(http.get("$api/version/$versionId").bodyAsText()))
                 else {
                     val payload = http.get("$api/project/$projectId/version") {
                         parameter("game_versions", JsonArray(listOf(JsonPrimitive(instance.minecraftVersionId))).toString())
-                        parameter("loaders", "[\"minecraft\"]")
+                        parameter("loaders", JsonArray(listOf(JsonPrimitive(packLoader))).toString())
                     }.bodyAsText()
                     (Json.parseToJsonElement(payload) as? JsonArray)?.map { it as JsonObject }
                         ?: throw LocalPackException("Cannot read compatible resource pack releases.")
                 }
             val version = versions.filter { it.string("project_id") == projectId &&
-                instance.minecraftVersionId in it.strings("game_versions") && "minecraft" in it.strings("loaders") }
+                instance.minecraftVersionId in it.strings("game_versions") && packLoader in it.strings("loaders") }
                 .sortedWith(compareBy<JsonObject> { if (it.string("version_type") == "release") 0 else 1 }
                     .thenByDescending { it.string("date_published") }).firstOrNull()
                 ?: throw LocalPackException("No compatible resource pack release is available for this game.")
@@ -125,9 +136,18 @@ class ModrinthResourcePacks(
             // Recheck under the publication lock as metadata may have changed during network work.
             val current = instances.get(instanceId)
             check(current.minecraftVersionId == instance.minecraftVersionId) { "Game version changed. Try again." }
-            packs.importBatch(instanceId, LocalPackKind.RESOURCE_PACK, requests.map { it.target },
-                selectedResourcePack = requests.last().target.fileName.toString(),
-                expectedGameVersion = instance.minecraftVersionId, reuseIdentical = true)
+            // Validate before installing any renderer; a bad ZIP must not add mods to the game.
+            requests.forEach { packs.validateArchive(it.target, kind) }
+            if (kind == LocalPackKind.SHADER_PACK) instances.withInactiveInstance(instanceId) {
+                ShaderPackSelection.prepare(game, requests.last().target.fileName.toString())
+            }
+            val proof = if (kind == LocalPackKind.SHADER_PACK) {
+                (renderer ?: throw LocalPackException("Shader renderer setup is unavailable.")).ensure(instance)
+            } else null
+            packs.importBatch(instanceId, kind, requests.map { it.target },
+                selectedResourcePack = if (kind == LocalPackKind.RESOURCE_PACK) requests.last().target.fileName.toString() else null,
+                expectedGameVersion = instance.minecraftVersionId, reuseIdentical = true,
+                shaderActivation = proof?.let { ShaderActivation(requests.last().target.fileName.toString(), it) })
         } finally {
             Files.newDirectoryStream(staging).use { entries -> entries.forEach { Files.deleteIfExists(it) } }
             Files.deleteIfExists(staging)
@@ -141,3 +161,6 @@ class ModrinthResourcePacks(
     private fun JsonObject.array(key: String): List<JsonElement> = (get(key) as? JsonArray)?.toList().orEmpty()
     private fun JsonObject.strings(key: String) = array(key).mapNotNull { (it as? JsonPrimitive)?.contentOrNull }
 }
+
+/** Source-compatible resource-pack API; the implementation also serves shader ZIPs. */
+typealias ModrinthResourcePacks = ModrinthPackCatalog

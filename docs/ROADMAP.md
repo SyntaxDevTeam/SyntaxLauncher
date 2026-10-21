@@ -16,7 +16,7 @@ Agents and contributors MUST keep this file synchronized with actual repository 
 
 - [x] Record the non-negotiable audience/workflow in AGENTS.md and DESIGN.md: children browse inside the launcher, choose a single item or ready-made set and Install/Play; versions, loaders, Java, renderers and required dependencies belong to the launcher, not the child. Manual files and technical plans stay advanced.
 - [x] Introduce the shared one-click Mods/Textures catalog for saved games, translated search/install/status/retry/cancel controls and automatic compatible mod/resource-pack dependency selection. Resource packs are selected automatically with original game-settings backups; deterministic backend/EN/PL/DE compact/wide UI regressions pass.
-- [ ] Complete the same simple catalog experience for shaders with automatic renderer setup, OptiFine and ready-made modpacks; a ZIP copy, backend-only service or placeholder category does not satisfy this acceptance requirement. Native/live-game usability remains open.
+- [ ] Complete the same simple catalog experience for shaders with automatic renderer setup, OptiFine and ready-made modpacks; a ZIP copy, backend-only service or placeholder category does not satisfy this acceptance requirement. The v0.9 graphics scope has private maintainer acceptance; ready-made sets remain v0.10 work and the wider native matrix remains v1.0 validation.
 
 ## Cross-milestone desktop development ergonomics (October 2026)
 
@@ -602,41 +602,41 @@ Goal: broaden loader support while preserving historical-version compatibility d
 
 Goal: manage graphics-related instance content without treating every component as a generic mod loader.
 
-**Status:** 🚧 v0.9 development in progress. The shared child-first catalog now supports mods and textures with direct compatible installation. Texture batches are selected automatically with preserved/backup settings. Shader renderer setup, shader/OptiFine catalog completion, advanced pack management and real-game/native acceptance remain open.
+**Status: accepted within the documented support scope (21 October 2026).** After implementation, the maintainer confirmed private in-game texture activation, shaders with automatic Iris setup and Vanilla 1.21.1 / OptiFine J1 startup. No OS, exact Iris/loader/pack versions or logs were supplied. Official installer smoke and deterministic test/build/Linux packaging also pass; this is not an all-platform/all-version certification. See [TESTING_V0.9.md](TESTING_V0.9.md). Development proceeds to v0.10; release/tag/product version are unchanged. Broader native/platform acceptance remains explicitly tracked under v1.0.
 
 ## Local pack foundation
 
 - [x] Add a UI-independent core service for instance-local resource/shader ZIP listing, validated staged import and recoverable removal under the existing activity lock. Preserve original ZIPs, existing destinations, other instances, mods and game settings; reject redirected paths, malformed/unsafe archives, invalid metadata and corrupt entry checksums. Deterministic regressions and local `test build` pass.
-- [ ] 🚧 IN PROGRESS — The translated catalog exposes online texture install/automatic selection with loading, empty, busy, error, retry and cancel states. Shader/local pack inventory/removal/recovery controls and real game/native acceptance remain open.
+- [x] Provide translated catalog and My packs controls: loading/empty/busy/error/retry/cancel, installed inventory, Use/Turn off, recoverable Remove/Undo, secondary local import and metadata/icon presentation. Verify interaction/rendering at 820×650 and 400×400 in EN/PL/DE. Native/gameplay acceptance is tracked separately below.
+- [x] Add bounded streaming downloads for official installer sources without Content-Length; reject oversize responses without retry, delete partial staging and preserve existing targets. Shared download regressions pass.
 
 ## OptiFine
 
-- [ ] Define OptiFine integration strategy compatible with licensing/distribution constraints.
-- [ ] Detect compatible OptiFine versions where technically and legally possible.
-- [ ] Install/integrate OptiFine without corrupting loader abstraction.
-- [ ] Clearly communicate unsupported combinations.
+- [x] Define OptiFine integration strategy compatible with licensing/distribution constraints: per-user official download/installer only, no bundled/mirrored/publicly redistributed binaries.
+- [x] Detect compatible OptiFine versions where technically and legally possible: official listing with initial bounded Vanilla 1.21.1 / HD U J1 matrix.
+- [x] Install/integrate OptiFine without corrupting loader abstraction: managed Java, private staging/headless installer worker, versioned instance component state, content-addressed artifacts and validated common launch overlay. Actual official installer/overlay smoke passes; graphical startup remains a separate gate.
+- [x] Clearly communicate unsupported combinations: catalog availability is bounded, changed game/loader refuses enhanced launch with Turn off guidance, documentation excludes historical versions and OptiFine with Forge/Fabric/Quilt/NeoForge.
 
 ## Shaders
 
-- [ ] 🚧 IN PROGRESS — Core shader ZIP inventory/import/removal is instance-scoped; desktop workflow and gameplay acceptance remain open.
-- [ ] 🚧 IN PROGRESS — Validated local ZIP import and recoverable removal implemented in core; desktop controls pending.
-- [ ] Track enabled/selected shader where integration permits.
-- [ ] Surface renderer requirements such as Iris/OptiFine where relevant.
+- [x] Manage shader packs per instance through the compatible Modrinth catalog and installed-pack inventory.
+- [x] Support validated intact ZIP import, recoverable removal and in-dialog Undo; activate explicitly through Use.
+- [x] Track enabled/selected shader through Iris properties, retaining unknown values and exact original-byte backups.
+- [x] Resolve compatible Iris and its required dependency closure automatically through the existing mod pipeline; recheck game/loader/renderer hashes under the pack commit lock. Unsupported published combinations are not offered. ZIP download alone is never success.
 
 ## Resource packs
 
-- [x] Browse/search compatible resource packs in the launcher; resolve required pack dependencies, verify/download/validate a whole batch and activate it with one Install action. Keep previous pack order and unrelated options, back up original settings, reject collisions/changed game versions and reuse identical files. Mocked HTTP/filesystem and translated catalog render/interaction tests pass; actual Minecraft activation remains a separate release check.
-
-- [ ] 🚧 IN PROGRESS — Core ZIP management and the online texture catalog are instance-scoped; full installed-pack management and gameplay acceptance remain open.
-- [ ] 🚧 IN PROGRESS — Online texture Install is available; local file import/recoverable removal remain core-only pending their secondary desktop controls.
-- [ ] Show metadata/icon where available.
-- [ ] 🚧 IN PROGRESS — Catalog installation atomically selects dependencies/main texture pack and preserves prior order/unknown options, with backup; installed-pack reorder UI and real-game acceptance remain open.
+- [x] Browse/search compatible resource packs in the launcher; resolve required pack dependencies, verify/download/validate a whole batch and activate it with one Install action. Keep previous pack order and unrelated options, back up original settings, reject collisions/changed game versions and reuse identical files. Actual Minecraft activation remains a separate release check.
+- [x] Manage resource packs per instance through My packs; enable/disable, import local ZIPs as a secondary action, recoverable Remove/Undo without replacing collisions.
+- [x] Show bounded metadata/description and optional ZIP pack.png where available; malformed presentation data does not prevent listing.
+- [x] Change selected resource-pack priority explicitly while preserving unrelated options/unknown selections and backing up original settings. Verify selection/removal/recovery/priority with deterministic regressions.
 
 ## v0.9 quality gate
 
-- [ ] Graphics integrations remain instance-scoped.
-- [ ] OptiFine does not become a fake generic loader abstraction that breaks other loaders.
-- [ ] Existing mod management remains intact.
+- [x] Graphics integrations remain instance-scoped; deterministic isolation and unchanged-world/settings tests pass.
+- [x] OptiFine remains a separate graphics component, outside the generic mod-loader registry; common pipeline and official profile overlay checks pass.
+- [x] Existing mod management remains intact; full core/desktop regression suite passes, including repeated installs, dependency preparation and busy-instance guards.
+- [x] Obtain explicit v0.9 in-game acceptance: the maintainer confirmed texture activation, shaders with automatic Iris setup and Vanilla 1.21.1 / OptiFine J1 startup in this chat after these changes. Exact OS/loader/renderer/pack matrix and extended native checks were not supplied; broader validation is tracked under v1.0.
 
 ---
 
@@ -644,9 +644,12 @@ Goal: manage graphics-related instance content without treating every component 
 
 Goal: install/export repeatable instance definitions and support a mainstream modpack format.
 
+**Status:** 🚧 First implementation phase: a read-only Modrinth index planner validates requested components, client files, hashes, sources and destinations. ZIP import, downloads, overrides, isolated instance publication and the one-action catalog workflow remain open; no working-looking modpack tab is exposed yet.
+
 ## Modpack model
 
-- [ ] Define modpack installation plan.
+- [x] Define a UI-independent deterministic modpack installation plan with exact requested Minecraft/loader versions, required/optional client files, mirrored URLs, sizes, SHA-1/SHA-512 and retained unknown manifest metadata.
+- [x] Validate format-1 Minecraft index UTF-8/bounds, known single-loader requirements, client/server environments, supported HTTPS sources, both hash fields and portable nonconflicting destinations without HTTP or filesystem mutation. This is not `.mrpack` ZIP import or file verification.
 - [ ] Map modpack manifest to instance creation.
 - [ ] Preserve overrides/configs appropriately.
 - [ ] Verify downloaded files.
@@ -832,6 +835,7 @@ Goal: declare the architecture and primary feature set stable for end users.
 
 ## v1.0 quality gate
 
+- [ ] Complete native graphics-catalog/installed-pack window, focus, keyboard, DPI and live cancellation acceptance across the published supported platforms; record exact game/loader/renderer/pack combinations and extended texture priority/restart/recovery behavior. Moved from v0.9 on 21 October 2026 following bounded private maintainer acceptance; not executed/certified by that confirmation.
 - [ ] Full automated test suite passes.
 - [ ] Release builds pass on supported target platforms.
 - [ ] Representative vanilla and each supported loader launch successfully.

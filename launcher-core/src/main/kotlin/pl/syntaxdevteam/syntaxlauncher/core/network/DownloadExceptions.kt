@@ -59,3 +59,7 @@ class DownloadTargetConflictException(
 ) : DownloadException(
     "Conflicting download requests target the same file: '$target'.",
 )
+
+class DownloadTooLargeException(downloadId: String, limit: Long) : DownloadException(
+    "Download '$downloadId' exceeds the permitted $limit bytes.",
+)

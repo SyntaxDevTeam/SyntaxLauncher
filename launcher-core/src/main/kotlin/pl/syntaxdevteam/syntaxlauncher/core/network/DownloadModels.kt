@@ -10,8 +10,10 @@ data class DownloadRequest(
     val expectedSize: Long? = null,
     val expectedSha256: String? = null,
     val requestTimeoutMillis: Long? = null,
+    val maximumBytes: Long? = null,
 ) {
     init {
+        require(maximumBytes == null || maximumBytes >= 0)
         require(requestTimeoutMillis == null || requestTimeoutMillis > 0)
         require(expectedSha256 == null || expectedSha256.matches(Regex("[a-fA-F0-9]{64}"))) {
             "Expected SHA-256 must contain exactly 64 hexadecimal digits."

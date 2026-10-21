@@ -22,12 +22,14 @@ enum class LocalPackKind(val directoryName: String) {
     SHADER_PACK("shaderpacks"),
 }
 
-data class LocalPack(val fileName: String, val sizeBytes: Long)
+data class LocalPack(val fileName: String, val sizeBytes: Long, val selected: Boolean = false,
+    val description: String? = null, val iconPngBase64: String? = null)
 data class LocalPackInventory(val packs: List<LocalPack>, val warnings: List<String>)
-data class RemovedLocalPack(val originalFileName: String, val recoveryPath: Path)
+data class RemovedLocalPack(val originalFileName: String, val recoveryPath: Path, val wasSelected: Boolean = false)
 class LocalPackException(message: String, cause: Throwable? = null) : IOException(message, cause)
+data class ShaderActivation(val fileName: String, val renderer: ShaderRendererProof)
 
-/** Local ZIP files only. Does not extract packs, select them in game, install renderers or fetch OptiFine. */
+/** Instance-local intact ZIP management and explicit selection; renderer installation is a separate service. */
 class LocalPackManager(private val instances: MinecraftInstanceRepository) {
     suspend fun list(instanceId: String, kind: LocalPackKind): LocalPackInventory = withContext(Dispatchers.IO) {
         inventory(directory(instances.get(instanceId), kind))
@@ -39,7 +41,7 @@ class LocalPackManager(private val instances: MinecraftInstanceRepository) {
     /** Validate the complete set before publishing; optional selection is the explicitly chosen main pack. */
     suspend fun importBatch(instanceId: String, kind: LocalPackKind, sources: List<Path>,
         selectedResourcePack: String? = null, expectedGameVersion: String? = null,
-        reuseIdentical: Boolean = false): LocalPackInventory = withContext(Dispatchers.IO) {
+        reuseIdentical: Boolean = false, shaderActivation: ShaderActivation? = null): LocalPackInventory = withContext(Dispatchers.IO) {
         instances.withInactiveInstance(instanceId) { instance ->
             if (expectedGameVersion != null && instance.minecraftVersionId != expectedGameVersion) {
                 throw LocalPackException("Game version changed. Try again.")
@@ -62,8 +64,17 @@ class LocalPackManager(private val instances: MinecraftInstanceRepository) {
                     throw LocalPackException("A pack named $name already exists in this instance.")
                 }
             }
-            // Read/validate existing settings before creating any installed files.
-            val selection = selectedResourcePack?.let { ResourcePackSelection.prepare(game, names.filter { name -> name != it } + it) }
+            // Revalidate renderer files under the same lock as ZIP/config publication.
+            if (shaderActivation != null) {
+                if (kind != LocalPackKind.SHADER_PACK || shaderActivation.fileName !in names) {
+                    throw LocalPackException("Shader selection is not part of this batch.")
+                }
+                verifyRenderer(instance, shaderActivation.renderer)
+            }
+            val resourceSelection = selectedResourcePack?.let { ResourcePackSelection.prepare(game, names.filter { name -> name != it } + it) }
+            val shaderSelection = shaderActivation?.let { ShaderPackSelection.prepare(game, it.fileName) }
+            val commitSelection: (() -> Unit)? = resourceSelection?.let { { it.commit() } }
+                ?: shaderSelection?.let { { it.commit() } }
             val staged = mutableListOf<Path>()
             val published = mutableListOf<Path>()
             try {
@@ -106,7 +117,7 @@ class LocalPackManager(private val instances: MinecraftInstanceRepository) {
                     }
                 }
                 currentCoroutineContext().ensureActive()
-                selection?.commit()
+                commitSelection?.invoke()
             } catch (failure: Throwable) {
                 published.forEach { path ->
                     try { Files.deleteIfExists(path) } catch (cleanup: Exception) { failure.addSuppressed(cleanup) }
@@ -118,6 +129,62 @@ class LocalPackManager(private val instances: MinecraftInstanceRepository) {
             inventory(folder)
         }
     }
+
+    suspend fun setSelected(instanceId: String, kind: LocalPackKind, fileName: String, enabled: Boolean,
+        renderer: ShaderRendererProof? = null): LocalPackInventory = withContext(Dispatchers.IO) {
+        instances.withInactiveInstance(instanceId) { instance ->
+            requirePackName(fileName)
+            val folder = directory(instance, kind)
+            val source = folder.resolve(fileName)
+            if (!Files.isRegularFile(source, NOFOLLOW_LINKS)) throw LocalPackException("Pack is missing or redirected.")
+            if (enabled) validate(source, kind)
+            if (kind == LocalPackKind.SHADER_PACK && enabled) {
+                verifyRenderer(instance, renderer ?: throw LocalPackException("Shader renderer setup is required."))
+            }
+            currentCoroutineContext().ensureActive()
+            when (kind) {
+                LocalPackKind.RESOURCE_PACK -> ResourcePackSelection.prepare(instances.gameDirectory(instance), listOf(fileName), remove = !enabled)?.commit()
+                LocalPackKind.SHADER_PACK -> ShaderPackSelection.prepare(instances.gameDirectory(instance), fileName, remove = !enabled)?.commit()
+            }
+            inventory(folder)
+        }
+    }
+
+    /** Minecraft gives the last selected resource pack the highest priority. */
+    suspend fun moveResourcePack(instanceId: String, fileName: String, higherPriority: Boolean): LocalPackInventory =
+        withContext(Dispatchers.IO) {
+            instances.withInactiveInstance(instanceId) { instance ->
+                requirePackName(fileName)
+                val folder = directory(instance, LocalPackKind.RESOURCE_PACK)
+                if (!Files.isRegularFile(folder.resolve(fileName), NOFOLLOW_LINKS)) throw LocalPackException("Pack is missing or redirected.")
+                ResourcePackSelection.prepare(instances.gameDirectory(instance), listOf(fileName),
+                    priorityStep = if (higherPriority) 1 else -1)?.commit()
+                inventory(folder)
+            }
+        }
+
+    suspend fun restore(instanceId: String, kind: LocalPackKind, removed: RemovedLocalPack): LocalPackInventory =
+        withContext(Dispatchers.IO) {
+            instances.withInactiveInstance(instanceId) { instance ->
+                requirePackName(removed.originalFileName)
+                val folder = directory(instance, kind, create = true)
+                val trash = instances.gameDirectory(instance).resolve(".syntaxlauncher-pack-trash").toAbsolutePath().normalize()
+                checkedDirectory(trash, create = false)
+                val recovery = removed.recoveryPath.toAbsolutePath().normalize()
+                if (recovery.parent != trash || !recovery.fileName.toString().endsWith("-" + removed.originalFileName) ||
+                    !Files.isRegularFile(recovery, NOFOLLOW_LINKS)) throw LocalPackException("Invalid pack recovery location.")
+                val prefix = recovery.fileName.toString().removeSuffix("-" + removed.originalFileName)
+                if (runCatching { UUID.fromString(prefix).toString() == prefix }.getOrDefault(false).not()) {
+                    throw LocalPackException("Invalid pack recovery identity.")
+                }
+                val target = folder.resolve(removed.originalFileName)
+                if (Files.exists(target, NOFOLLOW_LINKS)) throw LocalPackException("A pack with this name already exists; recovery did not replace it.")
+                validate(recovery, kind)
+                currentCoroutineContext().ensureActive()
+                Files.move(recovery, target)
+                inventory(folder)
+            }
+        }
 
     /** Recoverable removal; the source ZIP and other instances are never touched. */
     suspend fun remove(instanceId: String, kind: LocalPackKind, fileName: String): RemovedLocalPack =
@@ -131,16 +198,18 @@ class LocalPackManager(private val instances: MinecraftInstanceRepository) {
                 val game = instances.gameDirectory(instance)
                 val trash = game.resolve(".syntaxlauncher-pack-trash")
                 checkedDirectory(trash, create = true)
+                val wasSelected = inventory(source.parent).packs.firstOrNull { it.fileName == fileName }?.selected == true
                 val recovery = trash.resolve("${UUID.randomUUID()}-$fileName")
                 val selection = if (kind == LocalPackKind.RESOURCE_PACK)
                     ResourcePackSelection.prepare(game, listOf(fileName), remove = true) else null
+                val shaderSelection = if (kind == LocalPackKind.SHADER_PACK) ShaderPackSelection.prepare(game, fileName, remove = true) else null
                 currentCoroutineContext().ensureActive()
                 Files.move(source, recovery)
-                try { selection?.commit() } catch (failure: Throwable) {
+                try { selection?.commit(); shaderSelection?.commit() } catch (failure: Throwable) {
                     try { Files.move(recovery, source) } catch (restore: Exception) { failure.addSuppressed(restore) }
                     throw failure
                 }
-                RemovedLocalPack(fileName, recovery)
+                RemovedLocalPack(fileName, recovery, wasSelected)
             }
         }
 
@@ -165,6 +234,10 @@ class LocalPackManager(private val instances: MinecraftInstanceRepository) {
         if (!Files.exists(folder, NOFOLLOW_LINKS)) return LocalPackInventory(emptyList(), emptyList())
         val packs = mutableListOf<LocalPack>()
         val warnings = mutableListOf<String>()
+        val selected = try { selectedFiles(folder) } catch (failure: Exception) {
+            warnings += "Cannot read pack selection: " + failure.javaClass.simpleName
+            emptySet()
+        }
         Files.newDirectoryStream(folder).use { entries ->
             for (entry in entries) {
                 currentCoroutineContext().ensureActive()
@@ -173,11 +246,71 @@ class LocalPackManager(private val instances: MinecraftInstanceRepository) {
                 if (!Files.isRegularFile(entry, NOFOLLOW_LINKS)) {
                     warnings += "Unmanaged pack directory or symbolic link: $name"
                 } else if (name.endsWith(".zip", ignoreCase = true)) {
-                    packs += LocalPack(name, Files.size(entry))
+                    val metadata = readPresentation(entry)
+                    packs += LocalPack(name, Files.size(entry), name in selected, metadata.first, metadata.second)
                 }
             }
         }
         return LocalPackInventory(packs.sortedBy { it.fileName.lowercase() }, warnings.sorted())
+    }
+
+    private fun selectedFiles(folder: Path): Set<String> {
+        val game = folder.parent
+        if (folder.fileName.toString() == LocalPackKind.SHADER_PACK.directoryName) {
+            val bytes = GameSettingsWrite.read(game.resolve("config/iris.properties")) ?: return emptySet()
+            val properties = java.util.Properties().also { bytes.inputStream().use(it::load) }
+            return if (properties.getProperty("enableShaders") != "false") setOfNotNull(properties.getProperty("shaderPack")) else emptySet()
+        }
+        val bytes = GameSettingsWrite.read(game.resolve("options.txt")) ?: return emptySet()
+        val lines = bytes.toString(Charsets.UTF_8).lineSequence().filter { it.startsWith("resourcePacks:") }.toList()
+        if (lines.size > 1) throw LocalPackException("Conflicting resource pack selections.")
+        val value = lines.firstOrNull()?.substringAfter(':') ?: return emptySet()
+        val array = Json.parseToJsonElement(value) as? kotlinx.serialization.json.JsonArray
+            ?: throw LocalPackException("Unknown resource pack selection.")
+        return array.mapNotNull { (it as? kotlinx.serialization.json.JsonPrimitive)?.content }
+            .filter { it.startsWith("file/") }.map { it.removePrefix("file/") }.toSet()
+    }
+
+    private fun readPresentation(path: Path): Pair<String?, String?> = try {
+        ZipFile(path.toFile()).use { zip ->
+            val info = zip.getEntry("pack.mcmeta")?.takeIf { !it.isDirectory && it.size in 1..1024 * 1024 }
+            val description = info?.let { entry ->
+                val bytes = zip.getInputStream(entry).use { it.readNBytes(1024 * 1024 + 1) }
+                if (bytes.size > 1024 * 1024) null else {
+                    val pack = (Json.parseToJsonElement(bytes.toString(Charsets.UTF_8)) as? JsonObject)?.get("pack") as? JsonObject
+                    val value = pack?.get("description")
+                    (value as? kotlinx.serialization.json.JsonPrimitive)?.content
+                        ?: ((value as? JsonObject)?.get("text") as? kotlinx.serialization.json.JsonPrimitive)?.content
+                }
+            }?.take(300)
+            val icon = zip.getEntry("pack.png")?.takeIf { !it.isDirectory && it.size in 24..512 * 1024 }?.let { entry ->
+                val bytes = zip.getInputStream(entry).use { it.readNBytes(512 * 1024 + 1) }
+                val signature = byteArrayOf(137.toByte(), 80, 78, 71, 13, 10, 26, 10)
+                if (bytes.size <= 512 * 1024 && bytes.take(8).toByteArray().contentEquals(signature) &&
+                    java.nio.ByteBuffer.wrap(bytes, 16, 8).let { it.int in 1..1024 && it.int in 1..1024 }) {
+                    java.util.Base64.getEncoder().encodeToString(bytes)
+                } else null
+            }
+            description to icon
+        }
+    } catch (_: Exception) { null to null }
+
+    internal suspend fun validateArchive(path: Path, kind: LocalPackKind) = validate(path, kind)
+
+    private fun verifyRenderer(instance: MinecraftInstance, proof: ShaderRendererProof) {
+        if (instance.loader != proof.loader || instance.minecraftVersionId != proof.minecraftVersion || proof.files.isEmpty() || proof.files.size > 32) {
+            throw LocalPackException("Shader renderer or game loader changed. Try again.")
+        }
+        val mods = instances.gameDirectory(instance).resolve("mods")
+        if (!Files.isDirectory(mods, NOFOLLOW_LINKS)) throw LocalPackException("Shader renderer directory is redirected.")
+        proof.files.forEach { file ->
+            if (file.fileName.any { it in "/\\:" } || !file.fileName.endsWith(".jar") ||
+                !file.sha256.matches(Regex("[a-f0-9]{64}"))) throw LocalPackException("Invalid shader renderer proof.")
+            val path = mods.resolve(file.fileName)
+            if (!Files.isRegularFile(path, NOFOLLOW_LINKS) || fileHash(path, "SHA-256") != file.sha256) {
+                throw LocalPackException("A required shader component changed or was disabled. Try again.")
+            }
+        }
     }
 
     private suspend fun validate(path: Path, kind: LocalPackKind) {

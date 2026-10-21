@@ -130,6 +130,26 @@ class DownloadManagerTest {
         }
     }
 
+    @Test
+    fun `stream without content length respects hard cap and preserves existing target without retry`() = runBlocking {
+        val attempts = AtomicInteger()
+        val http = HttpClient(MockEngine { attempts.incrementAndGet(); respond(ByteArray(128 * 1024)) })
+        val folder = Files.createTempDirectory("download-size-cap")
+        val target = folder.resolve("installer.jar")
+        val original = "keep existing target".toByteArray()
+        Files.write(target, original)
+        try {
+            val manager = DownloadManager(http)
+            assertFailsWith<DownloadTooLargeException> {
+                manager.download(DownloadRequest("bounded", "https://example.invalid/installer", target,
+                    expectedSha1 = "0".repeat(40), maximumBytes = 1024))
+            }
+            assertEquals(1, attempts.get())
+            assertContentEquals(original, Files.readAllBytes(target))
+            assertFalse(Files.exists(folder.resolve("installer.jar.part")))
+        } finally { http.close() }
+    }
+
     private fun sha1(bytes: ByteArray): String =
         MessageDigest.getInstance("SHA-1")
             .digest(bytes)

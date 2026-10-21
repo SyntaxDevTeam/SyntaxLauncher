@@ -39,29 +39,56 @@ import pl.syntaxdevteam.syntaxlauncher.desktop.DesktopLauncherSession
 import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.LocalStrings
 import org.slf4j.LoggerFactory
 
-enum class CatalogSection(val label: String) { MODS("catalog.mods"), TEXTURES("catalog.textures") }
+enum class CatalogSection(val label: String) { MODS("catalog.mods"), TEXTURES("catalog.textures"), SHADERS("catalog.shaders"), OPTIFINE("catalog.optifine") }
 
 @Composable
 fun ContentCatalogDialog(instance: MinecraftInstance, session: DesktopLauncherSession, canModify: Boolean,
     onBusyChange: (Boolean) -> Unit, onManage: () -> Unit, onDismiss: () -> Unit) {
     val strings = LocalStrings.current
     var busy by remember { mutableStateOf(false) }
+    var shaderAvailable by remember(instance.id) { mutableStateOf(false) }
+    var optiFineAvailable by remember(instance.id) { mutableStateOf(false) }
+    var managingPacks by remember { mutableStateOf(false) }
+    var compatibilityRefresh by remember { mutableStateOf(0) }
+    var shaderIssue by remember(instance) { mutableStateOf(false) }
+    var optiFineIssue by remember(instance) { mutableStateOf(false) }
+    LaunchedEffect(instance, managingPacks, compatibilityRefresh) {
+        shaderIssue = false
+        try { shaderAvailable = session.shaderPackCatalog.available(instance) }
+        catch (cancelled: CancellationException) { throw cancelled }
+        catch (failure: Exception) { shaderIssue = true; LoggerFactory.getLogger("ContentCatalog").warn("Shader availability check failed", failure) }
+    }
+    LaunchedEffect(instance, session.optiFine, compatibilityRefresh) {
+        optiFineIssue = false
+        try { optiFineAvailable = session.optiFine?.projects(instance)?.isNotEmpty() == true }
+        catch (cancelled: CancellationException) { throw cancelled }
+        catch (failure: Exception) { optiFineIssue = true; LoggerFactory.getLogger("ContentCatalog").warn("OptiFine availability check failed", failure) }
+    }
     DialogWindow(onCloseRequest = { if (!busy) onDismiss() }, title = strings.text("catalog.title"),
         state = rememberDialogState(size = DpSize(820.dp, 650.dp)), resizable = true) {
         SyntaxTheme {
             Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                ContentCatalog(instance, canModify, search = { section, query, offset ->
+                if (managingPacks) InstalledPacks(instance, session, canModify,
+                    onBusyChange = { busy = it; onBusyChange(it) }, onBack = { managingPacks = false })
+                else ContentCatalog(instance, canModify, search = { section, query, offset ->
                     when (section) {
                         CatalogSection.MODS -> session.modrinthCatalog.search(instance, query, offset)
                         CatalogSection.TEXTURES -> session.resourcePackCatalog.search(instance, query, offset)
+                        CatalogSection.SHADERS -> session.shaderPackCatalog.search(instance, query, offset)
+                        CatalogSection.OPTIFINE -> session.optiFine?.projects(instance).orEmpty()
                     }
                 }, install = { section, project ->
                     when (section) {
                         CatalogSection.MODS -> session.modrinthInstaller.install(instance.id,
                             session.modrinthCatalog.plan(instance, project))
                         CatalogSection.TEXTURES -> session.resourcePackCatalog.install(instance.id, project)
+                        CatalogSection.SHADERS -> session.shaderPackCatalog.install(instance.id, project)
+                        CatalogSection.OPTIFINE -> session.optiFine?.install(instance.id, project)
+                            ?: throw pl.syntaxdevteam.syntaxlauncher.core.content.GraphicsEnhancementException("OptiFine service is unavailable.")
                     }
-                }, onBusyChange = { busy = it; onBusyChange(it) }, onManage = onManage, onDismiss = onDismiss)
+                }, onBusyChange = { busy = it; onBusyChange(it) }, onManage = onManage, onDismiss = onDismiss,
+                    shaderAvailable = shaderAvailable, optiFineAvailable = optiFineAvailable, onManagePacks = { managingPacks = true },
+                    onRetryCompatibility = if (shaderIssue || optiFineIssue) ({ compatibilityRefresh++ }) else null)
             }
         }
     }
@@ -72,11 +99,18 @@ fun ContentCatalogDialog(instance: MinecraftInstance, session: DesktopLauncherSe
 fun ContentCatalog(instance: MinecraftInstance, canModify: Boolean,
     search: suspend (CatalogSection, String, Int) -> List<ModrinthProject>,
     install: suspend (CatalogSection, ModrinthProject) -> Unit,
-    onBusyChange: (Boolean) -> Unit, onManage: () -> Unit, onDismiss: () -> Unit) {
+    onBusyChange: (Boolean) -> Unit, onManage: () -> Unit, onDismiss: () -> Unit,
+    shaderAvailable: Boolean = false, optiFineAvailable: Boolean = false, onManagePacks: (() -> Unit)? = null,
+    onRetryCompatibility: (() -> Unit)? = null) {
     val strings = LocalStrings.current
     val scope = rememberCoroutineScope()
-    val sections = remember(instance.loader?.id) {
-        if (instance.loader != null) CatalogSection.entries else listOf(CatalogSection.TEXTURES)
+    val sections = remember(instance.loader?.id, shaderAvailable, optiFineAvailable) {
+        buildList {
+            if (instance.loader != null) add(CatalogSection.MODS)
+            add(CatalogSection.TEXTURES)
+            if (shaderAvailable) add(CatalogSection.SHADERS)
+            if (optiFineAvailable) add(CatalogSection.OPTIFINE)
+        }
     }
     var section by remember(instance.id) { mutableStateOf(sections.first()) }
     var query by remember(instance.id) { mutableStateOf("") }
@@ -113,7 +147,9 @@ fun ContentCatalog(instance: MinecraftInstance, canModify: Boolean,
                     Text(strings.text("catalog.title"), style = MaterialTheme.typography.titleLarge)
                     Text(instance.name, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                TextButton(enabled = !busy, onClick = onDismiss) { Text(strings.text("ui.close")) }
+                TextButton(onClick = { if (busy) installationJob?.cancel() else onDismiss() }) {
+                    Text(strings.text(if (busy) "ui.cancel" else "ui.close"))
+                }
             }
             if (sections.size > 1) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 sections.forEach { item -> ChannelButton(strings.text(item.label), section == item, !busy, {
@@ -121,17 +157,20 @@ fun ContentCatalog(instance: MinecraftInstance, canModify: Boolean,
                 }, Modifier.weight(1f)) }
             }
             if (!compact) Text(strings.text("catalog.hint"), style = MaterialTheme.typography.bodySmall)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (section != CatalogSection.OPTIFINE) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(query, { if (it.length <= 100) query = it }, singleLine = true,
                     label = { Text(strings.text("catalog.search")) }, enabled = !busy, modifier = Modifier.weight(1f))
                 Button(enabled = !busy && !loading, onClick = { submitted = query.trim(); offset = 0; refresh++ }) {
                     Text(strings.text("ui.search"))
                 }
             }
+            onRetryCompatibility?.let { retry -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(strings.text("catalog.compatibility_error"), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
+                TextButton(enabled = !busy, onClick = retry) { Text(strings.text("ui.retry")) }
+            } }
             if (!canModify) Text(strings.text("catalog.stop_game"), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (busy) TextButton(onClick = { installationJob?.cancel() }) { Text(strings.text("ui.cancel")) }
             if (cancelled) Text(strings.text("catalog.cancelled"), style = MaterialTheme.typography.bodySmall)
-            if (success) Text(strings.text("catalog.success"), color = MaterialTheme.colorScheme.primary)
+            if (success && !compact) Text(strings.text("catalog.success"), color = MaterialTheme.colorScheme.primary)
             error?.let {
                 Text(it, color = MaterialTheme.colorScheme.error)
                 TextButton(enabled = !busy, onClick = { refresh++ }) { Text(strings.text("ui.retry")) }
@@ -142,11 +181,11 @@ fun ContentCatalog(instance: MinecraftInstance, canModify: Boolean,
                 items(found, key = { it.id }) { project ->
                     Surface(color = MaterialTheme.colorScheme.surfaceVariant,
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(SyntaxBrand.controlRadius)) {
-                        BoxWithConstraints(Modifier.fillMaxWidth().padding(14.dp)) {
+                        BoxWithConstraints(Modifier.fillMaxWidth().padding(if (compact) 8.dp else 14.dp)) {
                             val description: @Composable (Modifier) -> Unit = { modifier ->
                                 Column(modifier, verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                                    Text(project.title, style = MaterialTheme.typography.titleMedium)
-                                    Text(project.summary.take(150), style = MaterialTheme.typography.bodySmall,
+                                    Text(project.title, maxLines = 2, style = MaterialTheme.typography.titleMedium)
+                                    if (!compact) Text(if (section == CatalogSection.OPTIFINE) strings.text("catalog.optifine_hint") else project.summary.take(150), style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
@@ -168,6 +207,7 @@ fun ContentCatalog(instance: MinecraftInstance, canModify: Boolean,
                                                         is pl.syntaxdevteam.syntaxlauncher.core.instance.InstanceInUseException -> "catalog.stop_game"
                                                         is pl.syntaxdevteam.syntaxlauncher.core.network.DownloadNetworkException,
                                                         is pl.syntaxdevteam.syntaxlauncher.core.network.DownloadHttpException -> "catalog.connection_error"
+                                                        is pl.syntaxdevteam.syntaxlauncher.core.content.GraphicsEnhancementException -> "catalog.graphics_error"
                                                         is pl.syntaxdevteam.syntaxlauncher.core.content.LocalPackException -> "catalog.pack_error"
                                                         else -> "catalog.install_error"
                                                     })
@@ -182,7 +222,7 @@ fun ContentCatalog(instance: MinecraftInstance, canModify: Boolean,
                                     }))
                                 }
                             }
-                            if (maxWidth < 480.dp) Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            if (maxWidth < 480.dp && !compact) Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                 description(Modifier.fillMaxWidth()); action()
                             } else Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 description(Modifier.weight(1f)); action()
@@ -191,15 +231,23 @@ fun ContentCatalog(instance: MinecraftInstance, canModify: Boolean,
                     }
                 }
             }
-            if (!compact || found.size == 20 || offset > 0) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                OutlinedButton(enabled = !busy && !loading && offset > 0,
-                    onClick = { offset = (offset - 20).coerceAtLeast(0) }) { Text(strings.text("ui.previous")) }
-                Text(strings.text("catalog.source"), style = MaterialTheme.typography.labelSmall)
-                OutlinedButton(enabled = !busy && !loading && found.size == 20 && offset < 1000,
-                    onClick = { offset += 20 }) { Text(strings.text("ui.next")) }
-            }
-            if (instance.loader != null) TextButton(enabled = !busy, onClick = onManage) {
-                Text(strings.text("catalog.manage"))
+            var moreOpen by remember { mutableStateOf(false) }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                if (found.size == 20 || offset > 0) {
+                    OutlinedButton(enabled = !busy && !loading && offset > 0,
+                        onClick = { offset = (offset - 20).coerceAtLeast(0) }) { Text(strings.text("ui.previous")) }
+                    OutlinedButton(enabled = !busy && !loading && found.size == 20 && offset < 1000,
+                        onClick = { offset += 20 }) { Text(strings.text("ui.next")) }
+                } else if (!compact) Text(strings.text("catalog.source"), style = MaterialTheme.typography.labelSmall)
+                if (onManagePacks != null || instance.loader != null) androidx.compose.foundation.layout.Box {
+                    TextButton(enabled = !busy, onClick = { moreOpen = true }) { Text(strings.text("catalog.more")) }
+                    androidx.compose.material3.DropdownMenu(moreOpen, onDismissRequest = { moreOpen = false }) {
+                        onManagePacks?.let { manage -> androidx.compose.material3.DropdownMenuItem(
+                            text = { Text(strings.text("catalog.my_packs")) }, onClick = { moreOpen = false; manage() }) }
+                        if (instance.loader != null) androidx.compose.material3.DropdownMenuItem(
+                            text = { Text(strings.text("catalog.manage")) }, onClick = { moreOpen = false; onManage() })
+                    }
+                }
             }
         }
     }

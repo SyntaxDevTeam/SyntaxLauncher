@@ -65,13 +65,18 @@ fun main(args: Array<String>) {
         FabricLoaderProvider(httpClient), QuiltLoaderProvider(httpClient),
         NeoForgeLoaderProvider(httpClient, downloader), ForgeLoaderProvider(httpClient, downloader),
     ))
+    val runtimeManager = MojangJavaRuntimeManager(httpClient, downloader, paths.runtimesDir)
+    val versionCatalog = MinecraftVersionCatalog(httpClient, cacheFile = paths.cacheDir.resolve("minecraft/version_manifest_v2.json"))
+    val instanceRepository = MinecraftInstanceRepository(paths.dataDir.resolve("instances"),
+        paths.dataDir.resolve("instance-trash"), MinecraftInstallationLayout.from(paths))
+    val optiFine = pl.syntaxdevteam.syntaxlauncher.core.content.OptiFineCatalog(
+        httpClient, downloader, instanceRepository, versionCatalog, runtimeManager, platform)
     val session = DesktopLauncherSession(
-        versionCatalog = MinecraftVersionCatalog(
-            httpClient, cacheFile = paths.cacheDir.resolve("minecraft/version_manifest_v2.json")),
+        versionCatalog = versionCatalog,
         versionResolver = MinecraftVersionResolver(httpClient),
         coordinator = MinecraftLaunchCoordinator(
             preparation = MinecraftPreparationService(downloader),
-            runtimes = MojangJavaRuntimeManager(httpClient, downloader, paths.runtimesDir),
+            runtimes = runtimeManager,
             plans = LaunchPlanBuilder(),
             processes = processManager,
             layout = MinecraftInstallationLayout.from(paths),
@@ -81,11 +86,8 @@ fun main(args: Array<String>) {
         processManager = processManager,
         preferences = preferences,
         legacyLayout = MinecraftInstallationLayout.from(paths),
-        instances = MinecraftInstanceRepository(
-            root = paths.dataDir.resolve("instances"),
-            trash = paths.dataDir.resolve("instance-trash"),
-            sharedLayout = MinecraftInstallationLayout.from(paths),
-        ),
+        instances = instanceRepository,
+        optiFine = optiFine,
         httpClient = httpClient,
         loaders = modLoaders,
         microsoftSignIn = System.getenv("SYNTAXLAUNCHER_MICROSOFT_CLIENT_ID")

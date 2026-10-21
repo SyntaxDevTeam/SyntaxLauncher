@@ -103,6 +103,7 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
     suspend fun importBatch(
         instanceId: String, sources: List<Path>,
         managed: List<ModrinthManagedInstall> = emptyList(),
+        expectedInstance: MinecraftInstance? = null,
     ): LocalModInventory =
         withContext(Dispatchers.IO) {
             require(sources.isNotEmpty() && sources.size <= 32) { "Invalid Modrinth batch size." }
@@ -110,6 +111,8 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
                 "Managed identity must match each downloaded JAR."
             }
             instances.withInactiveInstance(instanceId) { instance ->
+                require(expectedInstance == null || (instance.minecraftVersionId == expectedInstance.minecraftVersionId &&
+                    instance.loader == expectedInstance.loader)) { "Game version or loader changed during installation. Try again." }
                 require(instance.loader?.id in setOf("fabric", "quilt", "neoforge", "forge")) { "Only mod-loader instances can install mods." }
                 val mods = modsDirectory(instance, create = true)
                 val names = sources.map { it.fileName.toString() }

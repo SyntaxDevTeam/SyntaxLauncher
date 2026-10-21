@@ -72,10 +72,11 @@ class ModrinthCatalog(private val http: HttpClient,
     }
 
     /** Entire transitive required-dependency closure is reviewed before file writes. */
-    suspend fun plan(instance: MinecraftInstance, project: ModrinthProject): ModrinthInstallPlan {
+    suspend fun plan(instance: MinecraftInstance, project: ModrinthProject, selectedVersionId: String? = null): ModrinthInstallPlan {
         val loader = instance.loader?.id ?: error("Cannot install mods into Vanilla.")
         checkLoader(loader)
-        val selected = versions(project.id, loader, instance.minecraftVersionId).firstOrNull()
+        val selected = (if (selectedVersionId == null) versions(project.id, loader, instance.minecraftVersionId).firstOrNull()
+            else fetchVersion(selectedVersionId).also { check(it.projectId == project.id) { "Version belongs to another project." } })
             ?: error("No compatible release of " + project.title + " for this Minecraft version and loader.")
         val entries = linkedMapOf<String, ModrinthInstallEntry>()
         val visiting = mutableSetOf<String>()
@@ -158,6 +159,12 @@ class ModrinthCatalog(private val http: HttpClient,
         }
         return ModrinthUpdateReport(updates,
             inventory.mods.filter { it.modrinth == null }.map { it.fileName }, notices)
+    }
+
+    suspend fun compatibleProjectVersions(instance: MinecraftInstance, projectId: String): List<ModrinthVersion> {
+        val loader = instance.loader?.id ?: return emptyList()
+        checkLoader(loader)
+        return versions(projectId, loader, instance.minecraftVersionId)
     }
 
     private suspend fun versions(projectId: String, loader: String, game: String): List<ModrinthVersion> {

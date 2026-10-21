@@ -54,6 +54,7 @@ class DesktopLauncherSession(
     private val httpClient: HttpClient,
     val loaders: ModLoaderRegistry? = null,
     private val microsoftSignIn: DesktopMicrosoftSignIn? = null,
+    val optiFine: pl.syntaxdevteam.syntaxlauncher.core.content.OptiFineCatalog? = null,
 ) {
     val packManager = pl.syntaxdevteam.syntaxlauncher.core.content.LocalPackManager(instances)
     val resourcePackCatalog = pl.syntaxdevteam.syntaxlauncher.core.content.ModrinthResourcePacks(
@@ -61,6 +62,11 @@ class DesktopLauncherSession(
     val modManager = LocalModManager(instances)
     val modrinthCatalog = ModrinthCatalog(httpClient)
     val modrinthInstaller = ModrinthInstaller(instances, modManager, DownloadManager(httpClient))
+    val shaderRenderer = pl.syntaxdevteam.syntaxlauncher.core.content.IrisRendererSetup(
+        instances, modManager, modrinthCatalog, modrinthInstaller)
+    val shaderPackCatalog = pl.syntaxdevteam.syntaxlauncher.core.content.ModrinthPackCatalog(
+        httpClient, instances, packManager, DownloadManager(httpClient),
+        kind = pl.syntaxdevteam.syntaxlauncher.core.content.LocalPackKind.SHADER_PACK, renderer = shaderRenderer)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val lock = Any()
     private val closing = AtomicBoolean(false)
