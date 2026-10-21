@@ -60,8 +60,8 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
     suspend fun importJar(instanceId: String, source: Path): LocalModInventory =
         withContext(Dispatchers.IO) {
             instances.withInactiveInstance(instanceId) { instance ->
-                require(instance.loader?.id in setOf("fabric", "quilt")) {
-                    "Local mod imports currently require a Fabric instance."
+                require(instance.loader?.id in setOf("fabric", "quilt", "neoforge", "forge")) {
+                    "Local mod imports require a supported mod-loader instance."
                 }
                 require(Files.isRegularFile(source, LinkOption.NOFOLLOW_LINKS)) {
                     "Select a regular local JAR file (not a symlink)."
@@ -108,7 +108,7 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
                 "Managed identity must match each downloaded JAR."
             }
             instances.withInactiveInstance(instanceId) { instance ->
-                require(instance.loader?.id in setOf("fabric", "quilt")) { "Only Fabric installation is available." }
+                require(instance.loader?.id in setOf("fabric", "quilt", "neoforge", "forge")) { "Only mod-loader instances can install mods." }
                 val mods = modsDirectory(instance, create = true)
                 val names = sources.map { it.fileName.toString() }
                 require(names.distinct().size == names.size && names.all(::validJarName)) {
@@ -186,7 +186,7 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
         withContext(Dispatchers.IO) {
             require(replacements.isNotEmpty() && replacements.size <= 32)
             instances.withInactiveInstance(instanceId) { instance ->
-                require(instance.loader?.id in setOf("fabric", "quilt")) { "Managed updates require a Fabric instance." }
+                require(instance.loader?.id in setOf("fabric", "quilt", "neoforge", "forge")) { "Managed updates require a mod-loader instance." }
                 val game = instances.gameDirectory(instance)
                 val mods = modsDirectory(instance)
                 val tracked = managedStore.read(game)
@@ -450,7 +450,7 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
         }
         val sorted = found.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.fileName })
         val active = sorted.filter { it.enabled }
-        if (active.isNotEmpty() && instance.loader?.id !in setOf("fabric", "quilt")) {
+        if (active.isNotEmpty() && instance.loader?.id !in setOf("fabric", "quilt", "neoforge", "forge")) {
             warnings += "Local JARs are present, but this instance has no Fabric loader."
         }
         val identifiers = active.mapNotNull { mod -> mod.metadata?.id?.let { it to mod.fileName } }
@@ -458,7 +458,7 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
         identifiers.forEach { (id, paths) ->
             if (paths.size > 1) warnings += "Duplicate enabled mod id '$id': ${paths.joinToString()}"
         }
-        val builtin = setOf("minecraft", "java", "fabricloader", "fabric", "quilt_loader", "quilted_fabric_api")
+        val builtin = setOf("minecraft", "java", "fabricloader", "fabric", "quilt_loader", "quilted_fabric_api", "forge", "neoforge", "fml")
         active.forEach { mod ->
             val data = mod.metadata ?: return@forEach
             data.depends.keys.filter { it !in builtin && it !in identifiers.keys }

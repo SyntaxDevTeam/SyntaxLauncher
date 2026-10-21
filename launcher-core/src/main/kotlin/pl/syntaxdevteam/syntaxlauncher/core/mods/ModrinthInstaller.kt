@@ -22,7 +22,7 @@ class ModrinthInstaller(
     suspend fun install(instanceId: String, plan: ModrinthInstallPlan): LocalModInventory =
         withContext(Dispatchers.IO) {
             val instance = instances.get(instanceId)
-            require(instance.loader?.id in setOf("fabric", "quilt") &&
+            require(instance.loader?.id in setOf("fabric", "quilt", "neoforge", "forge") &&
                 instance.loader?.id == plan.loaderId &&
                 instance.minecraftVersionId == plan.minecraftVersionId) {
                 "Instance loader or Minecraft version changed. Review the installation again."
@@ -77,7 +77,7 @@ class ModrinthInstaller(
                 "Empty or conflicting Modrinth update selection."
             }
             val instance = instances.get(instanceId)
-            require(instance.loader?.id in setOf("fabric", "quilt")) { "Modrinth updates currently require Fabric." }
+            require(instance.loader?.id in setOf("fabric", "quilt", "neoforge", "forge")) { "Modrinth updates require a supported mod-loader instance." }
             val game = instances.gameDirectory(instance)
             require(Files.isDirectory(game, LinkOption.NOFOLLOW_LINKS))
             val current = mods.list(instanceId).mods
