@@ -16,12 +16,15 @@ data class ModLoaderSelection(val id: String, val version: String) {
 }
 
 data class ModLoaderVersion(val version: String, val stable: Boolean)
+data class CompatibleLoaderGame(val minecraftVersion: String, val versions: List<ModLoaderVersion>)
 open class ModLoaderException(message: String) : IllegalStateException(message)
 class IncompatibleModLoaderException(message: String) : ModLoaderException(message)
 
 interface ModLoaderProvider {
     val id: String
     suspend fun compatibleVersions(minecraftVersionId: String): List<ModLoaderVersion>
+    /** Filter the newest-first Mojang catalog without guessing game-version ordering. */
+    suspend fun supportedMinecraftVersions(catalog: List<String>): List<String> = catalog
     suspend fun resolve(base: ResolvedMinecraftVersion, version: String): ResolvedMinecraftVersion
 }
 
@@ -40,6 +43,19 @@ class ModLoaderRegistry(providers: List<ModLoaderProvider>) {
 
     suspend fun compatibleVersions(id: String, game: String): List<ModLoaderVersion> =
         provider(id).compatibleVersions(game)
+
+    /** Read-only selection; errors/cancellation must never trigger a version downgrade. */
+    suspend fun compatibleGame(id: String, game: String, catalog: List<String>): CompatibleLoaderGame? {
+        val provider = provider(id)
+        val current = provider.compatibleVersions(game)
+        if (current.isNotEmpty()) return CompatibleLoaderGame(game, current)
+        val supported = provider.supportedMinecraftVersions(catalog).toSet()
+        for (candidate in catalog.distinct().filter { it != game && it in supported }) {
+            val versions = provider.compatibleVersions(candidate)
+            if (versions.isNotEmpty()) return CompatibleLoaderGame(candidate, versions)
+        }
+        return null
+    }
 
     suspend fun resolve(base: ResolvedMinecraftVersion, selected: ModLoaderSelection?): ResolvedMinecraftVersion =
         if (selected == null) base else provider(selected.id).resolve(base, selected.version)

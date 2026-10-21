@@ -2,7 +2,9 @@ package pl.syntaxdevteam.syntaxlauncher.core.loader
 
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
+import io.ktor.client.plugins.expectSuccess
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.isSuccess
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -16,7 +18,13 @@ class QuiltLoaderProvider(
     override val id = "quilt"
 
     override suspend fun compatibleVersions(minecraftVersionId: String): List<ModLoaderVersion> =
-        FabricProfileParser.parseVersions(request("/versions/loader/" + encode(minecraftVersionId)))
+        request("/versions/loader/" + encode(minecraftVersionId), missingIsEmpty = true)
+            .let(FabricProfileParser::parseVersions)
+
+    override suspend fun supportedMinecraftVersions(catalog: List<String>): List<String> {
+        val supported = FabricProfileParser.parseGameVersions(request("/versions/game")).toSet()
+        return catalog.filter { it in supported }
+    }
 
     override suspend fun resolve(base: ResolvedMinecraftVersion, version: String): ResolvedMinecraftVersion {
         ModLoaderSelection(id, version)
@@ -27,8 +35,9 @@ class QuiltLoaderProvider(
             request("/versions/loader/" + encode(base.id) + "/" + encode(version) + "/profile/json"))
     }
 
-    private suspend fun request(path: String): String {
-        val response = http.get(root + path)
+    private suspend fun request(path: String, missingIsEmpty: Boolean = false): String {
+        val response = http.get(root + path) { expectSuccess = false }
+        if (missingIsEmpty && response.status == HttpStatusCode.NotFound) return "[]"
         if (!response.status.isSuccess()) {
             throw ModLoaderException("Quilt Meta returned HTTP " + response.status.value)
         }

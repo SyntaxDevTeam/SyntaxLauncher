@@ -25,6 +25,13 @@ import pl.syntaxdevteam.syntaxlauncher.core.minecraft.ResolvedMinecraftVersion
 class FabricLoaderProvider(private val http: HttpClient) : ModLoaderProvider {
     override val id = "fabric"
 
+    override suspend fun supportedMinecraftVersions(catalog: List<String>): List<String> {
+        val supported = FabricProfileParser.parseGameVersions(
+            request("https://meta.fabricmc.net/v2/versions/game")
+        ).toSet()
+        return catalog.filter { it in supported }
+    }
+
     override suspend fun compatibleVersions(minecraftVersionId: String): List<ModLoaderVersion> =
         FabricProfileParser.parseVersions(request(
             "https://meta.fabricmc.net/v2/versions/loader/${encode(minecraftVersionId)}"
@@ -58,6 +65,11 @@ class FabricLoaderProvider(private val http: HttpClient) : ModLoaderProvider {
 
 /** Pure parser: Fabric profile overlays Mojang metadata without replacing the verified client jar. */
 object FabricProfileParser {
+    fun parseGameVersions(payload: String): List<String> = Json.parseToJsonElement(payload).jsonArray.map {
+        it.jsonObject["version"]?.jsonPrimitive?.content
+            ?: throw ModLoaderException("Loader game catalog is missing a version.")
+    }.distinct()
+
     private val coordinate = Regex("""[A-Za-z0-9_.-]+:[A-Za-z0-9_.-]+:[A-Za-z0-9_.+~-]+""")
     private val allowedHosts = setOf(
         "maven.fabricmc.net", "maven.quiltmc.org", "libraries.minecraft.net",

@@ -36,6 +36,7 @@ import kotlinx.coroutines.withTimeout
 import pl.syntaxdevteam.syntaxlauncher.core.instance.MinecraftInstance
 import pl.syntaxdevteam.syntaxlauncher.core.loader.ModLoaderSelection
 import pl.syntaxdevteam.syntaxlauncher.core.loader.ModLoaderVersion
+import pl.syntaxdevteam.syntaxlauncher.core.loader.CompatibleLoaderGame
 import pl.syntaxdevteam.syntaxlauncher.desktop.ModdedGameSetup
 import pl.syntaxdevteam.syntaxlauncher.desktop.suggestModdedGame
 import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.LocalStrings
@@ -47,6 +48,7 @@ internal fun QuickModdedGameDialog(
     releases: List<String>,
     defaultName: String,
     loadVersions: suspend (String, String) -> List<ModLoaderVersion>,
+    findCompatibleGame: (suspend (String, String) -> CompatibleLoaderGame?)? = null,
     create: suspend (String, String, ModLoaderSelection) -> MinecraftInstance,
     onCreated: (MinecraftInstance) -> Unit,
     onDismiss: () -> Unit,
@@ -72,9 +74,16 @@ internal fun QuickModdedGameDialog(
         loading = true
         try {
             setup = withTimeout(20_000) {
-                suggestModdedGame(requestedVersion, releases, loader, automaticFallback, loadVersions)
+                if (automaticFallback && findCompatibleGame != null) {
+                    findCompatibleGame(loader, requestedVersion)?.let {
+                        ModdedGameSetup(it.minecraftVersion, loader, it.versions)
+                    }
+                } else suggestModdedGame(requestedVersion, releases, loader, automaticFallback, loadVersions)
             }
-            chosenLoader = setup?.recommended?.version.orEmpty()
+            chosenLoader = setup?.let {
+                if (it.minecraftVersion != requestedVersion && findCompatibleGame != null)
+                    it.versions.first().version else it.recommended.version
+            }.orEmpty()
             if (setup == null) errorKey = "game.no_compatible_version"
         } catch (_: TimeoutCancellationException) {
             errorKey = "game.check_failed"
@@ -106,6 +115,10 @@ internal fun QuickModdedGameDialog(
                     Text(strings.text("game.ready_version", resolved.minecraftVersion),
                         style = MaterialTheme.typography.titleMedium)
                     Text(strings.text("game.automatic_setup"), style = MaterialTheme.typography.bodySmall)
+                    if (resolved.minecraftVersion != requestedVersion) Text(
+                        strings.text("loader.version_adjusted", requestedVersion, resolved.minecraftVersion),
+                        style = MaterialTheme.typography.bodySmall)
+
                 }
                 errorKey?.let { key ->
                     Text(strings.text(key), color = MaterialTheme.colorScheme.error)
@@ -136,11 +149,11 @@ internal fun QuickModdedGameDialog(
                     Text(strings.text("game.technical_options"), style = MaterialTheme.typography.labelSmall)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         for (id in listOf("fabric", "quilt")) ChannelButton(
-                            id.replaceFirstChar { it.uppercase() }, loader == id, !saving, { loader = id })
+                            id.replaceFirstChar { it.uppercase() }, loader == id, !saving, { loader = id; automaticFallback = true })
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         for (id in listOf("neoforge", "forge")) ChannelButton(
-                            id.replaceFirstChar { it.uppercase() }, loader == id, !saving, { loader = id })
+                            id.replaceFirstChar { it.uppercase() }, loader == id, !saving, { loader = id; automaticFallback = true })
                     }
                     if (loader == "forge") Text(
                         strings.text("ui.forge_v2_test_only"),

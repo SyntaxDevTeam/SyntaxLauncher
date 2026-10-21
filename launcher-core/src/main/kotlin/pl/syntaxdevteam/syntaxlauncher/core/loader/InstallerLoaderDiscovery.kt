@@ -63,15 +63,26 @@ class NeoForgeLoaderProvider(http: HttpClient, private val downloads: DownloadMa
     }
     override suspend fun compatibleVersions(minecraftVersionId: String): List<ModLoaderVersion> {
         require(minecraftVersionId.matches(Regex("[A-Za-z0-9._-]{1,80}")))
+        val prefix = versionPrefix(minecraftVersionId) ?: return emptyList()
+        return metadata().asReversed().filter { it.startsWith(prefix) }.map {
+            ModLoaderVersion(it, !it.contains('-'))
+        }
+    }
+
+    override suspend fun supportedMinecraftVersions(catalog: List<String>): List<String> {
+        val versions = metadata()
+        return catalog.filter { game ->
+            versionPrefix(game)?.let { prefix -> versions.any { it.startsWith(prefix) } } == true
+        }
+    }
+
+    private fun versionPrefix(minecraftVersionId: String): String? {
         val parts = minecraftVersionId.split('.')
-        val prefix = when {
+        return when {
             parts.size >= 3 && parts[0] == "1" -> parts[1] + "." + parts[2] + "."
             parts.size == 2 && parts[0].toIntOrNull() != null -> minecraftVersionId + ".0."
             parts.size >= 3 && parts[0].toIntOrNull() != null -> minecraftVersionId + "."
-            else -> return emptyList()
-        }
-        return metadata().asReversed().filter { it.startsWith(prefix) }.map {
-            ModLoaderVersion(it, !it.contains('-'))
+            else -> null
         }
     }
 }
@@ -100,6 +111,9 @@ class ForgeLoaderProvider(http: HttpClient, private val downloader: DownloadMana
     }
     // v0.8 initial acceptance matrix. Do not offer historical/V1 or unverified versions.
     private val verifiedV2Versions = mapOf("1.21.1" to setOf("52.1.20"))
+
+    override suspend fun supportedMinecraftVersions(catalog: List<String>): List<String> =
+        catalog.filter { it in verifiedV2Versions }
 
     override suspend fun compatibleVersions(minecraftVersionId: String): List<ModLoaderVersion> {
         require(minecraftVersionId.matches(Regex("[A-Za-z0-9._-]{1,80}")))

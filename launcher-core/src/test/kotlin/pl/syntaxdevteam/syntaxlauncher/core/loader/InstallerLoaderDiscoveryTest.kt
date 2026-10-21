@@ -12,6 +12,20 @@ import pl.syntaxdevteam.syntaxlauncher.core.minecraft.MinecraftVersionType
 import pl.syntaxdevteam.syntaxlauncher.core.minecraft.ResolvedMinecraftVersion
 
 class InstallerLoaderDiscoveryTest {
+    @Test fun fallbackUsesNewestGameButPreservesForgeVerifiedSupportMatrix() = runBlocking {
+        val http = HttpClient(MockEngine { respond(metadata) })
+        try {
+            val registry = ModLoaderRegistry(listOf(NeoForgeLoaderProvider(http), ForgeLoaderProvider(http)))
+            val catalog = listOf("26.4-snapshot-4", "26.3", "26.2", "1.21.1", "1.12.2")
+            val neo = registry.compatibleGame("neoforge", catalog.first(), catalog)!!
+            assertEquals("26.3", neo.minecraftVersion)
+            assertEquals("26.3.0.84", neo.versions.single().version)
+            val forge = registry.compatibleGame("forge", catalog.first(), catalog)!!
+            assertEquals("1.21.1", forge.minecraftVersion)
+            assertEquals("52.1.20", forge.versions.single().version)
+        } finally { http.close() }
+    }
+
     private val metadata = """<metadata><versioning><versions>
         <version>26.3.0.84</version><version>26.2.0.76</version>
         <version>26.1.1.11-beta</version><version>26.1.0.19-beta</version>

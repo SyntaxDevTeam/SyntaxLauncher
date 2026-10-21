@@ -180,6 +180,10 @@ The user can create/edit an instance and select:
 
 Home offers Vanilla / With mods. A new player can confirm an automatically compatible, separate modded game and immediately choose mods, without navigating the instance manager or choosing loader versions. Existing Fabric/Quilt games are reused; Vanilla worlds remain unchanged. More options and My games retain advanced controls. This is an entry point to existing v0.4/v0.6 capabilities, not a new loader or world migration.
 
+### Compatibility selection correction (requested 21 October 2026)
+
+When the selected loader does not support the current Minecraft version, creation/settings and quick setup automatically select the newest supported game from official metadata, with the newest offered loader version and an inline explanation. Network failures do not trigger fallback; settings remain drafts until Save/Create. Existing-world downgrade warnings remain visible.
+
 ### Internal scope
 
 Introduce a loader provider/adapter boundary capable of representing:

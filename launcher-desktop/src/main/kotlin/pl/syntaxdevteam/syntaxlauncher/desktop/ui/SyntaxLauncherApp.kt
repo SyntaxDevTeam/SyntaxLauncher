@@ -533,6 +533,8 @@ private fun LauncherPanel(
             releases = manifest.versions.filter { it.type == MinecraftVersionType.RELEASE }.map { it.id },
             defaultName = suggestedName,
             loadVersions = { id, game -> session.loaders?.compatibleVersions(id, game).orEmpty() },
+            findCompatibleGame = { id, game -> session.loaders?.compatibleGame(
+                id, game, manifest.versions.sortedByDescending { it.releaseTime }.map { it.id }) },
             create = { name, game, loader ->
                 session.instances.create(name, game, maximumMemoryMiB = ramMiB.toInt(), loader = loader)
             },
@@ -554,6 +556,8 @@ private fun LauncherPanel(
             instance = editing,
             availableVersions = manifest.versions.map { it.id },
             loadLoaderVersions = { id, game -> session.loaders?.compatibleVersions(id, game).orEmpty() },
+            findCompatibleGame = { id, game -> session.loaders?.compatibleGame(
+                id, game, manifest.versions.sortedByDescending { it.releaseTime }.map { it.id }) },
             onSave = { updated ->
                 modifyInstance { session.instances.update(updated) }
                 editingInstance = null
@@ -575,6 +579,8 @@ private fun LauncherPanel(
             latestVersion = legacyVersionId.ifBlank { manifest.latestRelease },
             availableVersions = manifest.versions.map { it.id },
             loadLoaderVersions = { id, game -> session.loaders?.compatibleVersions(id, game).orEmpty() },
+            findCompatibleGame = { id, game -> session.loaders?.compatibleGame(
+                id, game, manifest.versions.sortedByDescending { it.releaseTime }.map { it.id }) },
             error = instanceError,
             preview = copyPreview,
             copyProgress = copyProgress,

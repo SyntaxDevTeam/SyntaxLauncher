@@ -24,6 +24,22 @@ import pl.syntaxdevteam.syntaxlauncher.core.storage.MinecraftInstallationLayout
 import java.nio.file.Files
 
 class FabricLoaderProviderTest {
+    @Test fun fallbackIntersectsOfficialGameIndexWithMojangCatalog() = runBlocking {
+        val http = HttpClient(MockEngine { req ->
+            respond(when {
+                req.url.encodedPath.endsWith("/game") -> """[{"version":"26.3"}]"""
+                req.url.encodedPath.endsWith("/26.3") -> versions
+                else -> "[]"
+            })
+        })
+        try {
+            val selected = ModLoaderRegistry(listOf(FabricLoaderProvider(http)))
+                .compatibleGame("fabric", "26.4-snapshot-4", listOf("26.4-snapshot-4", "26.3"))!!
+            assertEquals("26.3", selected.minecraftVersion)
+            assertEquals("0.16.14", selected.versions.first().version)
+        } finally { http.close() }
+    }
+
     private fun base(): ResolvedMinecraftVersion = ResolvedMinecraftVersion(
         id = "1.21.1",
         type = MinecraftVersionType.RELEASE,

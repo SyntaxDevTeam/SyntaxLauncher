@@ -26,6 +26,10 @@ import androidx.compose.ui.unit.dp
 import pl.syntaxdevteam.syntaxlauncher.core.instance.MinecraftInstance
 import pl.syntaxdevteam.syntaxlauncher.core.loader.ModLoaderSelection
 import pl.syntaxdevteam.syntaxlauncher.core.loader.ModLoaderVersion
+import pl.syntaxdevteam.syntaxlauncher.core.loader.CompatibleLoaderGame
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.TimeoutCancellationException
+import org.slf4j.LoggerFactory
 
 /**
  * Draft values stay in Compose state until explicit Save; Cancel writes nothing.
@@ -36,6 +40,7 @@ fun InstanceSettingsDialog(
     instance: MinecraftInstance,
     availableVersions: List<String>,
     loadLoaderVersions: suspend (String, String) -> List<ModLoaderVersion> = { _, _ -> emptyList() },
+    findCompatibleGame: (suspend (String, String) -> CompatibleLoaderGame?)? = null,
     onSave: (MinecraftInstance) -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -51,9 +56,11 @@ fun InstanceSettingsDialog(
     var suggestions by remember { mutableStateOf(false) }
     var loaderId by remember(instance.id) { mutableStateOf(instance.loader?.id ?: "vanilla") }
     var fabricVersion by remember(instance.id) { mutableStateOf(instance.loader?.version.orEmpty()) }
-    var compatible by remember(instance.id) { mutableStateOf<List<ModLoaderVersion>>(emptyList()) }
+    var compatible by remember(version, loaderId) { mutableStateOf<List<ModLoaderVersion>>(emptyList()) }
     var loaderLoading by remember(instance.id) { mutableStateOf(false) }
     var loaderError by remember(instance.id) { mutableStateOf<String?>(null) }
+
+    var versionAdjustment by remember(instance.id) { mutableStateOf<Pair<String, String>?>(null) }
 
     val minRam = minimum.toIntOrNull()
     val maxRam = maximum.toIntOrNull()
@@ -77,17 +84,30 @@ fun InstanceSettingsDialog(
         if (loaderId in setOf("fabric", "quilt", "neoforge", "forge") && versionValid) {
             loaderLoading = true
             try {
-                compatible = loadLoaderVersions(loaderId, versionId)
+                val resolved = withTimeout(20_000) {
+                    if (findCompatibleGame != null) findCompatibleGame(loaderId, versionId)
+                    else loadLoaderVersions(loaderId, versionId).takeIf { it.isNotEmpty() }
+                        ?.let { CompatibleLoaderGame(versionId, it) }
+                }
+                if (resolved != null && resolved.minecraftVersion != versionId) {
+                    versionAdjustment = versionId to resolved.minecraftVersion
+                    version = resolved.minecraftVersion
+                    fabricVersion = resolved.versions.first().version
+                }
+                compatible = resolved?.versions.orEmpty()
                 if (compatible.isEmpty()) {
                     loaderError = strings.text("loader.unavailable", loaderId.replaceFirstChar { it.uppercase() }, versionId)
                 } else if (compatible.none { it.version == fabricVersion }) {
                     fabricVersion = compatible.firstOrNull { it.stable }?.version
                         ?: compatible.first().version
                 }
+            } catch (_: TimeoutCancellationException) {
+                loaderError = strings.text("loader.compatibility_error")
             } catch (cancelled: kotlinx.coroutines.CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
-                loaderError = error.message ?: strings.text("loader.compatibility_error")
+                LoggerFactory.getLogger("LoaderSelection").warn("Cannot discover compatible loader versions", error)
+                loaderError = strings.text("loader.compatibility_error")
             } finally {
                 loaderLoading = false
             }
@@ -120,7 +140,7 @@ fun InstanceSettingsDialog(
                 )
                 OutlinedTextField(
                     value = version,
-                    onValueChange = { version = it; suggestions = true },
+                    onValueChange = { version = it; versionAdjustment = null; suggestions = true },
                     label = { Text(strings.text("ui.minecraft_version")) },
                     singleLine = true,
                     isError = !versionValid,
@@ -135,10 +155,14 @@ fun InstanceSettingsDialog(
                         .filter { it.contains(versionId, ignoreCase = true) }
                         .take(6)
                         .forEach { choice ->
-                            TextButton(onClick = { version = choice; suggestions = false }) {
+                            TextButton(onClick = { version = choice; versionAdjustment = null; suggestions = false }) {
                                 Text(choice)
                             }
                         }
+                }
+                versionAdjustment?.let { (previous, selected) ->
+                    Text(strings.text("loader.version_adjusted", previous, selected),
+                        style = MaterialTheme.typography.bodySmall)
                 }
                 if (versionChanged) {
                     Text(
@@ -151,20 +175,20 @@ fun InstanceSettingsDialog(
                 Text(strings.text("ui.mod_loader"), style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(onClick = { loaderId = "vanilla" }) {
+                    TextButton(onClick = { loaderId = "vanilla"; versionAdjustment = null }) {
                         Text(if (loaderId == "vanilla") "✓ Vanilla" else "Vanilla")
                     }
-                    TextButton(onClick = { loaderId = "fabric" }) {
+                    TextButton(onClick = { loaderId = "fabric"; versionAdjustment = null }) {
                         Text(if (loaderId == "fabric") "✓ Fabric" else "Fabric")
                     }
-                    TextButton(onClick = { loaderId = "quilt" }) {
+                    TextButton(onClick = { loaderId = "quilt"; versionAdjustment = null }) {
                         Text(if (loaderId == "quilt") "✓ Quilt" else "Quilt")
                     }
-                    TextButton(onClick = { loaderId = "neoforge" }) {
+                    TextButton(onClick = { loaderId = "neoforge"; versionAdjustment = null }) {
                         Text(if (loaderId == "neoforge") "✓ NeoForge" else "NeoForge")
                     }
                 }
-                TextButton(onClick = { loaderId = "forge" }) {
+                TextButton(onClick = { loaderId = "forge"; versionAdjustment = null }) {
                     Text(if (loaderId == "forge") "✓ Forge (v0.8)" else "Forge (v0.8)")
                 }
                 if (loaderId == "forge") Text(
@@ -179,7 +203,7 @@ fun InstanceSettingsDialog(
                         label = { Text(loaderId.replaceFirstChar { it.uppercase() } + strings.text("ui.loader_version")) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        isError = !fabricValid,
+                        isError = !loaderLoading && loaderError != null,
                         supportingText = { Text(
                             if (loaderLoading) strings.text("ui.checking_compatible_versions")
                             else loaderError ?: strings.text("ui.choose_one_of_the_compatible_versions_below")

@@ -8,6 +8,44 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-21 — Automatically select supported Minecraft when changing loader
+
+**Milestone:** v0.4 — shared loader selection / v0.8 — Quilt compatibility correction
+**Author/Agent:** Codex / GPT-6
+**Status:** Completed
+
+### Completed
+- Fixed Quilt loader-discovery HTTP 404 being surfaced as a raw HTTP/JSON error when the chosen Minecraft snapshot has no Quilt support. Discovery now returns no compatible versions for that status even with the shared client's `expectSuccess=true`; profile 404, other HTTP failures and cancellation remain failures.
+- Added read-only registry discovery that preserves a compatible current Minecraft version, otherwise intersects the provider's supported games with Mojang versions ordered by release date and checks the newest compatible candidate. There is no seven-release fallback limit or hardcoded fallback Minecraft/Quilt version.
+- Integrated automatic draft adjustment in instance settings, creation and quick modded setup, selecting the newest offered loader on fallback, including previews. Fabric/Quilt use official game indexes; NeoForge reuses Maven compatibility rules and Forge retains its verified V2 matrix.
+- Added a short EN/PL/DE explanation of the adjustment before Save/Create. Existing-world downgrade warnings remain visible. Settings and creation retain explicit confirmation; discovery does not modify profiles, worlds or schema. Changing a loader cancels obsolete discovery and clears stale compatibility. Network/metadata errors show a concise translated message and retain diagnostic causes in logs.
+- Added deterministic tests for Quilt 404 with strict HTTP validation, fallback beyond seven versions, unsorted/unknown upstream game entries, current-version preservation, empty support, server/profile errors and cancellation; Fabric and Forge-family fallback regressions; EN/PL/DE Compose settings confirmation and cancelled stale requests.
+
+### Changed files
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/loader/{ModLoader,FabricLoaderProvider,QuiltLoaderProvider,InstallerLoaderDiscovery}.kt` — compatible-game discovery and provider-supported game filtering; Quilt discovery status handling.
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/loader/{FabricLoaderProviderTest,QuiltLoaderProviderTest,InstallerLoaderDiscoveryTest}.kt` — deterministic metadata/status/fallback regressions.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/{InstanceSettingsDialog,InstanceWorkspace,QuickModdedGameDialog,SyntaxLauncherApp}.kt` — automatic draft selection, bounded discovery, inline feedback and registry wiring.
+- `launcher-desktop/src/main/resources/i18n/{en,pl,de}.properties` — translated adjustment message.
+- `launcher-desktop/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/InstanceLoaderSelectionTest.kt` — translated confirmation renders, newest loader choice and stale-discovery cancellation.
+- `README.md`, `docs/{DESIGN,DEVELOPMENT,MILESTONES,ROADMAP,WORKLOG}.md` — requested compatibility behavior, selection rules and verification.
+
+### Verification
+- `./gradlew test` — PASS via `./gradlew --offline test build`; 141 core and 27 desktop tests passed, two opt-in live installer tests skipped, zero failures/errors.
+- `./gradlew build` — PASS in the same final invocation.
+- Manual verification — inspected the generated Polish settings render showing the fixture adjustment from `26.4-snapshot-4` to `26.3`, the inline explanation and retained world-downgrade warning. EN/PL/DE render/confirmation assertions pass. Real Minecraft startup and native multi-platform interaction were not run.
+- `git diff --check` — PASS.
+
+### Roadmap updates
+- `[x] v0.4 / UI / Automatically adjust unsupported Minecraft/loader drafts` — implementation, deterministic provider/UI regressions and local build verified.
+- `[ ] v0.4 / UI / Native simplified discovery/install/Play usability` — remains open; automated settings renders do not certify actual gameplay/platform acceptance.
+- Existing v0.8 Forge/historical compatibility and other loader acceptance gates remain unchanged.
+
+### Follow-ups / known issues
+- Native Windows/macOS/Linux acceptance and real gameplay remain separate checks. Loader support changes upstream; selection uses live provider metadata, not a permanent promise about a specific version pair.
+- The bundled Forge support matrix remains limited to its previously verified V2 pair. No updater changes, product-version bump, persisted-format migration or world conversion were needed.
+
+---
+
 ## 2026-10-21 — Fix Linux packaged update handoff and native access
 
 **Milestone:** v0.12 — startup updates; v0.1 — desktop runtime compatibility

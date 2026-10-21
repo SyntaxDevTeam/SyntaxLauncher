@@ -51,6 +51,10 @@ import pl.syntaxdevteam.syntaxlauncher.core.instance.InstanceCopyProgress
 import pl.syntaxdevteam.syntaxlauncher.core.instance.MinecraftInstance
 import pl.syntaxdevteam.syntaxlauncher.core.loader.ModLoaderSelection
 import pl.syntaxdevteam.syntaxlauncher.core.loader.ModLoaderVersion
+import pl.syntaxdevteam.syntaxlauncher.core.loader.CompatibleLoaderGame
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.TimeoutCancellationException
+import org.slf4j.LoggerFactory
 import pl.syntaxdevteam.syntaxlauncher.core.instance.TrashedMinecraftInstance
 
 data class InstanceCopyPreview(
@@ -83,6 +87,7 @@ fun InstanceWorkspace(
     latestVersion: String,
     availableVersions: List<String>,
     loadLoaderVersions: suspend (String, String) -> List<ModLoaderVersion> = { _, _ -> emptyList() },
+    findCompatibleGame: (suspend (String, String) -> CompatibleLoaderGame?)? = null,
     error: String?,
     preview: InstanceCopyPreview?,
     copyProgress: InstanceCopyProgress?,
@@ -110,9 +115,10 @@ fun InstanceWorkspace(
     var newVersion by remember { mutableStateOf(latestVersion) }
     var newLoader by remember { mutableStateOf("vanilla") }
     var newFabricVersion by remember { mutableStateOf("") }
-    var compatible by remember { mutableStateOf<List<ModLoaderVersion>>(emptyList()) }
+    var compatible by remember(newVersion, newLoader) { mutableStateOf<List<ModLoaderVersion>>(emptyList()) }
     var fabricLoading by remember { mutableStateOf(false) }
     var fabricError by remember { mutableStateOf<String?>(null) }
+    var versionAdjustment by remember { mutableStateOf<Pair<String, String>?>(null) }
     val fabricValid = newLoader == "vanilla" ||
         (!fabricLoading && fabricError == null && compatible.any { it.version == newFabricVersion })
     LaunchedEffect(newVersion, newLoader) {
@@ -121,17 +127,30 @@ fun InstanceWorkspace(
         if (newLoader in setOf("fabric", "quilt", "neoforge", "forge") && newVersion in availableVersions) {
             fabricLoading = true
             try {
-                compatible = loadLoaderVersions(newLoader, newVersion)
+                val resolved = withTimeout(20_000) {
+                    if (findCompatibleGame != null) findCompatibleGame(newLoader, newVersion)
+                    else loadLoaderVersions(newLoader, newVersion).takeIf { it.isNotEmpty() }
+                        ?.let { CompatibleLoaderGame(newVersion, it) }
+                }
+                if (resolved != null && resolved.minecraftVersion != newVersion) {
+                    versionAdjustment = newVersion to resolved.minecraftVersion
+                    newVersion = resolved.minecraftVersion
+                    newFabricVersion = resolved.versions.first().version
+                }
+                compatible = resolved?.versions.orEmpty()
                 if (compatible.isEmpty()) {
                     fabricError = strings.text("loader.unavailable", newLoader.replaceFirstChar { it.uppercase() }, newVersion)
                 } else if (compatible.none { it.version == newFabricVersion }) {
                     newFabricVersion = compatible.firstOrNull { it.stable }?.version
                         ?: compatible.first().version
                 }
+            } catch (_: TimeoutCancellationException) {
+                fabricError = strings.text("loader.compatibility_error")
             } catch (cancelled: kotlinx.coroutines.CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
-                fabricError = error.message ?: strings.text("loader.compatibility_error")
+                LoggerFactory.getLogger("LoaderSelection").warn("Cannot discover compatible loader versions", error)
+                fabricError = strings.text("loader.compatibility_error")
             } finally {
                 fabricLoading = false
             }
@@ -294,7 +313,7 @@ fun InstanceWorkspace(
                             enabled = canModify, modifier = Modifier.fillMaxWidth(),
                         )
                         OutlinedTextField(
-                            value = newVersion, onValueChange = { newVersion = it },
+                            value = newVersion, onValueChange = { newVersion = it; versionAdjustment = null },
                             label = { Text(strings.text("ui.minecraft_version")) },
                             supportingText = { Text(strings.text("ui.choose_a_version_listed_in_the_mojang_catalog")) },
                             singleLine = true, enabled = canModify,
@@ -307,20 +326,20 @@ fun InstanceWorkspace(
                         Text(strings.text("ui.mod_loader"), style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.primary)
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            TextButton(onClick = { newLoader = "vanilla" }, enabled = canModify) {
+                            TextButton(onClick = { newLoader = "vanilla"; versionAdjustment = null }, enabled = canModify) {
                                 Text(if (newLoader == "vanilla") "✓ Vanilla" else "Vanilla")
                             }
-                            TextButton(onClick = { newLoader = "fabric" }, enabled = canModify) {
+                            TextButton(onClick = { newLoader = "fabric"; versionAdjustment = null }, enabled = canModify) {
                                 Text(if (newLoader == "fabric") "✓ Fabric" else "Fabric")
                             }
-                            TextButton(onClick = { newLoader = "quilt" }, enabled = canModify) {
+                            TextButton(onClick = { newLoader = "quilt"; versionAdjustment = null }, enabled = canModify) {
                                 Text(if (newLoader == "quilt") "✓ Quilt" else "Quilt")
                             }
-                            TextButton(onClick = { newLoader = "neoforge" }, enabled = canModify) {
+                            TextButton(onClick = { newLoader = "neoforge"; versionAdjustment = null }, enabled = canModify) {
                                 Text(if (newLoader == "neoforge") "✓ NeoForge" else "NeoForge")
                             }
                         }
-                        TextButton(onClick = { newLoader = "forge" }, enabled = canModify) {
+                        TextButton(onClick = { newLoader = "forge"; versionAdjustment = null }, enabled = canModify) {
                             Text(if (newLoader == "forge") "✓ Forge (v0.8)" else "Forge (v0.8)")
                         }
                         if (newLoader == "forge") Text(
@@ -334,7 +353,7 @@ fun InstanceWorkspace(
                                 onValueChange = { newFabricVersion = it },
                                 label = { Text(newLoader.replaceFirstChar { it.uppercase() } + strings.text("ui.loader_version")) },
                                 singleLine = true, enabled = canModify,
-                                isError = !fabricValid,
+                                isError = !fabricLoading && fabricError != null,
                                 modifier = Modifier.fillMaxWidth(),
                                 supportingText = { Text(
                                     if (fabricLoading) strings.text("ui.checking_compatibility")
@@ -345,6 +364,10 @@ fun InstanceWorkspace(
                                 TextButton(onClick = { newFabricVersion = loader.version }, enabled = canModify) {
                                     Text(loader.version + if (loader.stable) strings.text("ui.stable") else strings.text("ui.preview"))
                                 }
+                            }
+                            versionAdjustment?.let { (previous, selected) ->
+                                Text(strings.text("loader.version_adjusted", previous, selected),
+                                    style = MaterialTheme.typography.bodySmall)
                             }
                             if (fabricError != null) Text(fabricError.orEmpty(),
                                 color = MaterialTheme.colorScheme.error,

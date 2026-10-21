@@ -393,6 +393,8 @@ offline account tests for this milestone.
 
 ## v0.4 UI
 
+- [x] Automatically adjust unsupported Minecraft/loader drafts to the newest supported game and loader in settings, creation and quick setup; explain the adjustment before Save/Create. Quilt discovery 404 is incompatibility; network failures do not trigger fallback. Deterministic provider/HTTP, EN/PL/DE Compose, cancellation regressions and local test/build pass (21 October 2026); native platform usability remains a separate open gate.
+
 - [x] Add a child-friendly home Vanilla / With mods choice; reuse saved Fabric/Quilt games and keep Vanilla worlds unchanged. Rendered mode-switch/persistence and isolation regressions pass.
 - [x] Offer first-time modded-game setup with automatic compatible Minecraft/loader selection, explicit confirmation and immediate Modrinth discovery; advanced naming/version/loader choices stay behind More options. Loading, retry, cancellation, duplicate-click protection and EN/PL/DE 400×400/440×640 setup regressions pass.
 - [x] Replace disabled managed-profile version/RAM controls with a compact summary and Game settings entry; keep Play dominant and use My games rather than requiring instance terminology on the normal home screen.
