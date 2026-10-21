@@ -55,6 +55,12 @@ jobs:
         env:
           SYNTAXLAUNCHER_NEOFORGE_LIVE_SMOKE: "1"
         run: gradle --no-daemon --stacktrace :launcher-core:test --tests 'pl.syntaxdevteam.syntaxlauncher.core.loader.NeoForgeOfficialSmokeTest' --rerun-tasks
+      - name: Smoke-test official Forge V2 processor installation
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        timeout-minutes: 22
+        env:
+          SYNTAXLAUNCHER_FORGE_LIVE_SMOKE: "1"
+        run: gradle --no-daemon --stacktrace :launcher-core:test --tests 'pl.syntaxdevteam.syntaxlauncher.core.loader.ForgeOfficialSmokeTest' --rerun-tasks
       - name: Test update packaging protocol
         run: python3 -m unittest discover -s scripts -p "test_*.py"
 
