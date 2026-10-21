@@ -65,7 +65,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
@@ -160,7 +159,7 @@ fun SyntaxLauncherApp(
                     horizontalArrangement = Arrangement.spacedBy(13.dp),
                 ) {
                     Image(
-                        painter = painterResource("branding/syntaxlauncher-icon.png"),
+                        painter = rememberBrandingPainter("branding/syntaxlauncher-icon.png"),
                         contentDescription = "SyntaxLauncher",
                         modifier = Modifier.size(if (compactShell) 44.dp else 64.dp),
                     )

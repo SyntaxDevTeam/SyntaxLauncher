@@ -3,6 +3,7 @@ package pl.syntaxdevteam.syntaxlauncher.core.account
 import java.nio.charset.StandardCharsets
 import java.util.UUID
 
+@ConsistentCopyVisibility
 data class OfflineAccount private constructor(
     override val username: String,
     override val uuid: UUID,

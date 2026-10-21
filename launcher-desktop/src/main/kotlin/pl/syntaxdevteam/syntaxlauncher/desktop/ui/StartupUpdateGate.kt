@@ -32,7 +32,6 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CancellationException
@@ -119,7 +118,7 @@ internal fun StartupUpdateScreen(
             Column(Modifier.widthIn(max = 480.dp).verticalScroll(rememberScrollState()).padding(28.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(18.dp)) {
-                Image(painterResource("branding/hero-mark.png"), strings.text("ui.syntaxlauncher_logo"), Modifier.size(112.dp))
+                Image(rememberBrandingPainter("branding/hero-mark.png"), strings.text("ui.syntaxlauncher_logo"), Modifier.size(112.dp))
                 Text("SyntaxLauncher", style = MaterialTheme.typography.headlineMedium)
                 Text("v" + LauncherBuildInfo.version + "   /   " + LauncherBuildInfo.buildLabel +
                     "   /   " + LauncherBuildInfo.shortCommit,

@@ -32,7 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogWindow
 import androidx.compose.ui.window.rememberDialogState
 import java.nio.file.Path
 import javax.swing.JFileChooser
@@ -108,7 +108,7 @@ fun LocalModsDialog(
         minOf(840, (workArea.width - 48).coerceAtLeast(400)).dp,
         minOf(630, (workArea.height - 48).coerceAtLeast(400)).dp,
     )
-    Dialog(
+    DialogWindow(
         onCloseRequest = { if (!busy) onDismiss() },
         title = strings.text("ui.syntaxlauncher_local_mods"),
         state = rememberDialogState(size = dialogSize),

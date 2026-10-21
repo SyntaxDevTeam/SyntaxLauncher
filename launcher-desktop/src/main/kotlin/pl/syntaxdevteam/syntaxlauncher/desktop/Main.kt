@@ -9,7 +9,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.window.WindowDraggableArea
 import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.rememberWindowState
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.application
@@ -35,6 +34,7 @@ import pl.syntaxdevteam.syntaxlauncher.core.storage.LauncherPreferencesStore
 import pl.syntaxdevteam.syntaxlauncher.core.storage.MinecraftInstallationLayout
 import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.LauncherLanguageHost
 import pl.syntaxdevteam.syntaxlauncher.desktop.ui.SyntaxLauncherApp
+import pl.syntaxdevteam.syntaxlauncher.desktop.ui.rememberBrandingPainter
 import pl.syntaxdevteam.syntaxlauncher.desktop.ui.StartupUpdateGate
 import pl.syntaxdevteam.syntaxlauncher.desktop.ui.WindowControls
 import pl.syntaxdevteam.syntaxlauncher.desktop.ui.WindowResizeHandles
@@ -104,7 +104,7 @@ fun main(args: Array<String>) {
         Window(
             onCloseRequest = closeLauncher,
             title = "SyntaxLauncher · v" + LauncherBuildInfo.version + " · " + LauncherBuildInfo.buildLabel,
-            icon = painterResource("branding/syntaxlauncher-icon.png"),
+            icon = rememberBrandingPainter("branding/syntaxlauncher-icon.png"),
             state = windowState,
             undecorated = true,
             resizable = true,

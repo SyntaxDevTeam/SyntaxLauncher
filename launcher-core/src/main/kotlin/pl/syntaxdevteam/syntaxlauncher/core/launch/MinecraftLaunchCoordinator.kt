@@ -109,10 +109,9 @@ class MinecraftLaunchCoordinator(
             }
 
             val prepared = if (delayedInstaller) {
-                val selected = loader ?: error("Missing installed loader selection")
+                val selected = loader
                 stage(LaunchPhase.PREPARING_LOADER, "Installing " + selected.id + " " + selected.version)
-                val installed = loaders?.install(version, selected, instanceLayout, runtime)
-                    ?: throw ModLoaderException("Mod loader installer is not configured.")
+                val installed = loaders.install(version, selected, instanceLayout, runtime)
                 stage(LaunchPhase.PREPARING_GAME, "Verifying installed ${selected.id} files")
                 preparation.prepare(installed, platform, instanceLayout) { event ->
                     if (event is MinecraftPreparationEvent.Download) downloaded(event.event)

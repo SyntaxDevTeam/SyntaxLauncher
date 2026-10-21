@@ -8,6 +8,45 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-21 — Migrate deprecated Kotlin and Compose APIs
+
+**Milestone:** v0.1 — existing core/UI maintenance; v0.12 — build compatibility
+**Author/Agent:** Codex / GPT-6
+**Status:** Completed
+
+### Completed
+- Applied `@ConsistentCopyVisibility` to OfflineAccount so the generated copy method respects its private constructor; all repository creation remains through validated `create`.
+- Removed redundant Elvis/safe calls where Kotlin already proves that the delayed installer has a selected loader and registry. Loader resolution, preparation order and errors for missing services remain unchanged.
+- Replaced deprecated image calls in the main window, header, hero and startup updater with one remembered classpath bitmap helper using the Compose resources decoder. Existing PNG/JPEG paths, artwork, sizing and native package icon remain intact; input streams close after reading.
+- Migrated the instance and local-mod native windows from Dialog to DialogWindow, preserving size/state, resize support, busy close guards and content.
+- Declared Material3 explicitly at its existing resolved version and Compose resources at the plugin version, avoiding deprecated Gradle dependency accessors. No warning suppressions or product-version bump introduced.
+
+### Changed files
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/account/OfflineAccount.kt` — consistent generated-copy visibility.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/launch/MinecraftLaunchCoordinator.kt` — remove proven-unnecessary null handling.
+- `launcher-desktop/build.gradle.kts` — explicit Material3 and resources dependencies.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/BrandingResources.kt` — shared remembered painter using Compose resources bitmap decoding.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/Main.kt`, `ui/{LauncherArtwork,StartupUpdateGate,SyntaxLauncherApp}.kt` — migrate all branding painter calls.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/{InstanceWorkspace,LocalModsDialog}.kt` — migrate native window API.
+- `docs/{DESIGN,DEVELOPMENT,ROADMAP,WORKLOG}.md` — current resource/dependency conventions, maintenance progress and evidence.
+
+### Verification
+- `./gradlew test` — PASS via `./gradlew --offline --no-daemon -PlauncherBuildNumber=156 -PlauncherCommit=e96b70e7be7a41a3ee0e15f32cf9fc3d1145ef67 -PlauncherUpdateChannel=dev test build :launcher-desktop:createDistributable --rerun-tasks --no-build-cache --warning-mode all`; 136 core and 25 desktop tests passed, two opt-in live tests skipped. All 19 actionable tasks executed.
+- `./gradlew build` — PASS in the same invocation; zero Kotlin source or Gradle-script compiler warnings. Only the two upstream plugin deprecations listed below remain.
+- `:launcher-desktop:createDistributable` — PASS for Linux. Verified that the packaged desktop JAR includes the new helper and all three original branding files. `scripts/package_update.py` and `:launcher-desktop:verifyUpdateBundle` also PASS for the complete Linux update archive.
+- Manual verification — inspected regenerated Polish home (1440×810) and startup updater (440×600) renders. Branding, transparency and geometry preserved; native dialogs and Windows/macOS still require platform acceptance.
+- `git diff --check` — PASS.
+
+### Roadmap updates
+- `[x] Cross-milestone desktop development ergonomics / Deprecated core/Compose APIs` — local migration/verification complete.
+- `[ ] Native UI and Windows/macOS/platform acceptance` — remains open; headless rendering and Linux packaging do not replace native checks.
+
+### Follow-ups / known issues
+- Two upstream Compose/Hot Reload Gradle deprecations remain: Configuration.setVisible and the HotReloadUsageType attribute value type. No repository calls use these APIs; upgrading or disabling plugins is outside the supplied source-warning cleanup.
+- No authentication, loader feature, persistence-schema, artwork, canonical product-version or release-policy change. Hosted CI and native dialog focus/resize acceptance remain separate.
+
+---
+
 ## 2026-10-21 — Fix nested home scrolling in CI render tests
 
 **Milestone:** v0.1 — translated home regression coverage; v0.12 — CI reliability

@@ -45,7 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogWindow
 import androidx.compose.ui.window.rememberDialogState
 import pl.syntaxdevteam.syntaxlauncher.core.instance.InstanceCopyProgress
 import pl.syntaxdevteam.syntaxlauncher.core.instance.MinecraftInstance
@@ -162,7 +162,7 @@ fun InstanceWorkspace(
         )
     }
 
-    Dialog(
+    DialogWindow(
         onCloseRequest = { if (!isBusy) onDismiss() },
         title = strings.text("ui.syntaxlauncher_instances"),
         state = rememberDialogState(size = DpSize(width, height)),

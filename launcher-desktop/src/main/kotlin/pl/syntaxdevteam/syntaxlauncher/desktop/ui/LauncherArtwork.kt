@@ -25,7 +25,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
@@ -38,7 +37,7 @@ import kotlin.math.roundToInt
 internal fun LauncherHero(version: String?, profile: String?, snapshots: Boolean, modifier: Modifier = Modifier, modded: Boolean = false) {
     val strings = LocalStrings.current
     val shape = RoundedCornerShape(SyntaxBrand.panelRadius)
-    val mark = painterResource("branding/hero-mark.png")
+    val mark = rememberBrandingPainter("branding/hero-mark.png")
     val markAspectRatio = mark.intrinsicSize.width / mark.intrinsicSize.height
     BoxWithConstraints(modifier.testTag("launcher-hero").clip(shape).background(SyntaxBrand.heroEnd)
         .border(1.dp, SyntaxBrand.border, shape)) {
@@ -53,7 +52,7 @@ internal fun LauncherHero(version: String?, profile: String?, snapshots: Boolean
         }
         val showTagline = maxHeight >= 320.dp
         val inset = if (tight) 16.dp else if (compact) 24.dp else 36.dp
-        Image(painterResource("branding/hero-landscape.jpg"), contentDescription = null,
+        Image(rememberBrandingPainter("branding/hero-landscape.jpg"), contentDescription = null,
             modifier = Modifier.matchParentSize(), contentScale = ContentScale.Crop)
         Box(Modifier.matchParentSize().background(Brush.horizontalGradient(
             0f to SyntaxBrand.scrim.copy(alpha = 0.55f),
