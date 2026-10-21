@@ -299,7 +299,8 @@ class ProcessorInstallerV2Engine(
         require(source.scheme == "https" && source.host in allowedHosts &&
             source.userInfo == null && source.port == -1 && source.rawQuery == null &&
             source.rawFragment == null && !source.path.contains("..")) {
-            "Untrusted NeoForge library source."
+            "Untrusted Forge-family Maven source: scheme=" + source.scheme +
+                ", host=" + source.host + ", port=" + source.port + "."
         }
     }
 
