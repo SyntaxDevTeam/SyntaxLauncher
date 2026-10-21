@@ -1,0 +1,108 @@
+name: Recover verified SyntaxLauncher v0.7.0 stable release
+
+# Pinned one-time recovery, not a new build from the evolving main branch.
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/recover-v070.yml]
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: syntaxlauncher-recover-v070
+  cancel-in-progress: false
+
+jobs:
+  recover-release:
+    name: Publish verified historic v0.7.0 binaries
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      SOURCE_RUN: "39558146467"
+      SOURCE_SHA: "3f6b69d517dec2e04303e2c323a0290060cd96a8"
+      RELEASE_TAG: "v0.7.0"
+      GH_REPO: \${{ github.repository }}
+    steps:
+      - name: Verify historical tests, platform builds and version
+        env:
+          GH_TOKEN: \${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api "repos/$GH_REPO/actions/runs/$SOURCE_RUN" > release-run.json
+          gh api "repos/$GH_REPO/actions/runs/$SOURCE_RUN/jobs?per_page=100" > release-jobs.json
+          gh api "repos/$GH_REPO/contents/gradle.properties?ref=$SOURCE_SHA" > version.json
+          python3 - <<'PY'
+          import base64, json, os
+          run = json.load(open("release-run.json"))
+          jobs = json.load(open("release-jobs.json"))["jobs"]
+          if run["head_sha"] != os.environ["SOURCE_SHA"] or run["event"] != "push":
+              raise SystemExit("Historical CI commit/event did not match the verified candidate.")
+          required = {"Verify core and desktop compilation",
+                      "Portable app (ubuntu-24.04)", "Portable app (windows-2022)",
+                      "Portable app (macos-15)"}
+          passed = {j["name"] for j in jobs if j["conclusion"] == "success"}
+          if not required.issubset(passed):
+              raise SystemExit("Historical verification or platform packaging is incomplete.")
+          version = base64.b64decode(json.load(open("version.json"))["content"]).decode()
+          if "launcherVersion=0.7.0" not in version.splitlines():
+              raise SystemExit("Historical commit is not v0.7.0.")
+          print("Verified six-asset v0.7.0 source run.")
+          PY
+      - name: Retrieve original six verified assets
+        env:
+          GH_TOKEN: \${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p downloaded dist
+          gh run download "$SOURCE_RUN" -R "$GH_REPO" --pattern 'syntaxlauncher-update-*' -D downloaded
+          gh run download "$SOURCE_RUN" -R "$GH_REPO" --pattern "syntaxlauncher-*-$SOURCE_SHA" -D downloaded
+          while IFS= read -r -d '' file; do
+            target="dist/$(basename "$file")"
+            test ! -e "$target" || { echo "Duplicate asset name: $target" >&2; exit 1; }
+            cp "$file" "$target"
+          done < <(find downloaded -type f -print0)
+          for filename in \
+            syntaxlauncher-update-linux-x64.zip \
+            syntaxlauncher-update-windows-x64.zip \
+            syntaxlauncher-update-macos-arm64.zip \
+            syntaxlauncher-linux-x64.tar.gz \
+            syntaxlauncher-windows-x64.tar.gz \
+            syntaxlauncher-macos-arm64.tar.gz; do
+            test -s "dist/$filename" || { echo "Missing asset: $filename" >&2; exit 1; }
+          done
+          test "$(find dist -maxdepth 1 -type f | wc -l)" -eq 6
+      - name: Publish ordinary v0.7.0 stable release
+        env:
+          GH_TOKEN: \${{ secrets.SYNTAXLAUNCHER_RELEASE_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$GH_TOKEN" || { echo "Set SYNTAXLAUNCHER_RELEASE_TOKEN in repository Actions secrets." >&2; exit 1; }
+          if gh api "repos/$GH_REPO/git/ref/tags/$RELEASE_TAG" > existing-tag.json 2>/dev/null; then
+            type="$(python3 -c 'import json; print(json.load(open("existing-tag.json"))["object"]["type"])')"
+            sha="$(python3 -c 'import json; print(json.load(open("existing-tag.json"))["object"]["sha"])')"
+            if [[ "$type" == tag ]]; then
+              sha="$(gh api "repos/$GH_REPO/git/tags/$sha" --jq '.object.sha')"
+            elif [[ "$type" != commit ]]; then
+              echo "Unexpected existing tag object type." >&2; exit 1
+            fi
+            test "$sha" = "$SOURCE_SHA" || { echo "Existing tag is from another commit." >&2; exit 1; }
+            tag_exists=true
+          else
+            tag_exists=false
+          fi
+          if gh release view "$RELEASE_TAG" --json isDraft --jq '.isDraft' > draft.txt 2>/dev/null; then
+            if [[ "$(cat draft.txt)" != true ]]; then
+              echo "Stable v0.7.0 is already released; refusing to overwrite it."
+              exit 0
+            fi
+          elif [[ "$tag_exists" == true ]]; then
+            gh release create "$RELEASE_TAG" --verify-tag --draft --title "SyntaxLauncher $RELEASE_TAG" --generate-notes
+          else
+            gh release create "$RELEASE_TAG" --target "$SOURCE_SHA" --draft --title "SyntaxLauncher $RELEASE_TAG" --generate-notes
+          fi
+          gh release upload "$RELEASE_TAG" dist/*.zip dist/*.tar.gz --clobber
+          gh release edit "$RELEASE_TAG" --draft=false --latest
+          echo "Stable v0.7.0 published without prerelease flags."
