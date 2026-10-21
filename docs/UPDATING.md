@@ -6,7 +6,11 @@ Requested early by the maintainer on 19 October 2026. This implements the self-u
 
 Packaged SyntaxLauncher applications check for updates before composing the home screen or fetching Minecraft metadata. A small branded screen shows checking, download progress, installation and startup. “Continue with installed version” cancels checking/downloading/extraction and opens the application the user started; it is temporarily disabled during the short process handoff. Errors offer Retry and Continue. No update is mandatory.
 
-The stable channel is the latest public, non-draft, non-prerelease GitHub Release from `SyntaxDevTeam/SyntaxLauncher`. Only a strictly newer semantic version with the correct OS/CPU update asset is eligible. Build metadata does not trigger upgrades. A 404, a release without compatible update assets, an unsupported platform or a development `gradle run` proceeds with the current application. Other network/API failures allow Continue. The release check has a six-second request timeout; large archive downloads allow fifteen minutes, with the central client's connection/socket timeouts and bounded retries.
+Select **Your setup → Launcher updates**: **Stable** (default), **SNAPSHOT** or **DEV**. The selection is saved atomically and takes effect at the next launcher start. The dialog explains preview risks and that switching channels may install an older launcher. Loading/save failures preserve existing settings and offer Retry. Minecraft's snapshot checkbox is independent of the launcher channel.
+
+Stable uses the latest public, non-draft, non-prerelease GitHub Release from `SyntaxDevTeam/SyntaxLauncher`. Within Stable, only a newer product SemVer is eligible. DEV/SNAPSHOT use only public pre-releases with immutable tags `<channel>-<run>.<attempt>-v<canonical-version>`; builds are ordered numerically by CI run/attempt, independently of SemVer. Discovery paginates release history (100 releases per page, maximum 100 pages; exceeding the limit reports an error) so an older SNAPSHOT remains discoverable among DEV releases. Every request has a six-second timeout. Selecting a different channel permits an older product version; ordinary checks within a channel never automatically downgrade. The current CI identity prevents duplicate handoffs, including when a Stable promotion publishes identical bytes in DEV.
+
+Only matching OS/CPU assets with a verified SHA-256 digest are eligible. A 404, missing compatible assets, unsupported platform or development `gradle run` continues with the current app. Network/API failures offer Continue; a verified cached image from the selected channel can still start offline. Archives retain fifteen-minute download timeouts and the central downloader's bounded retries.
 
 The original shortcut/executable remains a bootstrap. Updates live beside each other in user-owned storage; the updater does not overwrite the running executable or need administrator access. A verified cached newer application can still start when GitHub is unavailable. A failed new download/install/start falls back to the verified active application when available. When the new process fails/exits/times out before its startup receipt, the active pointer remains unchanged and its child process is terminated. The original installed application always remains available through Continue. This is startup recovery, not a promise to detect crashes occurring later during normal use.
 
@@ -14,7 +18,7 @@ The updater becomes available only after installing a build containing it once. 
 
 ## Version and platform contract
 
-- The sole source of the SyntaxLauncher product SemVer is `launcherVersion` in the root `gradle.properties` (currently `0.7.0`; subsequent v0.8 development has not yet been marked as a completed release). Change that property when advancing or releasing the launcher; do not edit Gradle build scripts, Python publishing code or workflow versions.
+- The sole source of the SyntaxLauncher product SemVer is `launcherVersion` in the root `gradle.properties` (read the current value in that file). Change that property when advancing or releasing the launcher; do not edit Gradle build scripts, Python publishing code or workflow versions.
 - Build normally with `./gradlew :launcher-desktop:createDistributable`; all Gradle modules, generated metadata, packaging manifests and publishers resolve the same value.
 - Native jpackage versions must be numeric: prerelease/build suffixes are stripped and a product major of `0` is mapped to native major `1` for macOS compatibility (e.g. `0.3.0-dev` → `1.3.0`). This is a derived packaging identifier, **not** a second product version or update comparison key.
 - The generated `launcher-build.properties` is embedded in desktop resources and displayed in the header; neither runtime startup nor CI has a hardcoded fallback product version.
@@ -31,12 +35,12 @@ Mutable game data, accounts, settings, Java-for-Minecraft runtimes and caches ke
 ```text
 <dataDir>/launcher-updates/
   startup.lock
-  state.properties                   # schemaVersion=1; active/previous; unknown keys retained
+  state.properties                   # schemaVersion=1; stable active/previous plus dev./snapshot. keys
   installations/<version>-<digest>/   # immutable verified app image + manifest
 <cacheDir>/launcher-updates/<digest>.zip
 ```
 
-Corrupt installations can be repaired into a fresh directory without deleting the original. Complete, identical cached images are revalidated and reused. Previous/orphan images are retained; automatic disk cleanup is deliberately deferred. Unknown update-state schemas fail without rewriting them. A process lock prevents conflicting startup update transactions. Atomic stage publication and state replacement happen on the same filesystem as their destination.
+Corrupt installations can be repaired into a fresh directory without deleting the original. Complete, identical cached images are revalidated and reused. Previous/orphan images are retained; automatic disk cleanup is deliberately deferred. Unknown update-state schemas fail without rewriting them. Existing stable keys remain readable; additive `dev.active`, `dev.previous`, `snapshot.active`, `snapshot.previous` and corresponding `.build` fields isolate channel recovery. Missing `launcher_update_channel` in schema-1 preferences means Stable; the new key preserves profile/language/unknown data and unknown channel IDs fail closed. No schema bump or destructive migration is required. A process lock prevents conflicting startup update transactions. Atomic stage publication and state replacement happen on the same filesystem as their destination.
 
 ## Integrity and extraction
 
@@ -50,7 +54,7 @@ The bootstrap starts the fixed platform executable with a single-use receipt pat
 
 ## Publishing
 
-GitHub Actions runs the Gradle/Python tests and builds three portable `.tar.gz` applications and three verified update ZIPs (Linux x64, Windows x64, macOS ARM64). **Only normal, non-prerelease GitHub Releases are supported**; the publishing job waits for every check and all six files.
+GitHub Actions runs the Gradle/Python tests and builds three portable `.tar.gz` applications and three verified update ZIPs (Linux x64, Windows x64, macOS ARM64). Stable and preview publishing jobs wait for every check and all six files. Pull requests and manual runs on other branches never publish previews.
 
 ### Automatically publish a normal GitHub Release
 
@@ -60,11 +64,19 @@ Change the one canonical product version in the root `gradle.properties` and pus
 launcherVersion=0.7.0
 ```
 
-Only after completing the v0.8 acceptance requirements should the next release be triggered by `0.7.0` → `0.8.0`. The workflow compares the canonical version at the commit before the push with the new version. A change to a higher plain SemVer `X.Y.Z` qualifies, as does promoting a development suffix to its plain version. Source-code changes without a version bump do not issue new releases.
+Only after completing the v0.8 acceptance requirements should the next release be triggered by `0.7.0` → `0.8.0`. The workflow compares the canonical version at the commit before the push with the new version. A change to a higher plain SemVer `X.Y.Z` qualifies, as does promoting a development suffix to its plain version. Source-code changes without a version bump do not issue new Stable releases; successful main pushes still publish DEV.
 
-After tests and three-platform packaging pass, CI verifies all six files, creates or validates the exact-commit `vX.Y.Z` tag, creates a draft, uploads all assets and publishes a **normal GitHub Release** as latest. CI never marks it as `prerelease`. A published release or an existing tag pointing to another commit cannot be overwritten. Tags created by `GITHUB_TOKEN` do not start a second workflow run; only the release job has `contents: write`.
+After tests and three-platform packaging pass, CI verifies all six files, creates or validates the exact-commit `vX.Y.Z` tag, creates a draft, uploads all assets and publishes a **normal GitHub Release** as latest. The Stable job never marks it as `prerelease`. A published release or an existing tag pointing to another commit cannot be overwritten. Tags created by `GITHUB_TOKEN` do not start a second workflow run; only the release job has `contents: write`.
 
-Manual matching `vX.Y.Z` tag pushes remain supported. Tags with development or prerelease suffixes do not run the GitHub Release publishing job. Do not use `-SNAPSHOT`, `-dev`, `-alpha`, `-beta` or `-rc` when planning a public release.
+Manual matching `vX.Y.Z` tag pushes remain supported. Tags with development suffixes do not run the Stable publishing job. A `v...` tag must still exactly match `launcherVersion` at its commit.
+
+### DEV and SNAPSHOT
+
+- Every successful push to `main` publishes DEV, including stable-version bump runs. If the same run promotes Stable, the two releases use the same verified application images.
+- **Actions → Build and package SyntaxLauncher → Run workflow → main → preview_channel=snapshot** publishes SNAPSHOT. `dev` is also available for a manual DEV publication. SNAPSHOT is an explicitly chosen preview, rather than a Minecraft snapshot or an automatically promoted daily build.
+- `scripts/publish_preview.py` reads canonical `launcherVersion` directly, requires all six nonempty assets, creates an exact-commit immutable Git tag, creates a draft pre-release, uploads the full set, and publishes with `--prerelease --latest=false`. No force tag moves, asset clobber or replacement of published preview builds occurs. A new workflow attempt has a distinct tag. A partial failure may leave a draft/tag, which is ignored by clients.
+- Product versions, manifests and startup receipts keep the canonical version unchanged. CI adds only separate `channel` and run/attempt metadata to `launcher-build.properties`. Preview tags use `dev-...`/`snapshot-...`, not `v...`; they identify CI builds without inventing a second product SemVer. Stable notes contain a CI identity marker for matching the identical build when switching channels.
+- Full release history/app images are retained; automatic pruning and signing remain deferred. This feature is available locally once built; hosted publication/old-to-new acceptance must still be verified after the workflow reaches GitHub.
 
 ### Version history and release acceptance
 
@@ -88,7 +100,7 @@ python3 scripts/package_update.py \
 
 The explicit bundle path is relative to `launcher-desktop` for the Gradle verification task. Normal unit tests do not need a packaged application or external services. Tests cover version ordering, release filtering, wrong digest/source/platform, cache corruption, traversal/link attacks, staged repair, cancellation, process exit/timeout, active-state preservation, automatic fallback, a real Java child startup receipt, offline cached startup, rendered UI states and the actual Compose child receipt. Render evidence is under `launcher-desktop/build/reports/ui/startup-*.png`.
 
-Before release acceptance, manually test a real old→new hosted release with writable and read-only original install locations, slow/offline networking, cancellation and failed child startup on Windows, Linux and macOS. Check file permissions/symlinks, native trust prompts, settings/accounts/instances continuity, repeated launch through the original shortcut, and retention/recovery of the prior version. Automated fixtures and local Linux package verification do not replace these gates.
+Before release acceptance, manually test Stable → DEV → newer DEV with the same product version → SNAPSHOT → Stable, and a real old→new hosted release with writable and read-only original install locations, slow/offline networking, cancellation and failed child startup on Windows, Linux and macOS. Check file permissions/symlinks, native trust prompts, settings/accounts/instances continuity, repeated launch through the original shortcut, and retention/recovery of the prior version. Automated fixtures and local Linux package verification do not replace these gates.
 
 ## Primary references
 

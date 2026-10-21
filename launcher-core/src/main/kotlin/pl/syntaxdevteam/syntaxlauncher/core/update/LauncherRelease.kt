@@ -70,18 +70,64 @@ enum class UpdatePlatform(val id: String, val executable: String) {
     }
 }
 
-data class LauncherRelease(val version: LauncherVersion, val url: String, val size: Long, val sha256: String) {
+enum class LauncherUpdateChannel(val id: String, val label: String) {
+    STABLE("stable", "Stable"), SNAPSHOT("snapshot", "SNAPSHOT"), DEV("dev", "DEV");
+
+    companion object {
+        fun fromId(id: String): LauncherUpdateChannel = entries.singleOrNull { it.id == id }
+            ?: throw IllegalArgumentException("Unknown launcher update channel: $id. Settings preserved.")
+    }
+}
+
+/** CI identity is independent of the product SemVer and orders repeated builds of that version. */
+data class LauncherBuildRevision(val run: Long, val attempt: Long) : Comparable<LauncherBuildRevision> {
+    init { require(run > 0 && attempt > 0) }
+    override fun compareTo(other: LauncherBuildRevision): Int =
+        compareValuesBy(this, other, { it.run }, { it.attempt })
+    override fun toString() = "$run.$attempt"
+    companion object {
+        fun parse(value: String): LauncherBuildRevision {
+            require(value.matches(Regex("[1-9][0-9]*\\.[1-9][0-9]*")))
+            return value.split('.').let { LauncherBuildRevision(it[0].toLong(), it[1].toLong()) }
+        }
+    }
+}
+
+data class LauncherRelease(val version: LauncherVersion, val url: String, val size: Long, val sha256: String,
+    val channel: LauncherUpdateChannel = LauncherUpdateChannel.STABLE,
+    val build: LauncherBuildRevision? = null) {
     init {
         require(size in 1..2_147_483_648L)
         require(sha256.matches(Regex("[a-fA-F0-9]{64}")))
     }
 }
 
-/** Only stable, public releases from this project's own repository enter the automatic channel. */
+/** Public releases from this repository only; prerelease channels require explicit selection. */
 class GitHubLauncherReleases(private val client: HttpClient) {
     private val json = Json { ignoreUnknownKeys = true }
-    suspend fun latest(platform: UpdatePlatform): LauncherRelease? {
-        val response = client.get("https://api.github.com/repos/SyntaxDevTeam/SyntaxLauncher/releases/latest") {
+    suspend fun latest(platform: UpdatePlatform,
+        channel: LauncherUpdateChannel = LauncherUpdateChannel.STABLE): LauncherRelease? {
+        if (channel == LauncherUpdateChannel.STABLE) {
+            val body = fetch("latest") ?: return null
+            return resolve(json.decodeFromString<ReleaseDto>(body), platform, channel)
+        }
+        var best: LauncherRelease? = null
+        // Search every page, including when many DEV releases separate SNAPSHOT publications.
+        for (page in 1..100) {
+            val body = fetch("?per_page=100&page=$page") ?: return best
+            val releases = json.decodeFromString<List<ReleaseDto>>(body)
+            for (dto in releases) {
+                val candidate = resolve(dto, platform, channel) ?: continue
+                if (best == null || candidate.build!! > best.build!!) best = candidate
+            }
+            if (releases.size < 100) return best
+        }
+        error("Too many releases to check safely. Please retry after release history maintenance.")
+    }
+
+    private suspend fun fetch(suffix: String): String? {
+        val endpoint = if (suffix.startsWith("?")) "releases$suffix" else "releases/$suffix"
+        val response = client.get("https://api.github.com/repos/SyntaxDevTeam/SyntaxLauncher/$endpoint") {
             header("Accept", "application/vnd.github+json")
             header("X-GitHub-Api-Version", "2022-11-28")
             expectSuccess = false
@@ -91,10 +137,26 @@ class GitHubLauncherReleases(private val client: HttpClient) {
         check(response.status == HttpStatusCode.OK) { "Update check failed (HTTP ${response.status.value})." }
         val body = response.bodyAsText()
         require(body.length <= 2_000_000) { "Release response is too large." }
-        val release = json.decodeFromString<ReleaseDto>(body)
-        if (release.draft || release.prerelease) return null
-        val version = LauncherVersion.parse(release.tag.removePrefix("v"))
-        if (version.value.substringBefore('+').contains('-')) return null
+        return body
+    }
+
+    private fun resolve(release: ReleaseDto, platform: UpdatePlatform, channel: LauncherUpdateChannel): LauncherRelease? {
+        if (release.draft) return null
+        val version: LauncherVersion
+        val build: LauncherBuildRevision?
+        if (channel == LauncherUpdateChannel.STABLE) {
+            if (release.prerelease || !release.tag.startsWith("v")) return null
+            version = LauncherVersion.parse(release.tag.removePrefix("v"))
+            if (version.value.substringBefore('+').contains('-')) return null
+            build = Regex("<!-- syntaxlauncher-build:([1-9][0-9]*\\.[1-9][0-9]*) -->")
+                .find(release.body.orEmpty())?.groupValues?.get(1)?.let(LauncherBuildRevision::parse)
+        } else {
+            if (!release.prerelease) return null
+            val match = Regex("^${channel.id}-([1-9][0-9]*\\.[1-9][0-9]*)-v(.+)$")
+                .matchEntire(release.tag) ?: return null
+            build = LauncherBuildRevision.parse(match.groupValues[1])
+            version = LauncherVersion.parse(match.groupValues[2])
+        }
         val asset = release.assets.singleOrNull { it.name == platform.assetName && it.state == "uploaded" }
             ?: return null // A release without the complete update protocol is not auto-installable.
         val digest = asset.digest?.removePrefix("sha256:")
@@ -108,7 +170,7 @@ class GitHubLauncherReleases(private val client: HttpClient) {
             uri.path == "/SyntaxDevTeam/SyntaxLauncher/releases/download/${release.tag}/${platform.assetName}") {
             "Update download is outside the project's release channel."
         }
-        return LauncherRelease(version, asset.url, asset.size, digest.lowercase())
+        return LauncherRelease(version, asset.url, asset.size, digest.lowercase(), channel, build)
     }
 }
 
@@ -117,6 +179,7 @@ class GitHubLauncherReleases(private val client: HttpClient) {
     val draft: Boolean = false,
     val prerelease: Boolean = false,
     val assets: List<ReleaseAssetDto> = emptyList(),
+    val body: String? = null,
 )
 @Serializable private data class ReleaseAssetDto(
     val name: String,

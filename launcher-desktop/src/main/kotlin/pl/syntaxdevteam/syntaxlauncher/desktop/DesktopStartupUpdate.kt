@@ -22,6 +22,11 @@ internal object LauncherBuildInfo {
     val version: String get() = checkNotNull(metadata.getProperty("version")) {
         "Missing launcher version in generated launcher-build.properties."
     }
+    val updateChannel get() = pl.syntaxdevteam.syntaxlauncher.core.update.LauncherUpdateChannel.fromId(
+        metadata.getProperty("channel", "stable"))
+    val revision get() = buildNumber.toLongOrNull()?.let {
+        pl.syntaxdevteam.syntaxlauncher.core.update.LauncherBuildRevision(it, metadata.getProperty("attempt", "1").toLong())
+    }
     val buildNumber: String get() = metadata.getProperty("build", "local")
     val commit: String get() = metadata.getProperty("commit", "unknown")
     val shortCommit: String get() = commit.takeIf { it.matches(Regex("[a-fA-F0-9]{40}")) }

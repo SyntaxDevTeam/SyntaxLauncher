@@ -45,6 +45,9 @@ class StartupUpdater(
             .start()
     },
     private val startupTimeoutMillis: Long = 30_000,
+    private val selectedChannel: suspend () -> LauncherUpdateChannel = { LauncherUpdateChannel.STABLE },
+    private val currentChannel: LauncherUpdateChannel = LauncherUpdateChannel.STABLE,
+    private val currentBuild: LauncherBuildRevision? = null,
 ) {
     init { require(startupTimeoutMillis in 1..120_000) }
     private val root = root.toAbsolutePath().normalize()
@@ -60,13 +63,27 @@ class StartupUpdater(
                 lock.use {
                     val installer = UpdateBundleInstaller(root.resolve("installations"))
                     val state = loadState()
+                    val selected = selectedChannel()
+                    // Preserve the original stable keys and unknown schema-1 data.
+                    val prefix = if (selected == LauncherUpdateChannel.STABLE) "" else "${selected.id}."
+                    val activeKey = prefix + "active"
+                    val previousKey = prefix + "previous"
+                    var activeBuild: String? = null
+                    var cachedIsCurrent = false
                     suspend fun installed(key: String): InstalledLauncher? {
                         val id = state.getProperty(key) ?: return null
                         return try {
                             require(id.matches(Regex("[0-9A-Za-z.+-]{1,200}")) && id !in setOf(".", ".."))
                             onProgress(StartupUpdateProgress("Verifying installed launcher…", stage = StartupUpdateStage.VERIFYING))
                             installer.validate(root.resolve("installations").resolve(id), platform)
-                                .takeIf { it.version > current }
+                                .takeIf {
+                                    val build = state.getProperty("$key.build")?.let(LauncherBuildRevision::parse)
+                                    if (build != null && build == currentBuild && it.version.value == current.value)
+                                        cachedIsCurrent = true
+                                    shouldUse(it.version, build, selected).also { accepted ->
+                                        if (accepted) activeBuild = build?.toString()
+                                    }
+                                }
                         } catch (cancelled: CancellationException) { throw cancelled }
                         catch (failure: Exception) {
                             org.slf4j.LoggerFactory.getLogger(StartupUpdater::class.java)
@@ -74,16 +91,24 @@ class StartupUpdater(
                             null
                         }
                     }
-                    val active = installed("active") ?: installed("previous")
-                    val baseline = active?.version ?: current
+                    val active = installed(activeKey) ?: if (cachedIsCurrent) null else installed(previousKey)
                     onProgress(StartupUpdateProgress("Checking for launcher updates…"))
-                    val release = try { releases.latest(platform) }
+                    val release = try { releases.latest(platform, selected) }
                     catch (cancelled: CancellationException) { throw cancelled }
                     catch (failure: Exception) {
                         if (active == null) throw failure
                         null // Offline startup still uses the most recently verified installed version.
                     }
-                    val target = try { if (release != null && release.version > baseline) {
+                    if (release != null && release.build != null && release.build == currentBuild &&
+                        release.version.value == current.value) return@withContext StartupUpdateResult.CONTINUE
+                    if (cachedIsCurrent && release?.build != null && currentBuild != null &&
+                        release.build <= currentBuild) return@withContext StartupUpdateResult.CONTINUE
+                    val target = try { if (release != null && shouldUse(release.version, release.build, selected) &&
+                        (active == null || if (selected == LauncherUpdateChannel.STABLE) release.version > active.version
+                        else release.build?.let { revision ->
+                            val cached = activeBuild?.let(LauncherBuildRevision::parse)
+                            cached == null || revision > cached
+                        } ?: (release.version > active.version))) {
                         onProgress(StartupUpdateProgress("Downloading SyntaxLauncher ${release.version.value}…", 0f, stage = StartupUpdateStage.DOWNLOADING))
                         val archive = archives.resolve("${release.sha256}.zip")
                         downloads.download(DownloadRequest("launcher-${release.version.value}", release.url, archive,
@@ -106,21 +131,31 @@ class StartupUpdater(
                     }
                     if (target == null) return@withContext StartupUpdateResult.CONTINUE
                     onProgress(StartupUpdateProgress("Starting SyntaxLauncher ${target.version.value}…", canContinue = false, stage = StartupUpdateStage.STARTING))
-                    try { startAndActivate(target, state) }
+                    val targetBuild = if (target.directory == active?.directory)
+                        activeBuild else release?.build?.toString()
+                    try { startAndActivate(target, state, activeKey, previousKey, targetBuild) }
                     catch (cancelled: CancellationException) { throw cancelled }
                     catch (failure: Exception) {
                         if (active == null || active.directory == target.directory) throw failure
                         org.slf4j.LoggerFactory.getLogger(StartupUpdater::class.java)
                             .warn("Updated launcher failed startup; starting verified previous version", failure)
                         onProgress(StartupUpdateProgress("Starting your previous launcher version…", canContinue = false, stage = StartupUpdateStage.PREVIOUS))
-                        startAndActivate(active, state)
+                        startAndActivate(active, state, activeKey, previousKey, activeBuild)
                     }
                     StartupUpdateResult.HANDED_OFF
                 }
             }
         }
 
-    private suspend fun startAndActivate(target: InstalledLauncher, state: Properties) {
+    private fun shouldUse(version: LauncherVersion, build: LauncherBuildRevision?, selected: LauncherUpdateChannel): Boolean {
+        if (build != null && build == currentBuild && version.value == current.value) return false
+        if (selected != currentChannel) return true // Explicit channel switch may choose an older product version.
+        if (selected == LauncherUpdateChannel.STABLE) return version > current
+        return build != null && (currentBuild == null || build > currentBuild)
+    }
+
+    private suspend fun startAndActivate(target: InstalledLauncher, state: Properties,
+        activeKey: String, previousKey: String, build: String?) {
         val receipt = root.resolve("startup-${UUID.randomUUID()}.ready")
         val nonce = UUID.randomUUID().toString()
         var child: Process? = null
@@ -137,10 +172,14 @@ class StartupUpdater(
                 delay(100)
             }
             currentCoroutineContext().ensureActive()
-            if (state.getProperty("active") != target.directory.fileName.toString()) {
-                state.getProperty("active")?.let { state.setProperty("previous", it) }
+            if (state.getProperty(activeKey) != target.directory.fileName.toString()) {
+                state.getProperty(activeKey)?.let { state.setProperty(previousKey, it) }
+                val previousBuild = state.getProperty("$activeKey.build")
+                if (previousBuild != null) state.setProperty("$previousKey.build", previousBuild)
+                else state.remove("$previousKey.build")
                 state.setProperty("schemaVersion", "1")
-                state.setProperty("active", target.directory.fileName.toString())
+                state.setProperty(activeKey, target.directory.fileName.toString())
+                if (build != null) state.setProperty("$activeKey.build", build) else state.remove("$activeKey.build")
                 saveState(state)
             }
             handedOff = true

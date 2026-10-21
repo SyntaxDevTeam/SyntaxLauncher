@@ -11,6 +11,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import pl.syntaxdevteam.syntaxlauncher.core.account.OfflineAccount
+import pl.syntaxdevteam.syntaxlauncher.core.update.LauncherUpdateChannel
 
 data class LauncherPreferences(
     val nickname: String = "",
@@ -83,6 +84,25 @@ class LauncherPreferencesStore(private val file: Path) {
             if (!properties.isEmpty()) validateSchema(properties)
             properties.setProperty("schema_version", "1")
             properties.setProperty("ui_language", code)
+            writeProperties(properties)
+        }
+    }
+
+    suspend fun loadUpdateChannel(): LauncherUpdateChannel = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            val properties = readProperties()
+            if (!properties.isEmpty()) validateSchema(properties)
+            LauncherUpdateChannel.fromId(
+                properties.getProperty("launcher_update_channel", "stable"))
+        }
+    }
+
+    suspend fun saveUpdateChannel(channel: LauncherUpdateChannel) = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            val properties = readProperties()
+            if (!properties.isEmpty()) validateSchema(properties)
+            properties.setProperty("schema_version", "1")
+            properties.setProperty("launcher_update_channel", channel.id)
             writeProperties(properties)
         }
     }

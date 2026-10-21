@@ -49,13 +49,16 @@ fun main(args: Array<String>) {
     val httpClient = LauncherHttpClientFactory.create()
     val downloader = DownloadManager(httpClient)
     val updateRoot = paths.dataDir.resolve("launcher-updates")
+    val preferences = LauncherPreferencesStore(paths.configDir.resolve("settings.properties"))
     val handoff = DesktopUpdateHandoff.parse(args, updateRoot)
     val updatePlatform = UpdatePlatform.detect()
     val updater = if (System.getProperty("jpackage.app-path") != null && updatePlatform != null) {
         StartupUpdater(
             GitHubLauncherReleases(httpClient), downloader,
             updateRoot, paths.cacheDir.resolve("launcher-updates"), updatePlatform,
-            LauncherVersion.parse(LauncherBuildInfo.version))
+            LauncherVersion.parse(LauncherBuildInfo.version),
+            selectedChannel = { preferences.loadUpdateChannel() },
+            currentChannel = LauncherBuildInfo.updateChannel, currentBuild = LauncherBuildInfo.revision)
     } else null
     val processManager = MinecraftProcessManager(paths.logsDir)
     val modLoaders = ModLoaderRegistry(listOf(
@@ -76,7 +79,7 @@ fun main(args: Array<String>) {
             loaders = modLoaders,
         ),
         processManager = processManager,
-        preferences = LauncherPreferencesStore(paths.configDir.resolve("settings.properties")),
+        preferences = preferences,
         legacyLayout = MinecraftInstallationLayout.from(paths),
         instances = MinecraftInstanceRepository(
             root = paths.dataDir.resolve("instances"),

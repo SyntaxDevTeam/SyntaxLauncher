@@ -6,6 +6,12 @@ on:
     tags: ["v*"]
   pull_request:
   workflow_dispatch:
+    inputs:
+      preview_channel:
+        description: Preview channel to publish from main
+        type: choice
+        options: [snapshot, dev]
+        default: snapshot
 
 permissions:
   contents: read
@@ -22,6 +28,8 @@ jobs:
     outputs:
       launcher_version: ${{ steps.release.outputs.launcher_version }}
       publish_release: ${{ steps.release.outputs.publish_release }}
+      preview_channel: ${{ steps.channel.outputs.preview_channel }}
+      build_channel: ${{ steps.channel.outputs.build_channel }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -58,8 +66,28 @@ jobs:
               echo "::warning::Stable v$version is missing. Only a version-increment commit can publish automatically. For earlier versions, use a release recovery pinned to the original verified commit."
             fi
           fi
+      - name: Select publication channel
+        id: channel
+        shell: bash
+        env:
+          STABLE_RELEASE: ${{ steps.release.outputs.publish_release }}
+          REQUESTED_PREVIEW: ${{ inputs.preview_channel }}
+        run: |
+          set -euo pipefail
+          preview_channel=""
+          build_channel=stable
+          if [[ "$GITHUB_REF" == refs/heads/main && "$GITHUB_EVENT_NAME" == push ]]; then
+            preview_channel=dev
+            if [[ "$STABLE_RELEASE" != true ]]; then build_channel=dev; fi
+          elif [[ "$GITHUB_REF" == refs/heads/main && "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
+            preview_channel="$REQUESTED_PREVIEW"
+            [[ "$preview_channel" == snapshot || "$preview_channel" == dev ]]
+            build_channel="$preview_channel"
+          fi
+          echo "preview_channel=$preview_channel" >> "$GITHUB_OUTPUT"
+          echo "build_channel=$build_channel" >> "$GITHUB_OUTPUT"
       - name: Compile and run tests
-        run: gradle --no-daemon --stacktrace "-PlauncherBuildNumber=$GITHUB_RUN_NUMBER" "-PlauncherCommit=$GITHUB_SHA" test build
+        run: gradle --no-daemon --stacktrace "-PlauncherBuildNumber=$GITHUB_RUN_NUMBER" "-PlauncherCommit=$GITHUB_SHA" "-PlauncherUpdateChannel=${{ steps.channel.outputs.build_channel }}" test build
       - name: Verify official NeoForge installer processors
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         timeout-minutes: 22
@@ -121,9 +149,9 @@ jobs:
         shell: bash
         run: |
           version="$(python3 scripts/launcher_version.py --github-ref "$GITHUB_REF")"
-          gradle --no-daemon --stacktrace "-PlauncherBuildNumber=$GITHUB_RUN_NUMBER" "-PlauncherCommit=$GITHUB_SHA" :launcher-desktop:createDistributable
+          gradle --no-daemon --stacktrace "-PlauncherBuildNumber=$GITHUB_RUN_NUMBER" "-PlauncherCommit=$GITHUB_SHA" "-PlauncherUpdateChannel=${{ needs.verify.outputs.build_channel }}" :launcher-desktop:createDistributable
           python scripts/package_update.py --source launcher-desktop/build/compose/binaries/main/app --platform "${{ matrix.artifact }}" --version "$version" --output "launcher-desktop/build/updates/syntaxlauncher-update-${{ matrix.artifact }}.zip"
-          gradle --no-daemon --stacktrace "-PlauncherBuildNumber=$GITHUB_RUN_NUMBER" "-PlauncherCommit=$GITHUB_SHA" "-PupdateBundle=build/updates/syntaxlauncher-update-${{ matrix.artifact }}.zip" :launcher-desktop:verifyUpdateBundle
+          gradle --no-daemon --stacktrace "-PlauncherBuildNumber=$GITHUB_RUN_NUMBER" "-PlauncherCommit=$GITHUB_SHA" "-PlauncherUpdateChannel=${{ needs.verify.outputs.build_channel }}" "-PupdateBundle=build/updates/syntaxlauncher-update-${{ matrix.artifact }}.zip" :launcher-desktop:verifyUpdateBundle
       - name: Show jpackage diagnostics on failure
         if: failure()
         shell: bash
@@ -228,14 +256,46 @@ jobs:
           if gh release view "$RELEASE_TAG" --json isDraft > existing-release.json 2>/dev/null; then
             python3 -c 'import json; assert json.load(open("existing-release.json"))["isDraft"], "Refusing to replace a published release"'
           elif [[ "$tag_exists" == true ]]; then
-            publish_release "$RELEASE_TAG" --verify-tag --draft --generate-notes --title "SyntaxLauncher $RELEASE_TAG"
+            publish_release "$RELEASE_TAG" --verify-tag --draft --generate-notes --notes "<!-- syntaxlauncher-build:$GITHUB_RUN_NUMBER.$GITHUB_RUN_ATTEMPT -->" --title "SyntaxLauncher $RELEASE_TAG"
           else
             # GITHUB_TOKEN-created tags do not invoke another workflow; publish from this verified run.
-            publish_release "$RELEASE_TAG" --target "$GITHUB_SHA" --draft --generate-notes --title "SyntaxLauncher $RELEASE_TAG"
+            publish_release "$RELEASE_TAG" --target "$GITHUB_SHA" --draft --generate-notes --notes "<!-- syntaxlauncher-build:$GITHUB_RUN_NUMBER.$GITHUB_RUN_ATTEMPT -->" --title "SyntaxLauncher $RELEASE_TAG"
           fi
           gh release upload "$RELEASE_TAG" release-assets/*.zip release-assets/*.tar.gz --clobber
-          # Only ordinary GitHub Releases are supported; never mark them as pre-releases.
+          # Preview releases are published separately and never become latest stable.
           gh release edit "$RELEASE_TAG" --draft=false --latest
+
+
+  publish-preview:
+    name: Publish verified DEV or SNAPSHOT channel
+    needs: [verify, distributables]
+    if: needs.verify.outputs.preview_channel != ''
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: syntaxlauncher-update-*
+          path: release-assets
+          merge-multiple: true
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: syntaxlauncher-*-${{ github.sha }}
+          path: release-assets
+          merge-multiple: true
+      - name: Publish all six assets as an immutable preview
+        env:
+          GH_TOKEN: ${{ secrets.SYNTAXLAUNCHER_RELEASE_TOKEN || github.token }}
+          GH_REPO: ${{ github.repository }}
+          PREVIEW_CHANNEL: ${{ needs.verify.outputs.preview_channel }}
+        run: >-
+          python3 scripts/publish_preview.py --channel "$PREVIEW_CHANNEL"
+          --run "$GITHUB_RUN_NUMBER" --attempt "$GITHUB_RUN_ATTEMPT"
+          --commit "$GITHUB_SHA" --assets release-assets
 
 
   publish-build-explorer:

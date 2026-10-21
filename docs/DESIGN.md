@@ -376,7 +376,7 @@ If the answer to several of these questions is no, the UI should not be consider
 - The operating-system frame is disabled in the packaged app. Top-right controls must support minimize, maximize/restore, and close, remain accessible on the startup update/error screen, and not obscure existing navigation or technical build information.
 - Retain the 400×400 minimum and preserve resize grips on all eight edges/corners. On maximized windows, disable custom grips.
 - Make the exact installed development artifact diagnosable: display the embedded product version, GitHub Actions run number, and abbreviated commit hash. Developer/IDE executions show LOCAL BUILD rather than a fictitious CI number.
-- Version is still SemVer for update ordering. A new build number **must not** masquerade as a new stable product release or change the startup updater's version comparator/receipt format.
+- Stable versions still use SemVer ordering. A new build number **must not** masquerade as a new stable product release or change the SemVer comparator/receipt format. Opt-in DEV/SNAPSHOT channels use separate numeric CI run/attempt ordering for successive builds of the same product version.
 - Accept the UI only after verifying clickable controls, drag vs navigation interactions, double-click conventions where supported, resizing and maximized-restore bounds, small-screen layout, and DPI/multiple-monitor behavior on Windows, macOS, and Linux X11/Wayland. These manual cross-platform checks remain pending until actually performed.
 
 ## 18. Interface languages
@@ -388,3 +388,7 @@ English, Polish and German share the same design system. Keep the language menu 
 The launcher is aimed at children as well as experienced players. The normal home screen must offer a plain-language Vanilla / With mods choice, without requiring knowledge of instances, loader installation or loader versions. Keep Play as the sole dominant action. Reuse existing games when changing mode. Show a quiet Choose mods action for the selected modded game; My games opens the advanced manager.
 
 When no modded game exists, a short setup automatically suggests a compatible game and prefers a stable Fabric loader. Show the chosen Minecraft version before confirmation. Do not create or change files during compatibility discovery. Explicit Choose mods creates a separate UUID profile and opens discovery. State clearly that Vanilla worlds remain unchanged. Cancel writes nothing. More options reveals naming/version/loader controls, including Quilt; unavailable versions, network failures, loading and saving must have clear states. Never silently change an explicitly chosen Minecraft version. Preserve selections, drafts and worlds when switching modes and retain keyboard access, scrolling and EN/PL/DE labels on small screens.
+
+## 20. Launcher update channels
+
+Keep Launcher updates as a quiet secondary action in Your setup. Its compact dialog shows the saved Stable/SNAPSHOT/DEV choice, a brief preview explanation, loading/disabled/error/Retry states and an explicit next-start message. Stable is the default. Explain that switching can install an older launcher, independently of Minecraft snapshot selection. Keep network/disk work off the UI thread; update checks continue through the existing branded startup screen. Retain EN/PL/DE labels, keyboard access and the 400×400 minimum.

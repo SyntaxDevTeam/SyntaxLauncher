@@ -704,7 +704,8 @@ Goal: prepare the launcher for stable public release.
 
 **Explicit early delivery request (19 October 2026):** implement this v0.12 slice during current launcher development. Other v0.12 features and existing release gates remain unchanged. See [UPDATING.md](UPDATING.md).
 
-- [x] Define update channel strategy: public stable GitHub Releases from this project; SemVer ordering excludes drafts/prereleases and prevents automatic downgrade.
+- [x] Define update channel strategy: Stable uses non-prerelease GitHub Releases and SemVer; opt-in DEV/SNAPSHOT use isolated pre-releases and numeric CI run/attempt identity. Explicit channel switches may select an older product version.
+- [ ] 🚧 IN PROGRESS — Publish immutable DEV after verified main pushes and SNAPSHOT via manual main dispatch; persist translated launcher-channel choice and isolate cached recovery per channel. Local tests/build, translated 400×400 dialog renders and Linux Stable/DEV packages pass; hosted publication and native channel-switch acceptance pending.
 - [x] Implement pre-home packaged startup checks, bounded network checks and Retry/Continue UI; development runs bypass execution. Mocked HTTP and Compose receipt/recovery tests pass.
 - [x] Download through the shared client/downloader with SHA-256, length verification, cancellation, retries, `.part` staging and cached archive revalidation.
 - [x] Verify GitHub release asset digest and per-file manifest SHA-256; reject wrong platform/version, unsafe paths/links, duplicate/extra ZIP entries and oversized packages.
@@ -737,7 +738,7 @@ Goal: prepare the launcher for stable public release.
 
 ## CI/CD
 
-- [ ] 🚧 IN PROGRESS — Automatically publish only ordinary GitHub Releases (never prereleases) when canonical plain `launcherVersion` increases on `main`; bumped the source version to `0.6.0` to exercise first real six-asset release, hosted publication acceptance pending.
+- [ ] 🚧 IN PROGRESS — Automatically publish ordinary Stable GitHub Releases when canonical plain `launcherVersion` increases on `main`; the canonical product version remains `0.7.0` after synchronization with GitHub. DEV/SNAPSHOT publication is tracked separately above; hosted six-asset publication acceptance remains pending.
 - [ ] Build/test CI.
 - [ ] Cross-platform build validation.
 - [ ] Release artifact generation.

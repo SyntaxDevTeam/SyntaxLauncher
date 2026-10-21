@@ -47,6 +47,8 @@ abstract class GenerateLauncherBuildInfo : DefaultTask() {
     @get:Input abstract val releaseVersion: Property<String>
     @get:Input abstract val buildNumber: Property<String>
     @get:Input abstract val commitSha: Property<String>
+    @get:Input abstract val updateChannel: Property<String>
+    @get:Input abstract val buildAttempt: Property<String>
     @get:OutputDirectory abstract val destination: DirectoryProperty
 
     @TaskAction fun generate() {
@@ -54,6 +56,10 @@ abstract class GenerateLauncherBuildInfo : DefaultTask() {
         require(value.matches(Regex("[0-9]+\\.[0-9]+\\.[0-9]+(?:-[A-Za-z0-9.-]+)?(?:\\+[A-Za-z0-9.-]+)?"))) {
             "launcherVersion must be a semantic version."
         }
+        val channel = updateChannel.get()
+        val attempt = buildAttempt.get()
+        require(channel in setOf("stable", "snapshot", "dev"))
+        require(attempt.matches(Regex("[1-9][0-9]*")))
         val build = buildNumber.get()
         val commit = commitSha.get()
         require(build == "local" || build.matches(Regex("[1-9][0-9]*"))) {
@@ -64,13 +70,15 @@ abstract class GenerateLauncherBuildInfo : DefaultTask() {
         }
         destination.file("launcher-build.properties").get().asFile.apply {
             parentFile.mkdirs()
-            writeText("version=$value\nbuild=$build\ncommit=$commit\n")
+            writeText("version=$value\nbuild=$build\ncommit=$commit\nchannel=$channel\nattempt=$attempt\n")
         }
     }
 }
 val generateLauncherBuildInfo = tasks.register<GenerateLauncherBuildInfo>("generateLauncherBuildInfo") {
     releaseVersion.set(launcherVersion)
     buildNumber.set(launcherBuildNumber)
+    updateChannel.set(providers.gradleProperty("launcherUpdateChannel").orElse("stable"))
+    buildAttempt.set(providers.environmentVariable("GITHUB_RUN_ATTEMPT").orElse("1"))
     commitSha.set(launcherCommit)
     destination.set(layout.buildDirectory.dir("generated/launcher-build-info"))
 }

@@ -8,6 +8,48 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-21 — Reconcile local update channels with current GitHub main
+
+**Milestone:** v0.7 / v0.8 / v0.12
+**Author/Agent:** Codex / GPT-6
+**Status:** Completed
+
+### Completed
+- Backed up all 25 locally modified/untracked files in a temporary archive outside the repository and retained the full Git stash `c46e32c84dec46c1174564f070e2ce01f7af6c39` (`backup: local update channels before main synchronization 2026-10-21`).
+- Fast-forwarded local main over 49 upstream commits, from `f7db09c` to `8c8fe5d`, then reapplied the local work. Resolved eight conflicting files by combining both feature sets instead of choosing one side wholesale.
+- Preserved local DEV/SNAPSHOT publication, channel preferences, startup recovery, translated selection UI and regression tests alongside upstream NeoForge/Forge processors, loader-aware mods, compatibility restrictions and release recovery.
+- Kept canonical `launcherVersion=0.7.0` from upstream; the older local `0.6.1` change is superseded. Preserved historical-release safeguards, both official loader smoke gates and the authorized release-token fallback; applied that same fallback to preview publication.
+- Preserved both sides' historical worklog entries verbatim. Maintainer explicitly requested committing and pushing the reconciled result through a normal non-force push.
+
+### Changed files
+- `.github/workflows/build.yml` — combine preview channels with upstream release authorization, historical-version protection and Forge/NeoForge checks.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/{storage,update}/` and `src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/update/LauncherChannelsTest.kt` — retain local channel persistence/discovery/recovery and tests.
+- `launcher-desktop/build.gradle.kts`, `src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/{DesktopStartupUpdate,Main}.kt`, `ui/{SyntaxLauncherApp,LauncherUpdateChannelPicker}.kt`, `src/main/resources/i18n/{en,pl,de}.properties`, `src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/LauncherUpdateChannelPickerTest.kt` — preserve both loader wiring/warnings and channel controls/build identity.
+- `scripts/publish_preview.py`, `scripts/test_publish_preview.py` — retain immutable preview publication and deterministic tests.
+- `README.md`, `docs/{ARCHITECTURE,DESIGN,DEVELOPMENT,MILESTONES,ROADMAP,UPDATING,WORKLOG}.md` — retain both documentation sets and reconcile current version/publication behavior.
+
+### Verification
+- `./gradlew test` — PASS via `./gradlew --offline test build :launcher-desktop:createDistributable`; 138 core tests (136 passed, two opt-in live installer tests skipped), 25 desktop tests passed; zero failures/errors.
+- `./gradlew build` — PASS in the same invocation.
+- `:launcher-desktop:createDistributable` — PASS, Linux application with canonical version 0.7.0.
+- `scripts/package_update.py` and `:launcher-desktop:verifyUpdateBundle` — PASS, real Linux archive extraction/integrity verification without starting Minecraft.
+- Python tests — PASS, 10 script tests and six Build Explorer tests.
+- Workflow YAML, 14 shell snippets, seven channel/publication scenarios and retention of official loader gates/token fallback — PASS.
+- `git diff --check HEAD` — PASS. Original local archive comparison and verbatim preservation of both worklog histories — PASS.
+- Manual verification — inspected the actual Polish 400×400 channel-dialog render. No real Minecraft/account data accessed. Live installer/network, Windows/macOS packaging and hosted channel-switch acceptance were not repeated locally; main CI retains the official loader and platform checks.
+
+### Roadmap updates
+- `[x] v0.12 / Self-update / Define update channel strategy` — retained and extended with the local Stable/DEV/SNAPSHOT contract.
+- `[ ] v0.12 / Self-update / DEV/SNAPSHOT publication and selection — IN PROGRESS` — combined implementation passes locally; hosted publication/native switching remain open.
+- `[ ] v0.12 / CI/CD / Automatic Stable publication — IN PROGRESS` — current canonical version reconciled to 0.7.0; no Stable version bump or historical backfill introduced.
+- Upstream v0.7/v0.8 implementation and remaining gameplay/platform acceptance checkboxes preserved.
+
+### Follow-ups / known issues
+- Existing GitHub release authorization failures remain documented in UPDATING.md; this merge does not change account/organization permissions or publish a historical Stable release.
+- No force push, tag rewrite, new Stable release, signing or unrelated feature work. The backup stash remains available after synchronization.
+
+---
+
 ## 2026-10-21 — Loader-aware mod inventory and Forge/NeoForge TOML diagnostics
 
 **Milestone:** v0.8 — Forge and Quilt  
@@ -215,6 +257,86 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+
+## 2026-10-20 — Set the requested product version to 0.6.1
+
+**Milestone:** v0.6 / v0.12 — patch version for the current launcher and update channels
+**Author/Agent:** Codex / GPT-6
+**Status:** Completed
+
+### Completed
+- Changed the sole canonical `launcherVersion` from `0.6.0` to `0.6.1` at the maintainer's request. Modules, embedded launcher metadata and release tooling derive the version from that property.
+- Updated current publishing examples and the roadmap publication target. Historical worklog records and independent version-test fixtures remain unchanged.
+
+### Changed files
+- `gradle.properties` — canonical product version `0.6.1`.
+- `docs/UPDATING.md` — current version and next patch-release example.
+- `docs/ROADMAP.md` — requested Stable publication target, with hosted acceptance still pending.
+- `docs/WORKLOG.md` — version-change record and verification.
+
+### Verification
+- `./gradlew test` — PASS via `./gradlew --offline test build` (unchanged core tests reused where up to date).
+- `./gradlew build` — PASS in the same invocation; generated desktop metadata contains `version=0.6.1`.
+- `python3 scripts/launcher_version.py --github-ref refs/tags/v0.6.1` — PASS.
+- Python script tests — PASS, 10 tests.
+- `git diff --check` — PASS.
+- Manual verification — inspected generated version metadata; no UI/gameplay change in this version bump.
+
+### Roadmap updates
+- `[ ] v0.12 / CI/CD / Automatic Stable publication — IN PROGRESS` — target updated to `v0.6.1`; hosted publication remains unverified.
+- Existing milestone and native/channel-switch acceptance boxes remain open; no milestone is completed by changing the version.
+
+### Follow-ups / known issues
+- No commit, push, tag or GitHub Release created. Once the changes reach main, the eligible version increase is intended to publish Stable `v0.6.1` and a separate DEV pre-release after full CI passes.
+
+---
+
+## 2026-10-20 — Add DEV and SNAPSHOT launcher update channels
+
+**Milestone:** v0.12 — explicitly requested early updater/CI extension
+**Author/Agent:** Codex / GPT-6
+**Status:** Completed
+
+### Completed
+- Added immutable DEV GitHub pre-release publication after successful main pushes, including same-product-version code changes. Added manual main-branch workflow dispatch for SNAPSHOT (default) or DEV. Both wait for tests and all three platform jobs; PRs/other branches never publish previews, and previews never become latest stable.
+- Kept canonical `launcherVersion` unchanged. Preview tags carry channel/run/attempt plus the canonical version; exact-commit tag creation fails if the tag already exists. Publication requires all six nonempty assets, stages a draft, uploads everything and only then exposes the release. Retries have distinct attempt IDs; partial drafts/tags remain ignored.
+- Added explicit channel filtering, paginated preview discovery, numeric CI revision ordering and same-version DEV updates. Stable retains SemVer precedence. Explicit channel switching may select an older product version; matching current build identity prevents repeated handoffs, including identical Stable/DEV promotion images.
+- Added independent DEV/SNAPSHOT active/previous pointers and build identities in existing schema-1 update state. Existing stable keys and unknown data remain readable/preserved; receipts, SHA-256, safe extraction, cancellation and fallback protocols remain intact. A cached current build prevents an older previous image from being started unnecessarily.
+- Added a compact Launcher updates dialog in Your setup with persisted Stable/SNAPSHOT/DEV choice, next-start instructions, preview explanation and load/save/retry states in EN/PL/DE. The dialog preserves the home hierarchy and 400×400 usability; Minecraft snapshot selection is separate.
+- Added additive schema-1 channel preference reads/writes, defaulting to Stable, preserving profile/language/unknown fields and rejecting unknown schemas/channel IDs without rewriting them.
+- Added five core channel/persistence regressions, one translated rendered selection/restart regression, and two preview-publication tests. Existing stable update and home tests remain passing.
+
+### Changed files
+- `.github/workflows/build.yml` — preview dispatch, build-channel metadata and complete gated preview publication alongside Stable.
+- `scripts/publish_preview.py`, `scripts/test_publish_preview.py` — exact-commit immutable draft/upload/publish protocol and deterministic fixtures.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/update/LauncherRelease.kt`, `StartupUpdater.kt` — channel/revision discovery, selection, independent recovery state and duplicate-handoff prevention.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/storage/LauncherPreferencesStore.kt` — additive channel preference preserving existing data.
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/update/LauncherChannelsTest.kt` — pagination/filtering/integrity, same-version update, failed-child/offline recovery, return to older Stable and preferences compatibility.
+- `launcher-desktop/build.gradle.kts`, `src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/DesktopStartupUpdate.kt`, `Main.kt` — embedded channel/run-attempt metadata and background preference-aware startup wiring.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/LauncherUpdateChannelPicker.kt`, `SyntaxLauncherApp.kt` — quiet settings entry and translated channel dialog.
+- `launcher-desktop/src/main/resources/i18n/{en,pl,de}.properties`, `src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/LauncherUpdateChannelPickerTest.kt` — localized instructions/errors and actual selection/restart/compact render verification.
+- `README.md`, `docs/ARCHITECTURE.md`, `docs/DESIGN.md`, `docs/DEVELOPMENT.md`, `docs/MILESTONES.md`, `docs/ROADMAP.md`, `docs/UPDATING.md`, `docs/WORKLOG.md` — channel contracts, publishing instructions, backward compatibility and acceptance boundaries.
+
+### Verification
+- `./gradlew test` — PASS via `./gradlew --offline test build :launcher-desktop:createDistributable`; 121 core + 25 desktop tests, zero failures/errors/skips. Fixture HTTP/ZIP/processes and temporary settings only.
+- `./gradlew build` — PASS in the same invocation.
+- `:launcher-desktop:createDistributable` — PASS for Linux with both ordinary Stable metadata and explicit `-PlauncherUpdateChannel=dev -PlauncherBuildNumber=42`. Verified the packaged JAR contains canonical product version plus separate DEV/build/attempt metadata.
+- `scripts/package_update.py` and `:launcher-desktop:verifyUpdateBundle` — PASS for the complete Linux DEV update archive; extracted files, permissions and links revalidated without starting the app.
+- Python tests — PASS, 10 script tests plus 6 Build Explorer tests. Workflow YAML parsing, shell syntax and seven publication-trigger scenarios — PASS.
+- `git diff --check` — PASS.
+- Manual/visual verification — inspected actual Polish/German 400×400 channel-dialog renders; EN/PL/DE interaction/persistence and existing home-size regressions pass. Native Windows/macOS/keyboard/DPI and live GitHub channel-switch tests were not performed.
+
+### Roadmap updates
+- `[x] v0.12 / Self-update / Define update channel strategy` — updated the existing completed strategy to document Stable plus opt-in DEV/SNAPSHOT and explicit older-version switching.
+- `[ ] v0.12 / Self-update / DEV/SNAPSHOT publication and selection — IN PROGRESS` — local implementation/tests/Linux packaging pass; actual hosted publication and native channel-switch acceptance remain open.
+- `[ ] v0.12 / Self-update / Hosted old→new and Windows/Linux/macOS acceptance` — remains open; local fixtures are not hosted end-to-end evidence.
+
+### Follow-ups / known issues
+- No commit, push, GitHub release or tag was created by this task. The workflow becomes active after these changes reach GitHub. Install a channel-capable build once, select the desired channel and restart; older binaries cannot gain the picker without an initial update/install.
+- Stable remains default. SNAPSHOT is a manually chosen preview rather than a daily promotion; nightly schedules, automatic release/image pruning, signing and unrelated milestones were not implemented.
+- Preview release discovery scans at most 100 pages and reports an error rather than silently choosing an incomplete result if history exceeds that bound. Existing original-executable Continue recovery remains available.
+
+---
 
 ## 2026-10-20 — Make Vanilla and modded play obvious on the home screen
 

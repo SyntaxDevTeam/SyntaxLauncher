@@ -447,6 +447,8 @@ The launcher needs a safe self-update mechanism with integrity validation and fa
 
 **Explicit early scope requested on 19 October 2026:** implement the startup updater during current development: stable GitHub release checks, SHA-256 verified side-by-side application installation, startup receipts and previous-version recovery. See [UPDATING.md](UPDATING.md). This narrow request does not advance unrelated v0.12 features or waive real hosted/cross-platform acceptance.
 
+**Explicit extension requested on 20 October 2026:** add DEV publication after verified main pushes, manually dispatched SNAPSHOT, and persistent Stable/DEV/SNAPSHOT selection. Same-version preview builds use independent CI identity; explicit channel switches may return to an older product version. Hosted and native channel-switch acceptance remain required.
+
 ### CI/CD scope
 
 Automated tests and release builds must run in CI, with versioned release artifacts and a repeatable release process.
