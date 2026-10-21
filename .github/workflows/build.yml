@@ -49,16 +49,13 @@ jobs:
             args+=(--before "$BEFORE_SHA")
           fi
           python3 scripts/auto_release.py "${args[@]}" --github-output "$GITHUB_OUTPUT"
-          # Self-heal missing stable releases after an earlier failed publication.
-          # An eligible version must be published even when its version-bump commit
-          # already passed and a later CI run is the first successful one.
-          if [[ "$GITHUB_REF" == refs/heads/main && "$GITHUB_EVENT_NAME" != pull_request ]]; then
+          # Never backfill a failed historical version from a newer main commit:
+          # the code may already belong to the next milestone. Recover the
+          # historical commit with the pinned recovery workflow instead.
+          if [[ "$GITHUB_REF" == refs/heads/main && "$GITHUB_EVENT_NAME" == push ]]; then
             version="$(python3 scripts/launcher_version.py)"
-            if [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-              if ! gh release view "v$version" --json isDraft --jq '.isDraft' >/dev/null 2>&1; then
-                echo "publish_release=true" >> "$GITHUB_OUTPUT"
-                echo "Missing stable v$version; scheduling release from this verified build."
-              fi
+            if [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && ! gh release view "v$version" >/dev/null 2>&1; then
+              echo "::warning::Stable v$version is missing. Only a version-increment commit can publish automatically. For earlier versions, use a release recovery pinned to the original verified commit."
             fi
           fi
       - name: Compile and run tests
@@ -185,7 +182,9 @@ jobs:
           merge-multiple: true
       - name: Publish all platform updates together
         env:
-          GH_TOKEN: ${{ github.token }}
+          # A fine-grained PAT with repository Contents: write can be used
+          # when the workflow GITHUB_TOKEN is denied by repository policy.
+          GH_TOKEN: ${{ secrets.SYNTAXLAUNCHER_RELEASE_TOKEN || github.token }}
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: v${{ needs.verify.outputs.launcher_version }}
         shell: bash
@@ -220,13 +219,19 @@ jobs:
               exit 1
             fi
           fi
+          publish_release() {
+            if ! gh release create "$@"; then
+              echo "::error::Unable to create GitHub Release. If HTTP 403, authorize SYNTAXLAUNCHER_RELEASE_TOKEN for SyntaxDevTeam/SyntaxLauncher with Contents: Read and write and confirm organization approval. GITHUB_TOKEN may also be restricted by organization policy."
+              exit 1
+            fi
+          }
           if gh release view "$RELEASE_TAG" --json isDraft > existing-release.json 2>/dev/null; then
             python3 -c 'import json; assert json.load(open("existing-release.json"))["isDraft"], "Refusing to replace a published release"'
           elif [[ "$tag_exists" == true ]]; then
-            gh release create "$RELEASE_TAG" --verify-tag --draft --generate-notes --title "SyntaxLauncher $RELEASE_TAG"
+            publish_release "$RELEASE_TAG" --verify-tag --draft --generate-notes --title "SyntaxLauncher $RELEASE_TAG"
           else
             # GITHUB_TOKEN-created tags do not invoke another workflow; publish from this verified run.
-            gh release create "$RELEASE_TAG" --target "$GITHUB_SHA" --draft --generate-notes --title "SyntaxLauncher $RELEASE_TAG"
+            publish_release "$RELEASE_TAG" --target "$GITHUB_SHA" --draft --generate-notes --title "SyntaxLauncher $RELEASE_TAG"
           fi
           gh release upload "$RELEASE_TAG" release-assets/*.zip release-assets/*.tar.gz --clobber
           # Only ordinary GitHub Releases are supported; never mark them as pre-releases.
