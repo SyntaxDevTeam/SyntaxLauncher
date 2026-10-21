@@ -113,7 +113,7 @@ class MinecraftLaunchCoordinator(
                 stage(LaunchPhase.PREPARING_LOADER, "Installing " + selected.id + " " + selected.version)
                 val installed = loaders?.install(version, selected, instanceLayout, runtime)
                     ?: throw ModLoaderException("Mod loader installer is not configured.")
-                stage(LaunchPhase.PREPARING_GAME, "Verifying installed NeoForge files")
+                stage(LaunchPhase.PREPARING_GAME, "Verifying installed ${selected.id} files")
                 preparation.prepare(installed, platform, instanceLayout) { event ->
                     if (event is MinecraftPreparationEvent.Download) downloaded(event.event)
                 }
