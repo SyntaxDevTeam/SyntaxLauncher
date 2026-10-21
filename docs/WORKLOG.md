@@ -8,6 +8,40 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-21 — Begin Forge V2 milestone and diagnose v0.7.0 publication
+
+**Milestone:** v0.8 — Forge/Quilt  
+**Author/Agent:** GPT-6  
+**Status:** Partial — implementation and CI verification ongoing
+
+### Completed
+- Implemented SHA-1-verified official Forge V2 installer preflight, strict checksums, cache, client processor inspection and fail-closed legacy handling.
+- Reused the existing NeoForge V2 child-Java processor engine via `ProcessorInstallerV2Engine`, wired Forge into the generic `PreparedModLoaderProvider` and shared desktop dependencies.
+- Added mocked checksum/legacy/target-version regressions and a CI-gated official Forge 1.21.1/52.1.20 installer smoke test.
+- Added Forge mods.toml local identity parsing and expanded isolated local/Modrinth mod operations to Forge and NeoForge while preserving Fabric/Quilt behavior.
+- Fixed a stale `manifest` reference uncovered by CI; addressed pre-existing Fabric/Quilt-only restrictions uncovered by the new Forge tests.
+- Diagnosed v0.7.0 release CI: verification and all-platform packaging passed, but GitHub Release creation returned HTTP 403; added optional repository release-token fallback.
+
+### Changed files
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/loader/ForgeInstallerPreflight.kt`, `NeoForgeInstallerEngine.kt`, `InstallerLoaderDiscovery.kt`, plus Forge regressions.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/mods/LocalModManager.kt`, `ModrinthInstaller.kt` and mod tests.
+- Desktop `Main.kt`, `.github/workflows/build.yml`, `README.md`, `docs/ROADMAP.md`, `docs/TESTING_V0.8.md`, `docs/UPDATING.md`, `docs/WORKLOG.md`.
+
+### Verification
+- v0.7.0 candidate run 39558146467 — PASS tests/official NeoForge smoke and three-platform packaging, FAIL publication (GitHub HTTP 403).
+- v0.8 Gradle and official Forge smoke — pending latest hosted CI after source/test fixes; do not claim all tests pass yet.
+- Real Forge Minecraft launch — NOT RUN; no UI availability claim.
+
+### Roadmap updates
+- `[ ] v0.8 / Forge verified V2 adapter, native mod metadata` — implementation started; official CI/game acceptance pending.
+- `[ ] v0.8 / Historical Java, Quilt/Forge cross-platform quality gates` — remains open.
+
+### Follow-ups / known issues
+- Write-authorized release token/policy required to publish v0.7.0 as an ordinary GitHub Release. The product SemVer remains 0.7.0 until v0.8 is accepted.
+- Forge processor Java executes as third-party code; isolated working directory is not OS sandboxing.
+
+---
+
 ## 2026-10-21 — Confirm v0.7 CI and publish version 0.7.0
 
 **Milestone:** v0.7 — NeoForge

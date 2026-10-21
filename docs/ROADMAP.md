@@ -552,12 +552,12 @@ Goal: broaden loader support while preserving historical-version compatibility d
 
 ## Forge
 
-- [ ] 🚧 IN PROGRESS — Discover official Forge Maven versions; processor installation and actual launch remain unimplemented.
-- [ ] 🚧 IN PROGRESS — Inspect modern Forge installer V2 metadata/processor inputs in read-only preflight; no processor execution yet.
-- [ ] Document exact supported Minecraft/Forge range if universal support is not practical.
-- [ ] Launch Forge through common pipeline.
-- [ ] Integrate Forge mod metadata handling.
-- [ ] Integrate Modrinth Forge filtering.
+- [x] Discover official Forge Maven versions with Minecraft compatibility filtering; Forge V2 processor adapter added, live acceptance pending.
+- [ ] 🚧 IN PROGRESS — Verified SHA-1 Forge installer download and modern V2 profile/processor inspection implemented; synthetic and live CI pending.
+- [ ] 🚧 IN PROGRESS — Initial modern V2 target Minecraft 1.21.1 / Forge 52.1.20; legacy Forge V1 and historical Java combinations are intentionally unsupported until tested.
+- [ ] 🚧 IN PROGRESS — Forge uses shared ProcessorInstallerV2Engine and PreparedModLoaderProvider through common coordinator; actual Forge Minecraft boot acceptance remains open.
+- [ ] 🚧 IN PROGRESS — Read Forge META-INF/mods.toml IDs, names and versions and permit local mod operations under isolated Forge instances; complete TOML dependency semantics remain open.
+- [ ] 🚧 IN PROGRESS — Forge loader facet is supported in shared Modrinth adapter; installer/gameplay acceptance required before exposing Forge as supported in the desktop picker.
 
 ## Quilt
 

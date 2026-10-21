@@ -95,3 +95,23 @@ Before release acceptance, manually test a real old→new hosted release with wr
 - [GitHub latest-release API](https://docs.github.com/en/rest/releases/releases#get-the-latest-release)
 - [GitHub release asset digest contract](https://docs.github.com/en/rest/releases/assets#get-a-release-asset)
 - [OpenJDK jpackage property tests](https://github.com/openjdk/jdk/blob/master/test/jdk/tools/jpackage/share/BasicTest.java)
+
+## Publishing HTTP 403 (workflow token denied)
+
+The v0.7.0 version-change CI run 39558146467 passed compilation, tests,
+official NeoForge installer smoke, portable builds for Windows/Linux/macOS and
+Build Explorer, but GitHub denied the final `gh release create` request with
+`HTTP 403: Resource not accessible by integration`.
+
+Job `publish-release` already requests `contents: write`. The workflow now
+uses `secrets.SYNTAXLAUNCHER_RELEASE_TOKEN` if configured, or the default
+`github.token` otherwise. If repository/organization policy restricts
+GitHub Actions token writes, add that Actions repository secret containing a
+fine-grained GitHub token scoped to this repository with **Contents: Read
+and write**, or adjust workflow token permissions if your policy permits.
+Do not commit or paste credentials.
+
+After authorizing the token, re-run **only the failed publication job** of
+run 39558146467 while its six verified platform artifacts remain available.
+Do not create a new v0.7.0 release from an unverified v0.8 development commit.
+Never mark the release as published until it appears in GitHub Releases.

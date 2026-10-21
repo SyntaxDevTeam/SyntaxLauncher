@@ -2,7 +2,7 @@
 
 SyntaxLauncher is a modern Minecraft launcher from SyntaxDevTeam, written primarily in Kotlin and developed incrementally from a minimal vanilla launcher into a modular launcher with premium authentication, isolated instances, mod loaders, Modrinth integration, modpacks and diagnostics.
 
-The project has implemented a v0.2 Instance Manager, reached **v0.6 Modrinth development** and begun v0.7/v0.8 loader work. NeoForge processor execution is implemented and verified with an official Maven smoke test; Forge remains in preflight; Quilt Meta profile integration has been added. Microsoft app approval, v0.3 real-account acceptance and real Minecraft startup verification remain pending. The Kotlin/Compose launcher now connects the offline account, Mojang metadata, verified game preparation, automatic Java runtime installation, metadata-driven LaunchPlan and MinecraftProcessManager to an actual desktop Play workflow. A real clean-machine Minecraft launch is not yet verified.
+The project has implemented a v0.2 Instance Manager, reached **v0.6 Modrinth development** and begun v0.7/v0.8 loader work. NeoForge processor execution is implemented and verified with an official Maven smoke test; Forge has a V2 installer adapter under CI validation; Quilt Meta profile integration has been added. Microsoft app approval, v0.3 real-account acceptance and real Minecraft startup verification remain pending. The Kotlin/Compose launcher now connects the offline account, Mojang metadata, verified game preparation, automatic Java runtime installation, metadata-driven LaunchPlan and MinecraftProcessManager to an actual desktop Play workflow. A real clean-machine Minecraft launch is not yet verified.
 
 ## Project philosophy
 
@@ -80,9 +80,16 @@ Fabric and Quilt startup were confirmed by the maintainer on 20 October 2026; lo
 
 ## Automatic GitHub Releases
 
+**v0.7.0 publication blocker:** The 21 October 2026 version-change CI passed tests and Linux/Windows/macOS packaging, but GitHub rejected the release creation with HTTP 403 (`Resource not accessible by integration`). `launcherVersion=0.7.0` is in main, but the public Release is still absent. See [UPDATING.md](docs/UPDATING.md) for the optional write-authorized release token fix.
+
+
 The sole product version is `launcherVersion` in [`gradle.properties`](gradle.properties), now `0.7.0`. Changing it to a higher **plain `X.Y.Z` version** (e.g. `0.7.0` → `0.8.0`) and pushing to `main` automatically publishes a normal GitHub Release `vX.Y.Z` after all Gradle/Python tests and Windows/Linux/macOS packaging succeed. **No GitHub pre-releases are published.** Ordinary code changes do not issue new releases. Matching plain-version manual tags remain supported. Each published release is eligible for the stable launcher updater; remaining gameplay and distribution acceptance limitations are recorded in the roadmap. See [publishing instructions](docs/UPDATING.md).
 
-## v0.7 — NeoForge (stable-version release; scoped acceptance)
+## v0.8 — Forge and Quilt (development)
+
+Forge modern installer V2 now shares a staged processor engine with NeoForge, while official installer discovery and SHA-1 verification remain loader-specific. Initial target: Minecraft 1.21.1 / Forge 52.1.20. The local mod manager recognizes basic `META-INF/mods.toml` identity and supports isolated Forge instances. Historical Forge V1 and older Java compatibility are not implemented. Forge stays unavailable as a public loader option until official installation and real game startup pass. See [v0.8 acceptance](docs/TESTING_V0.8.md).
+
+## v0.7 — NeoForge (v0.7.0 version set; public Release not yet available)
 
 A processor-backed NeoForge installer adapter is now connected to the existing
 instance and launch pipeline. The desktop can discover compatible NeoForge Maven
@@ -96,7 +103,7 @@ and the existing Modrinth loader filter follows the selected NeoForge instance.
 
 **Acceptance scope:** automated installer and official Maven smoke tests passed on
 21 October 2026. The maintainer reported that testing is complete, but did not
-provide an OS/version matrix or logs. This is a v0.7 development-line release,
+provide an OS/version matrix or logs. This is a v0.7 development-line build,
 not a certification of every NeoForge/Minecraft/mod combination. Cancellation,
 recovery and broader loader compatibility remain tracked in the roadmap. Do not use this stage with your only
 world save or assume filesystem staging is a security sandbox. See
@@ -126,7 +133,7 @@ touching installed files and explains unmatched local JARs. Managed updates now 
 SHA-256 provenance checks, a persistent backup of previous JARs and an explicit
 last-update rollback action. Updates requiring missing/different dependencies are
 deliberately blocked pending a full dependency reconciliation workflow.
-Optional-dependency choice, richer conflicts and final UI/game acceptance remain open. Fabric and Quilt use the shared browsing/installing workflow. NeoForge has processor-backed installation; Forge's processor integration remains the v0.8 target. Local JAR import remains available. See
+Optional-dependency choice, richer conflicts and final UI/game acceptance remain open. Fabric and Quilt use the shared browsing/installing workflow. NeoForge has processor-backed installation; Forge's common V2 processor integration is in v0.8 testing. Local JAR import remains available. See
 [the v0.6 test plan](docs/TESTING_V0.6.md). Fabric and Quilt startup acceptance was confirmed by the maintainer on 20 October 2026; remaining mod-management and platform checks stay open.
 
 ## Current implementation
@@ -389,7 +396,7 @@ Loader support is intentionally staged:
 
 - Fabric — v0.4
 - NeoForge — v0.7
-- Forge — v0.8 (official Maven discovery; processor installation not yet implemented)
+- Forge — v0.8 (official SHA-1-verified V2 installer and shared processor adapter; game boot not yet accepted)
 - Quilt — v0.8 (official Quilt Meta v3 profile and instance selection; actual game acceptance pending)
 
 Local mod management arrives in v0.5, followed by Modrinth integration and dependency resolution in v0.6.
