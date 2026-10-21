@@ -171,7 +171,7 @@ jobs:
           merge-multiple: true
       - name: Publish all platform updates together
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.SYNTAXLAUNCHER_RELEASE_TOKEN || github.token }}
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: v${{ needs.verify.outputs.launcher_version }}
         shell: bash
