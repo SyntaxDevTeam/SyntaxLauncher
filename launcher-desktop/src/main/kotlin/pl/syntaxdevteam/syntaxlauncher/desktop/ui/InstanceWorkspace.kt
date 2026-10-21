@@ -328,8 +328,6 @@ fun InstanceWorkspace(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        }
                         if (newLoader in setOf("fabric", "quilt", "neoforge", "forge")) {
                             OutlinedTextField(
                                 value = newFabricVersion,

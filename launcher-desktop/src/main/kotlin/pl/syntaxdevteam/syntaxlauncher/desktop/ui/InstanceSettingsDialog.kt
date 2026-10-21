@@ -172,9 +172,6 @@ fun InstanceSettingsDialog(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                // Keep the original group layout for compatible-version selection.
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                }
                 if (loaderId in setOf("fabric", "quilt", "neoforge", "forge")) {
                     OutlinedTextField(
                         value = fabricVersion,
