@@ -76,10 +76,28 @@ class NeoForgeLoaderProvider(http: HttpClient, private val downloads: DownloadMa
     }
 }
 
-class ForgeLoaderProvider(http: HttpClient) : InstallerBackedLoaderProvider(
+class ForgeLoaderProvider(http: HttpClient, private val downloader: DownloadManager? = null) : InstallerBackedLoaderProvider(
     http, "https://maven.minecraftforge.net/net/minecraftforge/forge/maven-metadata.xml",
-) {
+), PreparedModLoaderProvider {
     override val id = "forge"
+    override suspend fun install(
+        base: ResolvedMinecraftVersion,
+        version: String,
+        layout: MinecraftInstallationLayout,
+        runtime: JavaRuntime,
+    ): ResolvedMinecraftVersion {
+        ModLoaderSelection("forge", version)
+        if (compatibleVersions(base.id).none { it.version == version }) {
+            throw IncompatibleModLoaderException(
+                "Forge " + version + " is not compatible with Minecraft " + base.id,
+            )
+        }
+        val downloads = downloader
+            ?: throw ModLoaderException("Forge installer download infrastructure is unavailable.")
+        return ProcessorInstallerV2Engine(
+            http, downloads, flavor = InstallerV2Flavor.FORGE,
+        ).install(base, version, layout, runtime)
+    }
     override suspend fun compatibleVersions(minecraftVersionId: String): List<ModLoaderVersion> {
         require(minecraftVersionId.matches(Regex("[A-Za-z0-9._-]{1,80}")))
         val prefix = minecraftVersionId + "-"

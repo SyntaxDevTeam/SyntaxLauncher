@@ -41,10 +41,14 @@ import pl.syntaxdevteam.syntaxlauncher.core.storage.MinecraftInstallationLayout
  * Executes NeoForge V2 client processors in a dedicated child JVM and staging tree.
  * No instance game directory is written. Existing shared cache artifacts are never replaced.
  */
-class NeoForgeInstallerEngine(
+enum class InstallerV2Flavor { NEOFORGE, FORGE }
+
+/** Shared V2 processor pipeline. Only the verified installer acquisition is loader-specific. */
+class ProcessorInstallerV2Engine(
     private val http: HttpClient,
     private val downloads: DownloadManager,
     private val preflight: NeoForgeInstallerPreflight = NeoForgeInstallerPreflight(http, downloads),
+    private val flavor: InstallerV2Flavor = InstallerV2Flavor.NEOFORGE,
 ) {
     private val json = Json { ignoreUnknownKeys = true }
     private val coordinate = Regex("""[A-Za-z0-9_.-]+:[A-Za-z0-9_.-]+:[A-Za-z0-9._+~-]+(?::[A-Za-z0-9_.-]+)?(?:@[A-Za-z0-9]+)?""")
@@ -60,18 +64,26 @@ class NeoForgeInstallerEngine(
         runtime: JavaRuntime,
     ): ResolvedMinecraftVersion {
         check(Files.isRegularFile(layout.versionJar(base.id), LinkOption.NOFOLLOW_LINKS)) {
-            "Verified Vanilla client must be prepared before NeoForge installation."
+            "Verified Vanilla client must be prepared before Forge-family installation."
         }
-        val manifest = preflight.inspect(base.id, loaderVersion, layout.versionsDir)
-        val profile = readJson(manifest.installerJar, "install_profile.json")
-        val version = readJson(manifest.installerJar, "version.json")
+        val (installerJar, inspection) = when (flavor) {
+            InstallerV2Flavor.NEOFORGE -> preflight.inspect(
+                base.id, loaderVersion, layout.versionsDir,
+            ).let { it.installerJar to it.inspection }
+            InstallerV2Flavor.FORGE -> ForgeInstallerPreflight(http, downloads).inspect(
+                base.id, loaderVersion, layout.versionsDir,
+            ).let { it.installerJar to it.inspection }
+        }
+        val profile = readJson(installerJar, "install_profile.json")
+        val version = readJson(installerJar, "version.json")
         val mainClass = str(version, "mainClass")
             ?: throw ModLoaderException("NeoForge runtime profile has no main class.")
         require(mainClass.matches(Regex("""[A-Za-z_$][A-Za-z0-9_$.]*""")))
-        require(str(version, "id") == manifest.inspection.launcherVersionId)
+        require(str(version, "id") == inspection.launcherVersionId)
 
         return withContext(Dispatchers.IO) {
-            val staging = layout.versionsDir.resolve(".neoforge-" + loaderVersion + "-" + UUID.randomUUID())
+            val staging = layout.versionsDir.resolve("." + flavor.name.lowercase() + "-" +
+                loaderVersion + "-" + UUID.randomUUID())
             val libraryRoot = staging.resolve("libraries")
             Files.createDirectories(libraryRoot)
             try {
@@ -94,8 +106,8 @@ class NeoForgeInstallerEngine(
                     sources[name] = url
                     val target = libraryRoot.resolve(relative)
                     val embedded = "maven/" + relative
-                    if (hasEntry(manifest.installerJar, embedded)) {
-                        extract(manifest.installerJar, embedded, target)
+                    if (hasEntry(installerJar, embedded)) {
+                        extract(installerJar, embedded, target)
                         str(artifact, "sha1")?.let { expected ->
                             require(hash(target).equals(expected, ignoreCase = true)) {
                                 "Embedded NeoForge library checksum mismatch: " + name
@@ -116,7 +128,7 @@ class NeoForgeInstallerEngine(
                     "MINECRAFT_JAR" to layout.versionJar(base.id).toString(),
                     "MINECRAFT_VERSION" to base.id,
                     "ROOT" to staging.toString(),
-                    "INSTALLER" to manifest.installerJar.toString(),
+                    "INSTALLER" to installerJar.toString(),
                     "LIBRARY_DIR" to libraryRoot.toString(),
                 )
                 profile["data"].obj().orEmpty().forEach { (key, sided) ->
@@ -135,7 +147,7 @@ class NeoForgeInstallerEngine(
                             }
                             val target = staging.resolve(embedded).normalize()
                             require(target.startsWith(staging))
-                            extract(manifest.installerJar, embedded, target)
+                            extract(installerJar, embedded, target)
                             target.toString()
                         }
                         else -> throw ModLoaderException("Unsupported NeoForge data value.")
@@ -352,3 +364,6 @@ class NeoForgeInstallerEngine(
     private fun array(value: JsonObject, key: String): List<JsonElement> =
         (value[key] as? JsonArray)?.toList().orEmpty()
 }
+
+/** Keep the existing NeoForge integration and its regression tests source compatible. */
+typealias NeoForgeInstallerEngine = ProcessorInstallerV2Engine
