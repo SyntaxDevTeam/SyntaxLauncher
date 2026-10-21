@@ -242,4 +242,48 @@ class LocalModManagerTest {
         assertTrue(Files.exists(repo.gameDirectory(forge).resolve("mods/malformed.jar")))
     }
 
+
+    @Test fun forgeModDependenciesAndConflictsAreReportedForActiveMods() = runBlocking {
+        val (repo, manager) = setup()
+        val instance = repo.create("Forge dependencies", "1.21.1",
+            loader = ModLoaderSelection("forge", "52.1.20"))
+        fun forgeJar(fileName: String, id: String, requirements: String = ""): Path {
+            val file = Files.createTempDirectory("forge-dep-").resolve(fileName)
+            ZipOutputStream(Files.newOutputStream(file)).use { zip ->
+                zip.putNextEntry(ZipEntry("META-INF/mods.toml"))
+                zip.write("""
+                    [[mods]]
+                    modId="$id"
+                    version="1.0"
+                    displayName="$id"
+                    $requirements
+                """.trimIndent().toByteArray())
+                zip.closeEntry()
+            }
+            return file
+        }
+        val a = forgeJar("coremod.jar", "coremod", """
+            [[dependencies.coremod]]
+            modId="missinglibrary"
+            mandatory=true
+            versionRange="[2.0,)"
+            [[dependencies.coremod]]
+            modId="badlib"
+            type="incompatible"
+            versionRange="*"
+            [[dependencies.coremod]]
+            modId="optionalfeature"
+            mandatory=false
+        """.trimIndent())
+        val b = forgeJar("badlib.jar", "badlib")
+        val first = manager.importJar(instance.id, a)
+        assertTrue(first.warnings.any { "requires 'missinglibrary'" in it })
+        assertFalse(first.warnings.any { "optionalfeature" in it })
+        val second = manager.importJar(instance.id, b)
+        assertTrue(second.warnings.any { "declares a conflict with enabled 'badlib'" in it })
+        val disabled = manager.setEnabled(instance.id, "badlib.jar", false)
+        assertFalse(disabled.warnings.any { "conflict with enabled 'badlib'" in it })
+        assertTrue(disabled.warnings.any { "requires 'missinglibrary'" in it })
+    }
+
 }
