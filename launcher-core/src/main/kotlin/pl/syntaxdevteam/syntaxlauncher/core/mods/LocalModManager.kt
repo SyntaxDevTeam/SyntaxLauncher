@@ -509,12 +509,13 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
             val fabric = jar.getEntry("fabric.mod.json")
             val quilt = jar.getEntry("quilt.mod.json")
             val neoForge = jar.getEntry("META-INF/neoforge.mods.toml")
-            val entry = fabric ?: quilt ?: neoForge ?: return null
+            val forge = jar.getEntry("META-INF/mods.toml")
+            val entry = fabric ?: quilt ?: neoForge ?: forge ?: return null
             require(entry.size <= 256 * 1024L) { "Mod metadata exceeds 256 KiB." }
             val bytes = jar.getInputStream(entry).use { it.readNBytes(256 * 1024 + 1) }
             require(bytes.size <= 256 * 1024) { "Mod metadata exceeds 256 KiB." }
             if (fabric == null && quilt == null) {
-                // Identify the first NeoForge [[mods]] record; do not pretend to resolve
+                // Identify the first Forge/NeoForge [[mods]] record; do not pretend to resolve
                 // TOML dependency/version expressions with a permissive regex.
                 val text = bytes.toString(Charsets.UTF_8)
                 val block = text.substringAfter("[[mods]]", "")

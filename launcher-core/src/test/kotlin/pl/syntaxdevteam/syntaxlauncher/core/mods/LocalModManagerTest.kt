@@ -197,4 +197,49 @@ class LocalModManagerTest {
         assertFalse(manager.setEnabled(profile.id, "alpha.jar", false).mods.single().enabled)
     }
 
+
+    @Test fun parsesForgeModMetadataAndKeepsSeparateInstanceInventory() = runBlocking {
+        val (repo, manager) = setup()
+        val forge = repo.create("Forge", "1.21.1", loader = ModLoaderSelection("forge", "52.1.20"))
+        val fabric = repo.create("Fabric", "1.21.1", loader = ModLoaderSelection("fabric", "0.18.0"))
+        val file = Files.createTempDirectory("forge-meta").resolve("forge-only.jar")
+        ZipOutputStream(Files.newOutputStream(file)).use { archive ->
+            archive.putNextEntry(ZipEntry("META-INF/mods.toml"))
+            archive.write("""
+                modLoader = "javafml"
+                loaderVersion = "[52,)"
+                license = "MIT"
+                [[mods]]
+                modId = "forgeexample"
+                version = "1.2.3"
+                displayName = "Forge Example"
+                [[dependencies.forgeexample]]
+                modId = "forge"
+                mandatory = true
+                versionRange = "[52,)"
+            """.trimIndent().toByteArray())
+            archive.closeEntry()
+        }
+        val inventory = manager.importJar(forge.id, file)
+        assertEquals("forgeexample", inventory.mods.single().metadata?.id)
+        assertEquals("Forge Example", inventory.mods.single().metadata?.name)
+        assertEquals("1.2.3", inventory.mods.single().metadata?.version)
+        assertTrue(manager.list(fabric.id).mods.isEmpty())
+    }
+
+    @Test fun rejectsMalformedForgeModIdWithoutDestroyingLocalJar() = runBlocking {
+        val (repo, manager) = setup()
+        val forge = repo.create("Forge", "1.21.1", loader = ModLoaderSelection("forge", "52.1.20"))
+        val file = Files.createTempDirectory("forge-invalid").resolve("malformed.jar")
+        ZipOutputStream(Files.newOutputStream(file)).use { archive ->
+            archive.putNextEntry(ZipEntry("META-INF/mods.toml"))
+            archive.write("[[mods]]\nmodId = \"../escape\"\nversion = \"2.0\"".toByteArray())
+            archive.closeEntry()
+        }
+        val inventory = manager.importJar(forge.id, file)
+        assertEquals(null, inventory.mods.single().metadata)
+        assertTrue(Files.exists(file))
+        assertTrue(Files.exists(repo.gameDirectory(forge).resolve("mods/malformed.jar")))
+    }
+
 }
