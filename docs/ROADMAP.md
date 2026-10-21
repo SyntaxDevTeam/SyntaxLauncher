@@ -523,16 +523,17 @@ Goal: add a second major loader and prove the loader architecture is genuinely r
 
 - [ ] 🚧 IN PROGRESS — Discover official NeoForge Maven versions; processor installation and actual launch remain unimplemented.
 - [ ] 🚧 IN PROGRESS — Inspect NeoForge installer V2 metadata and list client processors in read-only preflight; execution/generated artifacts remain open.
-- [ ] 🚧 IN PROGRESS — Fetch the official NeoForge installer SHA-256 sidecar, download the checksum-verified JAR to a dedicated cache and run read-only preflight. Implementation added; automated/hosted and live Maven verification pending. See [v0.7 tests](TESTING_V0.7.md).
-- [ ] Resolve required libraries.
-- [ ] Integrate generated/processed artifacts safely.
-- [ ] Store NeoForge loader state in instance metadata.
-- [ ] Launch through common launch pipeline.
+- [ ] 🚧 IN PROGRESS — Fetch official NeoForge installer and SHA-256, verify the cache and inspect V2 client steps. Synthetic tests pass; live Maven/processor acceptance required before completion. See [v0.7 tests](TESTING_V0.7.md).
+- [ ] 🚧 IN PROGRESS — Execute NeoForge V2 processors in a child Java process using a temporary workspace, check declared output files, stage generated libraries and merge runtime version metadata. Synthetic fixtures integrated; official installation/game startup and failure-recovery matrix are not yet accepted.
+- [ ] 🚧 IN PROGRESS — Download processor libraries through verified shared download infrastructure and resolve generated output paths. Official Maven dependency matrix not yet accepted.
+- [ ] 🚧 IN PROGRESS — Stage generated/processed artifacts with collision checks; interrupted/concurrent processor recovery and real versions still require verification.
+- [x] Store NeoForge loader id/version using the existing instance metadata schema and expose the compatible-version selector in desktop creation/editing.
+- [ ] 🚧 IN PROGRESS — Wire NeoForge processing after base client/Java preparation into common launch pipeline. Actual NeoForge game startup remains to be demonstrated.
 
 ## Compatibility
 
-- [ ] Filter Modrinth content for NeoForge.
-- [ ] Parse relevant NeoForge mod metadata in local manager.
+- [ ] 🚧 IN PROGRESS — Generic Modrinth adapter already filters by the instance loader; NeoForge profile/UI integration added. Live install acceptance pending.
+- [ ] 🚧 IN PROGRESS — Identify NeoForge mods from META-INF/neoforge.mods.toml; richer TOML dependency/version semantics remain open.
 - [ ] Detect common incompatible loader combinations.
 
 ## v0.7 quality gate

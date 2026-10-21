@@ -8,6 +8,46 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-21 — NeoForge V2 processor integration and hosted acceptance gate
+
+**Milestone:** v0.7 — NeoForge  
+**Author/Agent:** GPT-6  
+**Status:** Partial — implementation and CI submitted; release acceptance pending
+
+### Completed
+- Added a processor-driven NeoForge installer staging service, shared dependency downloader integration, verification of declared processor outputs, SHA-1-tracked generated runtime libraries and profile merge.
+- Added a distinct prepared-loader interface. The standard coordinator obtains base client and Java first for processor-backed loaders; Fabric/Quilt retain the original metadata-only path.
+- Exposed NeoForge version selection in instance settings, instance creation and advanced modded-game setup, plus home mode switch/Mods workspace reuse.
+- Added simple NeoForge mods.toml ID/name/version extraction to local mod inventory. Full TOML dependency resolution remains future work.
+- Added synthetic Java processor fixture and negative checksum/target tests. Added opt-in official NeoForge Maven integration test, run as a CI gate for main before platform packaging. Actual Minecraft client startup is not tested by this fixture.
+- Left launcherVersion at 0.6.0 pending real NeoForge installer and gameplay acceptance; **did not publish a GitHub Release**.
+
+### Changed files
+- `launcher-core/.../loader/NeoForgeInstallerEngine.kt`, `ModLoader.kt`, `InstallerLoaderDiscovery.kt` — processor-driven loader adapter.
+- `launcher-core/.../launch/MinecraftLaunchCoordinator.kt` and desktop `Main.kt` — correct runtime/preparation order and dependency injection.
+- Desktop game setup, instance settings/workspace, home navigation and local-mod parser — NeoForge selection and metadata.
+- Core NeoForge smoke/fixture tests and `.github/workflows/build.yml` — synthetic and official Maven acceptance coverage.
+- `docs/ROADMAP.md`, `docs/TESTING_V0.7.md`, `README.md`, `docs/WORKLOG.md` — status and release gates.
+
+### Verification
+- `./gradlew test` — synthetic suite submitted to GitHub CI; latest run result must be checked.
+- `./gradlew build` — submitted to hosted CI; this entry does not assume final success.
+- Official NeoForge 21.1.213 V2 processor smoke — submitted as a hosted main-branch gate; must be checked.
+- Real Minecraft startup/native user acceptance — NOT RUN.
+- GitHub stable release — NOT PUBLISHED; do not call this a completed milestone yet.
+
+### Roadmap updates
+- `[x] v0.7 / Persist loader selection in instance metadata`
+- `[ ] v0.7 / Processor installation, runtime launch, Modrinth and platform quality gates` — integration added but final acceptance missing.
+
+### Follow-ups / known issues
+- The external Java process is constrained to a staging working directory but not sandboxed by the operating system. Do not claim that it cannot write outside that directory.
+- The live smoke test verifies processor artifacts, not that Minecraft opens a window or runs a NeoForge mod.
+- Do not bump the single-source version to 0.7.0 until all release checks pass.
+
+---
+
+
 ## 2026-10-21 — Begin v0.7 NeoForge installer acquisition and verification
 
 **Milestone:** v0.7 — NeoForge  

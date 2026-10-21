@@ -82,6 +82,24 @@ Fabric and Quilt startup were confirmed by the maintainer on 20 October 2026; lo
 
 The sole product version is `launcherVersion` in [`gradle.properties`](gradle.properties), now `0.6.0`. Changing it to a higher **plain `X.Y.Z` version** (e.g. `0.6.0` → `0.7.0`) and pushing to `main` automatically publishes a normal GitHub Release `vX.Y.Z` after all Gradle/Python tests and Windows/Linux/macOS packaging succeed. **No GitHub pre-releases are published.** Ordinary code changes do not issue new releases. Matching plain-version manual tags remain supported. Each published release is eligible for the stable launcher updater; remaining gameplay and distribution acceptance limitations are recorded in the roadmap. See [publishing instructions](docs/UPDATING.md).
 
+## v0.7 — NeoForge (in development, not yet released)
+
+A processor-backed NeoForge installer adapter is now connected to the existing
+instance and launch pipeline. The desktop can discover compatible NeoForge Maven
+versions and save them in instance metadata. Before game launch, the common
+coordinator first prepares the official Vanilla client and Java runtime, then
+downloads the official SHA-256-verified NeoForge installer, stages processor
+dependencies and generates the required client libraries in a separate working
+directory. A generated runtime profile is merged back into the shared launch
+pipeline. Local mod inventory can recognize the first NeoForge mods.toml record,
+and the existing Modrinth loader filter follows the selected NeoForge instance.
+
+**Not a certified working NeoForge release:** official installer smoke, real
+Minecraft boot, cancellation/recovery checks, and native platform acceptance
+must pass before marking v0.7 complete. Do not use this stage with your only
+world save or assume filesystem staging is a security sandbox. See
+[the v0.7 acceptance checklist](docs/TESTING_V0.7.md).
+
 ## v0.6 — Browse and install popular Modrinth mods (development)
 
 Open **Instances → Mods → Discover on Modrinth** for a Fabric instance. The discover
