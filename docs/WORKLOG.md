@@ -8,6 +8,44 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-21 — Begin v0.7 NeoForge installer acquisition and verification
+
+**Milestone:** v0.7 — NeoForge  
+**Author/Agent:** GPT-6  
+**Status:** Partial — implementation committed; CI and real Maven/client acceptance unverified
+
+### Completed
+- Introduced a NeoForge-only preflight API to retrieve the official installer and checksum from a fixed Maven host. The executable archive is downloaded through the existing verified DownloadManager and is never executed during this stage.
+- Added a dedicated version-scoped installer cache with symbolic-link refusal, strict checksum file parsing, SHA-256 validation, existing verified-cache reuse and read-only inspection of modern installer client processors.
+- Added synthetic JAR/MockEngine regressions for cache reuse, integrity rejection, invalid checksum filename, unsafe version and wrong Minecraft version. No instance selection or launcher start behavior is changed.
+- Kept Forge/NeoForge unavailable in UI until the processor stage can produce a real runnable client profile. Did not change launcherVersion: updating it now would automatically publish a normal GitHub Release before v0.7 is complete.
+
+### Changed files
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/loader/NeoForgeInstallerPreflight.kt` — official NeoForge installer acquisition and verified read-only preflight.
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/loader/NeoForgeInstallerPreflightTest.kt` — deterministic mocked HTTP and synthetic installer tests.
+- `docs/TESTING_V0.7.md` — staged acceptance and outstanding tests.
+- `docs/ROADMAP.md` — partial preflight progress only.
+- `docs/WORKLOG.md` — this entry.
+
+### Verification
+- `./gradlew test` — NOT RUN (GitHub connector access only; local dependency cache unavailable in execution environment).
+- `./gradlew build` — NOT RUN (same reason).
+- Manual verification — NOT RUN; official NeoForge installer and game boot still require hosted/native validation.
+- Source review — completed for component boundaries and fail-closed behavior; CI must confirm compilation.
+
+### Roadmap updates
+- `[ ] v0.7 / NeoForge provider / Installer acquisition and verified inspection` — code added; automated/live acceptance pending.
+- `[ ] v0.7 / NeoForge provider / Processor execution and generated artifacts` — not implemented.
+- `[ ] v0.7 / quality gate` — not met.
+
+### Follow-ups / known issues
+- Do not expose NeoForge in the desktop loader picker or mark v0.7 done until a processor-backed launch path and real acceptance tests exist.
+- SHA-256 provided by the same official Maven host detects corruption but is not independent code-signing attestation. Real installer code must run only after explicit installation confirmation and with staging/output controls.
+- Large-download and interruption behavior requires native verification before running processor code.
+
+---
+
+
 ## 2026-10-20 — Make Vanilla and modded play obvious on the home screen
 
 **Milestone:** v0.4 / v0.6 — existing loader and mod-discovery UX

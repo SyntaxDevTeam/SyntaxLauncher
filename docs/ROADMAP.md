@@ -523,6 +523,7 @@ Goal: add a second major loader and prove the loader architecture is genuinely r
 
 - [ ] 🚧 IN PROGRESS — Discover official NeoForge Maven versions; processor installation and actual launch remain unimplemented.
 - [ ] 🚧 IN PROGRESS — Inspect NeoForge installer V2 metadata and list client processors in read-only preflight; execution/generated artifacts remain open.
+- [ ] 🚧 IN PROGRESS — Fetch the official NeoForge installer SHA-256 sidecar, download the checksum-verified JAR to a dedicated cache and run read-only preflight. Implementation added; automated/hosted and live Maven verification pending. See [v0.7 tests](TESTING_V0.7.md).
 - [ ] Resolve required libraries.
 - [ ] Integrate generated/processed artifacts safely.
 - [ ] Store NeoForge loader state in instance metadata.
