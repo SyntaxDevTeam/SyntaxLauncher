@@ -9,7 +9,7 @@ on:
 
 permissions:
   actions: read
-  contents: read
+  contents: write
 
 concurrency:
   group: syntaxlauncher-recover-v070
@@ -76,10 +76,9 @@ jobs:
           test "$(find dist -maxdepth 1 -type f | wc -l)" -eq 6
       - name: Publish ordinary v0.7.0 stable release
         env:
-          GH_TOKEN: ${{ secrets.SYNTAXLAUNCHER_RELEASE_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          test -n "$GH_TOKEN" || { echo "Set SYNTAXLAUNCHER_RELEASE_TOKEN in repository Actions secrets." >&2; exit 1; }
           if gh api "repos/$GH_REPO/git/ref/tags/$RELEASE_TAG" > existing-tag.json 2>/dev/null; then
             type="$(python3 -c 'import json; print(json.load(open("existing-tag.json"))["object"]["type"])')"
             sha="$(python3 -c 'import json; print(json.load(open("existing-tag.json"))["object"]["sha"])')"
