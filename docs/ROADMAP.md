@@ -556,7 +556,7 @@ Goal: broaden loader support while preserving historical-version compatibility d
 - [x] Download and SHA-1 verify Forge V2 installer; inspect client processors and execute official 1.21.1/52.1.20 installation smoke (GitHub Actions 39560642818 passed).
 - [x] Initial supported V2 installer test matrix scoped to Minecraft 1.21.1 / Forge 52.1.20; unsupported versions absent from selector. Historical Forge V1 support intentionally excluded.
 - [ ] 🚧 IN PROGRESS — Forge V2 is installed through common PreparedModLoaderProvider and ProcessorInstallerV2Engine; official artifact installation passed, actual Forge Minecraft client startup acceptance remains open.
-- [ ] 🚧 IN PROGRESS — Parse basic Forge META-INF/mods.toml identity and allow instance-local JAR operations (deterministic core CI passed); complete TOML dependency semantics and gameplay still open.
+- [ ] 🚧 IN PROGRESS — Read Forge/NeoForge mod identity plus explicitly declared required/incompatible dependencies from bounded TOML subsets, prefer instance-matching manifests and warn on wrong loader families; complex TOML and actual gameplay remain open.
 - [ ] 🚧 IN PROGRESS — Forge version and loader-filtered Modrinth browser is available for explicit v0.8 test profiles; real Forge mod install and game startup still need manual acceptance.
 
 ## Quilt
@@ -564,7 +564,7 @@ Goal: broaden loader support while preserving historical-version compatibility d
 - [x] Quilt Meta v3 discovery through the shared registry; deterministic regressions and maintainer-confirmed Quilt testing pass (20 October 2026).
 - [x] Merge the official Quilt profile/libraries into the shared resolution/download pipeline; automated profile tests and maintainer-confirmed boot pass.
 - [x] Quilt starts through the shared launch pipeline; real startup confirmed by the maintainer on 20 October 2026.
-- [ ] 🚧 IN PROGRESS — Inspect quilt.mod.json IDs/versions/direct requirements; complex dependency semantics and client acceptance open.
+- [ ] 🚧 IN PROGRESS — Inspect quilt.mod.json IDs/versions/direct requirements; client compatibility and complex dependency semantics remain open.
 - [ ] 🚧 IN PROGRESS — Existing version/loader Modrinth filter and verified install enabled for Quilt; client acceptance pending.
 
 ## Historical compatibility

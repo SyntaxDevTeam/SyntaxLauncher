@@ -8,6 +8,37 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-21 — Loader-aware mod inventory and Forge/NeoForge TOML diagnostics
+
+**Milestone:** v0.8 — Forge and Quilt  
+**Author/Agent:** GPT-6  
+**Status:** Implementation committed; latest GitHub CI result not yet accepted
+
+### Completed
+- Added `ForgeTomlMetadataReader`: bounded, conservative parsing of `[[mods]]` and `[[dependencies.<modid>]]`, supporting legacy Forge `mandatory=true`, NeoForge `type=required`/`type=incompatible`, owner matching, and server-only exclusion. Optional or discouraged dependencies are intentionally not treated as mandatory.
+- Integrated declared dependencies/conflicts into existing missing-mod and conflict warnings. The inventory continues to preserve original JAR files and does not attempt dependency auto-install.
+- Added `sourceLoader` to extracted mod metadata. Select matching manifest first for the instance's loader; support dual-manifest JARs; warn on wrong loader families and caution that Forge-only metadata does not certify NeoForge compatibility.
+- Added deterministic core tests for Forge and NeoForge dependency styles, malformed/untrusted IDs, bounded input, missing dependencies, conflicts cleared on disabling mods, dual-manifest selection and cross-loader JAR warnings.
+- Kept `launcherVersion=0.7.0`; this is v0.8 development and is not a v0.8.0 release.
+
+### Changed files
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/mods/ForgeTomlMetadataReader.kt` — conservative Forge/NeoForge reader.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/mods/LocalModManager.kt` — loader-selected metadata and warnings.
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/mods/ForgeTomlMetadataReaderTest.kt`, `LocalModManagerTest.kt` — regressions.
+- `docs/ROADMAP.md`, `docs/TESTING_V0.8.md`, `README.md`, `docs/WORKLOG.md` — documentation.
+
+### Verification
+- Prior v0.8 integration and 3-OS package CI: **PASS** — run 39561846249.
+- Current TOML changes: GitHub CI on latest `main` commit must pass before marking implementation validated.
+- v0.7.0 public release: still absent in last checked GitHub Releases; retry of older workflow 39558146467 not yet reflected in its attempt count. No token or credentials read.
+- Forge actual-game mod load and semantic TOML version-range checking — **NOT VERIFIED**.
+
+### Roadmap updates
+- `[ ] v0.8 / Forge/NeoForge metadata/compatibility` — first-pass implementation added; live game acceptance and full TOML remain open.
+
+---
+
+
 ## 2026-10-21 — Verify official Forge V2 and enable bounded desktop test profiles
 
 **Milestone:** v0.8 — Forge and Quilt  
