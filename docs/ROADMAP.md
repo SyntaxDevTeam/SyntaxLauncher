@@ -32,7 +32,7 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 - [x] UTF-8 English, Polish and German resource bundles for home, instance editing/management, local mods, Modrinth browsing, window actions and startup updates.
 - [x] Live language picker with system-language detection, English fallback and saved per-user choice; switching does not alter instance/account/game data.
 - [x] Additive schema-1 `ui_language` preference preserves legacy/unknown properties and survives ordinary profile saves and restart; future schemas are not overwritten.
-- [x] Resource key/placeholder parity, Unicode, fallback, switching/restart, persistence and EN/PL/DE wide/narrow Compose render regressions pass.
+- [x] Resource key/placeholder parity, Unicode, fallback, switching/restart, persistence and EN/PL/DE wide/narrow Compose render regressions pass. Home scrolling coverage now checks the entire RAM label after both nested scroll containers finish, including CI build metadata; hosted CI must confirm the correction.
 - [ ] Native Windows/macOS keyboard, font and DPI acceptance of translated screens; upstream descriptions and detailed technical diagnostics retain their original language.
 
 ## Project foundation

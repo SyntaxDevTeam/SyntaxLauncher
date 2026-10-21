@@ -359,6 +359,8 @@ remain separate roadmap items.
 
 Keep user data, project names and upstream descriptions verbatim. Core log strings remain diagnostic. Use typed launch/update stages for localized progress rather than parsing English log messages. Add translated primary controls, errors and accessibility labels when adding screens; detailed upstream/domain diagnostics may retain their original language. Resource-parity and Compose language-switch/render regressions run with `./gradlew test`. Generated wide/narrow EN/PL/DE QA images are under `launcher-desktop/build/reports/ui/`; native keyboard/font/DPI acceptance remains separate.
 
+Home render regressions must scroll both the compact page and its independent settings panel. `SemanticsActions.ScrollBy` starts asynchronous animation: render until the container’s vertical scroll range reaches its maximum instead of sleeping a fixed number of frames. Re-read the target semantics node and compare its clipped bounds with its measured size so a few visible pixels cannot count as a usable control. For CI reproduction, supply the same `launcherBuildNumber`, full `launcherCommit` and `launcherUpdateChannel` Gradle properties as the failing job.
+
 ## Simple modded-game setup
 
 `desktop/ModdedGameSetup.kt` performs read-only compatibility discovery through the registered loader provider. It prefers the current Minecraft version, then at most seven additional distinct releases supplied by the official manifest. A 20-second UI-level deadline and composition cancellation bound discovery. Empty compatible lists permit version fallback; network failures/cancellation never masquerade as unsupported versions. Stable loader versions are preferred; no game/loader versions are hardcoded.

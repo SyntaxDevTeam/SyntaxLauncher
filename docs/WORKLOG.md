@@ -8,6 +8,42 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-21 — Fix nested home scrolling in CI render tests
+
+**Milestone:** v0.1 — translated home regression coverage; v0.12 — CI reliability
+**Author/Agent:** Codex / GPT-6
+**Status:** Completed
+
+### Completed
+- Retrieved the failed test artifact from Actions run 39599289671 for commit `9f3920e`: the translated home test failed at line 181 while checking the RAM label on the Polish 440×740 home.
+- Confirmed the compact home has independently scrollable page and settings containers. The test scrolled only the first container, waited five frames and accepted any visible fragment of the label. Under the IntelliJ debugger, the old Polish assertion saw `Rect.fromLTRB(66.0, 693.0, 201.0, 698.0)` — just five visible pixels, explaining why a local pass did not prove usability.
+- Updated both compact-home scrolling regressions to scroll every home/settings container and wait for its semantic vertical range to reach the end. The assertion now compares clipped label bounds against measured height and includes language/window/bounds context in failures.
+- Reused the common readiness helper for translated scenes. Preserved concurrent IDE edits using typed millisecond durations and creating fixture directories on the IO dispatcher. Kept production UI, update channels, loaders, canonical version and CI gates unchanged.
+- Removed diagnostic breakpoints; no debugger session or generated test artifacts are included in the commit.
+
+### Changed files
+- `launcher-desktop/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/LauncherHomeRenderTest.kt` — nested scroll completion and full-label visibility assertions.
+- `docs/DEVELOPMENT.md` — semantic scrolling and CI-metadata reproduction guidance.
+- `docs/ROADMAP.md` — annotate the corrected localization/render regression coverage; hosted/native acceptance remains open.
+- `docs/WORKLOG.md` — failure evidence, corrective scope and verification.
+
+### Verification
+- Focused `LauncherHomeRenderTest` — PASS with DEV channel, CI build number 154 and full source SHA; all seven tests, including EN/PL/DE narrow/wide and 400×400/scaled cases.
+- `./gradlew test` — PASS via `./gradlew --offline --no-daemon -PlauncherBuildNumber=154 -PlauncherCommit=9f3920ef7ec832d11a391d9d8c77cbc99c740a04 -PlauncherUpdateChannel=dev test build --rerun-tasks --no-build-cache`; all 25 desktop tests and 136 core tests passed, two opt-in live installer tests skipped. Final source hash was unchanged throughout verification.
+- `./gradlew build` — PASS in the same full rerun; all 13 actionable tasks executed.
+- Manual verification — inspected regenerated Polish 440×740 settings render: RAM heading and slider fully visible. Debugger observation and downloaded failed CI report were read-only; no Minecraft/account data accessed.
+- `git diff --check` — PASS.
+
+### Roadmap updates
+- `[x] v0.1 / Interface languages / Resource and Compose render regressions` — retained with stronger nested-scroll visibility checks.
+- `[ ] v0.12 / CI/CD / Build/test CI` and hosted channel-publication/native acceptance — remain open until corresponding checks pass; a local test does not complete release acceptance.
+
+### Follow-ups / known issues
+- The original assertion failure did not reproduce in standalone or full local runs, including DEV metadata. The downloaded CI report and debugger measurement establish the incomplete scroll/visibility check; hosted CI must confirm the corrected result.
+- Existing Kotlin/Compose/Gradle deprecation warnings and previously documented release authorization limitations are outside this test fix. No Stable version bump, release recovery or token changes.
+
+---
+
 ## 2026-10-21 — Reconcile local update channels with current GitHub main
 
 **Milestone:** v0.7 / v0.8 / v0.12

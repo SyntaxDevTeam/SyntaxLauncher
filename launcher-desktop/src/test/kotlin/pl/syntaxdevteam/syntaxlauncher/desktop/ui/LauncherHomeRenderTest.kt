@@ -28,6 +28,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.swing.Swing
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import org.junit.jupiter.api.io.TempDir
 import pl.syntaxdevteam.syntaxlauncher.core.loader.ModLoaderSelection
@@ -45,6 +46,7 @@ import pl.syntaxdevteam.syntaxlauncher.core.storage.LauncherPreferences
 import pl.syntaxdevteam.syntaxlauncher.core.storage.LauncherPreferencesStore
 import pl.syntaxdevteam.syntaxlauncher.core.storage.MinecraftInstallationLayout
 import pl.syntaxdevteam.syntaxlauncher.desktop.DesktopLauncherSession
+import kotlin.time.Duration.Companion.milliseconds
 
 /** Real Compose rendering and interactions, with deterministic metadata and isolated user state. */
 class LauncherHomeRenderTest {
@@ -102,13 +104,10 @@ class LauncherHomeRenderTest {
                 if (width / density >= 760) {
                     assertTrue(play.boundsInRoot.bottom <= height, "Play must fit at $width x $height")
                 } else {
-                    val scroll = scene.nodes().first { it.config.contains(SemanticsActions.ScrollBy) }
-                    scroll.config[SemanticsActions.ScrollBy].action!!.invoke(0f, 5000f)
-                    scene.frames()
+                    scene.scrollSettingsToEnd()
                     scene.screenshot("home-${width}x${height}-scrolled")
                     val memory = scene.text("MEMORY ALLOCATION")
-                    assertTrue(memory.boundsInRoot.bottom > 0 && memory.boundsInRoot.top < height,
-                        "Settings must be reachable by scrolling")
+                    memory.assertFullyVisible(height, "Settings at $width x $height, density $density")
                 }
             } finally { scene.close(); session.shutdown() }
         }
@@ -161,24 +160,17 @@ class LauncherHomeRenderTest {
                 CompositionLocalProvider(LocalStrings provides strings) { SyntaxLauncherApp(session) }
             }
             try {
-                withTimeout(10000) {
-                    while (scene.nodes().none { it.label() == strings.text("ui.play_minecraft") &&
-                            !it.config.contains(SemanticsProperties.Disabled) }) {
-                        scene.render().close()
-                        delay(20)
-                    }
-                }
+                scene.awaitReady(strings.text("ui.play_minecraft"))
                 val play = scene.text(strings.text("ui.play_minecraft"))
-                assertTrue(play.boundsInRoot.left >= 0 && play.boundsInRoot.right <= width)
+                assertTrue(play.boundsInRoot.left >= 0 && play.boundsInRoot.right <= width,
+                    "Play bounds for ${language.code} at $width x $height: ${play.boundsInRoot}")
                 assertNotNull(scene.text(strings.text("ui.your_world")))
                 assertNotNull(scene.text(strings.text("ui.your_adventure")))
                 scene.screenshot("home-${language.code}-${width}x${height}")
                 if (width < 760) {
-                    scene.nodes().first { it.config.contains(SemanticsActions.ScrollBy) }
-                        .config[SemanticsActions.ScrollBy].action!!.invoke(0f, 5000f)
-                    scene.frames()
+                    scene.scrollSettingsToEnd()
                     val memory = scene.text(strings.text("ui.memory_allocation"))
-                    assertTrue(memory.boundsInRoot.bottom > 0 && memory.boundsInRoot.top < height)
+                    memory.assertFullyVisible(height, "Settings for ${language.code} at $width x $height")
                     scene.screenshot("home-${language.code}-${width}x${height}-setup")
                 }
             } finally { scene.close(); session.shutdown() }
@@ -237,7 +229,9 @@ class LauncherHomeRenderTest {
     }
 
     private suspend fun session(): DesktopLauncherSession {
-        val state = Files.createTempDirectory(root, "profile-")
+        val state = withContext(Dispatchers.IO) {
+            Files.createTempDirectory(root, "profile-")
+        }
         val metadata = """{"id":"26.3","type":"release","mainClass":"fixture.Main",
             "javaVersion":{"component":"fixture","majorVersion":25}}""".trimIndent()
         val sha1 = MessageDigest.getInstance("SHA-1").digest(metadata.toByteArray())
@@ -268,22 +262,47 @@ class LauncherHomeRenderTest {
     private suspend fun DesktopLauncherSession.shutdown() {
         val closed = CompletableDeferred<Unit>()
         close { closed.complete(Unit) }
-        withTimeout(5000) { closed.await() }
+        withTimeout(5000.milliseconds) { closed.await() }
     }
 
-    private suspend fun ImageComposeScene.awaitReady() {
-        withTimeout(10000) {
-            while (nodes().none { it.label() == "PLAY MINECRAFT" &&
+    private suspend fun ImageComposeScene.awaitReady(playLabel: String = "PLAY MINECRAFT") {
+        withTimeout(10000.milliseconds) {
+            while (nodes().none { it.label() == playLabel &&
                     !it.config.contains(SemanticsProperties.Disabled) }) {
                 render().close()
-                delay(20)
+                delay(20.milliseconds)
             }
         }
         frames()
     }
 
+    private suspend fun ImageComposeScene.scrollSettingsToEnd() {
+        // Compact home has a page scroll and an independently scrollable settings panel.
+        val containers = nodes().filter { it.config.contains(SemanticsActions.ScrollBy) }
+        assertTrue(containers.isNotEmpty(), "Expected scrollable home/settings")
+        for (container in containers) {
+            val range = container.config[SemanticsProperties.VerticalScrollAxisRange]
+            assertTrue(container.config[SemanticsActions.ScrollBy].action!!.invoke(0f, range.maxValue()))
+            // ScrollBy animates asynchronously; a fixed number of frames depends on machine speed.
+            withTimeout(5000.milliseconds) {
+                do {
+                    render(System.nanoTime()).close()
+                    delay(20.milliseconds)
+                } while (range.value() < range.maxValue() - 0.5f)
+            }
+        }
+        frames()
+    }
+
+    private fun SemanticsNode.assertFullyVisible(height: Int, context: String) {
+        val bounds = boundsInRoot
+        assertTrue(bounds.top >= 0 && bounds.bottom <= height && size.height > 0 &&
+            bounds.height >= size.height - 0.5f,
+            "$context must show the full label: bounds=$bounds, size=$size, viewportHeight=$height")
+    }
+
     private suspend fun ImageComposeScene.frames() {
-        repeat(5) { render(System.nanoTime()).close(); delay(20) }
+        repeat(5) { render(System.nanoTime()).close(); delay(20.milliseconds) }
     }
 
     private fun ImageComposeScene.nodes(): List<SemanticsNode> {
