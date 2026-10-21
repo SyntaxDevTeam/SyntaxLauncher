@@ -2,9 +2,8 @@ name: Recover verified SyntaxLauncher v0.7.0 stable release
 
 # Pinned one-time recovery, not a new build from the evolving main branch.
 on:
-  push:
-    branches: [main]
-    paths: [.github/workflows/recover-v070.yml]
+  # Recovery is pinned to an old verified commit and must be explicitly
+  # invoked after confirming release permissions, never on unrelated pushes.
   workflow_dispatch:
 
 permissions:
@@ -28,7 +27,7 @@ jobs:
     steps:
       - name: Verify historical tests, platform builds and version
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.SYNTAXLAUNCHER_RELEASE_TOKEN || github.token }}
         run: |
           set -euo pipefail
           gh api "repos/$GH_REPO/actions/runs/$SOURCE_RUN" > release-run.json
@@ -79,6 +78,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          trap 'echo "::error::Release publication failed. For HTTP 403, check SYNTAXLAUNCHER_RELEASE_TOKEN repository Contents: Read and write permission and organization token approval. The job GITHUB_TOKEN also needs an organization policy permitting release creation."' ERR
           if gh api "repos/$GH_REPO/git/ref/tags/$RELEASE_TAG" > existing-tag.json 2>/dev/null; then
             type="$(python3 -c 'import json; print(json.load(open("existing-tag.json"))["object"]["type"])')"
             sha="$(python3 -c 'import json; print(json.load(open("existing-tag.json"))["object"]["sha"])')"
