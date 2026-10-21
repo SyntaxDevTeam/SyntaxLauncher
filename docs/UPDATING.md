@@ -14,7 +14,7 @@ The updater becomes available only after installing a build containing it once. 
 
 ## Version and platform contract
 
-- The sole source of the SyntaxLauncher product SemVer is `launcherVersion` in the root `gradle.properties` (currently `0.3.0-dev`). Change that property when advancing or releasing the launcher; do not edit Gradle build scripts, Python publishing code or workflow versions.
+- The sole source of the SyntaxLauncher product SemVer is `launcherVersion` in the root `gradle.properties` (currently `0.7.0`; subsequent v0.8 development has not yet been marked as a completed release). Change that property when advancing or releasing the launcher; do not edit Gradle build scripts, Python publishing code or workflow versions.
 - Build normally with `./gradlew :launcher-desktop:createDistributable`; all Gradle modules, generated metadata, packaging manifests and publishers resolve the same value.
 - Native jpackage versions must be numeric: prerelease/build suffixes are stripped and a product major of `0` is mapped to native major `1` for macOS compatibility (e.g. `0.3.0-dev` → `1.3.0`). This is a derived packaging identifier, **not** a second product version or update comparison key.
 - The generated `launcher-build.properties` is embedded in desktop resources and displayed in the header; neither runtime startup nor CI has a hardcoded fallback product version.
@@ -96,22 +96,51 @@ Before release acceptance, manually test a real old→new hosted release with wr
 - [GitHub release asset digest contract](https://docs.github.com/en/rest/releases/assets#get-a-release-asset)
 - [OpenJDK jpackage property tests](https://github.com/openjdk/jdk/blob/master/test/jdk/tools/jpackage/share/BasicTest.java)
 
-## Publishing HTTP 403 (workflow token denied)
+## Publishing HTTP 403 (21 October 2026)
 
-The v0.7.0 version-change CI run 39558146467 passed compilation, tests,
-official NeoForge installer smoke, portable builds for Windows/Linux/macOS and
-Build Explorer, but GitHub denied the final `gh release create` request with
-`HTTP 403: Resource not accessible by integration`.
+**Verified state:** v0.6.0 is the last published GitHub Release. It was published
+on 20 October 2026, not republished by later CI. The canonical version in
+`gradle.properties` is currently `0.7.0`; work on v0.8 is still undergoing
+acceptance and **must not** be published under the v0.7.0 tag.
 
-Job `publish-release` already requests `contents: write`. The workflow now
-uses `secrets.SYNTAXLAUNCHER_RELEASE_TOKEN` if configured, or the default
-`github.token` otherwise. If repository/organization policy restricts
-GitHub Actions token writes, add that Actions repository secret containing a
-fine-grained GitHub token scoped to this repository with **Contents: Read
-and write**, or adjust workflow token permissions if your policy permits.
-Do not commit or paste credentials.
+The historical v0.7.0 release candidate is pinned to:
+- Git commit: `3f6b69d517dec2e04303e2c323a0290060cd96a8`
+- Successful build: [run 39558146467](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/39558146467)
+- Published asset requirement: all three portable archives and all three update ZIPs.
 
-After authorizing the token, re-run **only the failed publication job** of
-run 39558146467 while its six verified platform artifacts remain available.
-Do not create a new v0.7.0 release from an unverified v0.8 development commit.
-Never mark the release as published until it appears in GitHub Releases.
+The historical recovery job verifies the commit, version, tests, all platform
+builds, and the six source artifacts. Its GitHub release creation fails with:
+- `SYNTAXLAUNCHER_RELEASE_TOKEN`: HTTP 403, "Resource not accessible by personal access token" ([run 39592106875](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/39592106875)).
+- `github.token`: HTTP 403, "Resource not accessible by integration" ([run 39592695562](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/39592695562)), **despite** the job logging `Contents: write`.
+
+This is a confirmed *publication authorization failure*, not a build or
+packaging failure. Do not claim an existing GitHub Release until the public
+releases API shows it.
+
+### Required GitHub account action
+
+1. In the GitHub account that owns `SYNTAXLAUNCHER_RELEASE_TOKEN`, create
+   or edit a fine-grained PAT with **resource owner `SyntaxDevTeam`**,
+   repository access **`SyntaxLauncher`**, and repository permission
+   **Contents: Read and write** (Metadata: Read is automatic). If required
+   by organization policy, have an organization owner approve the token.
+   A classic token with appropriate `repo` scope and SSO/organization
+   authorization can also work, subject to organization policy.
+2. Replace the value of the existing `SYNTAXLAUNCHER_RELEASE_TOKEN` secret
+   in `SyntaxDevTeam/SyntaxLauncher` → Settings → Secrets and variables →
+   Actions. Never paste the token into source code, logs or chat.
+3. Manually run **Recover verified SyntaxLauncher v0.7.0 stable release**
+   via Actions → Run workflow. It always uses the historical verified
+   v0.7.0 build, never the evolving current `main` code.
+4. Verify that `/releases/tag/v0.7.0` exists, `prerelease=false`,
+   `draft=false` and all six assets are attached.
+
+The recovery workflow is **manual-only** to avoid repeated failures.
+Normal automatic releases still occur following a future intentional
+plain SemVer increase in `gradle.properties`; publication depends on
+a token authorized to create GitHub Releases. The standard build never
+backfills a historical version from a newer `main` commit.
+
+**v0.8.0:** Complete its documented acceptance gates and then set
+`launcherVersion=0.8.0` in one intentional version-bump commit. Do not
+mark v0.8 as available before that build and its stable release succeed.
