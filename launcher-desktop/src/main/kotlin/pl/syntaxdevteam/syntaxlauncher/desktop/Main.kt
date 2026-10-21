@@ -60,7 +60,7 @@ fun main(args: Array<String>) {
     val processManager = MinecraftProcessManager(paths.logsDir)
     val modLoaders = ModLoaderRegistry(listOf(
         FabricLoaderProvider(httpClient), QuiltLoaderProvider(httpClient),
-        NeoForgeLoaderProvider(httpClient, downloader), ForgeLoaderProvider(httpClient),
+        NeoForgeLoaderProvider(httpClient, downloader), ForgeLoaderProvider(httpClient, downloader),
     ))
     val session = DesktopLauncherSession(
         versionCatalog = MinecraftVersionCatalog(
