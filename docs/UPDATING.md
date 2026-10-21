@@ -54,13 +54,13 @@ GitHub Actions runs the Gradle/Python tests and builds three portable `.tar.gz` 
 
 ### Automatically publish a normal GitHub Release
 
-Change the one canonical product version in the root `gradle.properties` and push to `main`. For example, the current version is:
+Change the one canonical product version in the root `gradle.properties` and push to `main`. For example, the currently declared product version is:
 
 ```properties
-launcherVersion=0.6.0
+launcherVersion=0.7.0
 ```
 
-The next release requires a forward change such as `0.6.0` → `0.7.0`. The workflow compares the canonical version at the commit before the push with the new version. A change to a higher plain SemVer `X.Y.Z` qualifies, as does promoting a development suffix to its plain version. Source-code changes without a version bump do not issue new releases.
+Only after completing the v0.8 acceptance requirements should the next release be triggered by `0.7.0` → `0.8.0`. The workflow compares the canonical version at the commit before the push with the new version. A change to a higher plain SemVer `X.Y.Z` qualifies, as does promoting a development suffix to its plain version. Source-code changes without a version bump do not issue new releases.
 
 After tests and three-platform packaging pass, CI verifies all six files, creates or validates the exact-commit `vX.Y.Z` tag, creates a draft, uploads all assets and publishes a **normal GitHub Release** as latest. CI never marks it as `prerelease`. A published release or an existing tag pointing to another commit cannot be overwritten. Tags created by `GITHUB_TOKEN` do not start a second workflow run; only the release job has `contents: write`.
 
@@ -68,7 +68,7 @@ Manual matching `vX.Y.Z` tag pushes remain supported. Tags with development or p
 
 ### Version history and release acceptance
 
-Earlier v0.4 and v0.5 development work was committed while the canonical version remained `0.3.0-dev`; therefore no GitHub Releases were created for those historical milestones. Changing this configuration does not retrospectively issue releases for old commits. The first expected automatic normal release is `v0.6.0`, provided its CI succeeds.
+Earlier v0.4 and v0.5 development work was committed while the canonical version remained `0.3.0-dev`; therefore no GitHub Releases were created for those historical milestones. Changing this configuration does not retrospectively issue releases for old commits. The first automated ordinary GitHub Release was `v0.6.0`. Later attempted v0.7.0 publication is blocked by GitHub authorization (see below).
 
 **Release labeling is not a claim that every roadmap feature passed manual verification.** Real gameplay, Microsoft integration, macOS/Windows acceptance, updater continuity and signing remain separate tests and open items. Because ordinary GitHub Releases enter the stable auto-update channel, maintainers should carefully review the release before advancing the version.
 
