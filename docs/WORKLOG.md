@@ -8,6 +8,38 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-22 — Harden v0.10 import concurrency and check actual CI blocker
+
+**Milestone:** v0.10 — Modpacks / shared v0.9 acceptance
+**Author/Agent:** GPT-6
+**Status:** Partial — code merged, CI blocked by uncommitted v0.9 source dependencies
+
+### Completed
+- Moved lengthy modpack network/ZIP preparation outside the global instance repository mutex. The new profile remains hidden as .creating-UUID until guarded final publication, while other profiles stay responsive.
+- Added a desktop preflight against the Mojang version catalog and registered loader/compatible version list before any downloaded modpack is published.
+- Re-ran CI verification against current main. After the coroutine-context correction, no errors are reported from the new modpack source; compilation still stops in older v0.9 classes because the related source files were never committed.
+
+### Changed files
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/instance/MinecraftInstanceRepository.kt` — nonblocking staged preparation.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/SyntaxLauncherApp.kt` — Minecraft/loader availability checks.
+- `docs/WORKLOG.md`, `docs/ROADMAP.md`, `docs/TESTING_V0.10.md` — current acceptance status.
+
+### Verification
+- GitHub Actions 39779900659 — FAIL at `:launcher-core:compileKotlin` (unresolved v0.9 types only: ShaderRendererProof, ShaderPackSelection, GameSettingsWrite, ShaderRendererSetup, GraphicsProfileResolver, LocalGraphicsProfileResolver, GraphicsEnhancementException). This baseline was broken before the v0.10 commits.
+- `./gradlew test` and `./gradlew build` — blocked in CI; no successful run claimed.
+- Native/manual v0.9/v0.10 session — pending maintainer.
+
+### Roadmap updates
+- `[ ] v0.10 / CI and combined acceptance` — remains open until all missing v0.9 source is published and tested.
+- `[ ] v0.10 / One-click online catalog and export` — not implemented.
+
+### Follow-ups / known issues
+- In addition to failing core compilation, desktop v0.9 references OptiFineCatalog and InstalledPacks that are absent from main. Do not produce a release until these original features are restored and full CI is green.
+- Importing a supported local .mrpack still requires official metadata availability for exact game/loader versions, and the pack must use supported download hosts.
+
+---
+
+
 ## 2026-10-22 — Expose local .mrpack import in My games
 
 **Milestone:** v0.10 — Modpacks

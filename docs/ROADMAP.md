@@ -644,7 +644,7 @@ Goal: manage graphics-related instance content without treating every component 
 
 Goal: install/export repeatable instance definitions and support a mainstream modpack format.
 
-**Status:** 🚧 A format-1 .mrpack importer now validates client files, checks SHA-1/SHA-512 and extracts bounded client overrides into an invisible staged instance before atomic publication. My games now exposes an import file picker. CI and real gameplay acceptance are pending. The child-first modpack catalog, optional-file picker and export remain open; v0.9 and v0.10 gameplay tests will be performed together.
+**Status:** 🚧 A format-1 .mrpack importer now validates client files, checks SHA-1/SHA-512 and extracts bounded client overrides into an invisible staged instance before atomic publication. My games now exposes an import file picker. CI and real gameplay acceptance are pending. The importer checks the exact Minecraft/loader pair before installation and does not hold the repository-wide lock during downloads. Current main CI is blocked by missing source files from v0.9; no passing v0.10 run is claimed. The child-first modpack catalog, optional-file picker and export remain open; v0.9 and v0.10 gameplay tests will be performed together.
 
 ## Modpack model
 
