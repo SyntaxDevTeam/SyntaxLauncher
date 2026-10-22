@@ -77,9 +77,10 @@ class ModrinthModpackImporter(
                     "Modpack SHA-512 verification failed for " + file.path
                 }
             }
+            val cancellation = currentCoroutineContext()
             openArchive(archive) { zip ->
                 for ((entryName, path) in overrideFiles) {
-                    currentCoroutineContext().ensureActive()
+                    cancellation.ensureActive()
                     val entry = zip.getEntry(entryName)
                         ?: throw ModpackException("Modpack override disappeared.")
                     val destination = game.resolve(path).normalize()
