@@ -180,8 +180,8 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 
 ## v0.1 UI
 
-- [x] Integrate the explicitly selected open-gateway mark into hero/header/window/startup and Linux icon, preserving transparency and responsive proportions. Local test/build/Linux image and wide/compact Compose renders pass (22 October 2026). Native preview and final maintainer visual acceptance are tracked separately below.
-- [ ] Review the open-gateway branding preview with the maintainer after inspecting the actual Linux window; broader Windows/macOS package/DPI checks remain open.
+- [x] Integrate the explicitly selected open-gateway mark into header/window/startup and Linux icon. Following maintainer feedback, keep the home Hero free of foreground branding and retain its landscape/copy only. Local test/build/Linux image and wide/compact Compose regressions cover the revised layout (22 October 2026).
+- [ ] Review the final header-only branding composition with the maintainer; broader Windows/macOS package/DPI checks remain open.
 
 - [x] Replace the old small header/window/Linux icon with a proportion-preserving export of the existing approved hero logo (20 October 2026); original hero retained, local `test build` and Compose render review passed. Native package appearance remains a separate open acceptance gate.
 

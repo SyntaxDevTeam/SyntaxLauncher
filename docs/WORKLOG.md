@@ -8,6 +8,36 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-22 — Keep gateway branding in the header and clear the home hero
+
+**Milestone:** v0.1 — Desktop visual refinement
+**Author/Agent:** Codex
+**Status:** Completed — local build/render verification; final maintainer review pending
+
+### Completed
+- Applied maintainer feedback after the gateway preview: retain the gateway in the header and application/window icon, remove the repeated foreground mark from the home Hero.
+- Removed the hero-only halo/shadow and unused accent token. The existing landscape and readable native heading/profile copy remain.
+- Simplified hero measurement: wide copy stays on the left, narrow copy uses the available width, profile details are bounded by the remaining height after the heading.
+- Updated the existing resize regression to validate visible, nonoverlapping copy and no foreground hero logo across the same 27 size/density cases.
+
+### Changed files
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/{LauncherArtwork,SyntaxTheme}.kt` — landscape-only hero and removed unused mark accent.
+- `launcher-desktop/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/LauncherHomeRenderTest.kt` — revised resize contract.
+- `launcher-desktop/src/main/resources/branding/README.md`, `docs/{DESIGN,ROADMAP,WORKLOG}.md` — current placement and verification evidence.
+
+### Verification
+- `./gradlew --offline test build :launcher-desktop:createDistributable` — PASS: 228 tests, 224 passed, four optional live tests skipped; no errors/failures. Unchanged core results reused, desktop suite reran and Linux image rebuilt.
+- Manual render inspection — Polish 1440×810 home shows the gateway only in the header, full unobstructed landscape and readable copy. Existing wide/narrow/translated and resize/density regressions pass.
+- `git diff --check` — PASS before publication. Native preview opened from the rebuilt production entry point; final push/CI status reported in chat.
+
+### Roadmap updates
+- `[x] v0.1 / UI / open-gateway header/icon integration with landscape-only Hero`
+- `[ ] v0.1 / UI / final maintainer review and broader Windows/macOS package/DPI acceptance`
+
+### Follow-ups / known issues
+- Startup updater retains its separate brand mark; no website/Entra changes or version bump.
+- The earlier native screen-capture restriction remains; inline preview comes from actual Compose rendering, not a claimed desktop screenshot.
+
 ## 2026-10-22 — Preview the selected open-gateway desktop identity
 
 **Milestone:** v0.1 — Desktop branding refinement

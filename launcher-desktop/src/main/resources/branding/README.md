@@ -5,10 +5,10 @@
 The maintainer explicitly selected **Otwarte wrota / Open gates** from the gateway comparison board and requested an in-app preview. This supersedes the earlier instruction to keep the voxel block/orbit mark. The earlier artwork remains recoverable through Git history; public website/Entra assets have not been changed by this desktop task. Selection for an in-app preview does not constitute final trademark or broader platform acceptance.
 
 - `hero-landscape.jpg` — existing independent cinematic voxel valley background, 1862 × 845; unchanged.
-- `hero-mark.png` — generated 1254 × 1254 RGBA open-gateway foreground: seven rounded blue stones, two pale-blue open doors and a bright threshold. The outside, gaps and doorway retain transparency; scenery can show through.
+- `hero-mark.png` — generated 1254 × 1254 RGBA gateway master, retained under its existing resource name for the startup updater: seven rounded blue stones, two pale-blue open doors and a bright threshold. The home hero no longer displays it, following explicit maintainer feedback.
 - `syntaxlauncher-icon.png` — 512 × 512 RGBA export of the same mark, proportionally resized into 472 × 472 with transparent padding. Used by the header, native window, startup updater and Linux package.
 
-`LauncherArtwork.kt` keeps copy and mark in separate measured rectangles and derives the asset's aspect ratio. A static navy shadow and faint cornflower-blue halo provide separation from the scenery. No rasterized UI, wordmark, comparison-board background, runtime blur or network artwork is included. The logo's blue/icy-white palette removes the previously rejected greenish accent; existing interface colors are retained during this preview.
+`LauncherArtwork.kt` now draws only the existing landscape, readability scrims and native copy. The gateway appears in the top header and app/window icon rather than being repeated over the home landscape. There is no foreground logo, separation shadow or halo in Hero. The startup updater still uses the high-resolution master. The logo's blue/icy-white palette removes the previously rejected greenish accent; existing interface colors are retained.
 
 ## Generation provenance
 

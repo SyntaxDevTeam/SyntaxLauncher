@@ -110,7 +110,7 @@ class LauncherHomeRenderTest {
     }
 
     @Test
-    fun logoKeepsItsProportionsAndAvoidsTextDuringLiveResize() = runBlocking(Dispatchers.Swing) {
+    fun landscapeOnlyHeroKeepsCopyVisibleDuringLiveResize() = runBlocking(Dispatchers.Swing) {
         for (density in listOf(1f, 1.5f, 2f)) {
             val scene = ImageComposeScene(2800, 1200, density = Density(density),
                 coroutineContext = Dispatchers.Swing) {
@@ -120,8 +120,6 @@ class LauncherHomeRenderTest {
                 // Reuse the same composition: verify both directions across layout breakpoints.
                 val sizes = listOf(1040 to 500, 658 to 330, 620 to 360, 580 to 400,
                     392 to 400, 300 to 270, 800 to 270, 1400 to 360, 1040 to 500)
-                val asset = javax.imageio.ImageIO.read(javaClass.getResource("/branding/hero-mark.png"))
-                val expectedRatio = asset.width.toFloat() / asset.height
                 for ((width, height) in sizes) {
                     scene.constraints = Constraints(maxWidth = (width * density).toInt(),
                         maxHeight = (height * density).toInt())
@@ -130,17 +128,18 @@ class LauncherHomeRenderTest {
                         it.config.getOrNull(SemanticsProperties.TestTag) == tag
                     }
                     val hero = tagged("launcher-hero").boundsInRoot
-                    val logo = tagged("hero-logo").boundsInRoot
                     val intro = tagged("hero-intro").boundsInRoot
                     val profile = tagged("hero-profile").boundsInRoot
                     val context = "$width x $height at $density density"
-                    assertTrue(logo.width > 0 && logo.height > 0, "Visible logo: $context")
-                    assertTrue(kotlin.math.abs(logo.width / logo.height - expectedRatio) < 0.015f,
-                        "Original logo proportions: $context")
-                    assertTrue(logo.left >= hero.left && logo.top >= hero.top &&
-                        logo.right <= hero.right && logo.bottom <= hero.bottom, "Full logo: $context")
-                    assertFalse(logo.overlaps(intro), "Logo overlaps heading: $context")
-                    assertFalse(logo.overlaps(profile), "Logo overlaps profile: $context")
+                    assertTrue(scene.nodes().none {
+                        it.config.getOrNull(SemanticsProperties.TestTag) == "hero-logo"
+                    }, "Branding is confined to the header: $context")
+                    for (copy in listOf(intro, profile)) {
+                        assertTrue(copy.width > 0 && copy.height > 0, "Visible copy: $context")
+                        assertTrue(copy.left >= hero.left && copy.top >= hero.top &&
+                            copy.right <= hero.right && copy.bottom <= hero.bottom,
+                            "Full hero copy: $context")
+                    }
                     assertFalse(intro.overlaps(profile), "Heading overlaps profile: $context")
                 }
             } finally { scene.close() }

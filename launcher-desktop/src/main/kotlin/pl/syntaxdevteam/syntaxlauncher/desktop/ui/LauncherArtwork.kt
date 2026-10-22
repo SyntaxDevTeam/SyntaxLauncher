@@ -18,8 +18,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -32,13 +30,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
 
-/** The landscape may crop; the launcher's identity always has its own reserved layout space. */
+/** Keep hero copy readable over the landscape; product branding belongs in the header. */
 @Composable
 internal fun LauncherHero(version: String?, profile: String?, snapshots: Boolean, modifier: Modifier = Modifier, modded: Boolean = false) {
     val strings = LocalStrings.current
     val shape = RoundedCornerShape(SyntaxBrand.panelRadius)
-    val mark = rememberBrandingPainter("branding/hero-mark.png")
-    val markAspectRatio = mark.intrinsicSize.width / mark.intrinsicSize.height
     BoxWithConstraints(modifier.testTag("launcher-hero").clip(shape).background(SyntaxBrand.heroEnd)
         .border(1.dp, SyntaxBrand.border, shape)) {
         val compact = maxHeight < 420.dp || maxWidth < 620.dp
@@ -96,20 +92,6 @@ internal fun LauncherHero(version: String?, profile: String?, snapshots: Boolean
                 Text(if (snapshots) strings.text("ui.java_edition_snapshot") else strings.text("ui.java_edition_stable_release"),
                     style = MaterialTheme.typography.labelSmall, color = SyntaxBrand.heroMuted)
             }
-            Box(Modifier.testTag("hero-logo").drawBehind {
-                val center = Offset(size.width * 0.53f, size.height * 0.66f)
-                drawCircle(Brush.radialGradient(
-                    listOf(SyntaxBrand.scrim.copy(alpha = 0.78f), Color.Transparent),
-                    center = center, radius = size.width * 0.66f),
-                    radius = size.width * 0.66f, center = center)
-                drawCircle(Brush.radialGradient(
-                    listOf(SyntaxBrand.markBlue.copy(alpha = 0.13f), Color.Transparent),
-                    center = center, radius = size.width * 0.52f),
-                    radius = size.width * 0.52f, center = center)
-            }) {
-                Image(mark, contentDescription = strings.text("ui.syntaxlauncher_logo"),
-                    contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize())
-            }
         }) { measurables, constraints ->
             val width = constraints.maxWidth
             val height = constraints.maxHeight
@@ -117,25 +99,16 @@ internal fun LauncherHero(version: String?, profile: String?, snapshots: Boolean
             val gap = 16.dp.roundToPx()
             val contentWidth = (width - padding * 2).coerceAtLeast(0)
             val contentHeight = (height - padding * 2).coerceAtLeast(0)
-            val sideBySide = width >= 640.dp.roundToPx()
-            val profileWidth = ((contentWidth - gap).coerceAtLeast(0) *
-                if (sideBySide) 0.6f else 0.5f).roundToInt()
+            val copyWidth = if (width >= 640.dp.roundToPx())
+                (contentWidth * 0.6f).roundToInt() else contentWidth
             val intro = measurables[0].measure(Constraints(
-                maxWidth = if (sideBySide) profileWidth else contentWidth, maxHeight = contentHeight))
+                maxWidth = copyWidth, maxHeight = contentHeight))
             val profileInfo = measurables[1].measure(Constraints(
-                minWidth = profileWidth, maxWidth = profileWidth, maxHeight = contentHeight))
-            // Measure copy first. The brand mark fits the remaining right/bottom rectangle,
-            // rather than relying on percentages that can place it beneath text after resizing.
-            val logoMaxWidth = (contentWidth - profileWidth - gap).coerceAtLeast(0)
-            val logoMaxHeight = if (sideBySide) contentHeight
-                else (contentHeight - intro.height - gap).coerceAtLeast(0)
-            val logoHeight = minOf(logoMaxHeight, (logoMaxWidth / markAspectRatio).roundToInt())
-            val logoWidth = (logoHeight * markAspectRatio).roundToInt().coerceAtMost(logoMaxWidth)
-            val logo = measurables[2].measure(Constraints.fixed(logoWidth, logoHeight))
+                minWidth = copyWidth, maxWidth = copyWidth,
+                maxHeight = (contentHeight - intro.height - gap).coerceAtLeast(0)))
             layout(width, height) {
                 intro.placeRelative(padding, padding)
                 profileInfo.placeRelative(padding, height - padding - profileInfo.height)
-                logo.placeRelative(width - padding - logo.width, height - padding - logo.height)
             }
         }
     }
