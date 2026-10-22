@@ -69,7 +69,7 @@ class ModpackCatalog(private val http: HttpClient, private val downloads: Downlo
             if (plan.minecraftVersion !in games || (plan.requestedLoader?.id ?: "minecraft") !in loaders) {
                 throw ModpackCompatibilityException("Modpack index does not match its published game/loader compatibility.")
             }
-            installer.install(archive, progress)
+            installer.install(archive, onProgress = progress)
         } finally { Files.walk(working).use { paths -> paths.sorted(Comparator.reverseOrder()).forEach(Files::deleteIfExists) } }
     }
     private fun validId(value: String) = value.matches(Regex("[A-Za-z0-9]{4,32}"))

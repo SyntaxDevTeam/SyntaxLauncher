@@ -25,7 +25,8 @@ class ModpackInstaller(private val instances: MinecraftInstanceRepository, priva
     private val loaders: ModLoaderRegistry,
     private val prepareGame: suspend (ResolvedMinecraftVersion, MinecraftInstallationLayout, ModLoaderSelection?) -> Unit) {
 
-    suspend fun install(source: Path, onProgress: (ModpackProgress) -> Unit = {}): MinecraftInstance = withContext(Dispatchers.IO) {
+    suspend fun install(source: Path, optionalPaths: Set<String> = emptySet(), name: String? = null,
+        downloadProgress: DownloadEventListener = {}, onProgress: (ModpackProgress) -> Unit = {}): MinecraftInstance = withContext(Dispatchers.IO) {
         onProgress(ModpackProgress(ModpackPhase.VALIDATING))
         if (!Files.isRegularFile(source, NOFOLLOW_LINKS)) throw ModpackFormatException("Modpack source is missing or redirected.")
         val working = Files.createTempDirectory("syntaxlauncher-modpack-")
@@ -34,6 +35,10 @@ class ModpackInstaller(private val instances: MinecraftInstanceRepository, priva
             ModpackArchive.copyBounded(source, archive, ModpackArchive.MAX_ARCHIVE_BYTES)
             val inspected = ModpackArchive.inspect(archive)
             val plan = inspected.plan
+            if (optionalPaths.any { selected -> plan.optionalFiles.none { it.path == selected } }) {
+                throw ModpackFormatException("Unknown optional modpack component.")
+            }
+            val selectedFiles = plan.requiredFiles + plan.optionalFiles.filter { it.path in optionalPaths }
             val game = versions.fetchManifest().versions.singleOrNull { it.id == plan.minecraftVersion }
                 ?: throw ModpackCompatibilityException("This modpack requires an unavailable Minecraft version.")
             val base = resolver.resolve(game)
@@ -43,20 +48,20 @@ class ModpackInstaller(private val instances: MinecraftInstanceRepository, priva
                     throw ModpackCompatibilityException("This exact modpack loader version is not supported; no game version was changed.")
                 }
             }
-            instances.createPrepared(plan.name.trim().take(48), plan.minecraftVersion, plan.requestedLoader) { _, layout ->
+            instances.createPrepared((name?.trim()?.takeIf { it.isNotBlank() } ?: plan.name.trim()).take(48), plan.minecraftVersion, plan.requestedLoader) { _, layout ->
                 val gameDir = layout.gameDir
-                val requiredSpace = inspected.expandedBytes + plan.requiredFiles.sumOf { it.bytes } + Files.size(archive) + 64L * 1024 * 1024
+                val requiredSpace = inspected.expandedBytes + selectedFiles.sumOf { it.bytes } + Files.size(archive) + 64L * 1024 * 1024
                 if (Files.getFileStore(gameDir).usableSpace < requiredSpace) throw java.io.IOException("Not enough space to install the modpack.")
                 val metadata = Files.createDirectory(gameDir.resolve(".syntaxlauncher-modpack"))
-                for ((index, file) in plan.requiredFiles.withIndex()) {
-                    onProgress(ModpackProgress(ModpackPhase.FILES, index, plan.requiredFiles.size))
+                for ((index, file) in selectedFiles.withIndex()) {
+                    onProgress(ModpackProgress(ModpackPhase.FILES, index, selectedFiles.size))
                     val target = gameDir.resolve(file.path)
                     Files.createDirectories(target.parent)
                     var last: Exception? = null
                     for (url in file.mirrors) {
                         try {
                             downloads.download(DownloadRequest("modpack-file-$index", url, target,
-                                expectedSha1 = file.sha1, expectedSize = file.bytes, maximumBytes = file.bytes))
+                                expectedSha1 = file.sha1, expectedSize = file.bytes, maximumBytes = file.bytes), downloadProgress)
                             if (fileHash(target, "SHA-512") != file.sha512) {
                                 Files.deleteIfExists(target)
                                 throw ModpackIntegrityException("A modpack file failed SHA-512 verification.")
@@ -93,7 +98,8 @@ class ModpackInstaller(private val instances: MinecraftInstanceRepository, priva
                 ModpackArchive.copyBounded(archive, metadata.resolve("source.mrpack"), ModpackArchive.MAX_ARCHIVE_BYTES)
                 val receipt = buildJsonObject {
                     put("schemaVersion", 1); put("sourceSha512", fileHash(archive, "SHA-512")); put("index", plan.manifest)
-                    put("optionalPolicy", "excluded")
+                    put("optionalPolicy", if (optionalPaths.isEmpty()) "excluded" else "explicit-selection")
+                    put("selectedOptionalPaths", JsonArray(optionalPaths.sorted().map(::JsonPrimitive)))
                 }
                 Files.writeString(metadata.resolve("receipt.json"), receipt.toString())
                 onProgress(ModpackProgress(ModpackPhase.GAME))

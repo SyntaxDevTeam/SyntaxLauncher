@@ -70,8 +70,8 @@ class ModrinthModpackPlanner {
                     url
                 }.distinct()
                 val env = file["env"]?.jsonObject
-                val client = if (env == null) "required" else string(env, "client")
-                if (client !in ENVIRONMENTS || (env != null && string(env, "server") !in ENVIRONMENTS)) {
+                val client = if (env?.get("client") == null) "required" else string(env, "client")
+                if (client !in ENVIRONMENTS || (env?.get("server") != null && string(env, "server") !in ENVIRONMENTS)) {
                     throw ModpackFormatException("Unknown modpack environment requirement.")
                 }
                 val planned = ModpackDownload(path, size, sha1, sha512, mirrors)
@@ -97,6 +97,9 @@ class ModrinthModpackPlanner {
         .also { require(it.isString) }.content
 
     internal fun safePath(path: String) {
+        if (path.substringBefore('/').lowercase(Locale.ROOT) in setOf("saves", "screenshots", "versions")) {
+            throw ModpackFormatException("A modpack cannot supply player worlds, screenshots or managed game versions.")
+        }
         val reserved = setOf("con", "prn", "aux", "nul") + (1..9).flatMap { listOf("com$it", "lpt$it") }
         if (path.length !in 1..512 || path.any { it.code < 32 || it.code == 127 || it in "\\:<>\"|?*" } ||
             path.split('/').any { part -> part.isBlank() || part in setOf(".", "..") || part.endsWith('.') ||

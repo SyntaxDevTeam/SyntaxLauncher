@@ -295,6 +295,7 @@ private fun LauncherPanel(
     var managerOpen by remember { mutableStateOf(false) }
     var editingInstance by remember { mutableStateOf<MinecraftInstance?>(null) }
     var managingMods by remember { mutableStateOf<MinecraftInstance?>(null) }
+    var modpackImportJob by remember { mutableStateOf<Job?>(null) }
     var browsingModpacks by remember { mutableStateOf(false) }
     var browseModsFirst by remember { mutableStateOf(false) }
     var quickSetupOpen by remember { mutableStateOf(false) }
@@ -403,10 +404,10 @@ private fun LauncherPanel(
         if (existing != null) chooseInstance(existing.id) else quickSetupOpen = true
     }
 
-    fun modifyInstance(action: suspend () -> MinecraftInstance?) {
-        if (locked) return
+    fun modifyInstance(action: suspend () -> MinecraftInstance?): Job? {
+        if (locked) return null
         mutationBusy = true
-        scope.launch {
+        return scope.launch {
             try {
                 val newSelection = action()
                 inventory = session.instances.list()
@@ -414,7 +415,8 @@ private fun LauncherPanel(
                 instanceError = (inventory?.problems.orEmpty() + trashInventory?.problems.orEmpty())
                     .takeIf { it.isNotEmpty() }?.joinToString("; ")
                 if (newSelection != null) chooseInstance(newSelection.id)
-            } catch (error: Exception) {
+            } catch (cancelled: CancellationException) { throw cancelled }
+            catch (error: Exception) {
                 instanceError = error.message ?: strings.text("ui.instance_operation_failed")
             } finally { mutationBusy = false }
         }
@@ -607,6 +609,23 @@ private fun LauncherPanel(
                 session.instances.restoreFromTrash(entry.entryName)
             } },
             onDismiss = { managerOpen = false; copyPreview = null },
+            onCancelImport = if (mutationBusy && modpackImportJob?.isActive == true) ({ modpackImportJob?.cancel() }) else null,
+            onImportModpack = {
+                if (!locked && !mutationBusy) {
+                    val picker = javax.swing.JFileChooser().apply {
+                        dialogTitle = strings.text("modpack.import_file")
+                        fileFilter = javax.swing.filechooser.FileNameExtensionFilter(
+                            strings.text("modpack.file_description"), "mrpack")
+                        isAcceptAllFileFilterUsed = false
+                    }
+                    if (picker.showOpenDialog(null) == javax.swing.JFileChooser.APPROVE_OPTION) {
+                        val source = picker.selectedFile.toPath()
+                        modpackImportJob = modifyInstance {
+                            requireNotNull(session.modpackImporter).install(source)
+                        }
+                    }
+                }
+            },
         )
     }
 

@@ -70,6 +70,7 @@ class DesktopLauncherSession(
     val modpackInstaller = loaders?.let { registry -> pl.syntaxdevteam.syntaxlauncher.core.modpack.ModpackInstaller(
         instances, DownloadManager(httpClient), versionCatalog, versionResolver, registry,
         prepareGame = { version, layout, loader -> coordinator.prepareForInstallation(version, layout, loader) }) }
+    val modpackImporter = modpackInstaller?.let { pl.syntaxdevteam.syntaxlauncher.core.modpack.ModrinthModpackImporter(it) }
     val modpackCatalog = modpackInstaller?.let { pl.syntaxdevteam.syntaxlauncher.core.modpack.ModpackCatalog(httpClient,
         DownloadManager(httpClient), it) }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)

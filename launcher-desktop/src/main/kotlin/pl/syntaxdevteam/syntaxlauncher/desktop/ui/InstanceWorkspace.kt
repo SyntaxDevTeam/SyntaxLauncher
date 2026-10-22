@@ -103,6 +103,8 @@ fun InstanceWorkspace(
     onDelete: (MinecraftInstance) -> Unit,
     onRestore: (TrashedMinecraftInstance) -> Unit,
     onDismiss: () -> Unit,
+    onImportModpack: () -> Unit = {},
+    onCancelImport: (() -> Unit)? = null,
 ) {
     val strings = LocalStrings.current
     val workArea = remember {
@@ -380,6 +382,10 @@ fun InstanceWorkspace(
                         },
                             enabled = canModify && newName.trim().length in 1..48 &&
                                 newVersion in availableVersions && fabricValid) { Text(strings.text("ui.create_instance")) }
+                        OutlinedButton(onClick = onImportModpack, enabled = canModify && !isBusy) {
+                            Text(strings.text("modpack.import_file"))
+                        }
+                        onCancelImport?.let { cancel -> TextButton(onClick = cancel) { Text(strings.text("ui.cancel")) } }
                         if (hasLegacyGame) {
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                             Text(strings.text("ui.import_old_game_data"), style = MaterialTheme.typography.labelMedium,

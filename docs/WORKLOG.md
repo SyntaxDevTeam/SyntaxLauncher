@@ -9,6 +9,147 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 ---
 
 
+## 2026-10-22 — Merge remote modpack work into the complete catalog installer
+
+**Milestone:** v0.10
+**Author/Agent:** Codex / GPT-6
+**Status:** Completed
+
+### Completed
+- Fetched six newer origin/main commits before pushing and merged their history rather than overwriting it. Preserved the existing My games `.mrpack` import action, its translations and importer regression tests alongside the completed online catalog.
+- Consolidated `ModrinthModpackImporter` into a secondary facade over `ModpackInstaller`: local import and catalog installation both verify exact game/loader, payloads and overrides, prepare game/runtime and publish only a successful new UUID. Removed duplicate file-only publication logic instead of maintaining two installers.
+- Preserved explicit optional-path/name/download-progress API inputs from the remote implementation; the child-first UI still installs required client files only. Receipts record explicit selections when used. Missing client/server environment entries retain required defaults while unknown provided roles fail. Retained the remote policy rejecting player-world/screenshot/managed-version roots.
+- Preserved responsive repository staging and the stronger final cancellation/metadata checks. Added Cancel for My games imports and propagated coroutine cancellation rather than displaying it as a generic failed operation.
+- Resolved conflicting milestone/roadmap/checklist descriptions around the final implementation and evidence. Historical remote worklog entries remain unchanged; their earlier missing-source CI blocker is addressed by the preceding commit publishing the required v0.9 sources.
+
+### Changed files
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/modpack/{ModpackInstaller,ModpackCatalog,ModrinthModpackImporter,ModrinthModpackPlanner}.kt` — shared installer/facade, explicit optional selections and preserved path/environment policy.
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/modpack/ModrinthModpackImporterTest.kt` — retain remote import/hash/path regressions with configured metadata/preparation fixtures; verify explicit optional file/name behavior.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/{DesktopLauncherSession,ui/ContentCatalog,ui/InstanceWorkspace,ui/SyntaxLauncherApp}.kt`, `src/main/resources/i18n/{en,pl,de}.properties` — merged My games entry, single installer wiring and import cancellation.
+- `README.md`, `docs/{ARCHITECTURE,DEVELOPMENT,MILESTONES,ROADMAP,TESTING_V0.10,WORKLOG}.md` — resolved final scope/evidence and retained history.
+
+### Verification
+- `./gradlew test` — PASS via `./gradlew --offline test build :launcher-desktop:createDistributable`; 176 core and 35 desktop tests pass, four opt-in live tests skip, zero failures/errors (211 passed / 215 discovered).
+- `./gradlew build` — PASS in the same merged-source invocation.
+- Linux `:launcher-desktop:createDistributable` — PASS; broader native/gameplay acceptance remains v1.0 work.
+- Real online pack setup — preceding task's Simply Optimized 1.21.1-6.0 / Fabric 0.17.3 cold-install/original-export PASS remains separate evidence; no graphical game boot or all-platform certification is added by this merge.
+- Manual verification — conflict resolutions and both desktop entry paths reviewed; existing translated render/interaction regressions pass.
+- `git diff --check` — PASS; no merge markers, generated/private artifacts or product-version change are included.
+
+### Roadmap updates
+- `[x] v0.10 / Model, catalog/import, exact preparation, required payloads/overrides, new-instance isolation, original export and installation quality gates` — retained and retested with remote work.
+- `[ ] v1.0 / Wider native/gameplay/platform matrix` — remains open; hosted CI publication status is distinct from local validation.
+
+### Follow-ups / known issues
+- Default UI omits optional files; explicit optional choices are available only through the preserved secondary importer API. Export reproduces the original author definition, not local edits/optional choices or player data.
+- No forced push, release tag or product-version bump is requested or performed. Hosted workflow results are reported separately after source publication.
+
+
+## 2026-10-22 — Harden v0.10 import concurrency and check actual CI blocker
+
+**Milestone:** v0.10 — Modpacks / shared v0.9 acceptance
+**Author/Agent:** GPT-6
+**Status:** Partial — code merged, CI blocked by uncommitted v0.9 source dependencies
+
+### Completed
+- Moved lengthy modpack network/ZIP preparation outside the global instance repository mutex. The new profile remains hidden as .creating-UUID until guarded final publication, while other profiles stay responsive.
+- Added a desktop preflight against the Mojang version catalog and registered loader/compatible version list before any downloaded modpack is published.
+- Re-ran CI verification against current main. After the coroutine-context correction, no errors are reported from the new modpack source; compilation still stops in older v0.9 classes because the related source files were never committed.
+
+### Changed files
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/instance/MinecraftInstanceRepository.kt` — nonblocking staged preparation.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/SyntaxLauncherApp.kt` — Minecraft/loader availability checks.
+- `docs/WORKLOG.md`, `docs/ROADMAP.md`, `docs/TESTING_V0.10.md` — current acceptance status.
+
+### Verification
+- GitHub Actions 39779900659 — FAIL at `:launcher-core:compileKotlin` (unresolved v0.9 types only: ShaderRendererProof, ShaderPackSelection, GameSettingsWrite, ShaderRendererSetup, GraphicsProfileResolver, LocalGraphicsProfileResolver, GraphicsEnhancementException). This baseline was broken before the v0.10 commits.
+- `./gradlew test` and `./gradlew build` — blocked in CI; no successful run claimed.
+- Native/manual v0.9/v0.10 session — pending maintainer.
+
+### Roadmap updates
+- `[ ] v0.10 / CI and combined acceptance` — remains open until all missing v0.9 source is published and tested.
+- `[ ] v0.10 / One-click online catalog and export` — not implemented.
+
+### Follow-ups / known issues
+- In addition to failing core compilation, desktop v0.9 references OptiFineCatalog and InstalledPacks that are absent from main. Do not produce a release until these original features are restored and full CI is green.
+- Importing a supported local .mrpack still requires official metadata availability for exact game/loader versions, and the pack must use supported download hosts.
+
+---
+
+
+## 2026-10-22 — Expose local .mrpack import in My games
+
+**Milestone:** v0.10 — Modpacks
+**Author/Agent:** GPT-6
+**Status:** Partial — UI wiring committed, pending CI and joint maintainer tests
+
+### Completed
+- Connected the format-1 modpack importer to desktop session without changing v0.9 catalog or launch paths.
+- Added My games Import Modrinth modpack (.mrpack) file chooser, async installation in the established mutation lifecycle, existing UI errors and automatic profile selection after success.
+- Added English/Polish/German labels; import remains disabled when game is active or instance operation in progress.
+
+### Changed files
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/DesktopLauncherSession.kt` — importer service.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/{InstanceWorkspace,SyntaxLauncherApp}.kt` — picker and async import action.
+- `launcher-desktop/src/main/resources/i18n/{en,pl,de}.properties` — localization.
+- `README.md`, `docs/{ROADMAP,MILESTONES,TESTING_V0.10,WORKLOG}.md` — testing and scope.
+
+### Verification
+- `./gradlew test` and `./gradlew build` — NOT RUN locally (connector-based edit; hosted CI pending).
+- Baseline v0.9 compiler issue in previous CI 39671357003 remains a release blocker until the missing source files are recovered and compilation reverified.
+- Manual v0.9/v0.10 combined gameplay tests — pending.
+
+### Roadmap updates
+- `[ ] v0.10 / UI .mrpack import` — coded, awaiting CI/real-game acceptance.
+- `[ ] v0.10 / Ready-made catalog and optional file picker` — not implemented.
+
+### Follow-ups / known issues
+- Finish in-app Modrinth modpack discovery and one-click install.
+- Repair incomplete v0.9 source publication and obtain green CI before promoting release version.
+- Keep product version unchanged until proper stable-release validation.
+
+---
+
+
+## 2026-10-22 — v0.10 Modrinth modpack importer and safe staged instance creation
+
+**Milestone:** v0.10 — Modpacks
+**Author/Agent:** GPT-6
+**Status:** Partial — changes published for CI; merged v0.9/v0.10 manual acceptance pending
+
+### Completed
+- Added strict format-1 Modrinth modpack planner for Minecraft/loader, required/optional/server-only client files, portable destinations, bounded sources and SHA-1/SHA-512 metadata.
+- Added .mrpack reader, preflight for hostile ZIP contents and checked client overrides, shared-download verified required files and SHA-512 verification.
+- Extended instance repository with an invisible .creating-UUID installation callback. Incomplete imports cannot become playable; existing profiles are never changed.
+- Added deterministic synthetic ZIP and Ktor MockEngine tests for installation, optional/server-only separation, checksum rejection and traversal/future-format rejection.
+- Deferred v0.9 and v0.10 manual gameplay tests to one combined maintainer acceptance session.
+
+### Changed files
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/modpack/ModrinthModpackPlanner.kt` — format-1 parsing and path controls.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/modpack/ModrinthModpackImporter.kt` — downloads, overrides and publication.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/instance/MinecraftInstanceRepository.kt` — createPrepared.
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/modpack/ModrinthModpackImporterTest.kt` — deterministic fixtures.
+- `docs/ROADMAP.md`, `docs/MILESTONES.md`, `README.md`, `docs/TESTING_V0.10.md`, `docs/WORKLOG.md` — scope, acceptance and remaining work.
+
+### Verification
+- `./gradlew test` — NOT RUN locally (GitHub connector provides source editing, not Gradle dependencies); hosted verification pending.
+- `./gradlew build` — NOT RUN locally for the same reason.
+- Existing baseline CI 39671357003 — FAIL from missing committed v0.9 source types before this change; must be repaired before combined validation.
+- v0.9/v0.10 real gameplay — pending the maintainer's combined test session.
+
+### Roadmap updates
+- `[ ] v0.10 / .mrpack files, overrides and staged instance publication` — code implemented, acceptance pending.
+- `[ ] v0.10 / ready-made Modrinth catalog, UI options, export and full acceptance` — remains open.
+
+### Follow-ups / known issues
+- Resolve missing v0.9 code references on main, get CI green, add desktop modpack import and online catalog.
+- Only bounded format-1 and approved hosts are accepted; download mirror fallback/extra content types require additional work.
+- Product version remains 0.7.0 until an intentional stable release decision; roadmap phase is not equivalent to released SemVer.
+
+---
+
+
+
 
 
 ## 2026-10-22 — Complete Modrinth modpack installation and prepare all pending sources for publication

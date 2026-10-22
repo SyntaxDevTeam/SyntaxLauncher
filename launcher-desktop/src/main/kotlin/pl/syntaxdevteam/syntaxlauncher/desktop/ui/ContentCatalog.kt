@@ -302,7 +302,7 @@ fun ModpackCatalogDialog(session: DesktopLauncherSession, canModify: Boolean, on
                 onBusyChange = { busy = it; onBusyChange(it) }, onManage = {}, onDismiss = onDismiss,
                 modpacksAvailable = true, importPack = {
                     val path = chooseModpackFile() ?: throw CancellationException("Import cancelled")
-                    onInstalled(requireNotNull(session.modpackInstaller).install(path, report))
+                    onInstalled(requireNotNull(session.modpackInstaller).install(path, onProgress = report))
                 }, installationDetail = detail)
         } }
     }
