@@ -71,6 +71,17 @@ fun main(args: Array<String>) {
         paths.dataDir.resolve("instance-trash"), MinecraftInstallationLayout.from(paths))
     val optiFine = pl.syntaxdevteam.syntaxlauncher.core.content.OptiFineCatalog(
         httpClient, downloader, instanceRepository, versionCatalog, runtimeManager, platform)
+    val microsoftSignIn = System.getenv("SYNTAXLAUNCHER_MICROSOFT_CLIENT_ID")
+        ?.trim()?.takeIf { it.isNotEmpty() }
+        ?.let { clientId -> runCatching { DesktopMicrosoftSignIn(httpClient, clientId) }.getOrNull() }
+    val accounts = pl.syntaxdevteam.syntaxlauncher.core.account.AccountManager(
+        paths.configDir.resolve("accounts.properties"),
+        pl.syntaxdevteam.syntaxlauncher.core.account.OsRefreshTokenVault(paths.configDir.resolve("credentials")),
+        applicationId = microsoftSignIn?.clientId ?: "syntaxlauncher-offline",
+        refresh = { credential ->
+            checkNotNull(microsoftSignIn) { "Microsoft sign-in is not configured." }.refresh(credential)
+        },
+    )
     val session = DesktopLauncherSession(
         versionCatalog = versionCatalog,
         versionResolver = MinecraftVersionResolver(httpClient),
@@ -90,9 +101,8 @@ fun main(args: Array<String>) {
         optiFine = optiFine,
         httpClient = httpClient,
         loaders = modLoaders,
-        microsoftSignIn = System.getenv("SYNTAXLAUNCHER_MICROSOFT_CLIENT_ID")
-            ?.trim()?.takeIf { it.isNotEmpty() }
-            ?.let { clientId -> runCatching { DesktopMicrosoftSignIn(httpClient, clientId) }.getOrNull() },
+        microsoftSignIn = microsoftSignIn,
+        accounts = accounts,
     )
 
     application {

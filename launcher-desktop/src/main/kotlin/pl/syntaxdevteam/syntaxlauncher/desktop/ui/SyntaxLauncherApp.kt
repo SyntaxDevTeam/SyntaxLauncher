@@ -268,8 +268,25 @@ private fun LauncherPanel(
     var nickname by remember { mutableStateOf(saved.nickname) }
     var selectedPremiumId by remember { mutableStateOf<String?>(null) }
     var signingInPremium by remember { mutableStateOf(false) }
+    var loadingAccounts by remember { mutableStateOf(true) }
+    var accountReload by remember { mutableIntStateOf(0) }
     var premiumError by remember { mutableStateOf<String?>(null) }
     val premiumAccounts by session.premiumAccounts.collectAsState()
+    val savedAccounts by session.savedAccounts.collectAsState()
+    val preparingAccount by session.preparingAccount.collectAsState()
+    LaunchedEffect(session, accountReload) {
+        loadingAccounts = true
+        premiumError = null
+        try {
+            session.loadAccounts()
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            premiumError = error.message ?: strings.text("ui.microsoft_sign_in_failed")
+        } finally {
+            loadingAccounts = false
+        }
+    }
     val selectedPremium = premiumAccounts.firstOrNull { it.uuid.toString() == selectedPremiumId }
     var showSnapshots by remember { mutableStateOf(saved.snapshots) }
     var selected by remember(manifest) {
@@ -334,7 +351,7 @@ private fun LauncherPanel(
 
     val isRunning = process.state == MinecraftProcessState.RUNNING ||
         process.state == MinecraftProcessState.STARTING
-    val locked = isRunning || launch.isPreparing || mutationBusy || modsBusy || signingInPremium
+    val locked = isRunning || launch.isPreparing || mutationBusy || modsBusy || signingInPremium || loadingAccounts || preparingAccount
     val validName = if (selectedPremiumId != null) selectedPremium != null
         else nickname.isNotBlank() && OfflineAccount.isValidUsername(nickname.trim())
     val resolved = (metadata as? VersionMetadataState.Ready)?.metadata
@@ -743,7 +760,7 @@ private fun LauncherPanel(
                         },
                     )
                 }
-                if (launch.isPreparing) {
+                if (launch.isPreparing || preparingAccount) {
                     val fraction = launch.currentFileProgress
                     if (fraction == null) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                     else LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
@@ -780,7 +797,7 @@ private fun LauncherPanel(
                     }
                     Text(
                         when {
-                            launch.isPreparing -> strings.text("ui.preparing_minecraft")
+                            launch.isPreparing || preparingAccount -> strings.text("ui.preparing_minecraft")
                             isRunning -> strings.text("ui.minecraft_is_running")
                             else -> strings.text("ui.play_minecraft")
                         },
@@ -789,7 +806,7 @@ private fun LauncherPanel(
                         fontSize = 16.sp,
                     )
                 }
-                if (launch.isPreparing) {
+                if (launch.isPreparing || preparingAccount) {
                     OutlinedButton(onClick = session::cancelPreparation, modifier = Modifier.fillMaxWidth()) {
                         Text(strings.text("ui.cancel_preparation"))
                     }
@@ -954,6 +971,15 @@ private fun LauncherPanel(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+                if (selectedPremiumId == null) savedAccounts.filter { !it.microsoft && it.account.username != nickname.trim() }
+                    .forEach { profile ->
+                        FilterChip(
+                            selected = false,
+                            onClick = { nickname = profile.account.username },
+                            label = { Text(profile.account.username) },
+                            enabled = !locked,
+                        )
+                    }
                 premiumAccounts.forEach { profile ->
                     Row(modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
@@ -965,14 +991,29 @@ private fun LauncherPanel(
                             enabled = !locked,
                         )
                         TextButton(onClick = {
-                            session.removePremiumAccount(profile.uuid.toString())
-                            if (selectedPremiumId == profile.uuid.toString()) selectedPremiumId = null
+                            signingInPremium = true
+                            premiumError = null
+                            scope.launch {
+                                try {
+                                    session.removePremiumAccount(profile.uuid.toString())
+                                    if (selectedPremiumId == profile.uuid.toString()) selectedPremiumId = null
+                                } catch (cancelled: CancellationException) {
+                                    throw cancelled
+                                } catch (error: Exception) {
+                                    premiumError = error.message ?: strings.text("ui.microsoft_sign_in_failed")
+                                } finally {
+                                    signingInPremium = false
+                                }
+                            }
                         }, enabled = !locked) { Text(strings.text("ui.sign_out")) }
                     }
                 }
                 premiumError?.let {
                     Text(it, style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error)
+                    TextButton(onClick = { accountReload++ }, enabled = !locked) {
+                        Text(strings.text("ui.retry"))
+                    }
                 }
             }
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {

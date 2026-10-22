@@ -255,7 +255,27 @@ class LauncherHomeRenderTest {
         }
     }
 
-    private suspend fun session(packCatalog: Boolean = false): DesktopLauncherSession {
+    @Test
+    fun savedOfflinePlayerCanBeSelectedWithoutSigningIn() = runBlocking(Dispatchers.Swing) {
+        for (language in UiLanguage.entries) {
+            val session = session(savedPlayer = true)
+            val strings = UiStrings(language)
+            val scene = ImageComposeScene(1440, 900, coroutineContext = Dispatchers.Swing) {
+                CompositionLocalProvider(LocalStrings provides strings) { SyntaxLauncherApp(session) }
+            }
+            try {
+                scene.awaitReady(strings.text("ui.play_minecraft"))
+                scene.text("ChildTwo").click()
+                scene.frames()
+                val nickname = scene.nodes().first { it.config.contains(SemanticsActions.SetText) }
+                assertEquals("ChildTwo", nickname.config[SemanticsProperties.EditableText].text)
+                assertFalse(scene.text(strings.text("ui.play_minecraft")).config.contains(SemanticsProperties.Disabled))
+                scene.screenshot("home-saved-player-${language.code}")
+            } finally { scene.close(); session.shutdown() }
+        }
+    }
+
+    private suspend fun session(packCatalog: Boolean = false, savedPlayer: Boolean = false): DesktopLauncherSession {
         val state = withContext(Dispatchers.IO) {
             Files.createTempDirectory(root, "profile-")
         }
@@ -278,12 +298,19 @@ class LauncherHomeRenderTest {
         val preferences = LauncherPreferencesStore(state.resolve("settings.properties"))
         preferences.save(LauncherPreferences(nickname = "SyntaxPlayer", selectedVersionId = "26.3",
             maximumMemoryMiB = 8192))
+        val accounts = if (savedPlayer) pl.syntaxdevteam.syntaxlauncher.core.account.AccountManager(
+            state.resolve("accounts.properties"), object : pl.syntaxdevteam.syntaxlauncher.core.account.RefreshTokenVault {
+                override fun read(key: String): String? = error("Offline UI must not read credentials")
+                override fun write(key: String, token: String) = error("Offline UI must not write credentials")
+                override fun remove(key: String) = error("Offline UI must not remove credentials")
+            }, "fixture-app", { error("Offline UI must not refresh credentials") }) else null
+        accounts?.saveOffline("ChildTwo")
         return DesktopLauncherSession(MinecraftVersionCatalog(http), MinecraftVersionResolver(http),
             MinecraftLaunchCoordinator(MinecraftPreparationService(downloads),
                 MojangJavaRuntimeManager(http, downloads, state.resolve("runtimes")), LaunchPlanBuilder(),
                 processes, layout, MinecraftPlatform.detect()), processes, preferences,
             MinecraftInstanceRepository(state.resolve("instances"), state.resolve("trash"), layout),
-            layout, http, loaders = if (packCatalog) pl.syntaxdevteam.syntaxlauncher.core.loader.ModLoaderRegistry(emptyList()) else null)
+            layout, http, accounts = accounts, loaders = if (packCatalog) pl.syntaxdevteam.syntaxlauncher.core.loader.ModLoaderRegistry(emptyList()) else null)
     }
 
     private suspend fun DesktopLauncherSession.shutdown() {

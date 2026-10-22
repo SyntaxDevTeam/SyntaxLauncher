@@ -38,7 +38,7 @@ The v0.2 implementation includes cross-process per-instance file locks, safe clo
 
 ## v0.3 — Microsoft/Premium Accounts
 
-The desktop now has a v0.3 development account picker with Offline and in-memory Microsoft Java sessions, native browser PKCE login, account removal and the shared premium/offline launch pipeline. Configure SYNTAXLAUNCHER_MICROSOFT_CLIENT_ID with your own registered public application ID. Secure persistence, real Minecraft approval/testing and full UI acceptance are still outstanding; no tokens are persisted to files. A properly authorized Microsoft public-client app registration will be required. Premium sign-in must never request a Microsoft password or hardcode someone else's application ID.
+The desktop now has a v0.3 development account picker with saved Offline and Microsoft Java identities, native browser PKCE login, account removal and the shared premium/offline launch pipeline. Configure SYNTAXLAUNCHER_MICROSOFT_CLIENT_ID with your own registered public application ID. Refresh credentials now use the OS credential store (Linux Secret Service/libsecret, macOS Keychain, Windows DPAPI); access tokens stay in memory. Saved accounts reload after restart, and Play refreshes the verified Microsoft session when necessary. Offline players are saved on Play and can be selected again. Locked/unavailable secure storage reports an error without a plaintext fallback. Native credential-store acceptance, real Minecraft approval/testing and full UI acceptance remain outstanding. A properly authorized Microsoft public-client app registration will be required. Premium sign-in must never request a Microsoft password or hardcode someone else's application ID.
 
 ## Pick Vanilla or play with mods
 

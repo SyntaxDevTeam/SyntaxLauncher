@@ -304,12 +304,12 @@ Goal: add official premium authentication without changing the fundamental Minec
 
 ## Account management
 
-- [ ] 🚧 IN PROGRESS — AccountManager schema-1 identity inventory, native refresh-token vault adapters and bounded browser callback helper are present with deterministic tests; desktop integration and native/live premium acceptance remain open. Registration/submission records are in [MICROSOFT_APP.md](MICROSOFT_APP.md); approval is not claimed.
+- [ ] 🚧 IN PROGRESS — AccountManager schema-1 identity inventory, native refresh-token vault adapters and bounded browser callback helper are present with deterministic tests; desktop integration now reloads/saves identities, refreshes on Play and removes local vault credentials on sign-out; native/live premium acceptance remains open. Registration/submission records are in [MICROSOFT_APP.md](MICROSOFT_APP.md); approval is not claimed.
 
-- [ ] Introduce account manager/service.
-- [ ] Preserve offline account support.
+- [x] Introduce account manager/service and connect desktop persistence; deterministic tests pass.
+- [x] Preserve offline account support; saving/selecting an offline player does not access the credential vault.
 - [x] Add a verified premium account type and token-safe session class; tested.
-- [ ] Support multiple saved accounts.
+- [x] Support multiple saved offline/Microsoft identities; restart coverage uses an isolated test vault.
 - [ ] Allow account selection per launch or as launcher default.
 - [ ] Display account type clearly.
 
@@ -352,11 +352,11 @@ Goal: add official premium authentication without changing the fundamental Minec
 
 ## v0.3 UI
 
-- [ ] 🚧 IN PROGRESS — choose Offline or a validated Microsoft session in the home sidebar (memory only); persistence and full UX acceptance pending.
+- [ ] 🚧 IN PROGRESS — choose saved Offline or Microsoft identities in the home sidebar; desktop persistence and deterministic render tests are implemented, full native/live UX acceptance pending.
 - [ ] 🚧 IN PROGRESS — native browser / localhost PKCE flow wired to Add Microsoft when an owned app ID is configured; real sign-in pending.
 - [x] Offline profile remains independently selectable and used by the original launch path.
 - [ ] Show premium profile name/avatar when available.
-- [ ] 🚧 IN PROGRESS — Sign out removes selected premium session from RAM; persistent vault integration/revocation pending.
+- [ ] 🚧 IN PROGRESS — Sign out removes the local refresh credential and saved identity; a vault error retains the account in the UI. Native acceptance remains pending; remote Microsoft grant revocation is not claimed.
 
 ## v0.3 manual and security acceptance
 

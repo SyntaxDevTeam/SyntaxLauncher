@@ -9,6 +9,37 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 ---
 
 
+
+## 2026-10-22 — Recover important account persistence integration from IntelliJ Shelf
+
+**Milestone:** v0.3 — Microsoft/Premium accounts; recovery after v0.10
+**Author/Agent:** GPT-6
+**Status:** Desktop integration implemented and deterministically verified; native/live acceptance remains open
+
+### Completed
+- Reviewed the nonempty two-file account integration patch in IntelliJ Shelf (20.10.2026, 20:42), preserving both the original shelf and an identical external recovery copy. Reimplemented its useful changes against current sources instead of restoring obsolete loader/modpack/UI code or a legacy hardcoded client-ID fallback.
+- Connected the desktop entry point to AccountManager and the existing native refresh-token vault. Identity inventory remains separate from credentials; Microsoft app configuration/approval requirements remain unchanged.
+- Reloaded saved identities in the home picker, saved offline players on Play and added one-click saved offline selection. Microsoft login persists before publishing success; sign-out removes the local vault credential before updating the UI and supports retry after storage errors.
+- Resolved Microsoft sessions from the durable store on Play, including refresh after restart and the current verified username. Account preparation disables conflicting controls, supports cancellation and never falls back to an offline identity on authentication failure.
+- Preserved the shared loader/modpack/graphics launch pipeline, instance leases and window-close behavior.
+
+### Files changed
+- Desktop `Main.kt`, `DesktopLauncherSession.kt`, `DesktopMicrosoftSignIn.kt`, `ui/SyntaxLauncherApp.kt` — production persistence, session resolution and picker integration.
+- `DesktopLauncherSessionAccountsTest.kt`, `ui/LauncherHomeRenderTest.kt` — five isolated account lifecycle/launch regressions plus saved offline player selection rendered in EN/PL/DE.
+- `README.md`, `docs/{ARCHITECTURE,ROADMAP,TESTING_V0.3,WORKLOG}.md` — current integration status and remaining acceptance.
+
+### Verification
+- `./gradlew test build :launcher-desktop:createDistributable --offline` — PASS: 217 passed / 221 discovered, four opt-in live tests skipped, zero failures/errors. Linux application image built successfully.
+- Deterministic account tests — restart without vault access, no credential values in identity inventory, failed secure save/removal, refresh using the current verified profile, failed-refresh retry without offline launch and offline Play without credential-store access all pass. Launch tests use a fixture Java child, not real premium gameplay.
+- Compose rendering — saved offline player selection passes in English, Polish and German; generated Polish home screenshot inspected. Existing window-size and graphics/modpack regressions pass.
+- `git diff --check` — PASS.
+
+### Follow-ups / known issues
+- Native Windows DPAPI/macOS Keychain/Linux Secret Service acceptance, Microsoft app approval and live authenticated Minecraft gameplay remain open; these tests use an isolated in-memory vault and fake sign-in provider.
+- The user's existing local `gradle.properties` version edit (`0.7.0` → `0.7.1`) is preserved separately and excluded from this source change/publication. No Stable release or release tag is created.
+- Historical/deleted shelves and the original reviewed shelf are preserved; this integration does not delete IDE recovery history.
+
+
 ## 2026-10-22 — Merge remote modpack work into the complete catalog installer
 
 **Milestone:** v0.10

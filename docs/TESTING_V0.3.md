@@ -28,7 +28,9 @@ This checklist separates deterministic CI coverage from real Microsoft/Xbox/Mine
 - [ ] A valid login authenticates Xbox, XSTS, Minecraft Services and fetches the verified Java username and UUID.
 - [ ] Cancel/denial, callback CSRF mismatch, browser not available and 180-second timeout produce actionable errors without exposing auth codes.
 - [ ] Add a second account and switch between the two; verify proper Minecraft Java identities.
-- [ ] Sign out removes a premium session from RAM; restarting currently requires a fresh login (secure OS credential persistence is not implemented).
+- [ ] Close/reopen the launcher: saved Offline and Microsoft identities appear without reading credentials; Play refreshes the saved Microsoft session and uses the current verified username.
+- [ ] Sign out removes the saved identity and its local OS refresh credential; after restart it stays removed. A locked store must show an error and retain the identity for retry.
+- [ ] On Linux with a locked/unavailable Secret Service store, Microsoft persistence fails without plaintext fallback; offline Play and saved offline player selection still work.
 - [ ] Invalid app approval yields an actionable 403 error without leaking tokens; diagnose permission/registration rather than suggesting another launcher's client ID.
 - [ ] A Microsoft account without a Java profile cannot be played as premium.
 
@@ -40,7 +42,7 @@ This checklist separates deterministic CI coverage from real Microsoft/Xbox/Mine
 - [ ] Search launcher/game stdout and stderr, game-owned logs, crash reports and launcher diagnostics for tokens; do not share raw sensitive output.
 - [ ] Verify Windows, macOS and Linux native distributables and browser callback handling.
 - [ ] Verify premium token output is not present in the default process-manager stdout/stderr files.
-- [ ] Before claiming v0.3 complete, implement and test OS secure refresh-token persistence or explicitly decide the product will require login every restart.
+- [ ] Before claiming v0.3 complete, verify the implemented refresh-token persistence on Windows DPAPI, macOS Keychain and Linux Secret Service using the approved project app. Deterministic in-memory-vault tests do not satisfy native/live acceptance.
 
 ## Release policy
 

@@ -16,10 +16,12 @@ import kotlinx.coroutines.swing.Swing
 import kotlinx.coroutines.withContext
 import pl.syntaxdevteam.syntaxlauncher.core.account.OfflineAccount
 import pl.syntaxdevteam.syntaxlauncher.core.account.PremiumAccount
-import pl.syntaxdevteam.syntaxlauncher.core.account.PremiumSession
 import pl.syntaxdevteam.syntaxlauncher.core.launch.LaunchAuthentication
 import kotlinx.coroutines.flow.StateFlow
-import java.time.Instant
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import pl.syntaxdevteam.syntaxlauncher.core.account.AccountManager
+import pl.syntaxdevteam.syntaxlauncher.core.account.SavedAccount
 import pl.syntaxdevteam.syntaxlauncher.core.loader.ModLoaderRegistry
 import pl.syntaxdevteam.syntaxlauncher.core.mods.LocalModManager
 import pl.syntaxdevteam.syntaxlauncher.core.mods.ModrinthCatalog
@@ -53,7 +55,8 @@ class DesktopLauncherSession(
     private val legacyLayout: MinecraftInstallationLayout,
     private val httpClient: HttpClient,
     val loaders: ModLoaderRegistry? = null,
-    private val microsoftSignIn: DesktopMicrosoftSignIn? = null,
+    private val microsoftSignIn: MicrosoftSignInService? = null,
+    private val accounts: AccountManager? = null,
     val optiFine: pl.syntaxdevteam.syntaxlauncher.core.content.OptiFineCatalog? = null,
 ) {
     val packManager = pl.syntaxdevteam.syntaxlauncher.core.content.LocalPackManager(instances)
@@ -81,29 +84,43 @@ class DesktopLauncherSession(
     private var pendingPreferences: LauncherPreferences? = null
     private val mutableLaunchIssue = MutableStateFlow<String?>(null)
     val launchIssue = mutableLaunchIssue.asStateFlow()
-    private val premiumSessions = mutableMapOf<String, PremiumSession>()
+    private val accountMutex = Mutex()
+    private val mutableSavedAccounts = MutableStateFlow<List<SavedAccount>>(emptyList())
+    val savedAccounts = mutableSavedAccounts.asStateFlow()
     private val mutablePremiumAccounts = MutableStateFlow<List<PremiumAccount>>(emptyList())
     val premiumAccounts: StateFlow<List<PremiumAccount>> = mutablePremiumAccounts.asStateFlow()
-    val microsoftEnabled: Boolean get() = microsoftSignIn != null
+    private val mutablePreparingAccount = MutableStateFlow(false)
+    val preparingAccount = mutablePreparingAccount.asStateFlow()
+    val microsoftEnabled: Boolean get() = microsoftSignIn != null && accounts != null
 
-    /** Premium tokens stay in memory until an OS secure vault is implemented. */
+    private suspend fun publishAccounts() {
+        val saved = accounts?.accounts().orEmpty()
+        mutableSavedAccounts.value = saved
+        mutablePremiumAccounts.value = saved.filter { it.microsoft }.map { it.account as PremiumAccount }
+    }
+
+    suspend fun loadAccounts() = accountMutex.withLock {
+        check(!closing.get()) { "SyntaxLauncher is closing." }
+        publishAccounts()
+    }
+
     suspend fun addPremiumAccount(): PremiumAccount {
         val browser = microsoftSignIn
             ?: throw IllegalStateException("Configure SYNTAXLAUNCHER_MICROSOFT_CLIENT_ID first.")
+        val store = accounts ?: error("Account storage is unavailable.")
         val session = browser.signIn()
-        synchronized(lock) {
+        accountMutex.withLock {
             check(!closing.get()) { "SyntaxLauncher is closing." }
-            premiumSessions[session.account.uuid.toString()] = session
-            mutablePremiumAccounts.value = premiumSessions.values.map { it.account }
+            store.savePremium(session)
+            publishAccounts()
         }
         return session.account
     }
 
-    fun removePremiumAccount(uuid: String) {
-        synchronized(lock) {
-            premiumSessions.remove(uuid)
-            mutablePremiumAccounts.value = premiumSessions.values.map { it.account }
-        }
+    suspend fun removePremiumAccount(uuid: String) = accountMutex.withLock {
+        check(!closing.get()) { "SyntaxLauncher is closing." }
+        accounts?.remove(uuid) ?: error("Account storage is unavailable.")
+        publishAccounts()
     }
 
     fun rememberPreferences(value: LauncherPreferences) {
@@ -131,30 +148,31 @@ class DesktopLauncherSession(
                     MinecraftProcessState.RUNNING, MinecraftProcessState.STARTING,
                 )
             ) return false
-            val account = if (premiumId != null) {
-                premiumSessions[premiumId]?.account ?: return false
-            } else OfflineAccount.create(nickname)
+            // Reject a missing saved identity instead of silently launching an offline player.
+            if (premiumId != null && mutablePremiumAccounts.value.none { it.uuid.toString() == premiumId }) return false
+            val offline = if (premiumId == null) OfflineAccount.create(nickname) else null
             mutableLaunchIssue.value = null
+            mutablePreparingAccount.value = true
             launchJob = scope.launch {
                 var leased = false
                 try {
-                    val authentication = if (premiumId != null) {
-                        val saved = synchronized(lock) { premiumSessions[premiumId] }
-                            ?: throw IllegalStateException("Microsoft account was removed. Sign in again.")
-                        val current = if (saved.expiresAt.isBefore(Instant.now().plusSeconds(180))) {
-                            val refreshed = microsoftSignIn?.refresh(saved)
-                                ?: throw IllegalStateException("Microsoft sign-in is not configured.")
-                            check(refreshed.account.uuid == saved.account.uuid) {
-                                "Microsoft account changed during refresh; sign in again."
-                            }
-                            synchronized(lock) {
-                                premiumSessions[premiumId] = refreshed
-                                mutablePremiumAccounts.value = premiumSessions.values.map { it.account }
-                            }
-                            refreshed
-                        } else saved
-                        current.launchAuthentication(microsoftSignIn!!.clientId)
-                    } else LaunchAuthentication.offline(account)
+                    val premium = accountMutex.withLock {
+                        if (premiumId != null) {
+                            check(microsoftSignIn != null) { "Microsoft sign-in is not configured." }
+                            val current = accounts?.session(premiumId)
+                                ?: error("Account storage is unavailable.")
+                            publishAccounts()
+                            current
+                        } else {
+                            accounts?.saveOffline(offline!!.username)
+                            publishAccounts()
+                            null
+                        }
+                    }
+                    // Refresh may change the player's name; launch with the verified current profile.
+                    val account = premium?.account ?: offline!!
+                    val authentication = premium?.launchAuthentication(microsoftSignIn!!.clientId)
+                        ?: LaunchAuthentication.offline(account)
                     instances.beginLaunch(instance?.id)
                     leased = true
                     coordinator.launch(
@@ -195,6 +213,7 @@ class DesktopLauncherSession(
                     }
                 }
             }
+            launchJob!!.invokeOnCompletion { mutablePreparingAccount.value = false }
             return true
         }
     }
@@ -218,8 +237,8 @@ class DesktopLauncherSession(
                 settingsJob?.cancelAndJoin()
                 pending?.let { runCatching { preferences.save(it) } }
                 processManager.shutdown(MinecraftShutdownPolicy.DETACH)
-                synchronized(lock) {
-                    premiumSessions.clear()
+                accountMutex.withLock {
+                    mutableSavedAccounts.value = emptyList()
                     mutablePremiumAccounts.value = emptyList()
                 }
             } finally {
