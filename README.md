@@ -95,6 +95,10 @@ Forge modern installer V2 shares the staged processor engine with NeoForge. The 
 
 All five modes use the same preparation, Java, launch-plan and process pipeline. The new deterministic coordinator matrix exercises the real adapters against local synthetic metadata and Forge-family processor fixtures; official installer smoke tests and Windows/Linux/macOS packaging also passed in hosted CI. Java requirements come from Mojang metadata; missing requirements fail before downloads. Legacy arguments stay in the shared planner. Full TOML/version-range solving, historical Forge expansion and the broader native/gameplay matrix remain open. See [the v0.8 evidence and support matrix](docs/TESTING_V0.8.md).
 
+## v0.10 — Modpacks (core import development)
+
+The core now supports verified Modrinth format-1 `.mrpack` installation into a **new isolated instance**, including required files, SHA-1/SHA-512 checks, bounded overrides and failure-safe publication. The desktop file picker, ready-made catalog, optional-file choices and export are separate work. v0.9 and v0.10 will undergo one combined maintainer gameplay test. See [the v0.10 checklist](docs/TESTING_V0.10.md).
+
 ## v0.9 — Built-in graphics catalog (bounded acceptance)
 
 For a saved game choose **Choose extras**, pick a compatible item and press **Install**, then **Play**. Textures install and select required resource packs automatically. Supported modded games also show **Shaders**: the launcher installs compatible Iris and its required components, verifies them and selects the shader. Published Iris compatibility is checked for the exact Minecraft version and Fabric/Quilt/NeoForge loader. Unsupported combinations are unavailable; worlds and game versions are never silently converted.

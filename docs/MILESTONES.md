@@ -347,7 +347,7 @@ Graphics-related features remain optional instance components and do not contami
 
 ## v0.10 — Modpacks
 
-**Started, 21 October 2026:** a deterministic read-only Modrinth index planner validates requested versions/components, client environments, hashes, sources and portable destinations. This first phase does not import ZIPs, download files, create an instance or expose a working modpack catalog; the complete one-action workflow remains required.
+**22 October 2026:** format-1 .mrpack import now validates required/optional/server-only client files, verifies both hashes and stages overrides and a new instance privately. CI/real-game acceptance is pending, while the child-first online catalog, optional selection and export remain required. v0.9 and v0.10 user tests are planned together.
 
 ### Objective
 

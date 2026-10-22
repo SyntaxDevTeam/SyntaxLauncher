@@ -195,6 +195,31 @@ class MinecraftInstanceRepository(
         }
     }
 
+    /**
+     * Publish a fully prepared game as one new instance. populateGame works only inside
+     * the private .creating-UUID folder; a failure/cancellation never exposes a
+     * partially installed profile or modifies another instance.
+     */
+    suspend fun createPrepared(
+        name: String,
+        minecraftVersionId: String,
+        loader: ModLoaderSelection?,
+        populateGame: suspend (Path) -> Unit,
+    ): MinecraftInstance = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            val value = MinecraftInstance(
+                id = UUID.randomUUID().toString(),
+                name = name.trim(),
+                minecraftVersionId = minecraftVersionId,
+                loader = loader,
+            )
+            activity.withInactive(value.id) {
+                publishNew(value, prepareGame = populateGame)
+                value
+            }
+        }
+    }
+
     suspend fun update(instance: MinecraftInstance): MinecraftInstance = withContext(Dispatchers.IO) {
         mutex.withLock {
             val directory = instanceDirectory(instance.id)
@@ -294,6 +319,7 @@ class MinecraftInstanceRepository(
         sourceGame: Path? = null,
         sourceMetadata: Path? = null,
         onProgress: (InstanceCopyProgress) -> Unit = {},
+        prepareGame: suspend (Path) -> Unit = {},
     ) {
         Files.createDirectories(root)
         val temporary = root.resolve(".creating-" + value.id)
@@ -305,6 +331,7 @@ class MinecraftInstanceRepository(
             Files.createDirectory(temporary.resolve("game"))
             if (sourceGame != null) InstanceFileCopy.copy(sourceGame, temporary.resolve("game"), onProgress)
             if (sourceMetadata != null) Files.copy(sourceMetadata, temporary.resolve("instance.json"))
+            prepareGame(temporary.resolve("game"))
             write(temporary, value)
             move(temporary, destination)
         } finally {

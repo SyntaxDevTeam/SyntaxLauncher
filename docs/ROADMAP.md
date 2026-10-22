@@ -644,26 +644,26 @@ Goal: manage graphics-related instance content without treating every component 
 
 Goal: install/export repeatable instance definitions and support a mainstream modpack format.
 
-**Status:** 🚧 First implementation phase: a read-only Modrinth index planner validates requested components, client files, hashes, sources and destinations. ZIP import, downloads, overrides, isolated instance publication and the one-action catalog workflow remain open; no working-looking modpack tab is exposed yet.
+**Status:** 🚧 A format-1 .mrpack importer now validates client files, checks SHA-1/SHA-512 and extracts bounded client overrides into an invisible staged instance before atomic publication. CI and real gameplay acceptance are pending. The child-first modpack catalog, optional-file picker and export remain open; v0.9 and v0.10 gameplay tests will be performed together.
 
 ## Modpack model
 
 - [x] Define a UI-independent deterministic modpack installation plan with exact requested Minecraft/loader versions, required/optional client files, mirrored URLs, sizes, SHA-1/SHA-512 and retained unknown manifest metadata.
 - [x] Validate format-1 Minecraft index UTF-8/bounds, known single-loader requirements, client/server environments, supported HTTPS sources, both hash fields and portable nonconflicting destinations without HTTP or filesystem mutation. This is not `.mrpack` ZIP import or file verification.
-- [ ] Map modpack manifest to instance creation.
-- [ ] Preserve overrides/configs appropriately.
-- [ ] Verify downloaded files.
+- [ ] 🚧 IN PROGRESS — Map .mrpack manifest into an isolated new instance; automated and manual acceptance pending.
+- [ ] 🚧 IN PROGRESS — Extract checked overrides and client-overrides into a newly staged game; wider archive compatibility pending.
+- [ ] 🚧 IN PROGRESS — Verify file size, SHA-1 and SHA-512 before instance publication; CI pending.
 - [ ] Keep user-created mutable data safe on update/reinstall.
 
 ## Modrinth modpacks
 
 - [ ] Browse compatible ready-made modpacks/sets in the same child-first launcher catalog and create an isolated playable game with one primary action; file import remains secondary.
 
-- [ ] Import `.mrpack`.
+- [ ] 🚧 IN PROGRESS — Import format-1 .mrpack in core; desktop file picker and full CI acceptance pending.
 - [ ] Resolve Minecraft version and loader.
 - [ ] Install referenced files/dependencies.
 - [ ] Apply overrides.
-- [ ] Create a new isolated instance.
+- [ ] 🚧 IN PROGRESS — Build new instance privately and publish only after successful installation; CI pending.
 - [ ] Report unsupported/invalid pack content clearly.
 
 ## Export

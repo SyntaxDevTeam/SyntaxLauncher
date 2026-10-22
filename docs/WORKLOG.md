@@ -8,6 +8,44 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-22 — v0.10 Modrinth modpack importer and safe staged instance creation
+
+**Milestone:** v0.10 — Modpacks
+**Author/Agent:** GPT-6
+**Status:** Partial — changes published for CI; merged v0.9/v0.10 manual acceptance pending
+
+### Completed
+- Added strict format-1 Modrinth modpack planner for Minecraft/loader, required/optional/server-only client files, portable destinations, bounded sources and SHA-1/SHA-512 metadata.
+- Added .mrpack reader, preflight for hostile ZIP contents and checked client overrides, shared-download verified required files and SHA-512 verification.
+- Extended instance repository with an invisible .creating-UUID installation callback. Incomplete imports cannot become playable; existing profiles are never changed.
+- Added deterministic synthetic ZIP and Ktor MockEngine tests for installation, optional/server-only separation, checksum rejection and traversal/future-format rejection.
+- Deferred v0.9 and v0.10 manual gameplay tests to one combined maintainer acceptance session.
+
+### Changed files
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/modpack/ModrinthModpackPlanner.kt` — format-1 parsing and path controls.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/modpack/ModrinthModpackImporter.kt` — downloads, overrides and publication.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/instance/MinecraftInstanceRepository.kt` — createPrepared.
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/modpack/ModrinthModpackImporterTest.kt` — deterministic fixtures.
+- `docs/ROADMAP.md`, `docs/MILESTONES.md`, `README.md`, `docs/TESTING_V0.10.md`, `docs/WORKLOG.md` — scope, acceptance and remaining work.
+
+### Verification
+- `./gradlew test` — NOT RUN locally (GitHub connector provides source editing, not Gradle dependencies); hosted verification pending.
+- `./gradlew build` — NOT RUN locally for the same reason.
+- Existing baseline CI 39671357003 — FAIL from missing committed v0.9 source types before this change; must be repaired before combined validation.
+- v0.9/v0.10 real gameplay — pending the maintainer's combined test session.
+
+### Roadmap updates
+- `[ ] v0.10 / .mrpack files, overrides and staged instance publication` — code implemented, acceptance pending.
+- `[ ] v0.10 / ready-made Modrinth catalog, UI options, export and full acceptance` — remains open.
+
+### Follow-ups / known issues
+- Resolve missing v0.9 code references on main, get CI green, add desktop modpack import and online catalog.
+- Only bounded format-1 and approved hosts are accepted; download mirror fallback/extra content types require additional work.
+- Product version remains 0.7.0 until an intentional stable release decision; roadmap phase is not equivalent to released SemVer.
+
+---
+
+
 
 
 ## 2026-10-21 — Complete bounded v0.9 graphics workflows and start v0.10 planning
