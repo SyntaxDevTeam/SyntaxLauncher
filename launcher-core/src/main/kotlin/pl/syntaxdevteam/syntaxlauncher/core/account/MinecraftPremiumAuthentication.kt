@@ -21,7 +21,7 @@ import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.add
 
-enum class PremiumStage { XBOX, XSTS, MINECRAFT, JAVA_PROFILE }
+enum class PremiumStage { XBOX, XSTS, MINECRAFT, OWNERSHIP, JAVA_PROFILE }
 class PremiumExchangeException(val stage: PremiumStage, message: String) : IllegalStateException(message)
 
 @Serializable private data class XboxHash(val uhs: String)
@@ -35,6 +35,8 @@ class PremiumExchangeException(val stage: PremiumStage, message: String) : Illeg
     @SerialName("expires_in") val expiresIn: Long = 3600,
 )
 @Serializable private data class JavaProfileResult(val id: String, val name: String)
+@Serializable private data class Entitlement(val name: String)
+@Serializable private data class Entitlements(val items: List<Entitlement>)
 
 /** Only a verified Minecraft Java profile becomes a premium launch identity. */
 class MinecraftPremiumAuthentication(
@@ -92,6 +94,20 @@ class MinecraftPremiumAuthentication(
                     "Minecraft Services rejected authentication (HTTP " + response.status.value + ").")
             }
             json.decodeFromString<MinecraftResult>(response.bodyAsText())
+        }
+        safe(PremiumStage.OWNERSHIP) {
+            val response = http.get("https://api.minecraftservices.com/entitlements/mcstore") {
+                headers { append(HttpHeaders.Authorization, "Bearer " + minecraft.accessToken) }
+            }
+            if (response.status.value !in 200..299) {
+                throw PremiumExchangeException(PremiumStage.OWNERSHIP,
+                    "Minecraft Java ownership verification failed (HTTP " + response.status.value + ").")
+            }
+            val entitlements = json.decodeFromString<Entitlements>(response.bodyAsText())
+            if (entitlements.items.none { it.name in setOf("game_minecraft", "product_minecraft") }) {
+                throw PremiumExchangeException(PremiumStage.OWNERSHIP,
+                    "This Microsoft account has no Minecraft Java entitlement. Gameplay is unavailable.")
+            }
         }
         val profile = safe(PremiumStage.JAVA_PROFILE) {
             val response = http.get("https://api.minecraftservices.com/minecraft/profile") {

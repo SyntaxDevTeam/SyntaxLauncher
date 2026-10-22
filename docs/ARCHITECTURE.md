@@ -1,5 +1,7 @@
 # SyntaxLauncher Architecture
 
+> **Current access policy — 22 October 2026:** Microsoft authentication, a Minecraft: Java Edition entitlement and a verified Java profile are required before gameplay. The desktop revalidates the session before every launch. Nickname-only/non-premium gameplay is retired for all server configurations; historical offline milestones below are not exceptions. Existing local worlds and profiles are preserved. The first AppID request was declined; revised review and live-account acceptance remain separate gates.
+
 ## 1. Purpose
 
 SyntaxLauncher is designed as a modular Minecraft launcher whose early releases remain intentionally small while preserving clean extension points for later authentication providers, mod loaders, mod repositories and diagnostics.

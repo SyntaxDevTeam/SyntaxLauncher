@@ -21,6 +21,9 @@ import pl.syntaxdevteam.syntaxlauncher.core.minecraft.ResolvedMinecraftVersion
 import pl.syntaxdevteam.syntaxlauncher.core.network.DownloadEvent
 import pl.syntaxdevteam.syntaxlauncher.core.storage.MinecraftInstallationLayout
 
+class GameplayAuthenticationRequiredException : IllegalStateException(
+    "Sign in with a Microsoft account entitled to Minecraft Java before playing.")
+
 enum class LaunchPhase {
     IDLE, PREPARING_LOADER, PREPARING_GAME, PREPARING_JAVA, BUILDING_PLAN, STARTING_GAME, STARTED, FAILED, CANCELLED,
 }
@@ -64,11 +67,16 @@ class MinecraftLaunchCoordinator(
         account: Account,
         options: LaunchOptions,
         instanceLayout: MinecraftInstallationLayout = layout,
-        authentication: LaunchAuthentication = LaunchAuthentication.offline(account),
+        authentication: LaunchAuthentication,
         loader: ModLoaderSelection? = null,
     ): LaunchPipelineStatus {
         if (!launchMutex.tryLock()) return mutableStatus.value
         try {
+            if (account !is pl.syntaxdevteam.syntaxlauncher.core.account.PremiumAccount ||
+                authentication.userType != "msa" || authentication.accessToken.isBlank() ||
+                authentication.accessToken == "0" || authentication.clientId.isBlank()) {
+                throw GameplayAuthenticationRequiredException()
+            }
             val (prepared, runtime) = prepareShared(version, instanceLayout, loader)
             stage(LaunchPhase.BUILDING_PLAN, "Preparing launch arguments")
             val plan = plans.build(
@@ -212,6 +220,7 @@ class MinecraftLaunchCoordinator(
 
     private fun messageFor(error: Exception): String {
         val reason = when (error) {
+            is GameplayAuthenticationRequiredException -> error.message!!
             is pl.syntaxdevteam.syntaxlauncher.core.content.GraphicsEnhancementException -> error.message ?: "Cannot prepare graphics enhancement."
             is ModLoaderException -> error.message ?: "Could not prepare the mod loader."
             is MinecraftProcessException -> "Cannot start Minecraft. Check the game logs."

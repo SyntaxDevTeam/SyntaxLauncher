@@ -1,26 +1,30 @@
 # SyntaxLauncher Microsoft application
 
-## Registration and review status
+## Current registration and review status — 22 October 2026
 
-- Display name: **SyntaxLauncher**.
-- Project-owned public Client ID: `4e52f347-1d66-468f-b379-9168778636dc`.
-- Created in Microsoft Entra on **19 October 2026**, after explicit maintainer authorization.
-- Supported accounts: personal Microsoft accounts.
-- Platform: public/native mobile and desktop application.
-- Registered redirect: `http://localhost/callback`; the launcher uses an ephemeral localhost port with S256 PKCE and cryptographic state.
-- No client secret was created or embedded.
-- Current desktop wiring still requires `SYNTAXLAUNCHER_MICROSOFT_CLIENT_ID`; the recorded project Client ID is not yet the runtime default. This is maintainer/developer configuration, not a player account identifier.
-- Submitted once to Minecraft Services **AppID Review** on **19 October 2026**, after the maintainer explicitly confirmed the Microsoft platform policies, Minecraft EULA/Usage Guidelines and submission.
-- The form visibly returned **“Thank you for contacting Mojang Studios.”** This proves submission, not authorization.
-- **Minecraft Services approval: pending.** No written approval, live premium authentication, refresh or gameplay is claimed.
+- Display name: **SyntaxLauncher**; project-owned public Client ID: `4e52f347-1d66-468f-b379-9168778636dc`.
+- Created 19 October 2026. Personal Microsoft accounts; native/public desktop platform; registered redirect `http://localhost/callback`. S256 PKCE, random state and an ephemeral local port are used.
+- The public Client ID is now the desktop runtime default. An explicit `SYNTAXLAUNCHER_MICROSOFT_CLIENT_ID` developer override remains available; this is not a player setting or a workaround for refusal.
+- The desktop embeds no client secret. Entra overview shows one pre-existing secret; its value was not accessed, used or changed in this task. The public-client OAuth code does not use it.
+- Initial form submission: **19 October 2026**, with a visible receipt. **Outcome: declined**, reported directly by the maintainer on 22 October 2026. The generic batch email does not establish that this specific AppID was classified as a bad app or blocked.
+- Renewed submission: being prepared after material implementation and documentation changes; the actual receipt/outcome is recorded separately below. Do not mark it submitted until the form confirms it.
+- **Allowlist approval and live account sign-in/refresh/gameplay: NOT verified.** Automated HTTP fixtures are not live authorization evidence.
 
-The official [Minecraft application-review instructions](https://help.minecraft.net/hc/en-us/articles/16254801392141-Java-Edition-Game-Service-API-Review-or-Application-Process) link to [AppID Review](https://aka.ms/mce-reviewappid). The form states that submissions are reviewed weekly and duplicate submissions do not accelerate review. Do not resubmit this AppID merely because approval is pending.
+## Material changes for renewed review
 
-The maintainer supplied the contact address directly in the form. Contact details and private directory/object identifiers are intentionally absent from this repository record. The review team receives them through the authorized form.
+The official [AppID Review form](https://aka.ms/mce-reviewappid) explicitly requires authentication and ownership checks before gameplay regardless of server configuration. The old nickname-only workflow did not satisfy that requirement. The denial email gives no individual reason, so this is an evidence-backed compliance gap, not a confirmed explanation from Mojang.
 
-## Current source integration status — 20 October 2026
+The production desktop no longer offers offline/non-premium gameplay. It requires a saved Microsoft account, requests a fresh session at every Play, checks official Java entitlements and profile, and refuses a failed/unavailable check. The shared core coordinator independently rejects anonymous accounts, legacy authentication, zero/missing tokens and missing public client identity before preparation. Existing worlds and legacy identity records are not deleted. Internal historical account/parser fixtures do not authorize public gameplay.
 
-The submitted text below is retained as the submission record. The repository contains account-manager/OS-vault foundations and a bounded callback helper with deterministic tests, but `DesktopLauncherSession` still uses in-memory sessions and `DesktopMicrosoftSignIn` still uses its original callback. These new helpers are not yet wired into the running desktop. Do not treat the submission description as evidence of completed desktop persistence or live authentication. Linux/Windows/macOS native vault acceptance and approved-AppID end-to-end tests remain separate gates.
+Authentication uses Microsoft authorization code + S256 PKCE → Xbox user authentication → XSTS → Minecraft token → `GET /entitlements/mcstore` → `GET /minecraft/profile`. Accepted Java entitlement names are `game_minecraft` or `product_minecraft`; unrelated/Bedrock-only/empty/malformed/error responses fail closed. Profile availability is required as a second check. Desktop Play forces renewal even if an in-memory session is still valid.
+
+Public materials identify SyntaxDevTeam and the direct maintainer-selected support address, explain privacy/permissions/removal, state current approval limitations, and prominently disclose independence from Mojang/Microsoft. The original launcher logo is preserved at the maintainer’s request. The generated artwork is not evidence of official endorsement; no individual finding against the logo was supplied by Mojang. No claim that the existing logo independently passes a legal review is made.
+
+See [the complete Entra/review evidence checklist](APP_REVIEW_2026-10.md) for public URLs, recommended and optional fields, tests and remaining gates.
+
+## Historical submission record — 19 October 2026
+
+The text below is retained as the original submission record. Its offline-play description is superseded by the current access policy above. It must not be reused as current justification or as evidence of live authentication. Historical statements about integration readiness were corrected during subsequent work; current source/tests and acceptance records are authoritative.
 
 ## Submitted justification
 

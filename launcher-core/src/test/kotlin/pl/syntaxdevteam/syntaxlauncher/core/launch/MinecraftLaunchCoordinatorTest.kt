@@ -3,6 +3,7 @@ package pl.syntaxdevteam.syntaxlauncher.core.launch
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
+import java.util.UUID
 import java.nio.file.Files
 import java.nio.file.Path
 import java.security.MessageDigest
@@ -65,8 +66,8 @@ class MinecraftLaunchCoordinatorTest {
         )
         try {
             val status = coordinator.launch(version(client),
-                OfflineAccount.create("SyntaxTest"), LaunchOptions(maximumMemoryMiB = 3072),
-                instanceLayout = instanceLayout)
+                pl.syntaxdevteam.syntaxlauncher.core.account.PremiumAccount("SyntaxTest", UUID.fromString("12345678-1234-1234-1234-123456789abc")), LaunchOptions(maximumMemoryMiB = 3072),
+                instanceLayout = instanceLayout, authentication = fixtureAuthentication())
             assertEquals(LaunchPhase.STARTED, status.phase)
             assertTrue(Files.exists(layout.versionJar("test-release")))
             val plan = assertNotNull(captured)
@@ -76,7 +77,7 @@ class MinecraftLaunchCoordinatorTest {
             assertEquals(instanceLayout.gameDir, plan.workingDirectory)
             assertTrue(Files.isDirectory(instanceLayout.gameDir))
             assertTrue(Files.isDirectory(layout.versionsDir))
-            assertNotNull(process.status.value.stderrLog)
+            assertNotNull(process.status.value.stderrLog) // This test injects its own synthetic process starter.
         } finally {
             process.shutdown(MinecraftShutdownPolicy.DETACH)
             http.close()
@@ -128,8 +129,8 @@ class MinecraftLaunchCoordinatorTest {
             val two = shared.copy(gameDir = root.resolve("instances/b/game"))
             for (target in listOf(one, two)) {
                 assertEquals(LaunchPhase.STARTED, coordinator.launch(
-                    version(bytes), OfflineAccount.create("SyntaxTest"),
-                    LaunchOptions(maximumMemoryMiB = 2048), instanceLayout = target,
+                    version(bytes), pl.syntaxdevteam.syntaxlauncher.core.account.PremiumAccount("SyntaxTest", UUID.fromString("12345678-1234-1234-1234-123456789abc")),
+                    LaunchOptions(maximumMemoryMiB = 2048), instanceLayout = target, authentication = fixtureAuthentication(),
                 ).phase)
                 withTimeout(30_000) {
                     while (processManager.status.value.state == MinecraftProcessState.RUNNING) {
@@ -167,7 +168,7 @@ class MinecraftLaunchCoordinatorTest {
         try {
             val result = coordinator.launch(
                 version("client-fixture".encodeToByteArray()).copy(javaRequirement = null),
-                OfflineAccount.create("SyntaxTest"), LaunchOptions())
+                pl.syntaxdevteam.syntaxlauncher.core.account.PremiumAccount("SyntaxTest", UUID.fromString("12345678-1234-1234-1234-123456789abc")), LaunchOptions(), authentication = fixtureAuthentication())
             assertEquals(LaunchPhase.FAILED, result.phase)
             assertEquals(0, calls)
             assertEquals(MinecraftProcessState.IDLE, process.status.value.state)
@@ -176,6 +177,36 @@ class MinecraftLaunchCoordinatorTest {
             http.close()
         }
     }
+
+    @Test
+    fun rejectsAnonymousAndLegacyCredentialsBeforeDownloadingOrLaunching() = runBlocking {
+        val root = Files.createTempDirectory("syntax-auth-gate-")
+        var calls = 0
+        val http = HttpClient(MockEngine { calls++; error("Unauthenticated network access") })
+        val processes = MinecraftProcessManager(root.resolve("logs"))
+        val executable = Path.of(System.getProperty("java.home"), "bin", "java")
+        val coordinator = MinecraftLaunchCoordinator(MinecraftPreparationService(DownloadManager(http)),
+            runtimeManager(JavaRuntime(executable.parent.parent, executable, 21, "21")),
+            LaunchPlanBuilder(), processes, makeLayout(root), platform)
+        try {
+            val offline = OfflineAccount.create("SyntaxTest")
+            val premium = pl.syntaxdevteam.syntaxlauncher.core.account.PremiumAccount("SyntaxTest", UUID.randomUUID())
+            for ((identity, auth) in listOf(
+                offline to LaunchAuthentication.offline(offline),
+                offline to fixtureAuthentication(),
+                premium to fixtureAuthentication().copy(accessToken = "0"),
+                premium to fixtureAuthentication().copy(userType = "legacy"),
+                premium to fixtureAuthentication().copy(clientId = ""))) {
+                val result = coordinator.launch(version(byteArrayOf()), identity, LaunchOptions(), authentication = auth)
+                assertEquals(LaunchPhase.FAILED, result.phase)
+                assertTrue(result.detail.contains("Sign in"))
+                assertEquals(0, calls)
+                assertEquals(MinecraftProcessState.IDLE, processes.status.value.state)
+            }
+        } finally { http.close(); processes.shutdown() }
+    }
+
+    private fun fixtureAuthentication() = LaunchAuthentication("fixture-token", "fixture-session", "msa", clientId = "fixture-app")
 
     private fun runtimeManager(runtime: JavaRuntime): JavaRuntimeManager =
         object : JavaRuntimeManager {

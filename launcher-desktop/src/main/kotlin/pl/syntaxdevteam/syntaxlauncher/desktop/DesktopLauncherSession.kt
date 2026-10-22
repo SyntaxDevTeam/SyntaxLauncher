@@ -14,9 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.swing.Swing
 import kotlinx.coroutines.withContext
-import pl.syntaxdevteam.syntaxlauncher.core.account.OfflineAccount
 import pl.syntaxdevteam.syntaxlauncher.core.account.PremiumAccount
-import pl.syntaxdevteam.syntaxlauncher.core.launch.LaunchAuthentication
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -149,31 +147,25 @@ class DesktopLauncherSession(
                     MinecraftProcessState.RUNNING, MinecraftProcessState.STARTING,
                 )
             ) return false
-            // Reject a missing saved identity instead of silently launching an offline player.
-            if (premiumId != null && mutablePremiumAccounts.value.none { it.uuid.toString() == premiumId }) return false
-            val offline = if (premiumId == null) OfflineAccount.create(nickname) else null
+            if (premiumId == null || mutablePremiumAccounts.value.none { it.uuid.toString() == premiumId }) {
+                mutableLaunchIssue.value = "Sign in with a Microsoft account entitled to Minecraft Java before playing."
+                return false
+            }
             mutableLaunchIssue.value = null
             mutablePreparingAccount.value = true
             launchJob = scope.launch {
                 var leased = false
                 try {
                     val premium = accountMutex.withLock {
-                        if (premiumId != null) {
                             check(microsoftSignIn != null) { "Microsoft sign-in is not configured." }
-                            val current = accounts?.session(premiumId)
+                            val current = accounts?.session(premiumId, requireFresh = true)
                                 ?: error("Account storage is unavailable.")
                             publishAccounts()
                             current
-                        } else {
-                            accounts?.saveOffline(offline!!.username)
-                            publishAccounts()
-                            null
-                        }
                     }
                     // Refresh may change the player's name; launch with the verified current profile.
-                    val account = premium?.account ?: offline!!
-                    val authentication = premium?.launchAuthentication(microsoftSignIn!!.clientId)
-                        ?: LaunchAuthentication.offline(account)
+                    val account = premium.account
+                    val authentication = premium.launchAuthentication(microsoftSignIn!!.clientId)
                     instances.beginLaunch(instance?.id)
                     leased = true
                     coordinator.launch(

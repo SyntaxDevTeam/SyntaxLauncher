@@ -73,7 +73,8 @@ fun main(args: Array<String>) {
         httpClient, downloader, instanceRepository, versionCatalog, runtimeManager, platform)
     val microsoftSignIn = System.getenv("SYNTAXLAUNCHER_MICROSOFT_CLIENT_ID")
         ?.trim()?.takeIf { it.isNotEmpty() }
-        ?.let { clientId -> runCatching { DesktopMicrosoftSignIn(httpClient, clientId) }.getOrNull() }
+        .let { it ?: "4e52f347-1d66-468f-b379-9168778636dc" }
+        .let { clientId -> runCatching { DesktopMicrosoftSignIn(httpClient, clientId) }.getOrNull() }
     val accounts = pl.syntaxdevteam.syntaxlauncher.core.account.AccountManager(
         paths.configDir.resolve("accounts.properties"),
         pl.syntaxdevteam.syntaxlauncher.core.account.OsRefreshTokenVault(paths.configDir.resolve("credentials")),

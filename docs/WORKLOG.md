@@ -8,6 +8,40 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-22 — Correct authenticated-play policy and prepare renewed AppID review
+
+**Milestone:** v0.3 — Microsoft authentication and review compliance
+**Author/Agent:** Codex
+**Status:** Partial — implementation verified; website/Entra publication and submission tracked below
+
+### Completed
+- Identified the live official AppID form's explicit authentication/ownership requirement regardless of server configuration; the first denial supplied no individual reason.
+- Retired anonymous/offline gameplay in desktop and added an independent coordinator gate before preparation; retained legacy records/worlds.
+- Added Java entitlement validation before profile/session publication; desktop requests fresh renewal/revalidation at every Play, including cached signed-in identities. Failures block gameplay.
+- Used project-owned public client ID by default, added pre-consent privacy/terms links, direct maintainer-selected contact and independence notice. A speculative logo replacement was reverted after maintainer feedback; the original mark is retained.
+- Prepared project-specific public notices and full Entra/API/review evidence checklist; updated active guidance to supersede historical offline-play goals.
+
+### Changed files
+- Core account/launch sources and ownership/coordinator/loader fixture tests; desktop session/default identity/UI/resources and account/render tests.
+- `AGENTS.md`, `README.md`, `PRIVACY.md`, `TERMS.md`, `docs/{ARCHITECTURE,DEVELOPMENT,DESIGN,MILESTONES,ROADMAP,MICROSOFT_APP,APP_REVIEW_2026-10,WORKLOG}.md` — current policy, application review evidence and publication status.
+- Original branding files restored unchanged; no logo redesign is part of this work.
+
+### Verification
+- `./gradlew --offline test build :launcher-desktop:createDistributable` — PASS: 228 tests, 224 passed, four optional live tests skipped; no failures/errors. Linux app image built.
+- Manual verification — inspected 1440×810 and 400×400 rendered UI, original launcher mark (restored after feedback), disabled anonymous Play, readable policy/contact and memory controls. EN/PL/DE regression renders pass. Actual game/live Microsoft API and wider native platform checks NOT RUN.
+- `git diff --check` — PASS before publication.
+
+### Roadmap updates
+- `[x] v0.3 / AppID review correction / authenticated launch, entitlement tests and publisher/contact notices`
+- `[ ] v0.3 / AppID review correction / website, Entra and renewed submission — publication in progress`
+- `[ ] v0.3 / live API/gameplay and native secure-storage matrix — approval/acceptance still outstanding`
+
+### Follow-ups / known issues
+- Website publication, Entra saves, repository push/CI and actual form receipt must be recorded after verification; no claim of allowlisting or live authentication from fixtures.
+- Existing historical previews may retain the retired offline workflow; current source/build and revised request supersede them. No deletion of old releases or user data was authorized or performed.
+- Pre-existing Entra client secret was neither read nor used; native desktop flow embeds no secret. Publisher-domain/partner verification must not be claimed without completing their independent prerequisites.
+
+
 
 
 

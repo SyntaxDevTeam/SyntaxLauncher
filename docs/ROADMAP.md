@@ -1,5 +1,7 @@
 # SyntaxLauncher Roadmap
 
+> **Current access policy — 22 October 2026:** Microsoft authentication, a Minecraft: Java Edition entitlement and a verified Java profile are required before gameplay. The desktop revalidates the session before every launch. Nickname-only/non-premium gameplay is retired for all server configurations; historical offline milestones below are not exceptions. Existing local worlds and profiles are preserved. The first AppID request was declined; revised review and live-account acceptance remain separate gates.
+
 This file is the canonical project progress tracker.
 
 Status rules:
@@ -11,6 +13,13 @@ Status rules:
 Agents and contributors MUST keep this file synchronized with actual repository state. See `AGENTS.md`.
 
 ---
+
+## AppID review correction — 22 October 2026
+
+- [x] Require an authenticated Microsoft Java identity and fresh ownership/profile verification before every desktop Play; reject anonymous/legacy sessions in the common coordinator before preparation. Preserve old records/worlds. Negative HTTP, cached-session, core and EN/PL/DE UI tests plus full build/Linux package pass.
+- [x] Preserve original branding, add in-app independence/contact and public privacy/terms links; record current approval limitations and supersede historic offline-play requirements.
+- [ ] Publish the four application pages on syntaxdevteam.pl, save verified public links/logo/description in Entra and submit one evidence-backed renewed request after the first denial. Do not claim approval from a form receipt.
+- [ ] Approved-AppID live sign-in, Java entitlement/profile checks (including supported purchase/subscription cases), refresh and gameplay; cross-platform native vault/browser acceptance remain required.
 
 ## Mandatory child-first content experience (21 October 2026)
 

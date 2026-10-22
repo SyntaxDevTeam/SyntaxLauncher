@@ -299,7 +299,6 @@ private fun LauncherPanel(
     var accountReload by remember { mutableIntStateOf(0) }
     var premiumError by remember { mutableStateOf<String?>(null) }
     val premiumAccounts by session.premiumAccounts.collectAsState()
-    val savedAccounts by session.savedAccounts.collectAsState()
     val preparingAccount by session.preparingAccount.collectAsState()
     LaunchedEffect(session, accountReload) {
         loadingAccounts = true
@@ -379,8 +378,7 @@ private fun LauncherPanel(
     val isRunning = process.state == MinecraftProcessState.RUNNING ||
         process.state == MinecraftProcessState.STARTING
     val locked = isRunning || launch.isPreparing || mutationBusy || modsBusy || signingInPremium || loadingAccounts || preparingAccount
-    val validName = if (selectedPremiumId != null) selectedPremium != null
-        else nickname.isNotBlank() && OfflineAccount.isValidUsername(nickname.trim())
+    val validName = selectedPremium != null
     val resolved = (metadata as? VersionMetadataState.Ready)?.metadata
         ?.takeIf { it.id == selected?.id }
     val unsavedInstanceSettings = activeInstance != null &&
@@ -706,10 +704,8 @@ private fun LauncherPanel(
     if (accountInfoOpen) {
         AlertDialog(onDismissRequest = { accountInfoOpen = false },
             title = { Text(strings.text("ui.player_accounts")) },
-            text = { Text(strings.text("ui.offline_profiles_work_for_local_play_and_servers_that_accept_o") +
-                strings.text("ui.microsoft_sign_in_is_available_when_this_launcher_has_an_appro") +
-                strings.text("ui.for_development_configure_syntaxlauncher_microsoft_client_id") +
-                strings.text("ui.microsoft_sessions_currently_last_until_you_close_the_launcher")) },
+            text = { Text(strings.text("account.sign_in_required") + "\n\n" +
+                strings.text("account.privacy_summary")) },
             confirmButton = { TextButton(onClick = { accountInfoOpen = false }) { Text(strings.text("ui.got_it")) } })
     }
 
@@ -747,6 +743,7 @@ private fun LauncherPanel(
                                 launch.isPreparing -> strings.text("ui.getting_everything_ready")
                                 launch.phase == LaunchPhase.FAILED -> strings.text("ui.preparation_needs_attention")
                                 process.state == MinecraftProcessState.CRASHED -> strings.text("ui.minecraft_closed_unexpectedly")
+                                selectedPremium == null -> strings.text("account.sign_in")
                                 else -> strings.text("ui.ready_when_you_are")
                             },
                             style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
@@ -776,7 +773,7 @@ private fun LauncherPanel(
                             launch.phase == LaunchPhase.FAILED ||
                                 process.state == MinecraftProcessState.CRASHED -> strings.text("state.error")
                             selectedPremium != null -> "MICROSOFT"
-                            else -> strings.text("ui.offline")
+                            else -> strings.text("account.sign_in")
                         },
                         when {
                             launch.phase == LaunchPhase.FAILED ||
@@ -927,12 +924,6 @@ private fun LauncherPanel(
                 }
                 if (session.microsoftEnabled || premiumAccounts.isNotEmpty()) Row(horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically) {
-                    FilterChip(
-                        selected = selectedPremiumId == null,
-                        onClick = { selectedPremiumId = null },
-                        label = { Text(strings.text("ui.offline_e01fa7")) },
-                        enabled = !locked,
-                    )
                     if (session.microsoftEnabled) {
                         OutlinedButton(
                             onClick = {
@@ -956,39 +947,15 @@ private fun LauncherPanel(
                     }
                 }
                 if (selectedPremiumId == null) {
-                    OutlinedTextField(
-                        value = nickname, onValueChange = { nickname = it },
-                        label = { Text(strings.text("ui.offline_nickname")) },
-                        supportingText = {
-                            Text(if (nickname.isNotBlank() && !OfflineAccount.isValidUsername(nickname.trim()))
-                                strings.text("ui.use_3_16_letters_numbers_or_underscores")
-                                else strings.text("ui.for_local_play_and_offline_compatible_servers"))
-                        },
-                        isError = nickname.isNotBlank() && !OfflineAccount.isValidUsername(nickname.trim()),
-                        enabled = !locked, singleLine = true, modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(SyntaxBrand.controlRadius),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = SyntaxBrand.fieldBorder,
-                            focusedBorderColor = SyntaxBrand.cyan,
-                            unfocusedContainerColor = SyntaxBrand.panel.copy(alpha = 0.5f)),
-                    )
+                    Text(strings.text("account.sign_in_required"),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {
-                    Text(selectedPremium?.username ?: strings.text("ui.this_microsoft_session_is_unavailable"),
-                        color = if (selectedPremium == null) MaterialTheme.colorScheme.error
-                            else MaterialTheme.colorScheme.onSurface)
+                    Text(selectedPremium?.username ?: strings.text("ui.this_microsoft_session_is_unavailable"))
                     Text(strings.text("ui.verified_minecraft_java_profile_microsoft"),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                if (selectedPremiumId == null) savedAccounts.filter { !it.microsoft && it.account.username != nickname.trim() }
-                    .forEach { profile ->
-                        FilterChip(
-                            selected = false,
-                            onClick = { nickname = profile.account.username },
-                            label = { Text(profile.account.username) },
-                            enabled = !locked,
-                        )
-                    }
                 premiumAccounts.forEach { profile ->
                     Row(modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
@@ -1017,6 +984,15 @@ private fun LauncherPanel(
                         }, enabled = !locked) { Text(strings.text("ui.sign_out")) }
                     }
                 }
+                val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = { uriHandler.openUri("https://syntaxdevteam.pl/p/syntaxlauncher-prywatnosc") }) {
+                        Text(strings.text("legal.privacy"))
+                    }
+                    TextButton(onClick = { uriHandler.openUri("https://syntaxdevteam.pl/p/syntaxlauncher-warunki-uzytkowania") }) {
+                        Text(strings.text("legal.terms"))
+                    }
+                }
                 premiumError?.let {
                     Text(it, style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error)
@@ -1025,6 +1001,10 @@ private fun LauncherPanel(
                     }
                 }
             }
+            Text(strings.text("legal.disclaimer"), style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("SyntaxDevTeam · wieszczy85@gmail.com", style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 SectionLabel(strings.text("ui.game_version"), SyntaxSymbol.Cube)
                 if (activeInstance != null) {
@@ -1126,7 +1106,7 @@ private fun LauncherPanel(
                     MinecraftProcessState.STOPPED -> strings.text("ui.last_exit_code_0", process.exitCode ?: "?")
                     MinecraftProcessState.CRASHED -> process.errorMessage ?: strings.text("ui.minecraft_crashed")
                     else -> if (selectedPremium != null) strings.text("ui.microsoft_account") + selectedPremium.username
-                        else strings.text("ui.offline_profile") + (activeInstance?.loader?.id?.replaceFirstChar { it.uppercase() } ?: "Vanilla")
+                        else strings.text("account.sign_in_required")
                 },
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall,

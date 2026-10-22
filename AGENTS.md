@@ -10,7 +10,7 @@ SyntaxLauncher is a modular Minecraft launcher written primarily in Kotlin. The 
 
 The launcher must ultimately be able to support:
 
-- offline/non-premium accounts for servers that permit offline-mode clients;
+- authenticated play only, with Minecraft: Java Edition entitlement and profile verification before every launch; preserve legacy offline identity records and user worlds only for compatibility;
 - official Microsoft/Minecraft authentication for premium accounts;
 - multiple Minecraft versions;
 - automatic Java runtime selection and installation;
@@ -165,6 +165,8 @@ Required characteristics include sensible timeouts, cancellation, progress repor
 Create abstractions when there are at least two realistic implementations or when a documented future milestone requires a stable boundary. Keep v0.1 deliberately small.
 
 ## 8. Authentication and security rules
+
+**22 October 2026 AppID review correction:** The official review form requires authentication and game ownership before gameplay regardless of server configuration. This supersedes older offline/non-premium product requirements and milestone descriptions. Do not re-enable nickname-only play, cached/offline ownership bypasses, alternate client IDs as a workaround, or fallback after failed checks. Fresh entitlement/profile verification is required on the production desktop Play path; retain worlds and legacy records without making them playable identities.
 
 - Premium authentication must use official Microsoft/Xbox/Minecraft authentication flows.
 - Never collect or store a user's Microsoft password.

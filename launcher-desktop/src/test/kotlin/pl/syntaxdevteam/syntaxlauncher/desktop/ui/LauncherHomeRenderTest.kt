@@ -53,20 +53,16 @@ class LauncherHomeRenderTest {
     @TempDir lateinit var root: Path
 
     @Test
-    fun homeShowsReadyControlsAndInvalidNicknameDisablesPlay() = runBlocking(Dispatchers.Swing) {
+    fun homeRequiresMicrosoftSignInBeforePlay() = runBlocking(Dispatchers.Swing) {
         val session = session()
         val scene = ImageComposeScene(1440, 810, coroutineContext = Dispatchers.Swing) { SyntaxLauncherApp(session) }
         try {
             scene.awaitReady()
             scene.screenshot("home-1440x810")
             assertTrue(scene.text("MEMORY ALLOCATION").boundsInRoot.bottom < 810)
-            assertTrue(scene.text("Offline profile · Vanilla").boundsInRoot.bottom < 780)
-            val play = scene.text("PLAY MINECRAFT")
-            assertFalse(play.config.contains(SemanticsProperties.Disabled))
-            val nickname = scene.nodes().first { it.config.contains(SemanticsActions.SetText) }
-            nickname.config[SemanticsActions.SetText].action!!.invoke(AnnotatedString("invalid nickname!"))
-            scene.frames()
+            assertNotNull(scene.text("Sign in to play"))
             assertTrue(scene.text("PLAY MINECRAFT").config.contains(SemanticsProperties.Disabled))
+            assertTrue(scene.nodes().none { it.label() == "Offline nickname" })
         } finally { scene.close(); session.shutdown() }
     }
 
@@ -262,7 +258,7 @@ class LauncherHomeRenderTest {
     }
 
     @Test
-    fun savedOfflinePlayerCanBeSelectedWithoutSigningIn() = runBlocking(Dispatchers.Swing) {
+    fun legacyOfflinePlayerCannotEnableGameplay() = runBlocking(Dispatchers.Swing) {
         for (language in UiLanguage.entries) {
             val session = session(savedPlayer = true)
             val strings = UiStrings(language)
@@ -271,11 +267,8 @@ class LauncherHomeRenderTest {
             }
             try {
                 scene.awaitReady(strings.text("ui.play_minecraft"))
-                scene.text("ChildTwo").click()
-                scene.frames()
-                val nickname = scene.nodes().first { it.config.contains(SemanticsActions.SetText) }
-                assertEquals("ChildTwo", nickname.config[SemanticsProperties.EditableText].text)
-                assertFalse(scene.text(strings.text("ui.play_minecraft")).config.contains(SemanticsProperties.Disabled))
+                assertTrue(scene.nodes().none { it.label() == "ChildTwo" })
+                assertTrue(scene.text(strings.text("ui.play_minecraft")).config.contains(SemanticsProperties.Disabled))
                 scene.screenshot("home-saved-player-${language.code}")
             } finally { scene.close(); session.shutdown() }
         }
@@ -327,8 +320,7 @@ class LauncherHomeRenderTest {
 
     private suspend fun ImageComposeScene.awaitReady(playLabel: String = "PLAY MINECRAFT") {
         withTimeout(10000.milliseconds) {
-            while (nodes().none { it.label() == playLabel &&
-                    !it.config.contains(SemanticsProperties.Disabled) }) {
+            while (nodes().none { it.label() == playLabel }) {
                 render().close()
                 delay(20.milliseconds)
             }

@@ -1,5 +1,7 @@
 # SyntaxLauncher Milestones
 
+> **Current access policy — 22 October 2026:** Microsoft authentication, a Minecraft: Java Edition entitlement and a verified Java profile are required before gameplay. The desktop revalidates the session before every launch. Nickname-only/non-premium gameplay is retired for all server configurations; historical offline milestones below are not exceptions. Existing local worlds and profiles are preserved. The first AppID request was declined; revised review and live-account acceptance remain separate gates.
+
 This document describes the intent, scope, implementation boundaries and acceptance expectations for every planned pre-1.0 release.
 
 `docs/ROADMAP.md` is the canonical checkbox tracker. This file explains what each milestone is supposed to mean.

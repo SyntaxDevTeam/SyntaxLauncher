@@ -1,5 +1,7 @@
 # SyntaxLauncher Design Guidelines
 
+**22 October 2026:** Gameplay requires Microsoft authentication and current Java entitlement/profile verification. Keep Play disabled without a saved verified Microsoft profile; no nickname-only choice. Show Privacy/Terms before consent, direct contact and an independence notice in the player/settings panel. Preserve the original launcher logo at the maintainer’s request; an unconfirmed branding concern does not authorize a redesign. Preserve the simple content catalog and existing worlds.
+
 This document defines the mandatory visual and interaction principles for SyntaxLauncher.
 
 The launcher should attract attention because it feels polished, deliberate and modern — not because it fills the screen with effects, controls or decoration.

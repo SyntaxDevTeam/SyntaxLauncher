@@ -156,14 +156,27 @@ class DesktopLauncherSessionAccountsTest {
         } finally { f.close() }
     }
 
-    @Test fun offlinePlaySavesPlayerWithoutAccessingCredentialStore() = runBlocking {
+    @Test fun cachedSignInStillRevalidatesBeforePlay() = runBlocking {
+        val f = Fixture()
+        try {
+            f.session.addPremiumAccount()
+            f.refresh = { error("Ownership check unavailable.") }
+            assertTrue(f.session.play(f.version, "ChildOne", 2048, premiumId = id.toString()))
+            f.awaitAccountPreparation()
+            assertEquals("Ownership check unavailable.", f.session.launchIssue.value)
+            assertFalse(f.captured.isCompleted)
+            assertEquals(MinecraftProcessState.IDLE, f.processes.status.value.state)
+        } finally { f.close() }
+    }
+
+    @Test fun anonymousPlayIsRejectedBeforeNetworkOrCredentials() = runBlocking {
         val f = Fixture()
         try {
             f.vault.locked = true
-            assertTrue(f.session.play(f.version, "ChildOne", 2048))
-            withTimeout(10000) { f.captured.await() }
-            f.awaitAccountPreparation()
-            assertEquals("ChildOne", f.session.savedAccounts.value.single().account.username)
+            assertFalse(f.session.play(f.version, "ChildOne", 2048))
+            assertFalse(f.captured.isCompleted)
+            assertTrue(f.session.savedAccounts.value.isEmpty())
+            assertTrue(f.session.launchIssue.value.orEmpty().contains("Sign in"))
             assertTrue(f.vault.tokens.isEmpty())
         } finally { f.close() }
     }

@@ -56,11 +56,11 @@ class AccountManager(
         sessions[id] = session
     }
 
-    suspend fun session(id: String): PremiumSession = io {
+    suspend fun session(id: String, requireFresh: Boolean = false): PremiumSession = io {
         val identity = decode(read()).firstOrNull { it.microsoft && it.account.uuid.toString() == id }
             ?: throw IllegalStateException("Microsoft account was removed. Sign in again.")
         val cached = sessions[id]
-        if (cached != null && cached.expiresAt.isAfter(Instant.now(clock).plusSeconds(180))) return@io cached
+        if (!requireFresh && cached != null && cached.expiresAt.isAfter(Instant.now(clock).plusSeconds(180))) return@io cached
         val credential = vault.read(key(id))
             ?: throw IllegalStateException("Microsoft session is unavailable. Sign in again using Add Microsoft.")
         val result = refresh(credential)
