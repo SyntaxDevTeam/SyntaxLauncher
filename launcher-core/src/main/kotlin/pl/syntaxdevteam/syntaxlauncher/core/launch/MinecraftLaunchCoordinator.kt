@@ -69,57 +69,7 @@ class MinecraftLaunchCoordinator(
     ): LaunchPipelineStatus {
         if (!launchMutex.tryLock()) return mutableStatus.value
         try {
-            // Fail before downloading a game whose runtime is not known.
-            val requirement = version.javaRequirement
-                ?: throw IllegalArgumentException(
-                    "Minecraft does not declare a supported Java runtime.",
-                )
-            val delayedInstaller = loader != null && loaders?.requiresInstallation(loader.id) == true
-            val loaderVersion = if (loader == null || delayedInstaller) version else {
-                stage(LaunchPhase.PREPARING_LOADER, "Resolving ${loader.id} ${loader.version}")
-                val registry = loaders ?: throw ModLoaderException("Mod loader service is not configured.")
-                registry.resolve(version, loader)
-            }
-            val effectiveVersion = graphics.resolve(loaderVersion, instanceLayout, loader)
-            stage(LaunchPhase.PREPARING_GAME, "Preparing Minecraft ${version.id}")
-            val vanillaPrepared = preparation.prepare(effectiveVersion, platform, instanceLayout) { event ->
-                when (event) {
-                    is MinecraftPreparationEvent.StageChanged -> {
-                        val name = when (event.stage) {
-                            MinecraftPreparationStage.CORE_FILES -> "Downloading game files"
-                            MinecraftPreparationStage.ASSETS -> "Checking and downloading assets"
-                            MinecraftPreparationStage.NATIVES -> "Extracting native libraries"
-                            MinecraftPreparationStage.COMPLETE -> "Game files ready"
-                        }
-                        mutableStatus.update { it.copy(detail = name, currentFileProgress = null) }
-                    }
-                    is MinecraftPreparationEvent.Download -> downloaded(event.event)
-                }
-            }
-
-            stage(LaunchPhase.PREPARING_JAVA, "Checking Java ${requirement.majorVersion}")
-            val runtime = runtimes.resolve(requirement, platform) { event ->
-                when (event) {
-                    is JavaRuntimeEvent.CheckingInstalled -> detail("Checking installed Java")
-                    is JavaRuntimeEvent.InstalledRuntimeFound -> detail("Using Java ${event.runtime.majorVersion}")
-                    is JavaRuntimeEvent.ResolvingMetadata -> detail("Finding a compatible Java runtime")
-                    is JavaRuntimeEvent.ManifestResolved -> detail("Java runtime: ${event.fileCount} files")
-                    is JavaRuntimeEvent.Installing -> detail("Installing Java: ${event.fileCount} files")
-                    is JavaRuntimeEvent.Verifying -> detail("Verifying Java ${event.expectedMajorVersion}")
-                    is JavaRuntimeEvent.Ready -> detail("Java ${event.runtime.majorVersion} ready")
-                    is JavaRuntimeEvent.Download -> downloaded(event.event)
-                }
-            }
-
-            val prepared = if (delayedInstaller) {
-                val selected = loader
-                stage(LaunchPhase.PREPARING_LOADER, "Installing " + selected.id + " " + selected.version)
-                val installed = loaders.install(version, selected, instanceLayout, runtime)
-                stage(LaunchPhase.PREPARING_GAME, "Verifying installed ${selected.id} files")
-                preparation.prepare(installed, platform, instanceLayout) { event ->
-                    if (event is MinecraftPreparationEvent.Download) downloaded(event.event)
-                }
-            } else vanillaPrepared
+            val (prepared, runtime) = prepareShared(version, instanceLayout, loader)
             stage(LaunchPhase.BUILDING_PLAN, "Preparing launch arguments")
             val plan = plans.build(
                 LaunchRequest(
@@ -145,6 +95,71 @@ class MinecraftLaunchCoordinator(
             launchMutex.unlock()
         }
         return mutableStatus.value
+    }
+
+    /** Common game/Java/loader preparation without a process or account. */
+    suspend fun prepareForInstallation(version: ResolvedMinecraftVersion, instanceLayout: MinecraftInstallationLayout,
+        loader: ModLoaderSelection?) {
+        launchMutex.lock()
+        try { prepareShared(version, instanceLayout, loader) }
+        finally { stage(LaunchPhase.IDLE, "Ready to play"); launchMutex.unlock() }
+    }
+
+    private suspend fun prepareShared(version: ResolvedMinecraftVersion, instanceLayout: MinecraftInstallationLayout,
+        loader: ModLoaderSelection?): Pair<pl.syntaxdevteam.syntaxlauncher.core.minecraft.PreparedMinecraftVersion,
+            pl.syntaxdevteam.syntaxlauncher.core.java.JavaRuntime> {
+        // Fail before downloading a game whose runtime is not known.
+        val requirement = version.javaRequirement
+            ?: throw IllegalArgumentException(
+                "Minecraft does not declare a supported Java runtime.",
+            )
+        val delayedInstaller = loader != null && loaders?.requiresInstallation(loader.id) == true
+        val loaderVersion = if (loader == null || delayedInstaller) version else {
+            stage(LaunchPhase.PREPARING_LOADER, "Resolving ${loader.id} ${loader.version}")
+            val registry = loaders ?: throw ModLoaderException("Mod loader service is not configured.")
+            registry.resolve(version, loader)
+        }
+        val effectiveVersion = graphics.resolve(loaderVersion, instanceLayout, loader)
+        stage(LaunchPhase.PREPARING_GAME, "Preparing Minecraft ${version.id}")
+        val vanillaPrepared = preparation.prepare(effectiveVersion, platform, instanceLayout) { event ->
+            when (event) {
+                is MinecraftPreparationEvent.StageChanged -> {
+                    val name = when (event.stage) {
+                        MinecraftPreparationStage.CORE_FILES -> "Downloading game files"
+                        MinecraftPreparationStage.ASSETS -> "Checking and downloading assets"
+                        MinecraftPreparationStage.NATIVES -> "Extracting native libraries"
+                        MinecraftPreparationStage.COMPLETE -> "Game files ready"
+                    }
+                    mutableStatus.update { it.copy(detail = name, currentFileProgress = null) }
+                }
+                is MinecraftPreparationEvent.Download -> downloaded(event.event)
+            }
+        }
+
+        stage(LaunchPhase.PREPARING_JAVA, "Checking Java ${requirement.majorVersion}")
+        val runtime = runtimes.resolve(requirement, platform) { event ->
+            when (event) {
+                is JavaRuntimeEvent.CheckingInstalled -> detail("Checking installed Java")
+                is JavaRuntimeEvent.InstalledRuntimeFound -> detail("Using Java ${event.runtime.majorVersion}")
+                is JavaRuntimeEvent.ResolvingMetadata -> detail("Finding a compatible Java runtime")
+                is JavaRuntimeEvent.ManifestResolved -> detail("Java runtime: ${event.fileCount} files")
+                is JavaRuntimeEvent.Installing -> detail("Installing Java: ${event.fileCount} files")
+                is JavaRuntimeEvent.Verifying -> detail("Verifying Java ${event.expectedMajorVersion}")
+                is JavaRuntimeEvent.Ready -> detail("Java ${event.runtime.majorVersion} ready")
+                is JavaRuntimeEvent.Download -> downloaded(event.event)
+            }
+        }
+
+        val prepared = if (delayedInstaller) {
+            val selected = loader
+            stage(LaunchPhase.PREPARING_LOADER, "Installing " + selected.id + " " + selected.version)
+            val installed = loaders.install(version, selected, instanceLayout, runtime)
+            stage(LaunchPhase.PREPARING_GAME, "Verifying installed ${selected.id} files")
+            preparation.prepare(installed, platform, instanceLayout) { event ->
+                if (event is MinecraftPreparationEvent.Download) downloaded(event.event)
+            }
+        } else vanillaPrepared
+        return prepared to runtime
     }
 
     private fun stage(phase: LaunchPhase, message: String) {

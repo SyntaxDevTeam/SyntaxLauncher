@@ -228,7 +228,34 @@ class LauncherHomeRenderTest {
         assertEquals("", session.preferences.load().selectedInstanceId)
     }
 
-    private suspend fun session(): DesktopLauncherSession {
+    @Test fun modpacksCanBeDiscoveredBeforeCreatingAnySavedGame() = runBlocking(Dispatchers.Swing) {
+        for (language in UiLanguage.entries) for ((width, height) in listOf(1440 to 810, 400 to 400)) {
+            val session = session(packCatalog = true)
+            val strings = UiStrings(language)
+            val scene = ImageComposeScene(width, height, coroutineContext = Dispatchers.Swing) {
+                CompositionLocalProvider(LocalStrings provides strings) { SyntaxLauncherApp(session) }
+            }
+            try {
+                scene.awaitReady(strings.text("ui.play_minecraft"))
+                fun packButton() = scene.nodes().first { it.config.getOrNull(SemanticsProperties.TestTag) == "browse-modpacks" }
+                withTimeout(10000) {
+                    while (packButton().boundsInRoot.height < 40) {
+                        scene.nodes().filter { it.config.contains(SemanticsActions.ScrollBy) }.forEach {
+                            it.config[SemanticsActions.ScrollBy].action!!.invoke(0f, 35f)
+                        }
+                        scene.frames()
+                    }
+                }
+                val button = packButton()
+                assertFalse(button.config.contains(SemanticsProperties.Disabled))
+                assertTrue(session.instances.list().instances.isEmpty())
+                assertTrue(button.boundsInRoot.left >= 0 && button.boundsInRoot.right <= width && button.boundsInRoot.bottom <= height)
+                scene.screenshot("home-modpacks-${language.code}-$width")
+            } finally { scene.close(); session.shutdown() }
+        }
+    }
+
+    private suspend fun session(packCatalog: Boolean = false): DesktopLauncherSession {
         val state = withContext(Dispatchers.IO) {
             Files.createTempDirectory(root, "profile-")
         }
@@ -256,7 +283,7 @@ class LauncherHomeRenderTest {
                 MojangJavaRuntimeManager(http, downloads, state.resolve("runtimes")), LaunchPlanBuilder(),
                 processes, layout, MinecraftPlatform.detect()), processes, preferences,
             MinecraftInstanceRepository(state.resolve("instances"), state.resolve("trash"), layout),
-            layout, http)
+            layout, http, loaders = if (packCatalog) pl.syntaxdevteam.syntaxlauncher.core.loader.ModLoaderRegistry(emptyList()) else null)
     }
 
     private suspend fun DesktopLauncherSession.shutdown() {

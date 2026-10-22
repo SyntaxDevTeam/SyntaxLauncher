@@ -16,7 +16,7 @@ Agents and contributors MUST keep this file synchronized with actual repository 
 
 - [x] Record the non-negotiable audience/workflow in AGENTS.md and DESIGN.md: children browse inside the launcher, choose a single item or ready-made set and Install/Play; versions, loaders, Java, renderers and required dependencies belong to the launcher, not the child. Manual files and technical plans stay advanced.
 - [x] Introduce the shared one-click Mods/Textures catalog for saved games, translated search/install/status/retry/cancel controls and automatic compatible mod/resource-pack dependency selection. Resource packs are selected automatically with original game-settings backups; deterministic backend/EN/PL/DE compact/wide UI regressions pass.
-- [ ] Complete the same simple catalog experience for shaders with automatic renderer setup, OptiFine and ready-made modpacks; a ZIP copy, backend-only service or placeholder category does not satisfy this acceptance requirement. The v0.9 graphics scope has private maintainer acceptance; ready-made sets remain v0.10 work and the wider native matrix remains v1.0 validation.
+- [x] Complete the same simple catalog experience for shaders with automatic renderer setup, OptiFine and ready-made modpacks; a ZIP copy, backend-only service or placeholder category does not satisfy this acceptance requirement. The v0.9 graphics scope has private maintainer acceptance; v0.10 now supplies required-client Modrinth sets with complete preparation, and the wider native/gameplay matrix remains v1.0 validation.
 
 ## Cross-milestone desktop development ergonomics (October 2026)
 
@@ -644,39 +644,40 @@ Goal: manage graphics-related instance content without treating every component 
 
 Goal: install/export repeatable instance definitions and support a mainstream modpack format.
 
-**Status:** 🚧 First implementation phase: a read-only Modrinth index planner validates requested components, client files, hashes, sources and destinations. ZIP import, downloads, overrides, isolated instance publication and the one-action catalog workflow remain open; no working-looking modpack tab is exposed yet.
+**Status: implementation and installation acceptance complete within the documented Modrinth client scope (22 October 2026).** The child-first catalog installs required files and prepares the exact Minecraft/loader/managed runtime before a new UUID becomes visible and selected. Real Simply Optimized 1.21.1-6.0 / Fabric 0.17.3 cold installation and original export pass; no graphical Minecraft boot is claimed. Normal tests verify isolation/failure cleanup and translated UI. Broader gameplay/native matrix remains under v1.0. See [TESTING_V0.10.md](TESTING_V0.10.md). No release/tag/product-version change is implied.
 
 ## Modpack model
 
 - [x] Define a UI-independent deterministic modpack installation plan with exact requested Minecraft/loader versions, required/optional client files, mirrored URLs, sizes, SHA-1/SHA-512 and retained unknown manifest metadata.
-- [x] Validate format-1 Minecraft index UTF-8/bounds, known single-loader requirements, client/server environments, supported HTTPS sources, both hash fields and portable nonconflicting destinations without HTTP or filesystem mutation. This is not `.mrpack` ZIP import or file verification.
-- [ ] Map modpack manifest to instance creation.
-- [ ] Preserve overrides/configs appropriately.
-- [ ] Verify downloaded files.
-- [ ] Keep user-created mutable data safe on update/reinstall.
+- [x] Validate format-1 Minecraft index UTF-8/bounds, known single-loader requirements, client/server environments, supported HTTPS sources, both hash fields and portable nonconflicting destinations without HTTP or filesystem mutation.
+- [x] Map modpack manifest to instance creation: allocate a fresh UUID with exact game/loader, privately stage mutable content and publish only after successful verified preparation.
+- [x] Preserve overrides/configs appropriately: common overrides followed by client overrides; dedicated-server overrides/files are not applied; unsafe/conflicting destinations and corrupt ZIP entries fail before game publication.
+- [x] Verify downloaded files using declared SHA-1, SHA-512 and byte count through the shared downloader, with bounded transfers and mirror fallback.
+- [x] Keep user-created mutable data safe on update/reinstall: every install/new release creates a separate game; existing games/worlds/configs are never installation targets.
+- [x] Add transactional prepared-instance publication without holding the repository mutex throughout downloads; existing instance listing/launch leases stay responsive. Failed/cancelled staging never appears as a completed game.
 
 ## Modrinth modpacks
 
-- [ ] Browse compatible ready-made modpacks/sets in the same child-first launcher catalog and create an isolated playable game with one primary action; file import remains secondary.
-
-- [ ] Import `.mrpack`.
-- [ ] Resolve Minecraft version and loader.
-- [ ] Install referenced files/dependencies.
-- [ ] Apply overrides.
-- [ ] Create a new isolated instance.
-- [ ] Report unsupported/invalid pack content clearly.
+- [x] Browse/search ready-made modpacks/sets in the same child-first catalog and a home action available before creating a saved game; Install automatically prepares a separate playable game and selects it. Exact game/loader support is checked before publication; invalid/unsupported requirements have a recoverable translated error. File import remains secondary.
+- [x] Import `.mrpack` as a bounded validated archive; verify payload CRC/sizes, index and client override destinations without following ZIP attributes/links.
+- [x] Resolve exact Minecraft version and loader against existing Mojang/loader services without silent version replacement.
+- [x] Install referenced required client files/dependencies, excluding optional and dedicated-server files under the documented initial policy.
+- [x] Apply validated client overrides in the correct order.
+- [x] Create a new isolated instance only after required game, loader and managed Java preparation; reuse the common Play preparation path without an account/process launch.
+- [x] Report unsupported/invalid packs, checksum failures, network, runtime and storage failures distinctly; show install/progress/cancel/retry states, with no false Ready result.
 
 ## Export
 
-- [ ] Export compatible instance definition where feasible.
-- [ ] Exclude files that must not be redistributed.
-- [ ] Preserve metadata needed for deterministic reconstruction.
+- [x] Export a compatible reconstructable pack definition where feasible: export the verified original archive for an imported/catalog-installed pack through My packs. Arbitrary modified-instance export is outside this scope.
+- [x] Do not add downloaded mod binaries, locally installed files, accounts or player worlds to exports; preserve author-supplied archive bytes/overrides instead of collecting a user's game directory. Original pack redistribution still follows its author's terms.
+- [x] Preserve original manifest metadata/unknown properties and exact references/overrides; schema-1 receipt stores source SHA-512 and optional-file policy. Missing receipt leaves ordinary instances unchanged; unknown schemas/changed archives refuse export without mutation.
 
 ## v0.10 quality gate
 
-- [ ] A supported pack installs into a new instance from scratch.
-- [ ] Pack installation does not overwrite unrelated instances.
-- [ ] Invalid/incomplete packs fail without leaving a falsely completed instance.
+- [x] A supported pack installs into a new instance from scratch: actual Simply Optimized 1.21.1-6.0 / Fabric 0.17.3 with required pack files, Minecraft libraries/assets and managed Java, then original export; no graphical game boot was performed.
+- [x] Pack installation does not overwrite unrelated instances or an earlier installation of the same pack; deterministic world/config preservation and independent UUID tests pass.
+- [x] Invalid/incomplete packs and cancelled/failed preparation never publish a falsely completed instance; deterministic CRC/hash/path/compatibility/cancellation/failure fixtures pass.
+- [x] Catalog entry and one-click/retry/local import behavior render/interact in EN/PL/DE at wide/400×400 sizes; full regression tests/build and local Linux distributable pass.
 
 ---
 

@@ -10,6 +10,7 @@ import java.nio.file.SimpleFileVisitor
 import java.nio.file.StandardCopyOption
 import java.nio.file.attribute.BasicFileAttributes
 import java.util.UUID
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -192,6 +193,36 @@ class MinecraftInstanceRepository(
                 publishNew(value)
                 value
             }
+        }
+    }
+
+    /** Prepare an unpublished game; only a successful, non-cancelled callback publishes it. */
+    suspend fun createPrepared(name: String, minecraftVersionId: String, loader: ModLoaderSelection?,
+        prepare: suspend (MinecraftInstance, MinecraftInstallationLayout) -> Unit): MinecraftInstance = withContext(Dispatchers.IO) {
+        val value = MinecraftInstance(id = UUID.randomUUID().toString(), name = name.trim(), minecraftVersionId = minecraftVersionId, loader = loader)
+        val staging = root.resolve(".creating-" + value.id)
+        val destination = instanceDirectory(value.id)
+        activity.withInactive(value.id) {
+            mutex.withLock {
+                var ancestor: Path? = root.toAbsolutePath().normalize()
+                while (ancestor != null) {
+                    require(!Files.isSymbolicLink(ancestor)) { "Instance storage is redirected" }
+                    ancestor = ancestor.parent
+                }
+                Files.createDirectories(root)
+                Files.createDirectory(staging)
+            }
+            try {
+                Files.createDirectory(staging.resolve("game"))
+                prepare(value, sharedLayout.copy(gameDir = staging.resolve("game")))
+                kotlinx.coroutines.currentCoroutineContext().ensureActive()
+                mutex.withLock {
+                    require(!Files.exists(destination, LinkOption.NOFOLLOW_LINKS)) { "Instance UUID already exists" }
+                    write(staging, value)
+                    move(staging, destination)
+                }
+                value
+            } finally { if (Files.exists(staging, LinkOption.NOFOLLOW_LINKS)) eraseStaging(staging) }
         }
     }
 

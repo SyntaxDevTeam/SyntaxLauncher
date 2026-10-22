@@ -295,6 +295,7 @@ private fun LauncherPanel(
     var managerOpen by remember { mutableStateOf(false) }
     var editingInstance by remember { mutableStateOf<MinecraftInstance?>(null) }
     var managingMods by remember { mutableStateOf<MinecraftInstance?>(null) }
+    var browsingModpacks by remember { mutableStateOf(false) }
     var browseModsFirst by remember { mutableStateOf(false) }
     var quickSetupOpen by remember { mutableStateOf(false) }
     var lastVanillaId by remember { mutableStateOf("") }
@@ -609,10 +610,23 @@ private fun LauncherPanel(
         )
     }
 
+    fun selectInstalledPack(created: MinecraftInstance) {
+        scope.launch {
+            inventory = session.instances.list()
+            chooseInstance(created.id)
+            browsingModpacks = false
+            managingMods = null
+        }
+    }
+    if (browsingModpacks) ModpackCatalogDialog(session, canModify = !isRunning && !launch.isPreparing && !mutationBusy,
+        onBusyChange = { modsBusy = it }, onInstalled = ::selectInstalledPack,
+        onDismiss = { if (!modsBusy) browsingModpacks = false })
+
     managingMods?.let { target ->
         if (browseModsFirst) ContentCatalogDialog(target, session,
             canModify = !isRunning && !launch.isPreparing && !mutationBusy,
             onBusyChange = { modsBusy = it }, onManage = { browseModsFirst = false },
+            onInstanceInstalled = ::selectInstalledPack,
             onDismiss = { if (!modsBusy) managingMods = null })
         else LocalModsDialog(
             instance = target,
@@ -809,11 +823,13 @@ private fun LauncherPanel(
                     if (activeInstance != null) TextButton(onClick = {
                         browseModsFirst = true
                         managingMods = activeInstance
-                    }, enabled = !locked) { Text(strings.text("catalog.open")) }
-                    else Text(strings.text("game.vanilla_hint"), style = MaterialTheme.typography.bodySmall,
+                    }, enabled = !locked, modifier = Modifier.weight(1f)) { Text(strings.text("catalog.open")) }
+                    else if (session.modpackCatalog == null) Text(strings.text("game.vanilla_hint"), style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                    if (session.modpackCatalog != null) TextButton(onClick = { browsingModpacks = true },
+                        enabled = !locked, modifier = Modifier.weight(1f).testTag("browse-modpacks")) { Text(strings.text("catalog.modpacks")) }
                     TextButton(onClick = { managerOpen = true }, enabled = !locked,
-                        modifier = Modifier.testTag("manage-games")) { Text(strings.text("game.my_games")) }
+                        modifier = Modifier.weight(1f).testTag("manage-games")) { Text(strings.text("game.my_games")) }
                 }
                 if (missingInstance) {
                     Text(strings.text("ui.selected_instance_is_unavailable_choose_a_valid_instance_or_le"),

@@ -10,6 +10,57 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 
 
+
+## 2026-10-22 — Complete Modrinth modpack installation and prepare all pending sources for publication
+
+**Milestone:** v0.10
+**Author/Agent:** Codex / GPT-6
+**Status:** Completed
+
+Scope: complete client `.mrpack` installation/catalog/preparation and managed original-definition export. Graphical gameplay/all-platform certification, arbitrary modified-instance export and destructive in-place pack updates are not claimed.
+
+### Completed
+- Added a working Modpacks catalog on the home screen before any saved game exists, and in Choose extras. One Install action selects a published release, installs its required client files/overrides, prepares Minecraft/loader/managed Java and selects the completed new game for Play. Search, empty/error/retry/cancel/progress states and EN/PL/DE compact layouts remain shared with the child-first catalog. Local import lives under More; original pack export is a secondary My packs action.
+- Implemented strict bounded `.mrpack` inspection: complete ZIP CRC/size checks, UTF-8 index and portable destinations, common/client override precedence, exclusion of optional/dedicated-server files, initial HTTPS mirror policy and case/file-parent/private-metadata collision refusal. Required payloads use the central downloader with declared SHA-1, SHA-512 and byte count.
+- Added `createPrepared`: a privately staged fresh UUID publishes only after success; long downloads do not hold the repository mutex. Existing games remain listable/leaseable. Errors/cancellation remove owned staging without publishing a false completed profile. Every reinstall/new release creates a separate UUID, preserving prior worlds/configs and unrelated instances.
+- Refactored the existing coordinator preparation into a shared routine used by Play and account-free pack setup. Exact game/loader/runtime metadata remains authoritative; no duplicate hardcoded launch recipe or new authentication pipeline was introduced.
+- Added an additive schema-1 modpack receipt/source directory, retaining original index/unknown metadata, source SHA-512 and explicit optional-file policy. Existing instances need no migration; unknown future receipt schemas and changed originals refuse export without mutation. Export preserves the original archive only and never collects a user's current game tree or adds local worlds/accounts/downloaded binaries. Existing output files and game directories are not export targets. Author-provided source content/terms remain intact.
+- Added deterministic catalog/installer/preparation/export fixtures and translated UI interactions, covering malformed archives/CRC/hashes/paths, exact loader refusal, safe failures/cancellation, unchanged worlds/configs and original export. Ran a real public Simply Optimized 1.21.1-6.0 / Fabric 0.17.3 installation from fresh temporary directories: 18 referenced files plus Minecraft libraries/assets and managed Java 21, followed by exact original export. No graphical game boot or real account/world was used.
+- Detected that tracked edits had returned to their earlier state during development, restored the missing connections, retained a local patch backup and reran the entire suite/build/package with --rerun-tasks. The cause was not established; final validation uses the restored source state, not earlier cached results.
+- Included the pending untracked v0.9 graphics services, standalone worker, tests/checklist and initial v0.10 planner in the publication scope requested by the maintainer. Those source files were required by already tracked integration changes; no downloaded game/mod/runtime binaries or generated reports are included.
+
+### Changed files
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/modpack/{ModrinthModpackPlanner,ModpackArchive,ModpackInstaller,ModpackCatalog}.kt` — plan, bounded ZIP/override validation, verified client installation, receipt/original export and catalog.
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/{instance/MinecraftInstanceRepository,launch/MinecraftLaunchCoordinator}.kt` — transactional prepared-instance publication and shared account-free game setup.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/{DesktopLauncherSession,ui/ContentCatalog,ui/SyntaxLauncherApp,ui/InstalledPacks}.kt` — services, first-game catalog, automatic new-game selection, local import/original export and compact home actions.
+- `launcher-desktop/src/main/resources/i18n/{en,pl,de}.properties` — simple pack actions/progress and actionable compatibility/integrity/runtime/storage errors.
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/modpack/{ModrinthModpackPlannerTest,ModpackInstallerTest,ModpackOfficialSmokeTest}.kt` — normal deterministic fixtures and separate opt-in real installation evidence.
+- `launcher-desktop/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/{ContentCatalogTest,LauncherHomeRenderTest}.kt` — one-click/error/local-import and pre-existing-game-free translated wide/compact regressions.
+- Pending sources from the previous entry: `core/content/{GameSettingsWrite,IrisRendererSetup,LocalGraphicsProfile,OptiFineCatalog,ShaderPackSelection}.kt`, `core/content/OptiFineInstallWorker.java`, related graphics tests, `ui/InstalledPacks.kt` / its test and `docs/TESTING_V0.9.md` — included without generated/private artifacts.
+- `README.md`, `docs/{ARCHITECTURE,DEVELOPMENT,DESIGN,MILESTONES,ROADMAP,TESTING_V0.10,WORKLOG}.md` — final v0.10 contracts, limitations and evidence.
+
+### Verification
+- `./gradlew test` — PASS through `./gradlew --offline test build :launcher-desktop:createDistributable --rerun-tasks`; 172 core and 35 desktop tests passed, four opt-in live tests skipped, zero failures/errors (207 passed / 211 discovered).
+- `./gradlew build` — PASS in the same complete invocation.
+- `:launcher-desktop:createDistributable` — PASS locally on Linux; no cross-platform native certification claimed.
+- `SYNTAXLAUNCHER_MODPACK_LIVE_SMOKE=1 ./gradlew --offline :launcher-core:test --tests '*ModpackOfficialSmokeTest' --rerun-tasks` — PASS; real Simply Optimized 1.21.1-6.0 / Fabric 0.17.3 / managed Java 21 preparation and original export in about 88 seconds. Generated report retained locally under launcher-core/build/reports; no graphical Minecraft started.
+- Manual verification — reviewed compact Polish/German catalog images and Polish home pack entry; deterministic interactions cover all three languages and both window sizes. Native/actual Play acceptance remains under v1.0.
+- `git diff --check` — PASS. Publication checks include all required untracked sources and exclude ignored local/game/build files.
+
+### Roadmap updates
+- `[x] v0.10 / Modpack model / Instance mapping, overrides, both-hash file verification and safe reinstall/new-release behavior`
+- `[x] v0.10 / Modpack model / Transactional prepared-instance publication without long repository mutex retention`
+- `[x] v0.10 / Modrinth modpacks / Catalog, local import, exact game/loader resolution, required files, overrides, isolated preparation/publication and actionable errors`
+- `[x] v0.10 / Export / Original managed pack definition, no added player/local/downloaded data and original reconstruction metadata`
+- `[x] v0.10 / Quality gate / Fresh supported installation, unrelated-data preservation, no falsely completed failed profiles and translated UI/full regression/local packaging checks`
+- `[ ] v1.0 / Broader gameplay/native/platform acceptance — unchanged; installation evidence is not a graphical startup result`
+
+### Follow-ups / known issues
+- Optional file choices, other pack formats, arbitrary modified-instance export and in-place update/world merging are outside this initial scope. Latest published packs requiring unsupported exact versions give a recoverable refusal rather than a silent downgrade.
+- Verified shared immutable caches can remain after cancellation; interrupted private staging stays hidden. Export reproduces the author's original archive, including existing author-provided content, under its original distribution terms.
+- Canonical launcherVersion and release/tag policy remain unchanged. The maintainer explicitly requested committing/pushing all pending project changes; the final report records publication outcome separately from test evidence.
+
+
 ## 2026-10-21 — Complete bounded v0.9 graphics workflows and start v0.10 planning
 
 **Milestone:** v0.9 — bounded acceptance; v0.10 — first read-only manifest-planning phase

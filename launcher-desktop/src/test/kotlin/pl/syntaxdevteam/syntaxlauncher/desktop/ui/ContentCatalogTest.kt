@@ -163,6 +163,54 @@ class ContentCatalogTest {
         }
     }
 
+    @Test fun modpackInstallNeedsNoExistingGameAndRendersEveryLanguageAtBothSizes() = runBlocking(Dispatchers.Swing) {
+        for (language in UiLanguage.entries) for ((width, height) in listOf(820 to 650, 400 to 400)) {
+            val strings = UiStrings(language)
+            var installed = 0
+            val scene = ImageComposeScene(width, height, coroutineContext = Dispatchers.Swing) {
+                CompositionLocalProvider(LocalStrings provides strings) {
+                    CatalogTestTheme { ContentCatalog(null, true,
+                        search = { section, _, _ -> assertEquals(CatalogSection.MODPACKS, section); listOf(project) },
+                        install = { section, _ -> assertEquals(CatalogSection.MODPACKS, section); installed++ },
+                        onBusyChange = {}, onManage = {}, onDismiss = {}, modpacksAvailable = true, importPack = {}) }
+                }
+            }
+            try {
+                scene.until { nodes -> nodes.any { it.config.getOrNull(SemanticsProperties.TestTag) == "catalog-install-PACKROOT" } }
+                val button = scene.tag("catalog-install-PACKROOT")
+                assertTrue(button.boundsInRoot.height >= 40 && button.boundsInRoot.bottom <= height)
+                button.click()
+                scene.until { nodes -> nodes.any { it.label() == strings.text("catalog.installed") } }
+                assertEquals(1, installed)
+                assertFalse(scene.nodes().any { it.label() == strings.text("catalog.textures") })
+                val dir = Path.of("build/reports/ui").also(Files::createDirectories)
+                scene.render(System.nanoTime()).use { image -> Files.write(dir.resolve("modpack-catalog-${language.code}-$width.png"), image.encodeToData()!!.use { it.bytes }) }
+            } finally { scene.close() }
+        }
+    }
+
+    @Test fun incompatiblePackIsNeverInstalledAndLocalImportIsSecondary() = runBlocking(Dispatchers.Swing) {
+        var calls = 0
+        var imports = 0
+        val scene = ImageComposeScene(400, 500, coroutineContext = Dispatchers.Swing) {
+            CatalogTestTheme { ContentCatalog(null, true, search = { _, _, _ -> listOf(project) },
+                install = { _, _ -> calls++; throw pl.syntaxdevteam.syntaxlauncher.core.modpack.ModpackCompatibilityException("fixture unsupported loader") },
+                onBusyChange = {}, onManage = {}, onDismiss = {}, modpacksAvailable = true, importPack = { imports++ }) }
+        }
+        try {
+            scene.until { nodes -> nodes.any { it.config.getOrNull(SemanticsProperties.TestTag) == "catalog-install-PACKROOT" } }
+            scene.tag("catalog-install-PACKROOT").click()
+            scene.until { nodes -> nodes.any { it.label().startsWith("This pack needs a game or loader") } }
+            assertFalse(scene.nodes().any { it.label() == "Installed" })
+            assertEquals(1, calls)
+            scene.text("More").click()
+            scene.until { nodes -> nodes.any { it.label() == "Import modpack…" } }
+            scene.text("Import modpack…").click()
+            scene.until { imports == 1 }
+            assertEquals(1, calls)
+        } finally { scene.close() }
+    }
+
     @androidx.compose.runtime.Composable
     private fun CatalogTestTheme(content: @androidx.compose.runtime.Composable () -> Unit) {
         SyntaxTheme {

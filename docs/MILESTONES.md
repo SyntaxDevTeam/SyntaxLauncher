@@ -347,7 +347,7 @@ Graphics-related features remain optional instance components and do not contami
 
 ## v0.10 — Modpacks
 
-**Started, 21 October 2026:** a deterministic read-only Modrinth index planner validates requested versions/components, client environments, hashes, sources and portable destinations. This first phase does not import ZIPs, download files, create an instance or expose a working modpack catalog; the complete one-action workflow remains required.
+**Implemented and installation-verified, 22 October 2026:** the built-in catalog and secondary `.mrpack` import stage required client files, validate both hashes and overrides, prepare the exact Minecraft/loader/managed Java via the existing pipeline and publish/select a new game only on success. Repeat/new-release installs preserve earlier games. Original-pack export retains author-provided bytes without collecting local player data. The real Simply Optimized 1.21.1-6.0 / Fabric 0.17.3 cold install and original export pass. Optional client files are excluded; arbitrary modified-instance export, in-place updates, other formats and the broader graphical/native matrix are outside this initial scope. See [TESTING_V0.10.md](TESTING_V0.10.md).
 
 ### Objective
 
