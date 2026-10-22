@@ -196,9 +196,9 @@ class MinecraftInstanceRepository(
     }
 
     /**
-     * Publish a fully prepared game as one new instance. populateGame works only inside
-     * the private .creating-UUID folder; a failure/cancellation never exposes a
-     * partially installed profile or modifies another instance.
+     * A new profile remains hidden until every file has been verified.
+     * Network/ZIP preparation does not hold the repository-wide mutex, so users
+     * can inspect and manage other instances while a large modpack downloads.
      */
     suspend fun createPrepared(
         name: String,
@@ -206,17 +206,34 @@ class MinecraftInstanceRepository(
         loader: ModLoaderSelection?,
         populateGame: suspend (Path) -> Unit,
     ): MinecraftInstance = withContext(Dispatchers.IO) {
-        mutex.withLock {
-            val value = MinecraftInstance(
-                id = UUID.randomUUID().toString(),
-                name = name.trim(),
-                minecraftVersionId = minecraftVersionId,
-                loader = loader,
-            )
-            activity.withInactive(value.id) {
-                publishNew(value, prepareGame = populateGame)
-                value
+        val value = MinecraftInstance(
+            id = UUID.randomUUID().toString(),
+            name = name.trim(),
+            minecraftVersionId = minecraftVersionId,
+            loader = loader,
+        )
+        Files.createDirectories(root)
+        val staging = root.resolve(".creating-" + value.id)
+        val target = instanceDirectory(value.id)
+        // createDirectory must fail if any other process already owns this UUID.
+        Files.createDirectory(staging)
+        try {
+            val game = Files.createDirectory(staging.resolve("game"))
+            populateGame(game)
+            mutex.withLock {
+                activity.withInactive(value.id) {
+                    check(!Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
+                        "A profile with this UUID already exists."
+                    }
+                    write(staging, value)
+                    move(staging, target)
+                }
             }
+            value
+        } finally {
+            // Only invisible staging is removed; published instances and other
+            // profiles are never touched by the cleanup path.
+            if (Files.exists(staging, LinkOption.NOFOLLOW_LINKS)) eraseStaging(staging)
         }
     }
 
