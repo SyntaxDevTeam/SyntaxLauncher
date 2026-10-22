@@ -8,6 +8,40 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-22 — Complete public policies, Entra metadata and renewed AppID submission
+
+**Milestone:** v0.3 — Application review
+**Author/Agent:** Codex
+**Status:** Completed — publication/submission; allowlist decision pending
+
+### Completed
+- Published four project-specific application/privacy/terms/support pages in the existing miniPORTAL site; browser-verified content/contact and cross-links.
+- Saved Entra homepage/privacy/terms, marketing/support URLs, description, contact notes and original logo. Reopened manifest to verify persistence. Removed unused default Graph User.Read without adding access; preserved native redirect/audience/security settings.
+- Restored original launcher branding after maintainer feedback; repository branding files remain unchanged.
+- Pushed implementation b915ad2 to main after explicit approval following automatic review's initial rejection.
+- Submitted one renewed request for the same AppID/tenant, with earlier denial, material corrections, immutable code and honest live/native acceptance limits. Verified and saved the visible receipt: “Thank you for contacting Mojang Studios.”
+- Retained exact fields/text and receipt in the private local delivery packet; no tenant/administrative contact or secrets committed publicly.
+
+### Changed files
+- `docs/{MICROSOFT_APP,APP_REVIEW_2026-10,ROADMAP,WORKLOG}.md` — verified publication, metadata, submission receipt and remaining gates.
+
+### Verification
+- `./gradlew --offline test build :launcher-desktop:createDistributable` — PASS for b915ad2 including restored logo: 228 tests, 224 passed, four optional live tests skipped; Linux image built.
+- `./gradlew test` / `./gradlew build` — NOT RUN again for this documentation-only follow-up; runtime is unchanged.
+- Manual — original saved Entra logo and persisted URLs/description, public pages/cross-links and official receipt verified.
+- `git diff --check` — PASS.
+- Hosted CI — run 39836343471 compile/tests passed; installer/package/publication checks in progress when recorded. Final result reported in chat/local packet.
+
+### Roadmap updates
+- `[x] v0.3 / AppID review correction / public pages, Entra metadata and renewed request`
+- `[ ] v0.3 / allowlist approval, live sign-in/entitlements/refresh/gameplay and native vault matrix — still open`
+
+### Follow-ups / known issues
+- Form acknowledgement is not approval; no duplicate forms while awaiting decision.
+- No publisher/domain/partner verification is claimed. Optional service reference is blank without an organizational record.
+- The immutable implementation linked in the form predates this documentation-only outcome record.
+
+
 ## 2026-10-22 — Correct authenticated-play policy and prepare renewed AppID review
 
 **Milestone:** v0.3 — Microsoft authentication and review compliance

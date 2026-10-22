@@ -69,7 +69,7 @@ The production Play path requests a fresh session using the same chain before ea
 
 ## Publication and submission record
 
-- Website pages: drafts prepared in miniPORTAL; publication and anonymous public checks pending.
-- Entra branding: read; three URL fields and logo initially empty. Application informational URLs/description and public notices pending save.
-- Repository: full local verification passed; commit/push and hosted CI pending.
-- Renewed AppID form: not yet submitted. Submit once after real changes are publicly reviewable, explicitly identifying the earlier denial and the revised implementation. Do not submit repeated duplicates while waiting.
+- Website pages: all four published and checked in the browser for headings/content, direct contact and cross-links. Project/support pages report the confirmed renewed submission. The text-only fetcher could not retrieve the new pages; browser rendering was verified.
+- Entra: homepage/privacy/terms, marketing/support URLs, description, notes and original logo saved; persistence verified by reopening the manifest. Unused default Graph User.Read removed; no broader permissions added. Optional service reference remains blank. Publisher/domain/partner verification is not claimed.
+- Repository: implementation b915ad2 pushed to main after explicit maintainer approval; full local verification passed. [Hosted CI run 39836343471](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/39836343471) passed compile/tests and is completing installer/package/publication checks; final status is reported in chat/local delivery packet.
+- Renewed AppID form: submitted once on 22 October 2026; visible receipt: **Thank you for contacting Mojang Studios.** Earlier refusal and revised code were disclosed. Await the new decision; do not submit duplicates.

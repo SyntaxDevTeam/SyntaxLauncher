@@ -7,7 +7,7 @@
 - The public Client ID is now the desktop runtime default. An explicit `SYNTAXLAUNCHER_MICROSOFT_CLIENT_ID` developer override remains available; this is not a player setting or a workaround for refusal.
 - The desktop embeds no client secret. Entra overview shows one pre-existing secret; its value was not accessed, used or changed in this task. The public-client OAuth code does not use it.
 - Initial form submission: **19 October 2026**, with a visible receipt. **Outcome: declined**, reported directly by the maintainer on 22 October 2026. The generic batch email does not establish that this specific AppID was classified as a bad app or blocked.
-- Renewed submission: being prepared after material implementation and documentation changes; the actual receipt/outcome is recorded separately below. Do not mark it submitted until the form confirms it.
+- Renewed submission: **22 October 2026**, using the same AppID/tenant. Visible official receipt: **Thank you for contacting Mojang Studios.** The reviewed implementation is `b915ad282e6a9b32f22e0296ea1165d5e8c9445b`. New decision pending; this proves receipt only.
 - **Allowlist approval and live account sign-in/refresh/gameplay: NOT verified.** Automated HTTP fixtures are not live authorization evidence.
 
 ## Material changes for renewed review
@@ -18,9 +18,24 @@ The production desktop no longer offers offline/non-premium gameplay. It require
 
 Authentication uses Microsoft authorization code + S256 PKCE → Xbox user authentication → XSTS → Minecraft token → `GET /entitlements/mcstore` → `GET /minecraft/profile`. Accepted Java entitlement names are `game_minecraft` or `product_minecraft`; unrelated/Bedrock-only/empty/malformed/error responses fail closed. Profile availability is required as a second check. Desktop Play forces renewal even if an in-memory session is still valid.
 
-Public materials identify SyntaxDevTeam and the direct maintainer-selected support address, explain privacy/permissions/removal, state current approval limitations, and prominently disclose independence from Mojang/Microsoft. The original launcher logo is preserved at the maintainer’s request. The generated artwork is not evidence of official endorsement; no individual finding against the logo was supplied by Mojang. No claim that the existing logo independently passes a legal review is made.
+Public materials identify SyntaxDevTeam and the direct maintainer-selected support address, explain privacy/permissions/removal, state current approval limitations, and prominently disclose independence from Mojang/Microsoft. The original launcher logo is preserved at the maintainer’s request. The generated artwork is not evidence of official endorsement; no individual finding against the logo was supplied by Mojang.
 
 See [the complete Entra/review evidence checklist](APP_REVIEW_2026-10.md) for public URLs, recommended and optional fields, tests and remaining gates.
+
+## Confirmed publication and renewed submission
+
+Four application pages are published and checked in the browser:
+
+- [Application](https://syntaxdevteam.pl/p/syntaxlauncher)
+- [Privacy](https://syntaxdevteam.pl/p/syntaxlauncher-prywatnosc)
+- [Terms](https://syntaxdevteam.pl/p/syntaxlauncher-warunki-uzytkowania)
+- [Support/account removal](https://syntaxdevteam.pl/p/syntaxlauncher-zarzadzanie-usluga)
+
+Entra homepage/privacy/terms, marketing/support URLs, description, notes and original logo were saved. Leaving/reopening the manifest confirmed persistence. The unused default Microsoft Graph User.Read entry was removed; no broader permission was added. The public-client redirect, audience and security settings were preserved. Optional serviceManagementReference is blank. The directory offers only its default onmicrosoft.com domain in the verified-domain selector; custom publisher-domain and partner verification are not claimed.
+
+The renewed request acknowledged the first refusal and described the removed nickname-only workflow, fresh authentication/entitlement/profile checks before every Play, independent coordinator gate, API purposes, scopes, native credential protection and public policies. It linked immutable implementation b915ad2 and disclosed outstanding live/native tests. It used the same AppID and tenant, identified older offline previews as superseded, and distinguished the Azure administrative contact from public support email. Exact submitted fields/text and receipt are retained in the private local delivery packet; private administrative contact/tenant identifiers are excluded from this public record.
+
+A form receipt establishes neither allowlisting nor live authentication. Await the actual decision without sending duplicate submissions.
 
 ## Historical submission record — 19 October 2026
 

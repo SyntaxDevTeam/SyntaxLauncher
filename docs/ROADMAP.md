@@ -18,7 +18,7 @@ Agents and contributors MUST keep this file synchronized with actual repository 
 
 - [x] Require an authenticated Microsoft Java identity and fresh ownership/profile verification before every desktop Play; reject anonymous/legacy sessions in the common coordinator before preparation. Preserve old records/worlds. Negative HTTP, cached-session, core and EN/PL/DE UI tests plus full build/Linux package pass.
 - [x] Preserve original branding, add in-app independence/contact and public privacy/terms links; record current approval limitations and supersede historic offline-play requirements.
-- [ ] Publish the four application pages on syntaxdevteam.pl, save verified public links/logo/description in Entra and submit one evidence-backed renewed request after the first denial. Do not claim approval from a form receipt.
+- [x] Publish four application pages on syntaxdevteam.pl, verify content/cross-links, save homepage/privacy/terms/marketing/support URLs, description, notes and original logo in Entra, remove unused default Graph User.Read and submit one renewed request. Official receipt verified on 22 October 2026; allowlisting is not claimed.
 - [ ] Approved-AppID live sign-in, Java entitlement/profile checks (including supported purchase/subscription cases), refresh and gameplay; cross-platform native vault/browser acceptance remain required.
 
 ## Mandatory child-first content experience (21 October 2026)
