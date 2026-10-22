@@ -1,6 +1,6 @@
 # SyntaxLauncher Design Guidelines
 
-**22 October 2026:** Gameplay requires Microsoft authentication and current Java entitlement/profile verification. Keep Play disabled without a saved verified Microsoft profile; no nickname-only choice. Show Privacy/Terms before consent, direct contact and an independence notice in the player/settings panel. Preserve the original launcher logo at the maintainer’s request; an unconfirmed branding concern does not authorize a redesign. Preserve the simple content catalog and existing worlds.
+**22 October 2026:** Gameplay requires Microsoft authentication and current Java entitlement/profile verification. Keep Play disabled without a saved verified Microsoft profile; no nickname-only choice. Show Privacy/Terms before consent, direct contact and an independence notice in the player/settings panel. Following explicit maintainer selection, preview the blue open-gateway mark described below; this supersedes the earlier instruction to retain the block/orbit logo. Preserve the simple content catalog and existing worlds.
 
 This document defines the mandatory visual and interaction principles for SyntaxLauncher.
 
@@ -163,7 +163,7 @@ The final brand palette may evolve, but the application should never become visu
 
 ### SyntaxLauncher blue identity (October 2026)
 
-The approved mark is a voxel dirt/grass block with a navy/cobalt/cyan top and an upward blue orbital arrow. It should appear in desktop branding and distribution artwork.
+The maintainer-selected desktop mark is a rounded cornflower-blue stone arch with two open pale-blue doors and a bright threshold. The main hero, header, window, startup updater and Linux package icon share this identity. The mark uses cornflower `#779CF6`, royal blue and icy white, without green/teal or an orbital arrow. Existing interface accents remain unchanged during this in-app branding preview. Website and Entra artwork are outside this change; their earlier submitted logo remains a historical review record.
 
 | UI role | Token |
 | --- | --- |
@@ -182,9 +182,9 @@ Panels use restrained `#0C2444 → #08192E` depth, with `#135582` outlines. The 
 
 ### Desktop hero and responsive shell (October 2026)
 
-- The hero uses a local cinematic voxel valley JPEG plus a separate transparent PNG of the blue block/orbit/arrow. Both were generated with the built-in imagegen tool from the approved reference; see [asset provenance and prompts](../launcher-desktop/src/main/resources/branding/README.md). The landscape deliberately has no logo, pre-rendered labels or UI controls. Avoid upscaling a tiny 128px app icon into hero artwork; that produced visibly blurry results. The source screenshot is not rendered as a UI screenshot. All controls remain native Compose.
+- The hero uses a local cinematic voxel valley JPEG plus a separate transparent PNG of the selected open gateway. The background remains visible through the doorway and between stones. Both assets were generated with the built-in imagegen tool; see [asset provenance and prompts](../launcher-desktop/src/main/resources/branding/README.md). The landscape deliberately has no logo, pre-rendered labels or UI controls. Avoid upscaling a tiny 128px app icon into hero artwork; that produced visibly blurry results. The source screenshot is not rendered as a UI screenshot. All controls remain native Compose.
 - Preserve a left-to-right dark scrim. Text and the Minecraft version must stay readable independent of background artwork.
-- Position the foreground mark independently with `ContentScale.Fit` and derive its aspect ratio from the asset. Measure the heading/profile first and reserve disjoint rectangles: text on the left and logo on the right above 640 dp of hero width; below that width, put the logo below the heading and beside the profile. Fit both dimensions to the available space on every measurement, so resizing never crops its arrow, distorts the mark or places it underneath text. Compact, short heroes reduce the title and omit the secondary tagline to preserve the logo and profile. A soft static navy radial shadow and faint cyan halo distinguish it from the landscape without a rectangular backing, runtime blur or continuous animation. Use the bright mark and cyan secondary heading as the focal details; do not replicate glow throughout all controls.
+- Position the foreground mark independently with `ContentScale.Fit` and derive its aspect ratio from the asset. Measure the heading/profile first and reserve disjoint rectangles: text on the left and logo on the right above 640 dp of hero width; below that width, put the logo below the heading and beside the profile. Fit both dimensions to the available space on every measurement, so resizing never crops the arch or doors, distorts the mark or places it underneath text. Compact, short heroes reduce the title and omit the secondary tagline to preserve the logo and profile. A soft static navy radial shadow and faint cornflower-blue halo distinguish it from the landscape without a rectangular backing, runtime blur or continuous animation. Use the bright mark and cyan secondary heading as the focal details; do not replicate glow throughout all controls.
 - Use an application-wide Material `Surface` for proper light text over the dark theme. Do not depend on default `Text` content colors after drawing raw backgrounds.
 - The main window chooses an initial size constrained by the desktop work area. The instance panel is vertically scrollable, with a visible scrollbar; crucial controls should be visible without scrolling on typical full-HD screens.
 - Compact hero typography avoids text collisions. Below 760 dp of content width, stack the hero/Play and setup panel with a visible page scrollbar; otherwise keep Play visible and scroll the setup panel independently. Very short windows scroll the page as well. The minimum native window is 400 × 400. Never make unsupported future features appear as active navigation.
@@ -192,7 +192,7 @@ Panels use restrained `#0C2444 → #08192E` depth, with `#135582` outlines. The 
 
 ### Startup update screen
 
-Packaged startup uses the same brand palette and responsive block/arrow logo on a quiet background. Show one short phase message, indeterminate/proportional progress, and a secondary Continue action. Errors show an actionable summary with Retry and Continue. Continue cancels checking/downloading/extraction; disable it during child process handoff to prevent launching two home screens. Keep technical metadata out of this screen and keep file/network work on background dispatchers. Only compose the main home after continuing, finding no update, or receiving a verified child startup. Rendered recovery states and a real Compose startup receipt are part of regression coverage.
+Packaged startup uses the same brand palette and responsive open-gateway logo on a quiet background. Show one short phase message, indeterminate/proportional progress, and a secondary Continue action. Errors show an actionable summary with Retry and Continue. Continue cancels checking/downloading/extraction; disable it during child process handoff to prevent launching two home screens. Keep technical metadata out of this screen and keep file/network work on background dispatchers. Only compose the main home after continuing, finding no update, or receiving a verified child startup. Rendered recovery states and a real Compose startup receipt are part of regression coverage.
 
 ## 8. Typography
 

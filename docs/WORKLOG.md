@@ -8,6 +8,38 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-22 — Preview the selected open-gateway desktop identity
+
+**Milestone:** v0.1 — Desktop branding refinement
+**Author/Agent:** Codex
+**Status:** Completed — integration and local verification; maintainer visual acceptance pending
+
+### Completed
+- Implemented the maintainer-selected “Otwarte wrota” concept as a separate transparent high-resolution foreground, retaining the existing scenic hero background.
+- Exported the same gateway to the header/native window/startup/Linux package icon; changed only the foreground halo to cornflower blue, leaving the surrounding interface unchanged for comparison.
+- Retained responsive measured logo placement and intrinsic aspect ratio. Explicit selection in this conversation supersedes the earlier retain-original instruction.
+- Opened the actual production desktop entry point on Linux using the newly built application libraries, native rendering settings, Polish UI and isolated temporary preview state. Live version catalog and selected metadata loaded successfully. No account login or game launch was performed.
+
+### Changed files
+- `launcher-desktop/src/main/resources/branding/{hero-mark.png,syntaxlauncher-icon.png,README.md}` — gateway foreground/icon and exact generation provenance.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/{LauncherArtwork,SyntaxTheme}.kt` — shared cornflower mark halo token.
+- `docs/{DESIGN,ROADMAP,WORKLOG}.md` — selected desktop preview, completed integration and remaining visual acceptance.
+
+### Verification
+- `./gradlew --offline test build :launcher-desktop:createDistributable` — PASS: 228 tests, 224 passed, four optional live smoke tests skipped; no failures/errors. Core tasks reused unchanged verified outputs; desktop tests reran and Linux app image rebuilt.
+- Existing Compose render/layout regressions — PASS, including 27 live-resize/density combinations and wide/compact/translated screens. Inspected 1440×810 and 1024×640 renders: complete gateway, no heading/profile overlap and scenery visible through the doorway.
+- Native Linux launch — PASS: actual 1440×840 window opened with the new mark; live metadata loaded. The first direct invocation lacked the packaged Skiko library path; adding the app image's native/resource settings corrected the invocation without changing application code.
+- Native screen capture — unavailable: desktop screen-capture permission was denied. Delivered production Compose render instead of claiming it is a native window screenshot; actual preview window remains available on the desktop.
+- `git diff --check` — checked before commit. Commit/push/hosted CI outcome reported in chat after publication.
+
+### Roadmap updates
+- `[x] v0.1 / UI / selected open-gateway integration and local verification`
+- `[ ] v0.1 / UI / maintainer visual acceptance and broader Windows/macOS package/DPI review`
+
+### Follow-ups / known issues
+- This is the requested in-app visual preview, not a new release/version, website/Entra branding change, or trademark clearance.
+- The surrounding cyan interface palette remains available for a separate coherent color review after evaluating the gateway in context.
+
 ## 2026-10-22 — Complete public policies, Entra metadata and renewed AppID submission
 
 **Milestone:** v0.3 — Application review

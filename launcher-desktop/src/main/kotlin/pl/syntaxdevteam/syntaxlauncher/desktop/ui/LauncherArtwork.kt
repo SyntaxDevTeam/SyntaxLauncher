@@ -103,7 +103,7 @@ internal fun LauncherHero(version: String?, profile: String?, snapshots: Boolean
                     center = center, radius = size.width * 0.66f),
                     radius = size.width * 0.66f, center = center)
                 drawCircle(Brush.radialGradient(
-                    listOf(SyntaxBrand.cyan.copy(alpha = 0.13f), Color.Transparent),
+                    listOf(SyntaxBrand.markBlue.copy(alpha = 0.13f), Color.Transparent),
                     center = center, radius = size.width * 0.52f),
                     radius = size.width * 0.52f, center = center)
             }) {

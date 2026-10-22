@@ -20,6 +20,7 @@ internal object SyntaxBrand {
     val border = Color(0xFF135582)
     val fieldBorder = Color(0xFF284967)
     val cyan = Color(0xFF00D5FF)
+    val markBlue = Color(0xFF779CF6)
     val blue = Color(0xFF009EF4)
     val playStart = Color(0xFF34D7F5)
     val playBorder = Color(0xFF88EFFF)
