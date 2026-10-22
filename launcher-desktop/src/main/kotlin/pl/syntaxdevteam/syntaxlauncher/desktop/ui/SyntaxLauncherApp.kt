@@ -616,7 +616,20 @@ private fun LauncherPanel(
                     }
                     if (picker.showOpenDialog(null) == javax.swing.JFileChooser.APPROVE_OPTION) {
                         val source = picker.selectedFile.toPath()
-                        modifyInstance { session.modpackImporter.install(source) }
+                        modifyInstance {
+                            val plan = session.modpackImporter.inspect(source)
+                            check(session.versionCatalog.fetchManifest().versions.any {
+                                it.id == plan.minecraftVersion
+                            }) { "The modpack Minecraft version is unavailable in the current version catalog." }
+                            plan.loader?.let { selectedLoader ->
+                                val choices = session.loaders?.compatibleVersions(
+                                    selectedLoader.id, plan.minecraftVersion).orEmpty()
+                                check(choices.any { it.version == selectedLoader.version }) {
+                                    "The required ${selectedLoader.id} ${selectedLoader.version} is unavailable for Minecraft ${plan.minecraftVersion}."
+                                }
+                            }
+                            session.modpackImporter.install(source)
+                        }
                     }
                 }
             },
