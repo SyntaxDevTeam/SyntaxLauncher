@@ -10,6 +10,35 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 
 
+
+## 2026-10-22 — Block automatic rollback of a freshly downloaded launcher
+
+**Milestone:** v0.12 — Startup auto-update correctness
+**Author/Agent:** GPT-6
+**Status:** Fixed and deterministically verified; hosted publication tracked separately
+
+### Completed
+- Reproduced the maintainer's downloaded build #169 (successful workflow 39801507233, commit 9211e8a) against an existing Stable preference and legacy Stable v0.6.0. The old updater treated any difference between selected and embedded channels as permission to install older code, including an old active/previous cached installation.
+- Replaced the channel-switch exemption with one monotonic eligibility comparison used for release downloads, active/previous caches and release-versus-cache ordering. Older product SemVer is rejected; where both CI identities are available a candidate must also have a strictly newer run/attempt. Without both identities, a strictly newer product version is required. Channel choice never overrides these conditions.
+- Removed cached/current-build early returns that could bypass normal selection of a newer eligible cached image. Failed-update recovery retains integrity and startup-receipt checks and can only start a cache already proven newer than the running app.
+- Kept stored channel preference and recovery files intact. A selected channel behind the downloaded app now waits for a newer compatible candidate. Updated channel-change copy in English, Polish and German and documented this behavior.
+
+### Files changed
+- Core `update/{LauncherRelease,StartupUpdater}.kt` — shared comparison and startup candidate selection.
+- `LauncherChannelsTest.kt` — exact #169 → legacy v0.6.0 regression, 54 channel/version/build combinations and six active/previous-cache online/offline combinations; existing startup/fallback tests retained.
+- Desktop `i18n/{en,pl,de}.properties`, `README.md`, `docs/{ARCHITECTURE,ROADMAP,UPDATING,WORKLOG}.md` — UI wording and current update policy/evidence.
+
+### Verification
+- `./gradlew -PlauncherVersion=0.7.0 test build :launcher-desktop:createDistributable --offline` — PASS: 219 passed / 223 discovered, four opt-in live tests skipped; zero failures/errors. Linux app image built successfully using the committed product version.
+- Rejected candidates cause neither archive download nor child launch; stale update state/unknown keys remain byte-identical. Newer same-version builds and forward product upgrades still hand off successfully across all channels.
+- GitHub workflow read — maintainer-supplied run 39801507233 is successful build 169.1 at 9211e8a; latest Stable endpoint reports v0.6.0. Only the local channel/update pointer keys were inspected; no account credentials were read.
+- `git diff --check` — PASS.
+
+### Follow-ups / known issues
+- Already downloaded #169 binaries contain the old rule; users must once install a build with this fix, or Continue with #169 and choose DEV to avoid its stale Stable preference. This source change does not retroactively alter old archives.
+- Full cross-platform hosted old→new execution remains a separate acceptance item. Existing user version edit in `gradle.properties` is preserved and excluded; no product-version bump, Stable release or release tag is requested.
+
+
 ## 2026-10-22 — Recover important account persistence integration from IntelliJ Shelf
 
 **Milestone:** v0.3 — Microsoft/Premium accounts; recovery after v0.10

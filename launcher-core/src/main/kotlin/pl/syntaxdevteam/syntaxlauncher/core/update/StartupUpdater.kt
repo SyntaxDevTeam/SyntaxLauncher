@@ -62,8 +62,7 @@ class StartupUpdater(
                     val prefix = if (selected == LauncherUpdateChannel.STABLE) "" else "${selected.id}."
                     val activeKey = prefix + "active"
                     val previousKey = prefix + "previous"
-                    var activeBuild: String? = null
-                    var cachedIsCurrent = false
+                    var activeBuild: LauncherBuildRevision? = null
                     suspend fun installed(key: String): InstalledLauncher? {
                         val id = state.getProperty(key) ?: return null
                         return try {
@@ -72,10 +71,8 @@ class StartupUpdater(
                             installer.validate(root.resolve("installations").resolve(id), platform)
                                 .takeIf {
                                     val build = state.getProperty("$key.build")?.let(LauncherBuildRevision::parse)
-                                    if (build != null && build == currentBuild && it.version.value == current.value)
-                                        cachedIsCurrent = true
-                                    shouldUse(it.version, build, selected).also { accepted ->
-                                        if (accepted) activeBuild = build?.toString()
+                                    shouldUse(it.version, build).also { accepted ->
+                                        if (accepted) activeBuild = build
                                     }
                                 }
                         } catch (cancelled: CancellationException) { throw cancelled }
@@ -85,7 +82,7 @@ class StartupUpdater(
                             null
                         }
                     }
-                    val active = installed(activeKey) ?: if (cachedIsCurrent) null else installed(previousKey)
+                    val active = installed(activeKey) ?: installed(previousKey)
                     onProgress(StartupUpdateProgress("Checking for launcher updates…"))
                     val release = try { releases.latest(platform, selected) }
                     catch (cancelled: CancellationException) { throw cancelled }
@@ -93,16 +90,8 @@ class StartupUpdater(
                         if (active == null) throw failure
                         null // Offline startup still uses the most recently verified installed version.
                     }
-                    if (release != null && release.build != null && release.build == currentBuild &&
-                        release.version.value == current.value) return@withContext StartupUpdateResult.CONTINUE
-                    if (cachedIsCurrent && release?.build != null && currentBuild != null &&
-                        release.build <= currentBuild) return@withContext StartupUpdateResult.CONTINUE
-                    val target = try { if (release != null && shouldUse(release.version, release.build, selected) &&
-                        (active == null || if (selected == LauncherUpdateChannel.STABLE) release.version > active.version
-                        else release.build?.let { revision ->
-                            val cached = activeBuild?.let(LauncherBuildRevision::parse)
-                            cached == null || revision > cached
-                        } ?: (release.version > active.version))) {
+                    val target = try { if (release != null && shouldUse(release.version, release.build) &&
+                        (active == null || isNewerLauncher(release.version, release.build, active.version, activeBuild))) {
                         onProgress(StartupUpdateProgress("Downloading SyntaxLauncher ${release.version.value}…", 0f, stage = StartupUpdateStage.DOWNLOADING))
                         val archive = archives.resolve("${release.sha256}.zip")
                         downloads.download(DownloadRequest("launcher-${release.version.value}", release.url, archive,
@@ -126,7 +115,7 @@ class StartupUpdater(
                     if (target == null) return@withContext StartupUpdateResult.CONTINUE
                     onProgress(StartupUpdateProgress("Starting SyntaxLauncher ${target.version.value}…", canContinue = false, stage = StartupUpdateStage.STARTING))
                     val targetBuild = if (target.directory == active?.directory)
-                        activeBuild else release?.build?.toString()
+                        activeBuild?.toString() else release?.build?.toString()
                     try { startAndActivate(target, state, activeKey, previousKey, targetBuild) }
                     catch (cancelled: CancellationException) { throw cancelled }
                     catch (failure: Exception) {
@@ -134,19 +123,15 @@ class StartupUpdater(
                         org.slf4j.LoggerFactory.getLogger(StartupUpdater::class.java)
                             .warn("Updated launcher failed startup; starting verified previous version", failure)
                         onProgress(StartupUpdateProgress("Starting your previous launcher version…", canContinue = false, stage = StartupUpdateStage.PREVIOUS))
-                        startAndActivate(active, state, activeKey, previousKey, activeBuild)
+                        startAndActivate(active, state, activeKey, previousKey, activeBuild?.toString())
                     }
                     StartupUpdateResult.HANDED_OFF
                 }
             }
         }
 
-    private fun shouldUse(version: LauncherVersion, build: LauncherBuildRevision?, selected: LauncherUpdateChannel): Boolean {
-        if (build != null && build == currentBuild && version.value == current.value) return false
-        if (selected != currentChannel) return true // Explicit channel switch may choose an older product version.
-        if (selected == LauncherUpdateChannel.STABLE) return version > current
-        return build != null && (currentBuild == null || build > currentBuild)
-    }
+    private fun shouldUse(version: LauncherVersion, build: LauncherBuildRevision?): Boolean =
+        isNewerLauncher(version, build, current, currentBuild)
 
     private suspend fun startAndActivate(target: InstalledLauncher, state: Properties,
         activeKey: String, previousKey: String, build: String?) {

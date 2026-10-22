@@ -93,6 +93,20 @@ data class LauncherBuildRevision(val run: Long, val attempt: Long) : Comparable<
     }
 }
 
+/** Channel preferences never authorize an automatic rollback, including cached/offline fallback. */
+internal fun isNewerLauncher(
+    version: LauncherVersion,
+    build: LauncherBuildRevision?,
+    installedVersion: LauncherVersion,
+    installedBuild: LauncherBuildRevision?,
+): Boolean {
+    if (version < installedVersion) return false
+    // Compare CI identities across channels as well as repeated builds of the same version.
+    if (build != null && installedBuild != null) return build > installedBuild
+    // Legacy releases without a build identity need a strictly newer product version.
+    return version > installedVersion
+}
+
 data class LauncherRelease(val version: LauncherVersion, val url: String, val size: Long, val sha256: String,
     val channel: LauncherUpdateChannel = LauncherUpdateChannel.STABLE,
     val build: LauncherBuildRevision? = null) {

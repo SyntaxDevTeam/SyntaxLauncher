@@ -113,27 +113,96 @@ class LauncherChannelsTest {
         } finally { client.close() }
     }
 
-    @Test fun explicitReturnToStableMayInstallOlderVersionWithoutUsingDevCache() = runBlocking {
-        val archive = bundle("1.0.0", "stable")
+    @Test fun storedStablePreferenceNeverRollsBackNewerDownloadedDevBuild() = runBlocking {
+        val archive = bundle("0.6.0", "stable")
         val client = HttpClient(MockEngine { request ->
             if (request.url.host == "api.github.com") {
                 assertEquals("/repos/SyntaxDevTeam/SyntaxLauncher/releases/latest", request.url.encodedPath)
-                respond(dto("v1.0.0", archive, preview = false))
+                respond(dto("v0.6.0", archive, preview = false))
             } else respond(archive)
         })
         var started = false
         try {
             val updater = StartupUpdater(GitHubLauncherReleases(client), DownloadManager(client),
-                root.resolve("updates"), root.resolve("archives"), platform, LauncherVersion.parse("2.0.0"),
+                root.resolve("updates"), root.resolve("archives"), platform, LauncherVersion.parse("0.7.0"),
                 UpdatedLauncherStarter { _, receipt, nonce ->
-                    started = true; Files.writeString(receipt, "$nonce\n1.0.0"); Child()
+                    started = true; Files.writeString(receipt, "$nonce\n0.6.0"); Child()
                 }, selectedChannel = { LauncherUpdateChannel.STABLE }, currentChannel = LauncherUpdateChannel.DEV,
-                currentBuild = LauncherBuildRevision(100, 1))
-            assertEquals(StartupUpdateResult.HANDED_OFF, updater.run {})
-            assertTrue(started)
-            val state = Files.readString(root.resolve("updates/state.properties"))
-            assertTrue(state.contains("active=")); assertFalse(state.contains("dev.active="))
+                currentBuild = LauncherBuildRevision(169, 1))
+            assertEquals(StartupUpdateResult.CONTINUE, updater.run {})
+            assertFalse(started)
+            assertFalse(Files.exists(root.resolve("updates/state.properties")))
         } finally { client.close() }
+    }
+
+    @Test fun everyChannelRejectsOlderBuildsAndAllowsOnlyNewerCandidates() = runBlocking {
+        for (origin in LauncherUpdateChannel.entries) for (selected in LauncherUpdateChannel.entries) {
+            for ((version, build, expected) in listOf(
+                Triple("0.7.0", "60.1", false),
+                Triple("0.7.0", "169.1", false),
+                Triple("0.7.0", "170.1", true),
+                Triple("0.6.0", "200.1", false),
+                Triple("0.8.0", "60.1", false),
+                Triple("0.8.0", "170.1", true),
+            )) {
+                val archive = bundle(version, "$selected-$build")
+                val tag = if (selected == LauncherUpdateChannel.STABLE) "v$version" else "${selected.id}-$build-v$version"
+                var downloads = 0
+                var starts = 0
+                val client = HttpClient(MockEngine { request ->
+                    if (request.url.host == "api.github.com") {
+                        val release = dto(tag, archive, preview = selected != LauncherUpdateChannel.STABLE, build = build)
+                        respond(if (selected == LauncherUpdateChannel.STABLE) release else "[$release]")
+                    } else { downloads++; respond(archive) }
+                })
+                val directory = Files.createTempDirectory(root, "channels-")
+                try {
+                    val updater = StartupUpdater(GitHubLauncherReleases(client), DownloadManager(client),
+                        directory.resolve("updates"), directory.resolve("archives"), platform, LauncherVersion.parse("0.7.0"),
+                        UpdatedLauncherStarter { _, receipt, nonce ->
+                            starts++; Files.writeString(receipt, "$nonce\n$version"); Child()
+                        }, selectedChannel = { selected }, currentChannel = origin,
+                        currentBuild = LauncherBuildRevision(169, 1))
+                    assertEquals(if (expected) StartupUpdateResult.HANDED_OFF else StartupUpdateResult.CONTINUE,
+                        updater.run {}, "$origin → $selected: $version / $build")
+                    assertEquals(if (expected) 1 else 0, starts)
+                    assertEquals(if (expected) 1 else 0, downloads)
+                } finally { client.close() }
+            }
+        }
+    }
+
+    @Test fun oldActiveAndPreviousCachesCannotReplaceNewDownloadEvenOffline() = runBlocking {
+        for (selected in LauncherUpdateChannel.entries) for (offline in listOf(false, true)) {
+            val directory = Files.createTempDirectory(root, "cached-")
+            val updates = directory.resolve("updates")
+            val archive = bundle("0.7.0", "old-build")
+            val zip = directory.resolve("old.zip").also { Files.write(it, archive) }
+            val installed = UpdateBundleInstaller(updates.resolve("installations")).install(zip,
+                LauncherRelease(LauncherVersion.parse("0.7.0"), "https://fixture.invalid", archive.size.toLong(), hash(archive)), platform)
+            val prefix = if (selected == LauncherUpdateChannel.STABLE) "" else "${selected.id}."
+            val state = "schemaVersion=1\n${prefix}active=${installed.directory.fileName}\n${prefix}active.build=60.1\n" +
+                "${prefix}previous=${installed.directory.fileName}\n${prefix}previous.build=59.1\nunknown=keep\n"
+            Files.writeString(updates.resolve("state.properties"), state)
+            var starts = 0
+            val client = HttpClient(MockEngine {
+                if (offline) error("fixture offline")
+                val tag = if (selected == LauncherUpdateChannel.STABLE) "v0.7.0" else "${selected.id}-60.1-v0.7.0"
+                val release = dto(tag, archive, preview = selected != LauncherUpdateChannel.STABLE, build = "60.1")
+                respond(if (selected == LauncherUpdateChannel.STABLE) release else "[$release]")
+            })
+            try {
+                val updater = StartupUpdater(GitHubLauncherReleases(client), DownloadManager(client), updates,
+                    directory.resolve("archives"), platform, LauncherVersion.parse("0.7.0"),
+                    UpdatedLauncherStarter { _, _, _ -> starts++; error("Must not start stale cache") },
+                    selectedChannel = { selected }, currentChannel = LauncherUpdateChannel.DEV,
+                    currentBuild = LauncherBuildRevision(169, 1))
+                if (offline) assertFailsWith<IllegalStateException> { updater.run {} }
+                else assertEquals(StartupUpdateResult.CONTINUE, updater.run {})
+                assertEquals(0, starts)
+                assertEquals(state, Files.readString(updates.resolve("state.properties")))
+            } finally { client.close() }
+        }
     }
 
     @Test fun preferencesDefaultToStableAndPreserveOtherFieldsUnknownDataAndSchemas() = runBlocking {
@@ -172,8 +241,8 @@ class LauncherChannelsTest {
         assertEquals(unknown, Files.readString(file))
     }
 
-    private fun dto(tag: String, archive: ByteArray = byteArrayOf(1), preview: Boolean = true) = """{
-        "tag_name":"$tag","prerelease":$preview,"assets":[{"name":"${platform.assetName}",
+    private fun dto(tag: String, archive: ByteArray = byteArrayOf(1), preview: Boolean = true, build: String? = null) = """{
+        "tag_name":"$tag","prerelease":$preview,"body":"${build?.let { "<!-- syntaxlauncher-build:$it -->" }.orEmpty()}","assets":[{"name":"${platform.assetName}",
         "browser_download_url":"https://github.com/SyntaxDevTeam/SyntaxLauncher/releases/download/$tag/${platform.assetName}",
         "size":${archive.size},"digest":"sha256:${hash(archive)}"}]}"""
 
