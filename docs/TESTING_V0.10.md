@@ -16,7 +16,7 @@
 - [ ] v0.9 — Texture pack installation, automatic selection and activation in Minecraft.
 - [ ] v0.9 — Shader installation, automatic Iris dependencies and real game startup.
 - [ ] v0.9 — OptiFine startup for documented Vanilla 1.21.1 / HD U J1.
-- [ ] v0.10 — Import a supported .mrpack, install required mods/overrides and start the new game.
+- [ ] v0.10 — Use My games → Import Modrinth modpack (.mrpack); install required mods/overrides and start the new game.
 - [ ] v0.10 — Confirm optional/server-only files were not silently installed.
 - [ ] v0.10 — Verify the original game and its mods/worlds/options stayed unchanged.
 - [ ] v0.10 — Reject corrupt/unsupported modpacks; test cancellation and recovery.

@@ -62,6 +62,8 @@ class DesktopLauncherSession(
     val modManager = LocalModManager(instances)
     val modrinthCatalog = ModrinthCatalog(httpClient)
     val modrinthInstaller = ModrinthInstaller(instances, modManager, DownloadManager(httpClient))
+    val modpackImporter = pl.syntaxdevteam.syntaxlauncher.core.modpack.ModrinthModpackImporter(
+        instances, DownloadManager(httpClient))
     val shaderRenderer = pl.syntaxdevteam.syntaxlauncher.core.content.IrisRendererSetup(
         instances, modManager, modrinthCatalog, modrinthInstaller)
     val shaderPackCatalog = pl.syntaxdevteam.syntaxlauncher.core.content.ModrinthPackCatalog(

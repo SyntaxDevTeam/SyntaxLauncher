@@ -8,6 +8,40 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-22 — Expose local .mrpack import in My games
+
+**Milestone:** v0.10 — Modpacks
+**Author/Agent:** GPT-6
+**Status:** Partial — UI wiring committed, pending CI and joint maintainer tests
+
+### Completed
+- Connected the format-1 modpack importer to desktop session without changing v0.9 catalog or launch paths.
+- Added My games Import Modrinth modpack (.mrpack) file chooser, async installation in the established mutation lifecycle, existing UI errors and automatic profile selection after success.
+- Added English/Polish/German labels; import remains disabled when game is active or instance operation in progress.
+
+### Changed files
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/DesktopLauncherSession.kt` — importer service.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/{InstanceWorkspace,SyntaxLauncherApp}.kt` — picker and async import action.
+- `launcher-desktop/src/main/resources/i18n/{en,pl,de}.properties` — localization.
+- `README.md`, `docs/{ROADMAP,MILESTONES,TESTING_V0.10,WORKLOG}.md` — testing and scope.
+
+### Verification
+- `./gradlew test` and `./gradlew build` — NOT RUN locally (connector-based edit; hosted CI pending).
+- Baseline v0.9 compiler issue in previous CI 39671357003 remains a release blocker until the missing source files are recovered and compilation reverified.
+- Manual v0.9/v0.10 combined gameplay tests — pending.
+
+### Roadmap updates
+- `[ ] v0.10 / UI .mrpack import` — coded, awaiting CI/real-game acceptance.
+- `[ ] v0.10 / Ready-made catalog and optional file picker` — not implemented.
+
+### Follow-ups / known issues
+- Finish in-app Modrinth modpack discovery and one-click install.
+- Repair incomplete v0.9 source publication and obtain green CI before promoting release version.
+- Keep product version unchanged until proper stable-release validation.
+
+---
+
+
 ## 2026-10-22 — v0.10 Modrinth modpack importer and safe staged instance creation
 
 **Milestone:** v0.10 — Modpacks

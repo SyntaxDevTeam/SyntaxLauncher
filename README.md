@@ -97,7 +97,7 @@ All five modes use the same preparation, Java, launch-plan and process pipeline.
 
 ## v0.10 — Modpacks (core import development)
 
-The core now supports verified Modrinth format-1 `.mrpack` installation into a **new isolated instance**, including required files, SHA-1/SHA-512 checks, bounded overrides and failure-safe publication. The desktop file picker, ready-made catalog, optional-file choices and export are separate work. v0.9 and v0.10 will undergo one combined maintainer gameplay test. See [the v0.10 checklist](docs/TESTING_V0.10.md).
+The core now supports verified Modrinth format-1 `.mrpack` installation into a **new isolated instance**, including required files, SHA-1/SHA-512 checks, bounded overrides and failure-safe publication. From **My games → Import Modrinth modpack (.mrpack)** choose a pack file; the launcher installs it as a new game and selects it after completion. The ready-made online catalog, optional-file choices and export are separate work. v0.9 and v0.10 will undergo one combined maintainer gameplay test. See [the v0.10 checklist](docs/TESTING_V0.10.md).
 
 ## v0.9 — Built-in graphics catalog (bounded acceptance)
 

@@ -347,7 +347,7 @@ Graphics-related features remain optional instance components and do not contami
 
 ## v0.10 — Modpacks
 
-**22 October 2026:** format-1 .mrpack import now validates required/optional/server-only client files, verifies both hashes and stages overrides and a new instance privately. CI/real-game acceptance is pending, while the child-first online catalog, optional selection and export remain required. v0.9 and v0.10 user tests are planned together.
+**22 October 2026:** format-1 .mrpack import now validates required/optional/server-only client files, verifies both hashes and stages overrides and a new instance privately. The My games local .mrpack picker is available; CI/real-game acceptance is pending, while the child-first online catalog, optional selection and export remain required. v0.9 and v0.10 user tests are planned together.
 
 ### Objective
 

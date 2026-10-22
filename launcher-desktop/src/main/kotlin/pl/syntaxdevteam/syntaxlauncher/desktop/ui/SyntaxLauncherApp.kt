@@ -606,6 +606,20 @@ private fun LauncherPanel(
                 session.instances.restoreFromTrash(entry.entryName)
             } },
             onDismiss = { managerOpen = false; copyPreview = null },
+            onImportModpack = {
+                if (!locked && !mutationBusy) {
+                    val picker = javax.swing.JFileChooser().apply {
+                        dialogTitle = strings.text("modpack.import_file")
+                        fileFilter = javax.swing.filechooser.FileNameExtensionFilter(
+                            strings.text("modpack.file_description"), "mrpack")
+                        isAcceptAllFileFilterUsed = false
+                    }
+                    if (picker.showOpenDialog(null) == javax.swing.JFileChooser.APPROVE_OPTION) {
+                        val source = picker.selectedFile.toPath()
+                        modifyInstance { session.modpackImporter.install(source) }
+                    }
+                }
+            },
         )
     }
 

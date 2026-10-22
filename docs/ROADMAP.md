@@ -644,7 +644,7 @@ Goal: manage graphics-related instance content without treating every component 
 
 Goal: install/export repeatable instance definitions and support a mainstream modpack format.
 
-**Status:** 🚧 A format-1 .mrpack importer now validates client files, checks SHA-1/SHA-512 and extracts bounded client overrides into an invisible staged instance before atomic publication. CI and real gameplay acceptance are pending. The child-first modpack catalog, optional-file picker and export remain open; v0.9 and v0.10 gameplay tests will be performed together.
+**Status:** 🚧 A format-1 .mrpack importer now validates client files, checks SHA-1/SHA-512 and extracts bounded client overrides into an invisible staged instance before atomic publication. My games now exposes an import file picker. CI and real gameplay acceptance are pending. The child-first modpack catalog, optional-file picker and export remain open; v0.9 and v0.10 gameplay tests will be performed together.
 
 ## Modpack model
 
@@ -659,7 +659,7 @@ Goal: install/export repeatable instance definitions and support a mainstream mo
 
 - [ ] Browse compatible ready-made modpacks/sets in the same child-first launcher catalog and create an isolated playable game with one primary action; file import remains secondary.
 
-- [ ] 🚧 IN PROGRESS — Import format-1 .mrpack in core; desktop file picker and full CI acceptance pending.
+- [ ] 🚧 IN PROGRESS — Import format-1 .mrpack in core; desktop file picker added, full CI/native acceptance pending.
 - [ ] Resolve Minecraft version and loader.
 - [ ] Install referenced files/dependencies.
 - [ ] Apply overrides.
