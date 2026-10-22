@@ -29,7 +29,8 @@ class ModpackCatalog(private val http: HttpClient, private val downloads: Downlo
             val id = obj.getValue("project_id").jsonPrimitive.content.also { require(validId(it)) }
             ModrinthProject(id, obj["title"]?.jsonPrimitive?.content?.take(200) ?: id,
                 obj["description"]?.jsonPrimitive?.content?.take(500).orEmpty(),
-                obj["author"]?.jsonPrimitive?.content?.take(200).orEmpty(), obj["downloads"]?.jsonPrimitive?.longOrNull ?: 0, null)
+                obj["author"]?.jsonPrimitive?.content?.take(200).orEmpty(), obj["downloads"]?.jsonPrimitive?.longOrNull ?: 0,
+                obj["icon_url"]?.jsonPrimitive?.contentOrNull?.takeIf { it.startsWith("https://") })
         }
     }
 

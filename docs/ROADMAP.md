@@ -18,6 +18,11 @@ Agents and contributors MUST keep this file synchronized with actual repository 
 - [x] Introduce the shared one-click Mods/Textures catalog for saved games, translated search/install/status/retry/cancel controls and automatic compatible mod/resource-pack dependency selection. Resource packs are selected automatically with original game-settings backups; deterministic backend/EN/PL/DE compact/wide UI regressions pass.
 - [x] Complete the same simple catalog experience for shaders with automatic renderer setup, OptiFine and ready-made modpacks; a ZIP copy, backend-only service or placeholder category does not satisfy this acceptance requirement. The v0.9 graphics scope has private maintainer acceptance; v0.10 now supplies required-client Modrinth sets with complete preparation, and the wider native/gameplay matrix remains v1.0 validation.
 
+## Urgent build feedback — 22 October 2026
+
+- [x] Read declared Fabric nested module/provided IDs; preserve real missing-dependency notices, show a direct review action and per-file evidence. Nested/disabled-parent regressions and full local test/build pass.
+- [x] Header language → settings gear → build identity, Game profiles naming, responsive compact navigation and artwork/category accents for extras and modpacks. EN/PL/DE render tests, full local test/build and Linux app-image packaging pass; wider native checks remain below.
+
 ## Cross-milestone desktop development ergonomics (October 2026)
 
 - [x] Replace deprecated desktop resource/dialog calls with Compose resource bitmap decoding and `DialogWindow`; align OfflineAccount copy visibility with its private constructor and remove redundant loader null checks. Full local tests/build and Linux package verification pass; native window acceptance remains separate.

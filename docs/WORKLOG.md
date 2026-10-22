@@ -11,6 +11,66 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 
 
+## 2026-10-22 — Publish all current changes and retain standing push instruction
+
+**Milestone:** Cross-milestone development workflow
+**Author/Agent:** GPT-6 / Codex
+**Status:** Completed — local preparation; push/CI outcome reported in chat
+
+### Completed
+- Record the maintainer's standing instruction to commit and push all current project changes after verified work, including existing maintainer edits, without repeat confirmation.
+- Include all urgent UI/mod-notice corrections and the maintainer's pre-existing canonical version change from 0.7.0 to 0.7.1. No release tag or Stable release is created.
+
+### Changed files
+- `AGENTS.md` — persistent publication instruction.
+- `docs/WORKLOG.md` — publication scope and verification.
+- All implementation files listed in the preceding urgent-feedback entry, plus `gradle.properties`.
+
+### Verification
+- `./gradlew --offline test build :launcher-desktop:createDistributable` — PASS in the preceding task using version 0.7.1: 221 passed, four optional tests skipped.
+- Documentation-only addition after that build; no runtime changes in this publication step.
+- `git diff --check` — PASS.
+- Push and hosted CI — performed after this commit is created; outcome reported in the chat.
+
+### Roadmap updates
+- No further status changes; urgent-feedback items are complete and broader native acceptance stays open.
+
+### Follow-ups / known issues
+- Report push/CI outcome in the chat; no Stable publication requested.
+
+
+## 2026-10-22 — Urgent mod notices, header settings and friendly catalog
+
+**Milestone:** v0.5/v0.6/v0.9/v0.10 — build feedback corrections
+**Author/Agent:** GPT-6 / Codex
+**Status:** Completed
+
+### Completed
+- Read declared Fabric nested module IDs and provides aliases with archive/depth/byte bounds, including nested nesting; disabled parent modules never satisfy enabled dependencies. Keep genuinely missing requirements visible.
+- Replace raw warning floods on Home with an advisory count and direct mod-list action. Show evidence beside affected files and localized missing-requirement guidance.
+- Move language/settings to the header before build identity, add a gear and settings dialog for update preferences, remove the sidebar heading and rename navigation to Game profiles / Profile gry / Spielprofile. Compact navigation gets a separate row.
+- Add Modrinth artwork with category vector fallbacks, shared restrained accent colors and labels for extras/modpacks. Bound background artwork requests/cache through the shared HTTP client. Localize short descriptions for five common projects and label other authors’ original text.
+
+### Changed files
+- Core `mods/{LocalModManager,CatalogIcons}.kt`, `modpack/ModpackCatalog.kt`, `content/ModrinthResourcePacks.kt` — local advisory metadata, optional artwork service and propagate project icon URLs for every catalog category.
+- Desktop `DesktopLauncherSession.kt`, `ui/{SyntaxLauncherApp,SyntaxComponents,SyntaxTheme,ContentCatalog,LocalModsDialog}.kt`, `i18n/{en,pl,de}.properties` — header, catalog and actionable notices.
+- Core `mods/{LocalModManagerTest,CatalogIconsTest}.kt`, `content/ModrinthResourcePacksTest.kt`, `modpack/ModpackInstallerTest.kt`, desktop `ui/LauncherHomeRenderTest.kt` — nested modules/disabled parents, real missing dependencies, icon limits/cache and responsive translated header regressions.
+- `README.md`, `docs/{DESIGN,ROADMAP,WORKLOG}.md` — behavior and acceptance scope.
+
+### Verification
+- `./gradlew --offline test build :launcher-desktop:createDistributable` — PASS: 225 tests discovered, 221 passed, four opt-in live tests skipped, zero failures/errors. Linux app image generated.
+- Manual verification — inspected generated PL wide/400 px header and catalog/modpack PNGs; EN/PL/DE wide/compact render interactions and 400 px header with 108 dp chrome clearance pass. Graphical Minecraft/native cross-platform checks not performed.
+- `git diff --check` — PASS. Initial overlapping test processes collided in Gradle binary report output; both exited, and subsequent sequential full runs passed.
+
+### Roadmap updates
+- `[x] Urgent build feedback / local mod notices`
+- `[x] Urgent build feedback / header and catalog`
+
+### Follow-ups / known issues
+- Third-party descriptions are not generally machine translated; curated explanations cover common projects. Full loader version-range solving and broader native window/DPI/gameplay acceptance remain open.
+- Existing user edit to `gradle.properties` is preserved; no commit, tag or publication requested.
+
+
 ## 2026-10-22 — Block automatic rollback of a freshly downloaded launcher
 
 **Milestone:** v0.12 — Startup auto-update correctness

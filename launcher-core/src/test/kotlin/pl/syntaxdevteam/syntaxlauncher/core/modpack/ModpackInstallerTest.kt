@@ -74,7 +74,7 @@ class ModpackInstallerTest {
                 "/v2/search" -> {
                     assertEquals("""[["project_type:modpack"]]""", request.url.parameters["facets"])
                     assertNull(request.url.parameters["game_versions"])
-                    respond("""{"hits":[{"project_id":"PACKROOT","title":"Forest adventure"}]}""")
+                    respond("""{"hits":[{"project_id":"PACKROOT","title":"Forest adventure","icon_url":"https://cdn.modrinth.com/pack.png"}]}""")
                 }
                 "/v2/project/PACKROOT" -> respond("""{"id":"PACKROOT","project_type":"modpack"}""")
                 "/v2/project/PACKROOT/version" -> respond("""[{"id":"VERSION1","project_id":"PACKROOT","version_type":"release",
@@ -124,6 +124,7 @@ class ModpackInstallerTest {
             val world = fixture.repo.gameDirectory(other).resolve("saves/world.txt")
             Files.createDirectories(world.parent); Files.writeString(world, "keep other world")
             val project = fixture.catalog.search().single()
+            assertEquals("https://cdn.modrinth.com/pack.png", project.iconUrl)
             val phases = mutableListOf<ModpackPhase>()
             val installed = fixture.catalog.install(project) { phases += it.phase }
             assertEquals(1, fixture.prepared)

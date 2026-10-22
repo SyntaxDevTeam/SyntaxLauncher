@@ -153,17 +153,23 @@ class LauncherHomeRenderTest {
 
     @Test
     fun translatedHomeKeepsPlayAndSetupUsableAcrossLanguagesAndWindowSizes() = runBlocking(Dispatchers.Swing) {
-        for (language in UiLanguage.entries) for ((width, height) in listOf(1440 to 810, 440 to 740)) {
+        for (language in UiLanguage.entries) for ((width, height) in listOf(1440 to 810, 440 to 740, 400 to 500)) {
             val session = session()
             val strings = UiStrings(language)
             val scene = ImageComposeScene(width, height, coroutineContext = Dispatchers.Swing) {
-                CompositionLocalProvider(LocalStrings provides strings) { SyntaxLauncherApp(session) }
+                CompositionLocalProvider(LocalStrings provides strings) { SyntaxLauncherApp(session, chromeInset = if (width == 400) androidx.compose.ui.unit.Dp(108f) else androidx.compose.ui.unit.Dp(0f)) }
             }
             try {
                 scene.awaitReady(strings.text("ui.play_minecraft"))
                 val play = scene.text(strings.text("ui.play_minecraft"))
                 assertTrue(play.boundsInRoot.left >= 0 && play.boundsInRoot.right <= width,
                     "Play bounds for ${language.code} at $width x $height: ${play.boundsInRoot}")
+                val settings = scene.nodes().first { it.config.getOrNull(SemanticsProperties.TestTag) == "launcher-settings" }
+                assertTrue(settings.boundsInRoot.top >= 0 && settings.boundsInRoot.bottom <= 84)
+                assertTrue(settings.boundsInRoot.left >= 0 && settings.boundsInRoot.right <= width - if (width == 400) 108 else 0)
+                val languageMenu = scene.nodes().first { it.config.getOrNull(SemanticsProperties.ContentDescription)?.contains(strings.text("language.choose")) == true }
+                assertTrue(languageMenu.boundsInRoot.right <= settings.boundsInRoot.left)
+                assertTrue(scene.nodes().any { it.label() == strings.text("game.my_games") })
                 assertNotNull(scene.text(strings.text("ui.your_world")))
                 assertNotNull(scene.text(strings.text("ui.your_adventure")))
                 scene.screenshot("home-${language.code}-${width}x${height}")

@@ -39,6 +39,32 @@ class LocalModManagerTest {
         return path
     }
 
+    @Test fun nestedFabricModulesAndProvidedAliasesAreAvailableOnlyWhileParentIsEnabled() = runBlocking {
+        val (repo, manager) = setup()
+        val instance = repo.create("Nested", "1.21.1", loader = ModLoaderSelection("fabric", "fixture"))
+        fun archive(vararg entries: Pair<String, ByteArray>): ByteArray {
+            val out = java.io.ByteArrayOutputStream()
+            ZipOutputStream(out).use { zip -> entries.forEach { (name, bytes) ->
+                zip.putNextEntry(ZipEntry(name)); zip.write(bytes); zip.closeEntry()
+            } }
+            return out.toByteArray()
+        }
+        val leaf = archive("fabric.mod.json" to """{"id":"fabric-resource-loader-v0","provides":["resource_alias"]}""".toByteArray())
+        val nested = archive("fabric.mod.json" to """{"id":"api_module","jars":[{"file":"leaf.jar"}]}""".toByteArray(), "leaf.jar" to leaf)
+        val parent = Files.createTempFile("fabric-api", ".jar")
+        Files.write(parent, archive("fabric.mod.json" to """{"id":"fabric_api","version":"1","jars":[{"file":"nested.jar"}]}""".toByteArray(),
+            "nested.jar" to nested))
+        val imported = manager.importJar(instance.id, parent).mods.single()
+        val consumer = jar(Files.createTempFile("consumer", ".jar"), "consumer",
+            """{"fabric-resource-loader-v0":"*","resource_alias":"*","truly_missing":"*"}""")
+        val warnings = manager.importJar(instance.id, consumer).warnings
+        assertEquals(1, warnings.size)
+        assertTrue(warnings.single().contains("truly_missing"))
+        val disabled = manager.setEnabled(instance.id, imported.fileName, false)
+        assertTrue(disabled.warnings.any { it.contains("fabric-resource-loader-v0") })
+        assertTrue(disabled.warnings.any { it.contains("resource_alias") })
+    }
+
     @Test fun importingTogglingAndRemovingKeepsInstanceDataSafe() = runBlocking {
         val (repo, manager) = setup()
         val first = repo.create("Fabric A", "26.3", loader = ModLoaderSelection("fabric", "0.18.0"))

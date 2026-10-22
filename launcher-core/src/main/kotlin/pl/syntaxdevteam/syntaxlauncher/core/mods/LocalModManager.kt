@@ -28,6 +28,7 @@ data class LocalModMetadata(
     val breaks: Map<String, String>,
     /** Metadata descriptor that was actually read, not a guarantee of runtime compatibility. */
     val sourceLoader: String? = null,
+    val providedIds: Set<String> = emptySet(),
 )
 
 data class LocalMod(
@@ -476,14 +477,16 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
         identifiers.forEach { (id, paths) ->
             if (paths.size > 1) warnings += "Duplicate enabled mod id '$id': ${paths.joinToString()}"
         }
+        // Fabric API publishes its modules as declared nested JARs, rather than loose files.
+        val availableIds = identifiers.keys + active.flatMap { it.metadata?.providedIds.orEmpty() }
         val builtin = setOf("minecraft", "java", "fabricloader", "fabric", "quilt_loader", "quilted_fabric_api", "forge", "neoforge", "fml")
         active.forEach { mod ->
             val data = mod.metadata ?: return@forEach
-            data.depends.keys.filter { it !in builtin && it !in identifiers.keys }
+            data.depends.keys.filter { it !in builtin && it !in availableIds }
                 .forEach { missing ->
                     warnings += "${mod.fileName} requires '$missing' (not enabled locally)."
                 }
-            data.breaks.keys.filter { it in identifiers.keys }
+            data.breaks.keys.filter { it in availableIds }
                 .forEach { conflict ->
                     warnings += "${mod.fileName} declares a conflict with enabled '$conflict'."
                 }
@@ -557,6 +560,7 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
                     obj.string("environment"), requirementMap(obj["depends"] as? JsonObject),
                     requirementMap(obj["breaks"] as? JsonObject),
                     sourceLoader = "fabric",
+                    providedIds = fabricProvidedIds(obj, jar),
                 )
             }
             val root = obj["quilt_loader"] as? JsonObject ?: return null
@@ -569,6 +573,49 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
                 quiltRequirements(root["breaks"] as? JsonArray),
                 sourceLoader = "quilt",
             )
+        }
+    }
+
+    /** Read declared jar-in-jar IDs only. Never extract archives or scan unrelated files. */
+    private fun fabricProvidedIds(root: JsonObject, jar: ZipFile): Set<String> {
+        var remaining = 32 * 1024 * 1024
+        var count = 0
+        fun aliases(obj: JsonObject): Set<String> = (obj["provides"] as? JsonArray).orEmpty()
+            .mapNotNull { (it as? JsonPrimitive)?.contentOrNull }.filter {
+                it.matches(Regex("[a-z][a-z0-9_-]{0,63}"))
+            }.toSet()
+        fun declared(obj: JsonObject): List<String> = (obj["jars"] as? JsonArray).orEmpty()
+            .mapNotNull { (it as? JsonObject)?.string("file") }.distinct()
+        fun bounded(input: java.io.InputStream, limit: Int): ByteArray {
+            val bytes = input.readNBytes(minOf(limit, remaining) + 1)
+            require(bytes.size <= limit && bytes.size <= remaining) { "Nested mod metadata exceeds scan limit." }
+            remaining -= bytes.size
+            return bytes
+        }
+        fun nested(bytes: ByteArray, depth: Int): Set<String> {
+            require(depth <= 4 && ++count <= 256) { "Too many nested mods." }
+            var descriptor: JsonObject? = null
+            val children = mutableMapOf<String, ByteArray>()
+            java.util.zip.ZipInputStream(bytes.inputStream()).use { zip ->
+                var entries = 0
+                while (true) {
+                    val entry = zip.nextEntry ?: break
+                    require(++entries <= 8192) { "Too many nested JAR entries." }
+                    when {
+                        entry.name == "fabric.mod.json" -> descriptor = json.parseToJsonElement(
+                            bounded(zip, 256 * 1024).toString(Charsets.UTF_8)).jsonObject
+                        entry.name.endsWith(".jar") -> children[entry.name] = bounded(zip, 16 * 1024 * 1024)
+                    }
+                }
+            }
+            val obj = descriptor ?: return emptySet()
+            return aliases(obj) + listOfNotNull(obj.string("id")) + declared(obj).flatMap { name ->
+                children[name]?.let { nested(it, depth + 1) }.orEmpty()
+            }
+        }
+        return aliases(root) + declared(root).flatMap { name ->
+            val entry = jar.getEntry(name) ?: return@flatMap emptySet()
+            jar.getInputStream(entry).use { nested(bounded(it, 16 * 1024 * 1024), 1) }
         }
     }
 

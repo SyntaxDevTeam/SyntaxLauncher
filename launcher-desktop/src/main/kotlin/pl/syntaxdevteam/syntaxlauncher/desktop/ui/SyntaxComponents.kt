@@ -36,6 +36,9 @@ import androidx.compose.ui.unit.sp
 
 /** Small native vector set: crisp at every display scale, without a new icon dependency. */
 internal enum class SyntaxSymbol(val path: String) {
+    Texture("M3 3H21V21H3Z M3 9H21 M3 15H21 M9 3V21 M15 3V21"),
+    Sun("M12 8A4 4 0 1 1 12 16A4 4 0 1 1 12 8 M12 1V4 M12 20V23 M1 12H4 M20 12H23 M4 4L6 6 M18 18L20 20 M4 20L6 18 M18 6L20 4"),
+    Settings("M9 3H15L16 6L19 7L22 10V14L19 17L16 18L15 21H9L8 18L5 17L2 14V10L5 7L8 6Z M16 12A4 4 0 1 1 8 12A4 4 0 1 1 16 12"),
     Home("M3 11L12 3L21 11 M5 10V21H10V15H14V21H19V10"),
     Instances("M4 6C4 2 20 2 20 6C20 10 4 10 4 6 M4 6V18C4 22 20 22 20 18V6 M4 12C4 16 20 16 20 12"),
     Cube("M12 2L22 7V17L12 22L2 17V7Z M2 7L12 12L22 7 M12 12V22 M7 4.5L17 9.5"),

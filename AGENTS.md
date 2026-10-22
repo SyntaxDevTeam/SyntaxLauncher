@@ -285,3 +285,7 @@ Mandatory principles:
 - The launcher should develop its own visual identity and must not simply clone another Minecraft launcher.
 
 A UI task is not complete merely because every requested control exists. It must also preserve hierarchy, clarity, responsiveness and the lightweight visual character defined in `docs/DESIGN.md`.
+
+## 16. Standing publication instruction (22 October 2026)
+
+The maintainer explicitly requests: always push all changes. After completing and verifying repository work, commit all current project changes (including maintainer edits present in the working tree) and push the current branch to its configured remote without asking again. Preserve unrelated content, never force-push or rewrite shared history, and never include secrets, caches or generated artifacts. Check the resulting CI/build status and report the commit and any failures. This authorizes normal commits/pushes; creating release tags or publishing Stable releases still requires a specific request.

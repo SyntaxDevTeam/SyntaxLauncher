@@ -1,5 +1,15 @@
 package pl.syntaxdevteam.syntaxlauncher.desktop.ui
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.toComposeImageBitmap
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -95,6 +105,7 @@ fun ContentCatalogDialog(instance: MinecraftInstance, session: DesktopLauncherSe
                         val selected = chooseModpackFile() ?: throw CancellationException("Import cancelled")
                         onInstanceInstalled(installer.install(selected))
                     } },
+                    loadIcon = session.catalogIcons::load,
                     shaderAvailable = shaderAvailable, optiFineAvailable = optiFineAvailable, onManagePacks = { managingPacks = true },
                     onRetryCompatibility = if (shaderIssue || optiFineIssue) ({ compatibilityRefresh++ }) else null)
             }
@@ -110,7 +121,8 @@ fun ContentCatalog(instance: MinecraftInstance?, canModify: Boolean,
     onBusyChange: (Boolean) -> Unit, onManage: () -> Unit, onDismiss: () -> Unit,
     shaderAvailable: Boolean = false, optiFineAvailable: Boolean = false, onManagePacks: (() -> Unit)? = null,
     onRetryCompatibility: (() -> Unit)? = null, modpacksAvailable: Boolean = false,
-    importPack: (suspend () -> Unit)? = null, installationDetail: String? = null) {
+    importPack: (suspend () -> Unit)? = null, installationDetail: String? = null,
+    loadIcon: suspend (String) -> ByteArray? = { null }) {
     val strings = LocalStrings.current
     val scope = rememberCoroutineScope()
     val sections = remember(instance?.loader?.id, shaderAvailable, optiFineAvailable, modpacksAvailable) {
@@ -220,14 +232,31 @@ fun ContentCatalog(instance: MinecraftInstance?, canModify: Boolean,
                 items(found, key = { it.id }) { project ->
                     Surface(color = MaterialTheme.colorScheme.surfaceVariant,
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(SyntaxBrand.controlRadius)) {
+                        Column {
+                        Box(Modifier.fillMaxWidth().background(SyntaxBrand.catalogAccents[section.ordinal % SyntaxBrand.catalogAccents.size]).size(3.dp))
                         BoxWithConstraints(Modifier.fillMaxWidth().padding(if (compact) 8.dp else 14.dp)) {
                             val description: @Composable (Modifier) -> Unit = { modifier ->
-                                Column(modifier, verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                                    Text(project.title, maxLines = 2, style = MaterialTheme.typography.titleMedium)
-                                    if (!compact) Text(if (section == CatalogSection.OPTIFINE) strings.text("catalog.optifine_hint") else project.summary.take(150), style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Row(modifier, horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    CatalogProjectIcon(project, section, loadIcon, compact)
+                                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                                        Text(project.title, maxLines = 2, style = MaterialTheme.typography.titleMedium)
+                                        Text(strings.text(section.label), color = SyntaxBrand.catalogAccents[section.ordinal % SyntaxBrand.catalogAccents.size],
+                                            style = MaterialTheme.typography.labelSmall)
+                                        if (!compact) {
+                                            val summaryKey = catalogSummaryKey(project.title)
+                                            if (section == CatalogSection.OPTIFINE) Text(strings.text("catalog.optifine_hint"), style = MaterialTheme.typography.bodySmall)
+                                            else if (summaryKey != null) Text(strings.text(summaryKey), style = MaterialTheme.typography.bodySmall)
+                                            else {
+                                                Text(strings.text("catalog.author_description"), style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                Text(project.summary.take(180), maxLines = 3, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            }
+                                        }
+                                    }
                                 }
                             }
+
                             val action: @Composable () -> Unit = {
                                 val key = section.name + ":" + project.id
                                 Button(enabled = canModify && !busy && key !in installed,
@@ -247,6 +276,7 @@ fun ContentCatalog(instance: MinecraftInstance?, canModify: Boolean,
                                 description(Modifier.weight(1f)); action()
                             }
                         }
+                    }
                     }
                 }
             }
@@ -303,7 +333,46 @@ fun ModpackCatalogDialog(session: DesktopLauncherSession, canModify: Boolean, on
                 modpacksAvailable = true, importPack = {
                     val path = chooseModpackFile() ?: throw CancellationException("Import cancelled")
                     onInstalled(requireNotNull(session.modpackInstaller).install(path, onProgress = report))
-                }, installationDetail = detail)
+                }, installationDetail = detail, loadIcon = session.catalogIcons::load)
         } }
+    }
+}
+
+
+internal fun catalogSummaryKey(title: String): String? = when (title.lowercase(java.util.Locale.ROOT)) {
+    "fabric api" -> "catalog.summary.fabric-api"
+    "sodium" -> "catalog.summary.sodium"
+    "iris", "iris shaders" -> "catalog.summary.iris"
+    "remarkably optimized" -> "catalog.summary.remarkably-optimized"
+    "simply optimized" -> "catalog.summary.simply-optimized"
+    else -> null
+}
+
+@Composable
+private fun CatalogProjectIcon(project: ModrinthProject, section: CatalogSection,
+    load: suspend (String) -> ByteArray?, compact: Boolean) {
+    var bitmap by remember(project.iconUrl) { mutableStateOf<ImageBitmap?>(null) }
+    LaunchedEffect(project.iconUrl) {
+        bitmap = null
+        try {
+            bitmap = project.iconUrl?.let { url -> load(url)?.let { bytes -> withContext(Dispatchers.Default) {
+                org.jetbrains.skia.Image.makeFromEncoded(bytes).use { image ->
+                    if (image.width in 1..1024 && image.height in 1..1024) image.toComposeImageBitmap() else null
+                }
+            } } }
+        } catch (cancelled: CancellationException) { throw cancelled }
+        catch (_: Exception) { /* Artwork is optional; the colored category icon remains usable. */ }
+    }
+    val accent = SyntaxBrand.catalogAccents[section.ordinal % SyntaxBrand.catalogAccents.size]
+    Box(Modifier.size(if (compact) 44.dp else 64.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
+        .background(accent.copy(alpha = .14f)), contentAlignment = Alignment.Center) {
+        val icon = bitmap
+        if (icon != null) Image(icon, contentDescription = null, modifier = Modifier.fillMaxSize().padding(4.dp))
+        else BrandIcon(when (section) {
+            CatalogSection.MODPACKS -> SyntaxSymbol.Instances
+            CatalogSection.MODS -> SyntaxSymbol.Cube
+            CatalogSection.TEXTURES -> SyntaxSymbol.Texture
+            CatalogSection.SHADERS, CatalogSection.OPTIFINE -> SyntaxSymbol.Sun
+        }, tint = accent, size = if (compact) 26.dp else 36.dp)
     }
 }

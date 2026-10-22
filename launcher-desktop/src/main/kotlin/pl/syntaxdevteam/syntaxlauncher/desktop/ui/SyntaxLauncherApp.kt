@@ -113,6 +113,7 @@ fun SyntaxLauncherApp(
         var persisted by remember(session) { mutableStateOf<LauncherPreferences?>(null) }
         var settingsError by remember(session) { mutableStateOf<String?>(null) }
         var instanceOpenRequest by remember { mutableIntStateOf(0) }
+        var setupOpen by remember { mutableStateOf(false) }
 
         LaunchedEffect(session) {
             try {
@@ -146,6 +147,7 @@ fun SyntaxLauncherApp(
             val tinyShell = chromeInset > 0.dp && maxWidth < 560.dp
             Column(modifier = Modifier.fillMaxSize()) {
             headerDragArea {
+            Column {
             Row(
                 modifier = Modifier.fillMaxWidth().height(if (compactShell) 72.dp else 84.dp)
                     .background(Brush.horizontalGradient(listOf(SyntaxBrand.panel, SyntaxBrand.background)))
@@ -177,7 +179,7 @@ fun SyntaxLauncherApp(
                     }
                 }
                 if (!compactShell) Spacer(Modifier.weight(1f))
-                Row(
+                if (!compactShell) Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
@@ -200,8 +202,14 @@ fun SyntaxLauncherApp(
                         }
                     }
                 }
+                if (!compactShell) Spacer(Modifier.weight(1f))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    LanguagePicker()
+                    IconButton(onClick = { setupOpen = true }, modifier = Modifier.testTag("launcher-settings")) {
+                        BrandIcon(SyntaxSymbol.Settings, description = strings.text("ui.your_setup"))
+                    }
+                }
                 if (!compactShell) {
-                    Spacer(Modifier.weight(1f))
                     Column(horizontalAlignment = Alignment.End) {
                         Text("JAVA EDITION   /   v" + LauncherBuildInfo.version,
                             color = SyntaxBrand.heroMuted, style = MaterialTheme.typography.labelSmall,
@@ -212,11 +220,30 @@ fun SyntaxLauncherApp(
                     }
                 } else {
                     Spacer(Modifier.width(6.dp))
-                    Text(LauncherBuildInfo.compactBuildLabel,
+                    Text(LauncherBuildInfo.compactBuildLabel, modifier = Modifier.weight(1f), maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                         color = SyntaxBrand.cyan, style = MaterialTheme.typography.labelSmall)
                 }
             }
+            if (compactShell) Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = { instanceOpenRequest = minOf(instanceOpenRequest - 1, -1) }) {
+                    BrandIcon(SyntaxSymbol.Home)
+                    Spacer(Modifier.width(8.dp)); Text(strings.text("ui.home"))
+                }
+                TextButton(onClick = { instanceOpenRequest = maxOf(instanceOpenRequest + 1, 1) }) {
+                    BrandIcon(SyntaxSymbol.Instances)
+                    Spacer(Modifier.width(8.dp)); Text(strings.text("game.my_games"))
+                }
             }
+            }
+            }
+            if (setupOpen) androidx.compose.material3.AlertDialog(
+                onDismissRequest = { setupOpen = false },
+                title = { Text(strings.text("ui.your_setup")) },
+                text = { LauncherUpdateChannelPicker(session.preferences) },
+                confirmButton = { TextButton(onClick = { setupOpen = false }) { Text(strings.text("ui.close")) } },
+            )
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f))
             Box(modifier = Modifier.weight(1f).padding(horizontal = if (compactShell) 12.dp else 20.dp,
                 vertical = 12.dp)) {
@@ -880,32 +907,14 @@ private fun LauncherPanel(
                 (processProtectionError ?: instanceError)?.let { Text(it, color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall) }
                 if (localModWarnings.isNotEmpty()) {
-                    Text(strings.text("ui.local_mod_warnings_review_instances_mods"),
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.labelMedium)
-                    localModWarnings.take(2).forEach { warning ->
-                        Text("• $warning", style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    if (localModWarnings.size > 2) Text(
-                        strings.text("ui.0_additional_mod_warning_s", localModWarnings.size - 2),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(strings.text("mods.attention", localModWarnings.size),
+                        color = SyntaxBrand.warning, style = MaterialTheme.typography.bodySmall)
+                    TextButton(onClick = {
+                        browseModsFirst = false
+                        managingMods = activeInstance
+                    }, enabled = !locked) { Text(strings.text("mods.review")) }
                 }
             }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f))
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically) {
-                    SectionLabel(strings.text("ui.your_setup"), SyntaxSymbol.Setup)
-                    LanguagePicker()
-                }
-                Text(strings.text("ui.make_it_yours"), modifier = Modifier.padding(start = 34.dp),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.SemiBold)
-            }
-            LauncherUpdateChannelPicker(session.preferences, enabled = !locked)
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f))
             Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,

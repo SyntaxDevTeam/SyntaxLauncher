@@ -27,6 +27,8 @@ internal object SyntaxBrand {
     val heroMuted = Color(0xFFB3CBEA)
     val heroEnd = Color(0xFF041329)
     val scrim = Color(0xFF031226)
+    val warning = Color(0xFFFFCE73)
+    val catalogAccents = listOf(cyan, Color(0xFFC2A5FF), Color(0xFFFFCF82), Color(0xFFFFA9CE))
     val success = Color(0xFF3CE477)
     val panelRadius = 18.dp
     val controlRadius = 9.dp

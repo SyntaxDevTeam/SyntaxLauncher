@@ -258,11 +258,11 @@ fun LocalModsDialog(
                 if (warnings.isNotEmpty()) {
                     Text(strings.text("ui.compatibility_warnings_local_metadata_only"),
                         style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.error)
+                        color = SyntaxBrand.warning)
                     Column(modifier = Modifier.fillMaxWidth().heightIn(max = 110.dp)
                         .verticalScroll(rememberScrollState())) {
                         warnings.forEach { warning ->
-                            Text("• $warning", style = MaterialTheme.typography.bodySmall)
+                            Text("• " + localModWarningText(warning), style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }
@@ -293,6 +293,10 @@ fun LocalModsDialog(
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
+                                inventory?.warnings.orEmpty().filter { it.contains(mod.fileName) }.forEach { warning ->
+                                    Text("⚠ " + localModWarningText(warning), color = SyntaxBrand.warning,
+                                        style = MaterialTheme.typography.bodySmall)
+                                }
                                 mod.metadata?.let { info ->
                                     if (info.depends.isNotEmpty()) Text(
                                         strings.text("ui.requires") + info.depends.entries.joinToString { "${it.key} ${it.value}" },
@@ -330,4 +334,12 @@ fun LocalModsDialog(
             }
         }
     }
+}
+
+
+@Composable
+private fun localModWarningText(warning: String): String {
+    val missing = Regex("""(.+) requires '([^']+)' \(not enabled locally\)\.""").matchEntire(warning)
+    return if (missing != null) LocalStrings.current.text("mods.missing", missing.groupValues[1], missing.groupValues[2])
+        else warning
 }

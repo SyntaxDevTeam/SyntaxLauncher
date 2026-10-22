@@ -71,7 +71,7 @@ class ModrinthResourcePacksTest {
                     assertTrue("versions:1.21.1" in facets)
                     assertFalse("categories:" in facets)
                     searchChecked = true
-                    respond("""{"hits":[{"project_id":"PACKROOT","title":"My textures"}]}""")
+                    respond("""{"hits":[{"project_id":"PACKROOT","title":"My textures","icon_url":"https://cdn.modrinth.com/texture.png"}]}""")
                 }
                 request.url.host == "cdn.modrinth.com" -> respond(bytes.getValue(id!!))
                 path.endsWith("/version") -> respond(release(id!!, bytes.getValue(id), id == "PACKROOT"))
@@ -80,7 +80,9 @@ class ModrinthResourcePacksTest {
         })
         try {
             val service = ModrinthResourcePacks(http, repo, LocalPackManager(repo), DownloadManager(http))
-            assertEquals(project.id, service.search(instance).single().id)
+            val result = service.search(instance).single()
+            assertEquals(project.id, result.id)
+            assertEquals("https://cdn.modrinth.com/texture.png", result.iconUrl)
             assertTrue(searchChecked)
             assertEquals(2, service.install(instance.id, project).packs.size)
             val settings = Files.readString(game.resolve("options.txt"))

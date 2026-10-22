@@ -54,7 +54,8 @@ class ModrinthPackCatalog(
             val hit = element as? JsonObject ?: return@mapNotNull null
             val id = hit.string("project_id")?.takeIf(::validId) ?: return@mapNotNull null
             ModrinthProject(id, hit.string("title") ?: id, hit.string("description").orEmpty(),
-                hit.string("author").orEmpty(), hit.string("downloads")?.toLongOrNull() ?: 0, null)
+                hit.string("author").orEmpty(), hit.string("downloads")?.toLongOrNull() ?: 0,
+                hit.string("icon_url")?.takeIf { it.startsWith("https://") })
         }
     }
 

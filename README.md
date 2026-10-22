@@ -472,3 +472,9 @@ Still required before v0.1 can be considered accepted: Gradle wrapper/full autom
 ## License
 
 See [`LICENSE`](LICENSE).
+
+### Build feedback corrections (22 October 2026)
+
+Home now uses **Game profiles / Profile gry / Spielprofile**. Language and launcher settings are in the top header before build information; the settings gear opens launcher update preferences. The compatible catalog shows project icons with colorful category fallbacks and short localized explanations for common projects. Other upstream descriptions remain labelled in their original language. Optional icon downloads use the shared HTTP client and bounded memory, without affecting installation availability.
+
+Mod notices account for Fabric API’s declared nested modules and provided IDs. Home links directly to the affected profile’s mod list; missing requirements are explained beside their file. These local metadata notices remain advisory, without full version-range reconciliation.
