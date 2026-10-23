@@ -9,6 +9,35 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 ---
 
 
+## 2026-10-23 — Verify Stable 0.9.2 publication and preserve next development version
+
+**Milestone:** v0.12 / release publication
+**Author/Agent:** Codex
+**Status:** Completed — Stable 0.9.2 verified; next DEV workflow status reported in chat
+
+### Completed
+- Published the explicitly approved Stable 0.9.2 from immutable commit `e5b4daaf2d6208316b452a11e7eb478b9c03a18f`. [GitHub Actions run 40005510889](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/40005510889) completed successfully: application tests, official NeoForge/Forge processor checks, all three native packages, Stable/preview publication and Build Explorer publication.
+- Verified [public v0.9.2](https://github.com/SyntaxDevTeam/SyntaxLauncher/releases/tag/v0.9.2): not draft, not prerelease; six non-empty uploaded assets, with portable TAR.GZ and update ZIP for Linux x64, Windows x64 and macOS ARM64.
+- During hosted publication the maintainer independently committed `cc0e378` (0.9.2-DEV) and edited the canonical property again to 0.9.3-DEV. Preserved both edits under the standing instruction to push all current changes. This next development version does not replace Stable 0.9.2 or declare v1.0 acceptance.
+
+### Changed files
+- `gradle.properties` — maintainer's next development version, 0.9.3-DEV.
+- `docs/{WORKLOG,RELEASE_READINESS}.md` — immutable Stable publication evidence and next-development scope.
+
+### Verification
+- `./gradlew --offline test build :launcher-desktop:createDistributable` — PASS for the release sources (257 tests: 253 passed, four opt-in network tests skipped) and repeated after the canonical DEV edit; outcome reported in chat.
+- `python3 -m unittest discover -s scripts -p 'test_*.py'` — PASS for the release sources (14 tests) and repeated for the DEV version.
+- Hosted release CI — PASS, including Linux/Windows/macOS packages and all publication jobs.
+- Public Stable assets — PASS: all six expected uploaded non-empty files; `git diff --check` — PASS.
+
+### Roadmap updates
+- No additional native/signing/premium/v1.0 checklist boxes changed; the Stable publication evidence does not certify those acceptance gates.
+
+### Follow-ups / known issues
+- Microsoft/Mojang approval and the final native/signing/gameplay acceptance remain open as documented. Next DEV CI is independent of the verified Stable release.
+
+---
+
 ## 2026-10-23 — Embedded game profiles, guided creation and shared legal footer; Stable 0.9.2
 
 **Milestone:** v0.12 / pre-1.0 interface corrections
