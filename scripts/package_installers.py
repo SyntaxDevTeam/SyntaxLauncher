@@ -207,14 +207,24 @@ def desktop_template(text, kind):
 
 def linux_resources(work):
     executable = Path(shutil.which(jpackage_tool()) or jpackage_tool()).resolve()
-    module = executable.parent.parent / 'jmods/jdk.jpackage.jmod'
+    home = Path(os.environ.get('JAVA_HOME', str(executable.parent.parent)))
+    module = home / 'jmods/jdk.jpackage.jmod'
     resources = work / 'resources'
     resources.mkdir()
-    with zipfile.ZipFile(module) as archive:
-        for kind, source, target in [('deb', 'template.postinst', 'postinst'),
-                                     ('rpm', 'template.spec', 'syntaxlauncher.spec')]:
-            text = archive.read('classes/jdk/jpackage/internal/resources/' + source).decode('utf-8')
-            (resources / target).write_text(desktop_template(text, kind), encoding='utf-8')
+    templates = [('deb', 'template.postinst', 'postinst'), ('rpm', 'template.spec', 'syntaxlauncher.spec')]
+    if module.is_file():
+        with zipfile.ZipFile(module) as archive:
+            contents = {source: archive.read('classes/jdk/jpackage/internal/resources/' + source).decode('utf-8')
+                        for _, source, _ in templates}
+    else:
+        # Some CI JDK distributions ship the tool in lib/modules without a jmods directory.
+        extracted = work / 'jdk-resources'
+        run([home / 'bin/jimage', 'extract', '--include', 'glob:**/template.postinst,glob:**/template.spec',
+             '--dir', extracted, home / 'lib/modules'])
+        base = extracted / 'jdk.jpackage/jdk/jpackage/internal/resources'
+        contents = {source: (base / source).read_text(encoding='utf-8') for _, source, _ in templates}
+    for kind, source, target in templates:
+        (resources / target).write_text(desktop_template(contents[source], kind), encoding='utf-8')
     return resources
 
 

@@ -20,7 +20,7 @@ The 0.9.3-DEV packaging work adds these formats to newly verified DEV/SNAPSHOT b
 | --- | --- | --- |
 | Windows x64 | `syntaxlauncher-windows-x64.msi` | WiX 7.0.0 wizard; installs for the current user under LocalAppData/Programs/SyntaxLauncher and creates a Start menu shortcut. Remove through Windows Installed apps. |
 | macOS ARM64 | `syntaxlauncher-macos-arm64.dmg` | Open the image and drag SyntaxLauncher into Applications. Remove the application bundle to uninstall. |
-| Debian/Ubuntu/Mint x64 | `syntaxlauncher-linux-x64.deb` | Install with the graphical package installer or `sudo apt install ./syntaxlauncher-linux-x64.deb`; remove package `syntaxlauncher`. |
+| Debian 13 / Ubuntu 24.04+ / Mint 22 x64 | `syntaxlauncher-linux-x64.deb` | Install with the graphical package installer or `sudo apt install ./syntaxlauncher-linux-x64.deb`; remove package `syntaxlauncher`. |
 | Fedora/openSUSE and other compatible RPM systems x64 | `syntaxlauncher-linux-x64.rpm` | Install with the distribution's package manager (`dnf install ./…rpm` or `zypper install ./…rpm`); remove package `syntaxlauncher`. |
 | Other compatible desktop Linux systems x64 | `syntaxlauncher-linux-x64.AppImage` | Mark executable and open; this is a single-file portable application, not a system package. Where FUSE is unavailable, `./syntaxlauncher-linux-x64.AppImage --appimage-extract-and-run` uses temporary extraction. |
 

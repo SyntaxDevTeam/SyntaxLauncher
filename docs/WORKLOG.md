@@ -9,6 +9,35 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 ---
 
 
+## 2026-10-23 — Native Windows/macOS acceptance and modular-JDK Linux resources
+
+**Milestone:** v0.12 / native distribution
+**Author/Agent:** Codex
+**Status:** Partial — Windows/macOS passed; corrected Linux/publication pending
+
+### Completed
+- CI 40011156165 passed application/loader verification, WiX v7 acceptance/build and the Windows MSI fresh install, full payload hashes, same-core duplicate rejection, forced repair, menu removal and retained data fixture. macOS DMG verification/mount/copy/removal passed again.
+- Linux exposed a CI JDK layout with jpackage in the runtime module image but no jdk.jpackage.jmod. Added the equivalent exact-JDK jimage resource extraction fallback, keeping the matching template source and rejecting unknown template formats.
+- Narrowed the DEB documentation to the Ubuntu 24.04+/Debian 13/Mint 22 dependency baseline rather than implying historical package compatibility.
+
+### Changed files
+- `scripts/package_installers.py` — read matching packaging resources from jmods or lib/modules.
+- `docs/{INSTALLATION,ROADMAP,WORKLOG}.md` — exact supported baseline and actual native outcomes.
+
+### Verification
+- `python3 -m unittest discover -s scripts -p 'test_*.py'` — PASS, 21 tests.
+- Real local jimage fallback using a temporary JDK view with no jmods — PASS: both adapted maintainer templates extracted successfully. The application and Windows/macOS packaging code are unchanged from the passing hosted checks.
+- `git diff --check` — PASS. Corrected Linux and complete publication are checked after push and reported in chat.
+
+### Roadmap updates
+- `[x] v0.12 / Native installers / Windows WiX v7 and macOS DMG bounded hosted acceptance`
+- `[ ] v0.12 / Native installers / Linux and complete-set publication — remains in progress`
+
+### Follow-ups / known issues
+- Native GUI/trust/signing, actual prior-version upgrades and additional Linux distributions remain separate gates.
+
+---
+
 ## 2026-10-23 — Resolve initial native packaging checks and preview upgrade ordering
 
 **Milestone:** v0.12 / native distribution
