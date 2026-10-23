@@ -19,6 +19,7 @@ data class LauncherPreferences(
     val snapshots: Boolean = false,
     val maximumMemoryMiB: Int = 4096,
     val selectedInstanceId: String = "",
+    val selectedPlayerId: String = "",
 ) {
     init {
         require(nickname.isBlank() || OfflineAccount.isValidUsername(nickname)) {
@@ -34,6 +35,10 @@ data class LauncherPreferences(
         }
         require(maximumMemoryMiB in 1024..16384) {
             "Saved RAM setting must be between 1024 and 16384 MiB."
+        }
+        require(selectedPlayerId.isEmpty() ||
+            runCatching { UUID.fromString(selectedPlayerId).toString() == selectedPlayerId }.getOrDefault(false)) {
+            "Invalid selected player identifier."
         }
     }
 }
@@ -64,6 +69,7 @@ class LauncherPreferencesStore(private val file: Path) {
             properties.setProperty("snapshots", preferences.snapshots.toString())
             properties.setProperty("ram_mib", preferences.maximumMemoryMiB.toString())
             properties.setProperty("selected_instance_id", preferences.selectedInstanceId)
+            properties.setProperty("selected_player_id", preferences.selectedPlayerId)
             writeProperties(properties)
         }
     }
@@ -161,6 +167,7 @@ class LauncherPreferencesStore(private val file: Path) {
             snapshots = properties.getProperty("snapshots", "false").toBooleanStrict(),
             maximumMemoryMiB = properties.getProperty("ram_mib", "4096").toInt(),
             selectedInstanceId = properties.getProperty("selected_instance_id", ""),
+            selectedPlayerId = properties.getProperty("selected_player_id", ""),
         )
     }
 }

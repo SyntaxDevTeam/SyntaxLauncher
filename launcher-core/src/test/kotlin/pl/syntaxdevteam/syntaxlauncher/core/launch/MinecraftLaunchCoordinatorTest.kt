@@ -179,7 +179,7 @@ class MinecraftLaunchCoordinatorTest {
     }
 
     @Test
-    fun rejectsAnonymousAndLegacyCredentialsBeforeDownloadingOrLaunching() = runBlocking {
+    fun rejectsMismatchedPlayerCredentialsBeforeDownloadingOrLaunching() = runBlocking {
         val root = Files.createTempDirectory("syntax-auth-gate-")
         var calls = 0
         val http = HttpClient(MockEngine { calls++; error("Unauthenticated network access") })
@@ -192,14 +192,13 @@ class MinecraftLaunchCoordinatorTest {
             val offline = OfflineAccount.create("SyntaxTest")
             val premium = pl.syntaxdevteam.syntaxlauncher.core.account.PremiumAccount("SyntaxTest", UUID.randomUUID())
             for ((identity, auth) in listOf(
-                offline to LaunchAuthentication.offline(offline),
                 offline to fixtureAuthentication(),
                 premium to fixtureAuthentication().copy(accessToken = "0"),
                 premium to fixtureAuthentication().copy(userType = "legacy"),
                 premium to fixtureAuthentication().copy(clientId = ""))) {
                 val result = coordinator.launch(version(byteArrayOf()), identity, LaunchOptions(), authentication = auth)
                 assertEquals(LaunchPhase.FAILED, result.phase)
-                assertTrue(result.detail.contains("Sign in"))
+                assertTrue(result.detail.contains("invalid authentication"))
                 assertEquals(0, calls)
                 assertEquals(MinecraftProcessState.IDLE, processes.status.value.state)
             }

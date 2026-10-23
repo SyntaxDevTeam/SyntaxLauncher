@@ -45,6 +45,10 @@ import pl.syntaxdevteam.syntaxlauncher.core.update.LauncherVersion
 
 fun main(args: Array<String>) {
     val paths = LauncherPaths.resolve()
+    java.nio.file.Files.createDirectories(paths.logsDir)
+    runCatching { java.nio.file.Files.setPosixFilePermissions(paths.logsDir,
+        java.nio.file.attribute.PosixFilePermissions.fromString("rwx------")) }
+    System.setProperty("syntaxlauncher.logs", paths.logsDir.toString())
     val platform = MinecraftPlatform.detect()
     val httpClient = LauncherHttpClientFactory.create()
     val downloader = DownloadManager(httpClient)
@@ -100,6 +104,7 @@ fun main(args: Array<String>) {
         legacyLayout = MinecraftInstallationLayout.from(paths),
         instances = instanceRepository,
         optiFine = optiFine,
+        launcherPaths = paths,
         httpClient = httpClient,
         loaders = modLoaders,
         microsoftSignIn = microsoftSignIn,

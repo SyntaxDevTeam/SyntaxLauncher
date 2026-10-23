@@ -241,7 +241,7 @@ fun SyntaxLauncherApp(
             if (setupOpen) androidx.compose.material3.AlertDialog(
                 onDismissRequest = { setupOpen = false },
                 title = { Text(strings.text("ui.your_setup")) },
-                text = { LauncherUpdateChannelPicker(session.preferences) },
+                text = { LauncherSettingsContent(session) },
                 confirmButton = { TextButton(onClick = { setupOpen = false }) { Text(strings.text("ui.close")) } },
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f))
@@ -293,18 +293,29 @@ private fun LauncherPanel(
 ) {
     val strings = LocalStrings.current
     var nickname by remember { mutableStateOf(saved.nickname) }
-    var selectedPremiumId by remember { mutableStateOf<String?>(null) }
+    var selectedPlayerId by remember { mutableStateOf(saved.selectedPlayerId) }
+    var playerManagerOpen by remember { mutableStateOf(false) }
+    var playerMenuOpen by remember { mutableStateOf(false) }
+    var restoredPlayer by remember { mutableStateOf(false) }
     var signingInPremium by remember { mutableStateOf(false) }
     var loadingAccounts by remember { mutableStateOf(true) }
     var accountReload by remember { mutableIntStateOf(0) }
     var premiumError by remember { mutableStateOf<String?>(null) }
-    val premiumAccounts by session.premiumAccounts.collectAsState()
+    val savedPlayers by session.savedAccounts.collectAsState()
     val preparingAccount by session.preparingAccount.collectAsState()
     LaunchedEffect(session, accountReload) {
         loadingAccounts = true
         premiumError = null
         try {
             session.loadAccounts()
+            if (!restoredPlayer) {
+                if (selectedPlayerId.isEmpty() && saved.nickname.isNotBlank()) {
+                    selectedPlayerId = (session.savedAccounts.value.firstOrNull {
+                        !it.microsoft && it.account.username == saved.nickname
+                    }?.account ?: session.addOfflineAccount(saved.nickname)).uuid.toString()
+                }
+                restoredPlayer = true
+            }
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (error: Exception) {
@@ -313,7 +324,12 @@ private fun LauncherPanel(
             loadingAccounts = false
         }
     }
-    val selectedPremium = premiumAccounts.firstOrNull { it.uuid.toString() == selectedPremiumId }
+    val selectedPlayer = savedPlayers.firstOrNull { it.account.uuid.toString() == selectedPlayerId }
+    val selectedPremium = selectedPlayer?.takeIf { it.microsoft }?.account
+    fun selectPlayer(player: pl.syntaxdevteam.syntaxlauncher.core.account.SavedAccount) {
+        selectedPlayerId = player.account.uuid.toString()
+        if (!player.microsoft) nickname = player.account.username
+    }
     var showSnapshots by remember { mutableStateOf(saved.snapshots) }
     var selected by remember(manifest) {
         mutableStateOf(manifest.versions.firstOrNull { it.id == saved.selectedVersionId }
@@ -324,7 +340,6 @@ private fun LauncherPanel(
     var menuOpen by remember { mutableStateOf(false) }
     var instanceMenuOpen by remember { mutableStateOf(false) }
     var accountInfoOpen by remember { mutableStateOf(false) }
-    var diagnosticsOpen by remember { mutableStateOf(false) }
     var ramMiB by remember { mutableStateOf(saved.maximumMemoryMiB.toFloat()) }
     // Preserve Legacy Vanilla's own settings when switching to UUID-scoped profiles.
     var legacyVersionId by remember { mutableStateOf(saved.selectedVersionId) }
@@ -375,11 +390,13 @@ private fun LauncherPanel(
     val launch by session.coordinator.status.collectAsState()
     val process by session.processManager.status.collectAsState()
     val processProtectionError by session.launchIssue.collectAsState()
+    var healthOpen by remember { mutableStateOf(false) }
+    var lastHealthOpen by remember { mutableStateOf(false) }
 
     val isRunning = process.state == MinecraftProcessState.RUNNING ||
         process.state == MinecraftProcessState.STARTING
     val locked = isRunning || launch.isPreparing || mutationBusy || modsBusy || signingInPremium || loadingAccounts || preparingAccount
-    val validName = selectedPremium != null
+    val validName = selectedPlayer != null
     val resolved = (metadata as? VersionMetadataState.Ready)?.metadata
         ?.takeIf { it.id == selected?.id }
     val unsavedInstanceSettings = activeInstance != null &&
@@ -403,6 +420,12 @@ private fun LauncherPanel(
         }
         catch (error: Exception) { instanceError = error.message ?: strings.text("ui.cannot_load_instances") }
     }
+
+    if (healthOpen && resolved != null) GameHealthDialog(session, resolved, activeInstance,
+        canRepair = !locked && !missingInstance && !unsavedInstanceSettings,
+        onDismiss = { healthOpen = false })
+
+    if (lastHealthOpen) MinecraftDiagnosticsDialog(session) { lastHealthOpen = false }
 
     fun chooseInstance(id: String) {
         if (instanceId.isBlank()) {
@@ -536,8 +559,8 @@ private fun LauncherPanel(
         }
     }
 
-    LaunchedEffect(nickname, selected?.id, showSnapshots, ramMiB, instanceId) {
-        if (nickname.isBlank() || OfflineAccount.isValidUsername(nickname.trim())) {
+    LaunchedEffect(nickname, selected?.id, showSnapshots, ramMiB, instanceId, selectedPlayerId, loadingAccounts) {
+        if (!loadingAccounts && (nickname.isBlank() || OfflineAccount.isValidUsername(nickname.trim()))) {
             session.rememberPreferences(
                 LauncherPreferences(
                     nickname = nickname.trim(),
@@ -545,6 +568,7 @@ private fun LauncherPanel(
                     snapshots = if (instanceId.isBlank()) showSnapshots else legacySnapshots,
                     maximumMemoryMiB = if (instanceId.isBlank()) ramMiB.toInt() else legacyRamMiB.toInt(),
                     selectedInstanceId = instanceId,
+                    selectedPlayerId = selectedPlayerId,
                 ),
             )
         }
@@ -702,8 +726,21 @@ private fun LauncherPanel(
         )
     }
 
-    if (diagnosticsOpen) MinecraftDiagnosticsDialog(session, onDismiss = { diagnosticsOpen = false })
-
+    if (playerManagerOpen) {
+        PlayerProfilesDialog(
+            players = savedPlayers, selectedId = selectedPlayerId, microsoftEnabled = session.microsoftEnabled,
+            onSelect = ::selectPlayer,
+            onAddOffline = { session.addOfflineAccount(it) },
+            onRename = { id, name -> session.renameOfflineAccount(id, name) },
+            onAddMicrosoft = { session.addPremiumAccount() },
+            onRemove = { id ->
+                session.removePlayerAccount(id)
+                if (selectedPlayerId == id) { selectedPlayerId = ""; nickname = "" }
+            },
+            onBusyChange = { signingInPremium = it },
+            onDismiss = { playerManagerOpen = false },
+        )
+    }
     if (accountInfoOpen) {
         AlertDialog(onDismissRequest = { accountInfoOpen = false },
             title = { Text(strings.text("ui.player_accounts")) },
@@ -746,7 +783,7 @@ private fun LauncherPanel(
                                 launch.isPreparing -> strings.text("ui.getting_everything_ready")
                                 launch.phase == LaunchPhase.FAILED -> strings.text("ui.preparation_needs_attention")
                                 process.state == MinecraftProcessState.CRASHED -> strings.text("ui.minecraft_closed_unexpectedly")
-                                selectedPremium == null -> strings.text("account.sign_in")
+                                selectedPlayer == null -> strings.text("players.choose")
                                 else -> strings.text("ui.ready_when_you_are")
                             },
                             style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
@@ -776,7 +813,8 @@ private fun LauncherPanel(
                             launch.phase == LaunchPhase.FAILED ||
                                 process.state == MinecraftProcessState.CRASHED -> strings.text("state.error")
                             selectedPremium != null -> "MICROSOFT"
-                            else -> strings.text("account.sign_in")
+                            selectedPlayer != null -> strings.text("players.offline")
+                            else -> strings.text("players.choose")
                         },
                         when {
                             launch.phase == LaunchPhase.FAILED ||
@@ -799,8 +837,8 @@ private fun LauncherPanel(
                 }
                 Button(
                     onClick = { resolved?.let {
-                        session.play(it, nickname.trim(), ramMiB.toInt(), activeInstance,
-                            premiumId = selectedPremiumId)
+                        session.play(it, selectedPlayer?.account?.username.orEmpty(), ramMiB.toInt(), activeInstance,
+                            premiumId = selectedPlayer?.takeIf { it.microsoft }?.account?.uuid?.toString())
                     } },
                     enabled = canPlay,
                     modifier = Modifier.fillMaxWidth().height(62.dp)
@@ -832,6 +870,10 @@ private fun LauncherPanel(
                         letterSpacing = 2.8.sp,
                         fontSize = 16.sp,
                     )
+                }
+                TextButton(onClick = { healthOpen = true }, enabled = resolved != null && !missingInstance,
+                    modifier = Modifier.fillMaxWidth().testTag("game-health")) {
+                    Text(strings.text("health.title"))
                 }
                 if (launch.isPreparing || preparingAccount) {
                     OutlinedButton(onClick = session::cancelPreparation, modifier = Modifier.fillMaxWidth()) {
@@ -925,68 +967,28 @@ private fun LauncherPanel(
                             description = strings.text("ui.account_information"))
                     }
                 }
-                if (session.microsoftEnabled || premiumAccounts.isNotEmpty()) Row(horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically) {
-                    if (session.microsoftEnabled) {
-                        OutlinedButton(
-                            onClick = {
-                                signingInPremium = true
-                                premiumError = null
-                                scope.launch {
-                                    try {
-                                        val account = session.addPremiumAccount()
-                                        selectedPremiumId = account.uuid.toString()
-                                    } catch (cancelled: CancellationException) {
-                                        throw cancelled
-                                    } catch (error: Exception) {
-                                        premiumError = error.message ?: strings.text("ui.microsoft_sign_in_failed")
-                                    } finally {
-                                        signingInPremium = false
-                                    }
-                                }
-                            },
-                            enabled = !locked,
-                        ) { Text(if (signingInPremium) strings.text("ui.signing_in") else strings.text("ui.add_microsoft")) }
+                Box {
+                    SelectorButton(selectedPlayer?.let {
+                        it.account.username + " · " + if (it.microsoft) "Microsoft" else strings.text("players.offline")
+                    } ?: strings.text("players.choose"), onClick = { playerMenuOpen = true }, enabled = !locked,
+                        symbol = SyntaxSymbol.Player)
+                    DropdownMenu(expanded = playerMenuOpen && !locked,
+                        onDismissRequest = { playerMenuOpen = false }) {
+                        savedPlayers.forEach { player ->
+                            DropdownMenuItem(text = { Text(player.account.username + " · " +
+                                if (player.microsoft) "Microsoft" else strings.text("players.offline")) },
+                                onClick = { selectPlayer(player); playerMenuOpen = false })
+                        }
+                        DropdownMenuItem(text = { Text(strings.text("players.manage")) },
+                            onClick = { playerMenuOpen = false; playerManagerOpen = true })
                     }
                 }
-                if (selectedPremiumId == null) {
-                    Text(strings.text("account.sign_in_required"),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                } else {
-                    Text(selectedPremium?.username ?: strings.text("ui.this_microsoft_session_is_unavailable"))
-                    Text(strings.text("ui.verified_minecraft_java_profile_microsoft"),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                OutlinedButton(onClick = { playerManagerOpen = true }, enabled = !locked,
+                    modifier = Modifier.fillMaxWidth().testTag("manage-players")) {
+                    Text(strings.text("players.manage"))
                 }
-                premiumAccounts.forEach { profile ->
-                    Row(modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween) {
-                        FilterChip(
-                            selected = selectedPremiumId == profile.uuid.toString(),
-                            onClick = { selectedPremiumId = profile.uuid.toString() },
-                            label = { Text(profile.username) },
-                            enabled = !locked,
-                        )
-                        TextButton(onClick = {
-                            signingInPremium = true
-                            premiumError = null
-                            scope.launch {
-                                try {
-                                    session.removePremiumAccount(profile.uuid.toString())
-                                    if (selectedPremiumId == profile.uuid.toString()) selectedPremiumId = null
-                                } catch (cancelled: CancellationException) {
-                                    throw cancelled
-                                } catch (error: Exception) {
-                                    premiumError = error.message ?: strings.text("ui.microsoft_sign_in_failed")
-                                } finally {
-                                    signingInPremium = false
-                                }
-                            }
-                        }, enabled = !locked) { Text(strings.text("ui.sign_out")) }
-                    }
-                }
+                Text(strings.text(if (selectedPlayer?.microsoft == true) "players.microsoft_hint" else "players.offline_hint"),
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     TextButton(onClick = { uriHandler.openUri("https://syntaxdevteam.pl/p/syntaxlauncher-prywatnosc") }) {
@@ -1109,17 +1111,17 @@ private fun LauncherPanel(
                     MinecraftProcessState.STOPPED -> strings.text("ui.last_exit_code_0", process.exitCode ?: "?")
                     MinecraftProcessState.CRASHED -> process.errorMessage ?: strings.text("ui.minecraft_crashed")
                     else -> if (selectedPremium != null) strings.text("ui.microsoft_account") + selectedPremium.username
-                        else strings.text("account.sign_in_required")
+                        else selectedPlayer?.account?.username?.let { strings.text("players.offline") + " · " + it }
+                            ?: strings.text("players.choose")
                 },
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall,
             )
             if (process.state == MinecraftProcessState.CRASHED ||
                 launch.phase == LaunchPhase.FAILED) {
-                TextButton(
-                    onClick = { diagnosticsOpen = true },
-                    enabled = !locked,
-                ) { Text(strings.text("diagnostics.open")) }
+                TextButton(onClick = { lastHealthOpen = true }, enabled = !locked) {
+                    Text(strings.text("diagnostics.open"))
+                }
                 process.stderrLog?.parent?.let {
                     Text(strings.text("ui.logs_0", it), style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)

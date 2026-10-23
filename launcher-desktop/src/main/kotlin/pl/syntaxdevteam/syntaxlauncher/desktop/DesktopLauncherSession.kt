@@ -4,8 +4,6 @@ import io.ktor.client.HttpClient
 import java.util.concurrent.atomic.AtomicBoolean
 import java.nio.file.Path
 import java.time.Instant
-import pl.syntaxdevteam.syntaxlauncher.core.diagnostics.MinecraftDiagnostics
-import pl.syntaxdevteam.syntaxlauncher.core.diagnostics.MinecraftDiagnosticReport
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -14,11 +12,14 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.swing.Swing
 import kotlinx.coroutines.withContext
 import pl.syntaxdevteam.syntaxlauncher.core.account.PremiumAccount
+import pl.syntaxdevteam.syntaxlauncher.core.account.OfflineAccount
+import pl.syntaxdevteam.syntaxlauncher.core.launch.LaunchAuthentication
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -69,6 +70,7 @@ class DesktopLauncherSession(
     private val microsoftSignIn: MicrosoftSignInService? = null,
     private val accounts: AccountManager? = null,
     val optiFine: pl.syntaxdevteam.syntaxlauncher.core.content.OptiFineCatalog? = null,
+    val launcherPaths: pl.syntaxdevteam.syntaxlauncher.core.storage.LauncherPaths? = null,
 ) {
     val packManager = pl.syntaxdevteam.syntaxlauncher.core.content.LocalPackManager(instances)
     val resourcePackCatalog = pl.syntaxdevteam.syntaxlauncher.core.content.ModrinthResourcePacks(
@@ -98,61 +100,17 @@ class DesktopLauncherSession(
     val launchIssue = mutableLaunchIssue.asStateFlow()
     @Volatile var lastGameAttempt: LastGameAttempt? = null
         private set
-    private val diagnostics = MinecraftDiagnostics()
-
-    /** Read bounded local game logs; never return raw log text, tokens or process arguments. */
-    suspend fun diagnoseLastGame(): MinecraftDiagnosticReport? = withContext(Dispatchers.IO) {
-        val attempt = lastGameAttempt ?: return@withContext null
-        val failedPreparation = coordinator.status.value
-            .takeIf { it.phase == pl.syntaxdevteam.syntaxlauncher.core.launch.LaunchPhase.FAILED }
-            ?.detail
-        // A preparation error may occur before a child process starts. Never
-        // attribute an older game's exit code or logs to this attempt.
-        val process = processManager.status.value
-        val processStartedAt = process.startedAt
-        val currentRun = if (processStartedAt != null &&
-            !processStartedAt.isBefore(attempt.requestedAt.minusSeconds(5))) {
-            process
-        } else pl.syntaxdevteam.syntaxlauncher.core.launch.MinecraftProcessStatus()
-        diagnostics.analyze(
-            attempt.gameDirectory, attempt.gameVersion, attempt.loader?.id,
-            currentRun.copy(startedAt = currentRun.startedAt ?: attempt.requestedAt),
-            failedPreparation)
-    }
-
-    /**
-     * Explicit, safe repair: verified game/loader/Java preparation only.
-     * Does not remove mods, saves, configs or replace the instance metadata.
-     */
-    suspend fun repairLastGameFiles() = withContext(Dispatchers.IO) {
-        val attempt = lastGameAttempt ?: error("No game attempt to repair.")
-        check(processManager.status.value.state !in setOf(
-            MinecraftProcessState.RUNNING, MinecraftProcessState.STARTING)) {
-            "Stop Minecraft before verifying its managed files."
-        }
+    suspend fun lastDiagnosticTarget(): Pair<ResolvedMinecraftVersion, MinecraftInstance?> {
+        val attempt = lastGameAttempt ?: error("No attempted game.")
         val profile = attempt.instanceId?.let { instances.get(it) }
-        val layout = profile?.let(instances::layoutFor) ?: legacyLayout
-        check(layout.gameDir.toAbsolutePath().normalize() ==
-            attempt.gameDirectory.toAbsolutePath().normalize()) {
-            "The game directory changed since the failure."
-        }
-        check(profile == null || (profile.minecraftVersionId == attempt.gameVersion &&
-            profile.loader == attempt.loader)) {
-            "The game settings changed. Launch again before repairing."
-        }
-        val entry = versionCatalog.fetchManifest().versions
-            .firstOrNull { it.id == attempt.gameVersion }
-            ?: error("The Minecraft version is no longer present in Mojang metadata.")
-        val resolved = versionResolver.resolve(entry)
-        instances.beginLaunch(attempt.instanceId)
-        try {
-            coordinator.prepareForInstallation(resolved, layout, attempt.loader)
-        } finally {
-            withContext(kotlinx.coroutines.NonCancellable) {
-                instances.endPreparation(attempt.instanceId)
-            }
-        }
+        check(profile == null || profile.minecraftVersionId == attempt.gameVersion && profile.loader == attempt.loader)
+        val entry = versionCatalog.fetchManifest().versions.first { it.id == attempt.gameVersion }
+        return versionResolver.resolve(entry) to profile
     }
+
+    fun gameLogs(instance: MinecraftInstance?): java.nio.file.Path =
+        (instance?.let(instances::layoutFor) ?: legacyLayout).gameDir.resolve("logs")
+
     private val accountMutex = Mutex()
     private val mutableSavedAccounts = MutableStateFlow<List<SavedAccount>>(emptyList())
     val savedAccounts = mutableSavedAccounts.asStateFlow()
@@ -186,11 +144,27 @@ class DesktopLauncherSession(
         return session.account
     }
 
-    suspend fun removePremiumAccount(uuid: String) = accountMutex.withLock {
+    suspend fun addOfflineAccount(nickname: String): OfflineAccount = accountMutex.withLock {
+        check(!closing.get()) { "SyntaxLauncher is closing." }
+        val result = accounts?.saveOffline(nickname) ?: error("Account storage is unavailable.")
+        publishAccounts()
+        result
+    }
+
+    suspend fun renameOfflineAccount(uuid: String, nickname: String): OfflineAccount = accountMutex.withLock {
+        check(!closing.get()) { "SyntaxLauncher is closing." }
+        val result = accounts?.renameOffline(uuid, nickname) ?: error("Account storage is unavailable.")
+        publishAccounts()
+        result
+    }
+
+    suspend fun removePlayerAccount(uuid: String) = accountMutex.withLock {
         check(!closing.get()) { "SyntaxLauncher is closing." }
         accounts?.remove(uuid) ?: error("Account storage is unavailable.")
         publishAccounts()
     }
+
+    suspend fun removePremiumAccount(uuid: String) = removePlayerAccount(uuid)
 
     fun rememberPreferences(value: LauncherPreferences) {
         synchronized(lock) {
@@ -217,8 +191,12 @@ class DesktopLauncherSession(
                     MinecraftProcessState.RUNNING, MinecraftProcessState.STARTING,
                 )
             ) return false
-            if (premiumId == null || mutablePremiumAccounts.value.none { it.uuid.toString() == premiumId }) {
-                mutableLaunchIssue.value = "Sign in with a Microsoft account entitled to Minecraft Java before playing."
+            if (premiumId != null && mutablePremiumAccounts.value.none { it.uuid.toString() == premiumId }) {
+                mutableLaunchIssue.value = "The selected Microsoft profile is unavailable. Sign in again."
+                return false
+            }
+            if (premiumId == null && !OfflineAccount.isValidUsername(nickname)) {
+                mutableLaunchIssue.value = "Choose an offline player with a valid nickname."
                 return false
             }
             lastGameAttempt = LastGameAttempt(
@@ -229,18 +207,22 @@ class DesktopLauncherSession(
             launchJob = scope.launch {
                 var leased = false
                 try {
-                    val premium = accountMutex.withLock {
+                    val (account, authentication) = accountMutex.withLock {
+                        if (premiumId == null) {
+                            val offline = accounts?.saveOffline(nickname) ?: OfflineAccount.create(nickname)
+                            publishAccounts()
+                            offline to LaunchAuthentication.offline(offline)
+                        } else {
                             check(microsoftSignIn != null) { "Microsoft sign-in is not configured." }
                             val current = accounts?.session(premiumId, requireFresh = true)
                                 ?: error("Account storage is unavailable.")
                             publishAccounts()
-                            current
+                            current.account to current.launchAuthentication(microsoftSignIn.clientId)
+                        }
                     }
-                    // Refresh may change the player's name; launch with the verified current profile.
-                    val account = premium.account
-                    val authentication = premium.launchAuthentication(microsoftSignIn!!.clientId)
                     instances.beginLaunch(instance?.id)
                     leased = true
+                    lastDiagnosticInstanceId = instance?.id
                     coordinator.launch(
                         version = version,
                         account = account,
@@ -282,6 +264,74 @@ class DesktopLauncherSession(
             launchJob!!.invokeOnCompletion { mutablePreparingAccount.value = false }
             return true
         }
+    }
+
+    suspend fun readLauncherLog(): String = withContext(Dispatchers.IO) {
+        val file = launcherPaths?.logsDir?.resolve("launcher.log") ?: return@withContext ""
+        if (!java.nio.file.Files.isRegularFile(file, java.nio.file.LinkOption.NOFOLLOW_LINKS)) return@withContext ""
+        java.nio.channels.FileChannel.open(file, java.nio.file.StandardOpenOption.READ).use { channel ->
+            val buffer = java.nio.ByteBuffer.allocate(minOf(channel.size(), 64L * 1024).toInt())
+            channel.position((channel.size() - buffer.capacity()).coerceAtLeast(0))
+            while (buffer.hasRemaining() && channel.read(buffer) > 0) kotlinx.coroutines.currentCoroutineContext().ensureActive()
+            pl.syntaxdevteam.syntaxlauncher.core.diagnostics.SecretRedactor.redact(
+                String(buffer.array(), 0, buffer.position(), Charsets.UTF_8))
+        }
+    }
+
+    suspend fun diagnose(version: ResolvedMinecraftVersion, instance: MinecraftInstance?):
+        pl.syntaxdevteam.syntaxlauncher.core.diagnostics.DiagnosticReport {
+        val evidence = coordinator.evidence?.takeIf {
+            it.minecraft == version.id && lastDiagnosticInstanceId == instance?.id
+        }
+        val inventory = instance?.let { modManager.list(it.id) }
+        return pl.syntaxdevteam.syntaxlauncher.core.diagnostics.GameDiagnostics().inspect(
+            if (evidence != null) coordinator.preparedMetadata ?: version else version,
+            pl.syntaxdevteam.syntaxlauncher.core.minecraft.MinecraftPlatform.detect(),
+            instance?.let(instances::layoutFor) ?: legacyLayout,
+            evidence, if (evidence != null) processManager.status.value else null,
+            inventory?.mods.orEmpty().map { mod ->
+                pl.syntaxdevteam.syntaxlauncher.core.diagnostics.ModEvidence(
+                    mod.metadata?.id ?: "unknown", mod.metadata?.version ?: "unknown", mod.enabled)
+            }, inventory?.warnings?.isNotEmpty() == true, instance?.loader?.let { "${it.id}/${it.version}" })
+    }
+
+    private val mutableMaintenanceResult = MutableStateFlow<String?>(null)
+    val maintenanceResult = mutableMaintenanceResult.asStateFlow()
+
+    @Volatile private var lastDiagnosticInstanceId: String? = null
+
+    /** Reuses verified preparation. No process, account or mutable world/config deletion. */
+    fun repair(version: ResolvedMinecraftVersion, instance: MinecraftInstance?): Boolean = synchronized(lock) {
+        if (closing.get() || launchJob?.isActive == true ||
+            processManager.status.value.state in setOf(MinecraftProcessState.RUNNING, MinecraftProcessState.STARTING)) return false
+        mutablePreparingAccount.value = true
+        mutableLaunchIssue.value = null
+        mutableMaintenanceResult.value = null
+        launchJob = scope.launch {
+            var leased = false
+            try {
+                instances.beginLaunch(instance?.id)
+                leased = true
+                if (instance != null) {
+                    val current = instances.get(instance.id)
+                    check(current.minecraftVersionId == version.id && current.loader == instance.loader) {
+                        "The game settings changed. Reopen repair."
+                    }
+                }
+                coordinator.prepareForInstallation(version, instance?.let(instances::layoutFor) ?: legacyLayout,
+                    instance?.loader, recordRepair = true)
+                lastDiagnosticInstanceId = instance?.id
+                mutableMaintenanceResult.value = "success"
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                mutableMaintenanceResult.value = "cancelled"; throw cancelled
+            }
+            catch (_: Exception) { mutableMaintenanceResult.value = "failed"; mutableLaunchIssue.value = "Repair failed. Check your connection and available disk space, then retry." }
+            finally {
+                if (leased) withContext(kotlinx.coroutines.NonCancellable) { instances.endPreparation(instance?.id) }
+            }
+        }
+        launchJob!!.invokeOnCompletion { mutablePreparingAccount.value = false }
+        true
     }
 
     fun cancelPreparation() {

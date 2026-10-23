@@ -118,6 +118,15 @@ class MinecraftDiagnostics(
                 "OpenGL initialization appears to have failed. Check graphics driver support and shader compatibility.",
                 DiagnosticAction.REVIEW_GRAPHICS, DiagnosticConfidence.PROBABLE)
         }
+        if ("duplicate mod" in text || "duplicatemodsfoundexception" in text) {
+            add("DUPLICATE_MOD", "Conflicting duplicate mods",
+                "Review installed extras and disable a duplicate mod before retrying.",
+                DiagnosticAction.REVIEW_MODS, DiagnosticConfidence.PROBABLE)
+        }
+        if ("no space left on device" in text || "not enough space on the disk" in text) {
+            add("DISK", "Disk space exhausted", "Free disk space before retrying installation.",
+                DiagnosticAction.VIEW_LOGS, DiagnosticConfidence.PROBABLE)
+        }
         if ("invalid session" in text || "invalid credentials" in text || "authentication failed" in text) {
             add("AUTH", "Authentication problem",
                 "The game reported an authentication error. Sign in again with the entitled Microsoft account.",

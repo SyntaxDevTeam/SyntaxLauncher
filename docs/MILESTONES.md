@@ -1,6 +1,6 @@
 # SyntaxLauncher Milestones
 
-> **Current access policy — 22 October 2026:** Microsoft authentication, a Minecraft: Java Edition entitlement and a verified Java profile are required before gameplay. The desktop revalidates the session before every launch. Nickname-only/non-premium gameplay is retired for all server configurations; historical offline milestones below are not exceptions. Existing local worlds and profiles are preserved. The first AppID request was declined; revised review and live-account acceptance remain separate gates.
+> **Player profiles — 22 October 2026:** SyntaxLauncher supports both explicit offline/non-premium players and Microsoft accounts. The player manager saves, selects, renames offline nicknames and removes profiles independently of game instances, worlds and add-ons; the active player survives restart. Microsoft Play still requires fresh official authentication, Java entitlement and profile verification, with no automatic offline fallback. The maintainer explicitly restored dual-mode product scope after the authenticated-only AppID-review change. The renewed request described immutable commit b915ad2, not this dual-mode revision; no allowlist approval is claimed.
 
 This document describes the intent, scope, implementation boundaries and acceptance expectations for every planned pre-1.0 release.
 
@@ -509,3 +509,7 @@ v1.0 does not mean every Minecraft version and every third-party loader/mod comb
 ### Release criteria
 
 All v1.0 quality-gate items in `docs/ROADMAP.md` must be checked. Known critical security/data-loss issues block the release.
+
+## Maintainer sequencing — 23 October 2026
+
+Defer Microsoft live-account work while awaiting Mojang approval; retain the existing implementation and explicit offline profiles. Proceed with v0.11 diagnostics/repair and v0.12 production implementation, then final corrections and documented native/release acceptance. This sequencing does not waive signatures, native tests or the final v1.0 premium criterion; their release scope must remain explicit. See TESTING_V0.11.md and TESTING_V0.12.md.

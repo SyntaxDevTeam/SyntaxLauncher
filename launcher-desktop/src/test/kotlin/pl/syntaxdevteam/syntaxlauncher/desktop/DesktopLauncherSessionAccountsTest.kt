@@ -78,6 +78,24 @@ class DesktopLauncherSessionAccountsTest {
         }
     }
 
+    @Test fun repairUsesNoAccountAndRejectsConcurrentPlayWhilePreservingWorlds() = runBlocking {
+        val f = Fixture()
+        try {
+            f.vault.locked = true
+            val instance = f.session.instances.create("Repair game", "fixture")
+            val world = f.session.instances.layoutFor(instance).gameDir.resolve("saves/world/level.dat")
+            Files.createDirectories(world.parent); Files.writeString(world, "keep world")
+            assertTrue(f.session.repair(f.version, instance))
+            assertFalse(f.session.play(f.version, "ChildOne", 2048, instance))
+            f.awaitAccountPreparation()
+            assertEquals("success", f.session.maintenanceResult.value)
+            assertFalse(f.captured.isCompleted, "Repair must never launch a game")
+            assertEquals("keep world", Files.readString(world))
+            assertEquals(0, f.session.diagnose(f.version, instance).damagedFiles)
+            assertTrue(f.store.accounts().isEmpty())
+        } finally { f.close() }
+    }
+
     @Test fun savedIdentitiesSurviveWindowRestartWithoutReadingVaultUntilPlay() = runBlocking {
         val first = Fixture()
         try {
@@ -169,15 +187,45 @@ class DesktopLauncherSessionAccountsTest {
         } finally { f.close() }
     }
 
-    @Test fun anonymousPlayIsRejectedBeforeNetworkOrCredentials() = runBlocking {
+    @Test fun offlinePlayWorksWithLockedVaultAndWithoutMicrosoftRefresh() = runBlocking {
         val f = Fixture()
         try {
             f.vault.locked = true
-            assertFalse(f.session.play(f.version, "ChildOne", 2048))
-            assertFalse(f.captured.isCompleted)
-            assertTrue(f.session.savedAccounts.value.isEmpty())
-            assertTrue(f.session.launchIssue.value.orEmpty().contains("Sign in"))
+            f.refresh = { error("Offline must not call Microsoft") }
+            val player = f.session.addOfflineAccount("ChildOne")
+            assertTrue(f.session.play(f.version, player.username, 2048))
+            val plan = withTimeout(10000) { f.captured.await() }
+            f.awaitAccountPreparation()
+            assertTrue("ChildOne" in plan.gameArguments)
+            assertTrue("legacy" in plan.gameArguments)
+            assertFalse("msa" in plan.gameArguments)
+            assertEquals(player, f.session.savedAccounts.value.single().account)
+            assertNull(f.session.launchIssue.value)
             assertTrue(f.vault.tokens.isEmpty())
+        } finally { f.close() }
+    }
+
+    @Test fun unknownMicrosoftIdentityNeverFallsBackToValidOfflineNickname() = runBlocking {
+        val f = Fixture()
+        try {
+            f.session.addOfflineAccount("ChildOne")
+            assertFalse(f.session.play(f.version, "ChildOne", 2048, premiumId = id.toString()))
+            assertFalse(f.captured.isCompleted)
+            assertTrue(f.session.launchIssue.value.orEmpty().contains("Microsoft"))
+        } finally { f.close() }
+    }
+
+    @Test fun offlineManagerPublishesRenameAndRemovalWithoutVaultAccess() = runBlocking {
+        val f = Fixture()
+        try {
+            f.vault.locked = true
+            val player = f.session.addOfflineAccount("ChildOne")
+            val renamed = f.session.renameOfflineAccount(player.uuid.toString(), "ChildTwo")
+            assertNotEquals(player.uuid, renamed.uuid)
+            assertEquals(listOf(renamed), f.session.savedAccounts.value.map { it.account })
+            f.session.removePlayerAccount(renamed.uuid.toString())
+            assertTrue(f.session.savedAccounts.value.isEmpty())
+            assertTrue(f.store.accounts().isEmpty())
         } finally { f.close() }
     }
 }

@@ -37,6 +37,7 @@ class DownloadManager(
     private val verifier: DownloadIntegrityVerifier = DownloadIntegrityVerifier(),
     private val maxParallelism: Int = DEFAULT_PARALLELISM,
     private val retryPolicy: DownloadRetryPolicy = DownloadRetryPolicy(),
+    private val diskSpace: DiskSpace = DiskSpace(),
 ) {
     init {
         require(maxParallelism >= 1) { "maxParallelism must be at least 1." }
@@ -104,6 +105,8 @@ class DownloadManager(
             emitter.emit(DownloadEvent.FileCompleted(result))
             return result
         }
+
+        withContext(Dispatchers.IO) { diskSpace.requireAvailable(request.target, request.expectedSize ?: 0) }
 
         var lastFailure: Throwable? = null
         for (attempt in 1..retryPolicy.maxAttempts) {

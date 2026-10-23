@@ -41,6 +41,22 @@ class LauncherPreferencesStoreTest {
         assertEquals(4096, LauncherPreferencesStore(file).load().maximumMemoryMiB)
     }
 
+    @Test fun playerSelectionSurvivesRestartIndependentlyOfGameSelection() = runBlocking {
+        val file = Files.createTempDirectory("syntax-player-selection").resolve("settings.properties")
+        val store = LauncherPreferencesStore(file)
+        val playerId = pl.syntaxdevteam.syntaxlauncher.core.account.OfflineAccount.create("ChildOne").uuid.toString()
+        val gameId = java.util.UUID.randomUUID().toString()
+        val preferences = LauncherPreferences(nickname = "ChildOne", selectedInstanceId = gameId, selectedPlayerId = playerId)
+        store.save(preferences)
+        assertEquals(preferences, LauncherPreferencesStore(file).load())
+        store.save(preferences.copy(selectedPlayerId = "", nickname = ""))
+        assertEquals(gameId, store.load().selectedInstanceId)
+        assertEquals("", store.load().selectedPlayerId)
+        Files.writeString(file, "schema_version=1\nnickname=ChildOne\n")
+        assertEquals("", store.load().selectedPlayerId, "Old settings load without a selected-player key")
+        assertFailsWith<IllegalArgumentException> { LauncherPreferences(selectedPlayerId = "not-a-uuid") }
+    }
+
     @Test
     fun unknownSchemaIsNotDestroyedByLoadOrSave() = runBlocking {
         val file = Files.createTempDirectory("syntax-prefs-newer").resolve("settings.properties")

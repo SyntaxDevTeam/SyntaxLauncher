@@ -6,11 +6,17 @@ Publisher and support: **SyntaxDevTeam / WieszczY**, [wieszczy85@gmail.com](mail
 
 [Project website](https://syntaxdevteam.pl/p/syntaxlauncher) · [Privacy](https://syntaxdevteam.pl/p/syntaxlauncher-prywatnosc) · [Terms](https://syntaxdevteam.pl/p/syntaxlauncher-warunki-uzytkowania) · [Support and account removal](https://syntaxdevteam.pl/p/syntaxlauncher-zarzadzanie-usluga)
 
-> **Current access policy — 22 October 2026:** Microsoft authentication, a Minecraft: Java Edition entitlement and a verified Java profile are required before gameplay. The desktop revalidates the session before every launch. Nickname-only/non-premium gameplay is retired for all server configurations; historical offline milestones below are not exceptions. Existing local worlds and profiles are preserved. The first AppID request was declined; revised review and live-account acceptance remain separate gates.
+> **Player profiles — 22 October 2026:** SyntaxLauncher supports both explicit offline/non-premium players and Microsoft accounts. The player manager saves, selects, renames offline nicknames and removes profiles independently of game instances, worlds and add-ons; the active player survives restart. Microsoft Play still requires fresh official authentication, Java entitlement and profile verification, with no automatic offline fallback. The maintainer explicitly restored dual-mode product scope after the authenticated-only AppID-review change. The renewed request described immutable commit b915ad2, not this dual-mode revision; no allowlist approval is claimed.
 
 SyntaxLauncher is a modern Minecraft launcher from SyntaxDevTeam, written primarily in Kotlin and developed incrementally from a minimal vanilla launcher into a modular launcher with premium authentication, isolated instances, mod loaders, Modrinth integration, modpacks and diagnostics.
 
 The project has implemented a v0.2 Instance Manager, reached **bounded v0.8 Forge/Quilt and v0.9 graphics acceptance**, and completed **v0.10 Modrinth modpack installation** within the documented scope. Official Forge/NeoForge installer smoke tests and three-platform CI packaging pass; the maintainer confirmed private Forge startup and Forge/Quilt mod workflows. Forge remains restricted to Minecraft 1.21.1 / 52.1.20. v0.9 now includes built-in mods/textures/shaders/OptiFine installation and installed-pack controls within the documented compatibility matrix; the maintainer confirmed private v0.9 gameplay acceptance; the broader native/platform matrix remains open. Modrinth modpacks now install into newly prepared games from the built-in catalog. Minecraft Services reconsideration after the first denial, v0.3 real-account acceptance and documented clean-machine Vanilla startup acceptance remain pending. The Kotlin/Compose launcher now connects the offline account, Mojang metadata, verified game preparation, automatic Java runtime installation, metadata-driven LaunchPlan and MinecraftProcessManager to an actual desktop Play workflow. A real clean-machine Minecraft launch is not yet verified.
+
+## v0.11 / v0.12 — diagnostics, repair and release preparation
+
+Home → **Game health and repair** scans the selected game's managed files, explains common failures with confidence labels and repairs game files/Java without starting Minecraft or deleting worlds/mods/settings. Copy safe report exports a structured local summary without raw logs, credentials or private paths. Settings now includes a bounded launcher-log viewer, actual data locations and update-channel controls. Launcher logs rotate, sensitive message fields are redacted, downloads check free space and the common JVM dependency graph is locked.
+
+Microsoft account acceptance is **deferred while awaiting Mojang AppID approval** (maintainer instruction, 23 October 2026); existing code and explicit offline profiles remain. Implementation work on diagnostics/hardening is separate from final clean-machine, hosted updater, signing/notarization and native gameplay/DPI acceptance. See [v0.11 verification](docs/TESTING_V0.11.md), [v0.12 final gates](docs/TESTING_V0.12.md) and [installation/backup/removal](docs/INSTALLATION.md).
 
 ## Project philosophy
 
@@ -46,7 +52,7 @@ The v0.2 implementation includes cross-process per-instance file locks, safe clo
 
 ## v0.3 — Microsoft/Premium Accounts
 
-The desktop offers saved Microsoft Java identities, system-browser PKCE sign-in, native credential storage, account removal and one authenticated launch pipeline. The project-owned public AppID is the runtime default; `SYNTAXLAUNCHER_MICROSOFT_CLIENT_ID` remains a developer override. The launcher requests `XboxLive.signin offline_access`, exchanges Xbox/XSTS/Minecraft tokens, checks `/entitlements/mcstore` for a Java entitlement and requires `/minecraft/profile`. Every Play requests a fresh session through the same checks; unavailable checks block gameplay. Anonymous, legacy and missing identities are rejected before launch preparation, including by the shared core coordinator. No fallback to an offline player exists. Legacy identity records and worlds remain intact. Refresh credentials use Linux Secret Service/libsecret, macOS Keychain or user-scoped Windows DPAPI, with no plaintext fallback; access tokens remain in memory. See [Microsoft application and renewed review](docs/MICROSOFT_APP.md) and [the evidence checklist](docs/APP_REVIEW_2026-10.md). Native secure-storage and approved-AppID live account/gameplay acceptance remain open.
+The player manager stores explicit offline profiles and Microsoft identities independently of game instances. Offline players never access the credential vault. Microsoft uses system-browser PKCE, the official Xbox/XSTS/Minecraft exchanges, Java entitlement/profile checks and OS-backed refresh credentials. Every Microsoft Play requires fresh verification; failures never silently fall back to offline. Live acceptance is deferred pending Mojang AppID approval. The request describes the earlier authenticated-only commit b915ad2; restored dual-mode scope is not claimed to satisfy that request's criteria. See [Microsoft application and renewed review](docs/MICROSOFT_APP.md).
 
 ## Pick Vanilla or play with mods
 
@@ -90,7 +96,7 @@ Fabric and Quilt startup were confirmed by the maintainer on 20 October 2026; lo
 
 ## Automatic GitHub Releases
 
-**v0.7.0 publication blocker:** The 21 October 2026 version-change CI passed tests and Linux/Windows/macOS packaging, but GitHub rejected the release creation with HTTP 403 (`Resource not accessible by integration`). `launcherVersion=0.7.0` is in main, but the public Release is still absent. See [UPDATING.md](docs/UPDATING.md) for the optional write-authorized release token fix.
+The earlier v0.7.0 HTTP 403 publication incident is historical. The release-readiness register records public Stable v0.7.1 and verified six-asset DEV publication in CI 39901800185. Current product version remains 0.7.1; this task does not publish a new Stable version. See [release evidence](docs/RELEASE_READINESS.md).
 
 
 The sole product version is `launcherVersion` in [`gradle.properties`](gradle.properties). A higher plain `X.Y.Z` pushed to `main` publishes Stable after tests and all platform packages pass. Matching manual `vX.Y.Z` tags remain supported. Every successful `main` push also publishes an immutable **DEV** GitHub pre-release, including changes without a product-version bump. Run the workflow manually on `main` with `preview_channel=snapshot` to publish **SNAPSHOT** (or choose `dev` for a manual DEV build). Preview releases never become GitHub's latest stable release.
@@ -117,7 +123,7 @@ The maintainer confirmed private texture activation, shaders with automatic Iris
 
 Run `python3 scripts/release_readiness.py` to view unresolved milestone checkboxes without changing the roadmap. Use `--enforce v0.10` to gate the bounded modpack milestone, or `--enforce v1.0` only when preparing a real stable v1.0 candidate. GitHub Actions posts the informational audit after normal tests. The latest normal GitHub Release/version and the current development milestone are deliberately separate. See [release readiness](docs/RELEASE_READINESS.md).
 
-## v0.11 — Local crash diagnostics (in development)
+## v0.11 — Local crash diagnostics and file repair
 
 After a failed Minecraft launch choose **Diagnose the failure**. SyntaxLauncher checks bounded recent local logs, distinguishes probable findings from weak evidence, and offers an explicit **Verify and repair managed files** action for supported integrity/preparation failures. Reports never embed raw log lines or authentication credentials. This stage does not disable mods, reset user settings or remove worlds. See [v0.11 acceptance checklist](docs/TESTING_V0.11.md). Hosted core/desktop tests now pass; native/manual diagnostic acceptance remains pending.
 
@@ -131,7 +137,7 @@ Every installation, reinstall or newer pack release creates a **new game**. Exis
 
 The real Simply Optimized 1.21.1-6.0 installation (18 referenced files, Fabric 0.17.3), full game/runtime preparation and byte-identical original export passed in isolated directories. This was not a graphical Minecraft startup. Deterministic tests cover catalog/installation, cancellation/failure cleanup, isolation and translated compact UI; broader gameplay/native acceptance remains tracked under v1.0. See [v0.10 verification and limits](docs/TESTING_V0.10.md).
 
-## v0.7 — NeoForge (v0.7.0 version set; public Release not yet available)
+## v0.7 — NeoForge (bounded support)
 
 A processor-backed NeoForge installer adapter is now connected to the existing
 instance and launch pipeline. The desktop can discover compatible NeoForge Maven
@@ -353,7 +359,7 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full architecture spe
 
 ### Offline / non-premium
 
-Available from v0.1.
+Available alongside Microsoft player profiles. Use **Manage players** in the Player section to add and select an **Offline / non-premium** nickname. The launcher remembers the active player after restart. Removing a player does not delete worlds, game profiles or add-ons. Renaming an offline player changes its deterministic UUID, so worlds/servers may treat the new nickname as a different player.
 
 Offline accounts are intended for local play and servers configured to accept offline clients. SyntaxLauncher will not use offline accounts to bypass authentication on servers operating in online mode.
 
@@ -361,9 +367,9 @@ The current implementation already provides a common account model, offline user
 
 ### Microsoft / premium
 
-Planned for v0.3.
+Implemented for v0.3 with automated fixtures; real sign-in/gameplay remain blocked pending AppID authorization. Use **Manage players → Add Microsoft**. Saved Microsoft names come from the verified Java profile and cannot be edited locally.
 
-Premium authentication will use the official Microsoft → Xbox Live → XSTS → Minecraft Services flow appropriate for a desktop application. SyntaxLauncher must never ask users to type their Microsoft password into the launcher itself.
+Premium authentication uses the official Microsoft → Xbox Live → XSTS → Minecraft Services flow appropriate for a desktop application. SyntaxLauncher must never ask users to type their Microsoft password into the launcher itself.
 
 The v0.1 launch builder already consumes a normalized authentication payload so v0.3 can provide premium access token/profile values without introducing a second premium-only launch engine.
 

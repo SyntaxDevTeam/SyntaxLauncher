@@ -10,4 +10,10 @@ val productVersion = providers.gradleProperty("launcherVersion").get()
 allprojects {
     group = "pl.syntaxdevteam.syntaxlauncher"
     version = productVersion
+    dependencyLocking {
+        lockAllConfigurations()
+        // Compose selects different native modules on each host. Their versions are fixed by
+        // the pinned Compose/Skiko distribution; keep the shared JVM graph portable.
+        ignoredDependencies.addAll(listOf("org.jetbrains.compose.desktop:*", "org.jetbrains.skiko:*"))
+    }
 }

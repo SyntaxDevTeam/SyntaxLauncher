@@ -36,3 +36,7 @@ A milestone may be declared **feature implemented** when implementation and dete
 5. Run `python3 scripts/release_readiness.py --enforce v1.0`. Only after all quality gates are verified, update the single canonical SemVer and let tested release automation publish the stable v1.0.
 
 **Do not ship by simply editing a version number.** A normal `launcherVersion` increase on `main` can initiate automatic GitHub Stable publication; only do that as an explicit release decision backed by green CI and the intended acceptance scope.
+
+## Current implementation extension — 23 October 2026
+
+The maintainer deferred premium/Mojang acceptance while requesting v0.11/v0.12 implementation before final corrections. Current health diagnostics extends the published classifier with managed-file integrity, Java/main-class/classpath and mod inventory, safe report copy, guarded/cancellable repair and EN/PL/DE compact-screen tests. v0.12 adds rotating redacted launcher logs, settings/log/storage access, disk admission, dependency locks, installation/removal/retention policy and candidate release notes. See TESTING_V0.11.md and TESTING_V0.12.md for exact scope. The earlier CI baseline above predates these extensions; current local and hosted outcomes are recorded in WORKLOG/chat. Final native installs/upgrades, signing/notarization, focus/DPI/gameplay and deferred premium acceptance remain independent gates.

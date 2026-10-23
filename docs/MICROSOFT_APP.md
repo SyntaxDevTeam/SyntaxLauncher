@@ -10,13 +10,19 @@
 - Renewed submission: **22 October 2026**, using the same AppID/tenant. Visible official receipt: **Thank you for contacting Mojang Studios.** The reviewed implementation is `b915ad282e6a9b32f22e0296ea1165d5e8c9445b`. New decision pending; this proves receipt only.
 - **Allowlist approval and live account sign-in/refresh/gameplay: NOT verified.** Automated HTTP fixtures are not live authorization evidence.
 
-## Material changes for renewed review
+## Current product correction — later on 22 October 2026
+
+The maintainer explicitly reaffirmed the original dual-mode product: **Offline / non-premium** and **Microsoft** players, plus a persistent player manager. The current revision restores offline gameplay as an explicit player selection. Microsoft profiles still use fresh official Java entitlement/profile verification; a failure never selects an offline identity. The player manager supports add/select, offline rename (which changes UUID), confirmed removal without deleting game data and active-player persistence.
+
+The 22 October renewed submission accurately referenced immutable **b915ad2**, whose authenticated-only behavior is recorded below. It does **not** describe this subsequent revision. The official form's authentication/ownership condition applies regardless of server configuration and conflicts with unauthenticated gameplay; we cannot claim the dual-mode product meets that condition or promise allowlist approval. Public pages/Entra descriptions must describe both modes. No duplicate form or new compliance attestation is authorized by this documentation; a correction to the existing submission remains outstanding until actually delivered and confirmed.
+
+## Historical material changes in submitted b915ad2
 
 The official [AppID Review form](https://aka.ms/mce-reviewappid) explicitly requires authentication and ownership checks before gameplay regardless of server configuration. The old nickname-only workflow did not satisfy that requirement. The denial email gives no individual reason, so this is an evidence-backed compliance gap, not a confirmed explanation from Mojang.
 
-The production desktop no longer offers offline/non-premium gameplay. It requires a saved Microsoft account, requests a fresh session at every Play, checks official Java entitlements and profile, and refuses a failed/unavailable check. The shared core coordinator independently rejects anonymous accounts, legacy authentication, zero/missing tokens and missing public client identity before preparation. Existing worlds and legacy identity records are not deleted. Internal historical account/parser fixtures do not authorize public gameplay.
+The submitted b915ad2 desktop did not offer offline/non-premium gameplay. It requires a saved Microsoft account, requests a fresh session at every Play, checks official Java entitlements and profile, and refuses a failed/unavailable check. The shared core coordinator independently rejects anonymous accounts, legacy authentication, zero/missing tokens and missing public client identity before preparation. Existing worlds and legacy identity records are not deleted. Internal historical account/parser fixtures do not authorize public gameplay.
 
-Authentication uses Microsoft authorization code + S256 PKCE → Xbox user authentication → XSTS → Minecraft token → `GET /entitlements/mcstore` → `GET /minecraft/profile`. Accepted Java entitlement names are `game_minecraft` or `product_minecraft`; unrelated/Bedrock-only/empty/malformed/error responses fail closed. Profile availability is required as a second check. Desktop Play forces renewal even if an in-memory session is still valid.
+Authentication uses Microsoft authorization code + S256 PKCE → Xbox user authentication → XSTS → Minecraft token → `GET /entitlements/mcstore` → `GET /minecraft/profile`. Accepted Java entitlement names are `game_minecraft` or `product_minecraft`; unrelated/Bedrock-only/empty/malformed/error responses fail closed. Profile availability is required as a second check. That implementation forced renewal even if an in-memory session is still valid.
 
 Public materials identify SyntaxDevTeam and the direct maintainer-selected support address, explain privacy/permissions/removal, state current approval limitations, and prominently disclose independence from Mojang/Microsoft. The original launcher logo is preserved at the maintainer’s request. The generated artwork is not evidence of official endorsement; no individual finding against the logo was supplied by Mojang.
 
@@ -39,7 +45,7 @@ A form receipt establishes neither allowlisting nor live authentication. Await t
 
 ## Historical submission record — 19 October 2026
 
-The text below is retained as the original submission record. Its offline-play description is superseded by the current access policy above. It must not be reused as current justification or as evidence of live authentication. Historical statements about integration readiness were corrected during subsequent work; current source/tests and acceptance records are authoritative.
+The text below is retained as the original submission record. Its implementation-readiness statements are historical; consult the current product correction above for today’s dual-mode behavior. It must not be reused as current justification or as evidence of live authentication. Historical statements about integration readiness were corrected during subsequent work; current source/tests and acceptance records are authoritative.
 
 ## Submitted justification
 

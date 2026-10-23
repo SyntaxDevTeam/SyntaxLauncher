@@ -1,10 +1,16 @@
 # SyntaxLauncher renewed AppID review — 22 October 2026
 
-## Evidence and limits
+## Current product correction — later on 22 October 2026
+
+The maintainer explicitly reaffirmed the original dual-mode product: **Offline / non-premium** and **Microsoft** players, plus a persistent player manager. The current revision restores offline gameplay as an explicit player selection. Microsoft profiles still use fresh official Java entitlement/profile verification; a failure never selects an offline identity. The player manager supports add/select, offline rename (which changes UUID), confirmed removal without deleting game data and active-player persistence.
+
+The 22 October renewed submission accurately referenced immutable **b915ad2**, whose authenticated-only behavior is recorded below. It does **not** describe this subsequent revision. The official form's authentication/ownership condition applies regardless of server configuration and conflicts with unauthenticated gameplay; we cannot claim the dual-mode product meets that condition or promise allowlist approval. Public pages/Entra descriptions must describe both modes. No duplicate form or new compliance attestation is authorized by this documentation; a correction to the existing submission remains outstanding until actually delivered and confirmed.
+
+## Historical b915ad2 review evidence and limits
 
 The initial request was declined. The email did not disclose an individual reason and does not prove this AppID was classified as malicious or blocked. The official review form explicitly requires authentication and ownership verification before gameplay regardless of server configuration. The former nickname-only/offline workflow was a concrete gap. Missing privacy/terms/publisher information was an additional reviewability gap; there is no evidence that any one of these issues caused the denial. The original launcher logo is preserved following maintainer feedback; no logo-specific rejection was reported.
 
-Current runtime changes remove anonymous gameplay, force session revalidation before every desktop Play, check Minecraft Java entitlements and profile, and enforce an independent core launch gate before downloads/process startup. Empty, unrelated, Bedrock-only, malformed and failed entitlement responses fail closed. No failed check grants offline play. Existing user data is preserved. Legacy account/parser fixtures remain for persistence and historical-format tests; they do not authorize gameplay.
+Submitted b915ad2 runtime changes removed anonymous gameplay, force session revalidation before every desktop Play, check Minecraft Java entitlements and profile, and enforce an independent core launch gate before downloads/process startup. Empty, unrelated, Bedrock-only, malformed and failed entitlement responses fail closed. No failed check grants offline play. Existing user data is preserved. Legacy account/parser fixtures remain for persistence and historical-format tests; they do not authorize gameplay.
 
 Full local verification: 228 tests discovered, 224 passed, four opt-in live tests skipped; zero failures/errors. `./gradlew --offline test build :launcher-desktop:createDistributable` passed. EN/PL/DE rendering, compact/large windows, original launcher mark and authentication-disabled Play were inspected. These are fixture/native-package checks, not live Microsoft/Minecraft authorization, current Game Pass compatibility, cross-platform native vault acceptance or actual gameplay. Those gates remain open.
 
@@ -41,7 +47,7 @@ Each application page identifies the publisher/contact, states independence from
 | Privacy / terms | Separate public HTTPS application notices above, surfaced during consent. A generic README is not a substitute for supplying these fields. |
 | `info.marketingUrl` / `info.supportUrl` | Application overview and support/removal page above. Preserve other existing `info` values when editing. |
 | Logo | Preserve the original launcher mark as requested by the maintainer. Do not replace project branding based on an unconfirmed interpretation; identify any future specific concern explicitly. |
-| Description / notes | Explain independent desktop purpose, entitled accounts only, browser PKCE, no secret, current approval/live-test limits, publisher/contact and support URL. Avoid false approval or security-certification claims. |
+| Description / notes | Explain independent desktop purpose, both explicit offline players and verified Microsoft accounts, browser PKCE, no secret, current approval/live-test limits, publisher/contact and support URL. Avoid false approval or security-certification claims. |
 | Publisher domain | A verified owned domain can improve identity. It is distinct from website hosting, application URL and publisher verification. Requires verified control; do not claim verification merely because pages exist. |
 | Publisher verification / MPN | Conditional partner-program verification, not documented as an AppID-form requirement. Requires matching eligible partner identity/domain; do not invent a partner ID or enroll in unrelated paid services. |
 | `serviceManagementReference` | Optional reference to an organizational service/asset-management contact record. Not a required fourth policy URL; leave blank without a real service record. Public service docs belong at support URL. |
@@ -55,7 +61,7 @@ Each application page identifies the publisher/contact, states independence from
 4. Minecraft `GET /entitlements/mcstore`: require a Java entitlement (`game_minecraft` or `product_minecraft`). An empty or Bedrock-only response does not qualify.
 5. Minecraft `GET /minecraft/profile`: require the verified Java UUID and name; OAuth success is not ownership proof.
 
-The production Play path requests a fresh session using the same chain before each launch. No session is published after failed ownership/profile validation. Access tokens remain in memory; refresh credentials use native OS vaults with no plaintext fallback. Account inventory stores names/UUIDs/types only. Local Sign out removes credential before identity; failure remains visible. Game processes receive the normal token/profile locally. The default premium process starter discards raw stdout/stderr, but game/mod-owned logs remain a separate privacy concern and are not automatically uploaded.
+The Microsoft Play path requests a fresh session using the same chain before each launch; explicit offline players do not call this chain. No session is published after failed ownership/profile validation. Access tokens remain in memory; refresh credentials use native OS vaults with no plaintext fallback. Account inventory stores names/UUIDs/types only. Local Sign out removes credential before identity; failure remains visible. Game processes receive the normal token/profile locally. The default premium process starter discards raw stdout/stderr, but game/mod-owned logs remain a separate privacy concern and are not automatically uploaded.
 
 ## Sources checked on 22 October 2026
 

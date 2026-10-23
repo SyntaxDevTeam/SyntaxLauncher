@@ -43,6 +43,27 @@ class AccountManagerTest {
         assertEquals(2, manager(vault).accounts().size)
     }
 
+    @Test fun offlineRenameIsAtomicRejectsCollisionsAndPreservesOtherPlayers() = runBlocking {
+        val vault = Vault()
+        val service = manager(vault)
+        val first = service.saveOffline("ChildOne")
+        val second = service.saveOffline("ChildTwo")
+        service.savePremium(session())
+        val file = root.resolve("accounts.properties")
+        Files.writeString(file, Files.readString(file) + "\nfuture_option=keep\n")
+        val before = Files.readString(file)
+        assertFailsWith<IllegalStateException> { service.renameOffline(first.uuid.toString(), "ChildTwo") }
+        assertFailsWith<IllegalStateException> { service.renameOffline(profile.uuid.toString(), "OtherName") }
+        assertFailsWith<IllegalArgumentException> { service.renameOffline(first.uuid.toString(), "!") }
+        assertEquals(before, Files.readString(file))
+        vault.locked = true
+        val renamed = service.renameOffline(first.uuid.toString(), "ChildNew")
+        assertEquals(OfflineAccount.create("ChildNew"), renamed)
+        assertEquals(listOf(renamed, second, profile), manager(vault).accounts().map { it.account })
+        assertTrue(Files.readString(file).contains("future_option=keep"))
+        assertEquals(renamed, service.renameOffline(renamed.uuid.toString(), "ChildNew"))
+    }
+
     @Test fun rotationIsSavedAndMissingRotationRetainsOldCredential() = runBlocking {
         val vault = Vault()
         manager(vault).savePremium(session())

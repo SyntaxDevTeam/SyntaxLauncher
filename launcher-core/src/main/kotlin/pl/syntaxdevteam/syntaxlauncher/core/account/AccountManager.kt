@@ -44,6 +44,27 @@ class AccountManager(
         account
     }
 
+    /** A nickname change also changes the offline UUID; never merge two saved players. */
+    suspend fun renameOffline(id: String, username: String): OfflineAccount = io {
+        val properties = read()
+        val saved = decode(properties)
+        val previous = saved.firstOrNull { it.account.uuid.toString() == id }
+            ?: error("Player profile no longer exists.")
+        check(!previous.microsoft) { "Microsoft names must be changed through Minecraft." }
+        val account = OfflineAccount.create(username)
+        val newId = account.uuid.toString()
+        check(newId == id || saved.none { it.account.uuid == account.uuid }) {
+            "A player with this nickname already exists."
+        }
+        properties.setProperty("accounts", ids(properties).map { if (it == id) newId else it }.joinToString(","))
+        properties.remove("$id.name")
+        properties.remove("$id.type")
+        properties.setProperty("$newId.name", account.username)
+        properties.setProperty("$newId.type", "offline")
+        save(properties)
+        account
+    }
+
     suspend fun savePremium(session: PremiumSession) = io {
         val properties = read()
         decode(properties) // Refuse malformed/unsupported state before writing a secret.

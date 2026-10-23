@@ -10,7 +10,7 @@ SyntaxLauncher is a modular Minecraft launcher written primarily in Kotlin. The 
 
 The launcher must ultimately be able to support:
 
-- authenticated play only, with Minecraft: Java Edition entitlement and profile verification before every launch; preserve legacy offline identity records and user worlds only for compatibility;
+- explicit offline/non-premium player profiles alongside official Microsoft accounts, with a persistent player manager separate from game instances;
 - official Microsoft/Minecraft authentication for premium accounts;
 - multiple Minecraft versions;
 - automatic Java runtime selection and installation;
@@ -166,7 +166,7 @@ Create abstractions when there are at least two realistic implementations or whe
 
 ## 8. Authentication and security rules
 
-**22 October 2026 AppID review correction:** The official review form requires authentication and game ownership before gameplay regardless of server configuration. This supersedes older offline/non-premium product requirements and milestone descriptions. Do not re-enable nickname-only play, cached/offline ownership bypasses, alternate client IDs as a workaround, or fallback after failed checks. Fresh entitlement/profile verification is required on the production desktop Play path; retain worlds and legacy records without making them playable identities.
+**22 October 2026 maintainer correction:** The maintainer explicitly reaffirmed offline/non-premium support and a player profile manager alongside Microsoft accounts. This supersedes the earlier authenticated-only product change made for AppID review. Keep offline selection explicit; never silently fall back after Microsoft failure or impersonate verified identities. Microsoft launches still require fresh official entitlement/profile checks. The official AppID form requires authentication/ownership regardless of server configuration: document that conflict honestly, preserve the actual b915ad2 submission record, and do not claim this dual-mode revision meets that requirement or has approval.
 
 - Premium authentication must use official Microsoft/Xbox/Minecraft authentication flows.
 - Never collect or store a user's Microsoft password.

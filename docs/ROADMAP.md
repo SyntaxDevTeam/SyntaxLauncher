@@ -1,6 +1,6 @@
 # SyntaxLauncher Roadmap
 
-> **Current access policy — 22 October 2026:** Microsoft authentication, a Minecraft: Java Edition entitlement and a verified Java profile are required before gameplay. The desktop revalidates the session before every launch. Nickname-only/non-premium gameplay is retired for all server configurations; historical offline milestones below are not exceptions. Existing local worlds and profiles are preserved. The first AppID request was declined; revised review and live-account acceptance remain separate gates.
+> **Player profiles — 22 October 2026:** SyntaxLauncher supports both explicit offline/non-premium players and Microsoft accounts. The player manager saves, selects, renames offline nicknames and removes profiles independently of game instances, worlds and add-ons; the active player survives restart. Microsoft Play still requires fresh official authentication, Java entitlement and profile verification, with no automatic offline fallback. The maintainer explicitly restored dual-mode product scope after the authenticated-only AppID-review change. The renewed request described immutable commit b915ad2, not this dual-mode revision; no allowlist approval is claimed.
 
 This file is the canonical project progress tracker.
 
@@ -14,7 +14,21 @@ Agents and contributors MUST keep this file synchronized with actual repository 
 
 ---
 
-## AppID review correction — 22 October 2026
+## Current delivery — 23 October 2026
+
+Microsoft live-account work is **deferred pending Mojang AppID approval**, per maintainer instruction. It does not block implementation of v0.11/v0.12; the final v1.0 premium criterion is not waived. v0.11 implementation and v0.12 production implementation are tracked below, with final native/signing/hosted-update acceptance kept explicitly open. See [TESTING_V0.11.md](TESTING_V0.11.md), [TESTING_V0.12.md](TESTING_V0.12.md) and [INSTALLATION.md](INSTALLATION.md).
+
+## Player manager and dual-mode restoration — 22 October 2026
+
+- [x] Restore explicit Offline / non-premium launch using the common coordinator; retain independent Microsoft authentication, Java entitlement/profile checks and fail-without-fallback behavior.
+- [x] Dedicated player manager: add offline/Microsoft players, choose saved profiles, rename offline players and confirm removal; worlds/add-ons stay separate. Persist active player ID and migrate the previous nickname selection.
+- [x] Cover offline launch with a locked credential vault, unknown/failed Microsoft sessions, atomic rename/collision protection, persisted selection and translated/compact UI interactions.
+- [ ] Real Minecraft offline launch and add-on acceptance; approved-AppID Microsoft sign-in/gameplay, native Windows/macOS vault and UX acceptance remain open.
+- [ ] Resolve the published AppID authentication/ownership criterion versus the maintainer's dual-mode product scope; the pending b915ad2 review does not describe this revision.
+
+## Historical authenticated-only AppID review change — 22 October 2026
+
+This section records b915ad2 and its submission. The maintainer subsequently restored the dual-mode scope above.
 
 - [x] Require an authenticated Microsoft Java identity and fresh ownership/profile verification before every desktop Play; reject anonymous/legacy sessions in the common coordinator before preparation. Preserve old records/worlds. Negative HTTP, cached-session, core and EN/PL/DE UI tests plus full build/Linux package pass.
 - [x] Preserve original branding, add in-app independence/contact and public privacy/terms links; record current approval limitations and supersede historic offline-play requirements.
@@ -700,50 +714,48 @@ Goal: install/export repeatable instance definitions and support a mainstream mo
 
 # v0.11 — Diagnostics and Repair
 
-**Verification update (23 October 2026):** the initial bounded diagnostic engine, privacy tests, translated UI and explicit managed-file repair compile and pass the hosted core/desktop verification in [CI 39901800185](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/39901800185). Native and real-crash repair acceptance remain open. This is not completion of all v0.11 items.
-
-Goal: turn raw logs/exit codes into actionable launcher diagnostics.
+**Implementation complete within the documented support scope.** Shared bounded crash classification is extended with file integrity scans, launch/runtime/mod evidence, an allowlisted support report and guarded explicit repair. Deterministic local tests cover repair/privacy/cancellation and translated compact UI; final native/real-game acceptance remains in v1.0. See [TESTING_V0.11.md](TESTING_V0.11.md).
 
 ## Evidence collection
 
-- [ ] 🚧 IN PROGRESS — Collect safe contextual game/version and last-run process metadata; launch-plan summary without credentials still pending verified CI.
-- [ ] Capture selected Java runtime/version.
-- [ ] 🚧 IN PROGRESS — Record exact last attempted Minecraft/loader version and game path, independently of later profile selection; CI pending.
-- [ ] Capture installed mod inventory and versions.
-- [ ] 🚧 IN PROGRESS — Include last process exit code with confidence-aware findings; CI pending.
-- [ ] 🚧 IN PROGRESS — Read a bounded tail of recent latest.log without reflecting raw lines; CI pending.
-- [ ] 🚧 IN PROGRESS — Check most recent crash report if created after last launch; CI pending.
+- [x] Collect a launch plan summary without account/session or argument objects: main class and classpath count.
+- [x] Capture selected Java runtime/version and required major.
+- [x] Capture Minecraft/loader version, including the selected loader before first Play.
+- [x] Capture installed mod identifiers, versions, enabled state and advisory dependency warnings.
+- [x] Capture matching process exit code; reject stale previous-process evidence.
+- [x] Parse bounded recent Minecraft latest.log through the existing classifier without reflecting raw text.
+- [x] Inspect bounded recent crash reports; reject stale/symlink sources.
 
 ## Diagnostic engine
 
-- [ ] 🚧 IN PROGRESS — Structured findings with evidence category, confidence and safe suggested action; deterministic tests pending CI.
-- [ ] 🚧 IN PROGRESS — Diagnose Java version/missing executable patterns; CI pending.
-- [ ] 🚧 IN PROGRESS — Detect corruption-related log symptoms (not a full filesystem audit); CI pending.
-- [ ] 🚧 IN PROGRESS — Detect common mod loader/dependency patterns; CI pending.
-- [ ] Detect common incompatible mod combinations where evidence is sufficient.
-- [ ] 🚧 IN PROGRESS — Findings declare PROBABLE/POSSIBLE instead of claiming certainty; CI pending.
-- [ ] 🚧 IN PROGRESS — Exit code alone yields UNKNOWN/POSSIBLE and recommends reviewing local logs; CI pending.
+- [x] Structured finding codes, confidence, evidence category and safe repair hints.
+- [x] Missing Java/executable and Java-version symptoms.
+- [x] Missing/corrupt managed client/library/native/index/logging/asset files; explicitly count files without upstream checksums.
+- [x] Common loader/dependency symptoms and inventory notices.
+- [x] Evidence-backed duplicate/incompatible mod symptoms; no full version-range solver is claimed.
+- [x] Separate confirmed file/runtime checks from probable log signatures and informational summaries.
+- [x] Unknown failures remain unknown; a successful scan does not promise mod compatibility.
 
 ## Repair
 
-- [ ] 🚧 IN PROGRESS — Explicit user-triggered prepareForInstallation verifies/re-downloads managed Minecraft/loader/Java files under an instance activity lease, preserving worlds/mods; CI pending.
-- [ ] 🚧 IN PROGRESS — Reuse existing checksum-based shared Minecraft preparation downloader for missing/corrupt assets/libraries; CI pending.
-- [ ] Repair/reinstall managed runtime where safe.
-- [ ] Offer mod update/disable suggestions when supported by evidence.
-- [ ] Require explicit user action for destructive repairs.
+- [x] Explicitly verify/repair Minecraft managed files with common preparation under the instance activity lease.
+- [x] Re-download missing/corrupt assets/libraries using the existing verified downloader.
+- [x] Recheck/reinstall managed Java through existing manifest-backed runtime resolution.
+- [x] Suggest reviewing/updating/disabling extras when dependency/conflict evidence exists; never change user mods silently.
+- [x] Repair is user-triggered and does not delete worlds/mods/settings; no destructive repair action is offered.
 
 ## v0.11 UI
 
-- [ ] 🚧 IN PROGRESS — Crash diagnostic dialog with localized categories and explanations; CI/native UX pending.
-- [ ] 🚧 IN PROGRESS — Offer a user-clicked Open local game logs folder action; no automatic upload/raw log text is shown. CI/native confirmation pending.
-- [ ] 🚧 IN PROGRESS — Context-specific static guidance for Java, mods, memory, graphics and authentication; CI/native UX pending.
-- [ ] 🚧 IN PROGRESS — Explicit Verify and repair managed files button for integrity/preparation findings; CI/native acceptance pending.
+- [x] Translated human-readable failure findings and confidence labels.
+- [x] Safe technical summary/copy and explicit local game-log folder access; no automatic upload.
+- [x] Suggested actions for Java, mods, memory, graphics, downloads and disk space.
+- [x] Explicit repair, progress, cancellation, completion/failure and refreshed scan; conflicting Play is guarded.
 
 ## v0.11 quality gate
 
-- [ ] 🚧 IN PROGRESS — Never display raw log lines, launch arguments or tokens; token-redaction regression tests added, CI pending.
-- [ ] Repair actions are scoped and explain what they will change.
-- [ ] 🚧 IN PROGRESS — Evidence-based symptom findings replace bare exit-code guidance when recent logs are available; CI pending.
+- [x] Reports contain allowlisted evidence only; credential-bearing raw logs/commands/exceptions are not exported.
+- [x] Repair explains its scope; deterministic tests preserve worlds/options/mods and prove no game process or credential access.
+- [x] Useful recent evidence supplements exit codes, with stale-process/privacy regression coverage retained.
 
 ---
 
@@ -766,54 +778,55 @@ Goal: prepare the launcher for stable public release.
 - [x] Generate consistent semantic build metadata, manifest-driven update ZIPs and an explicit full-bundle verification task; Python fixture tests pass.
 - [ ] 🚧 IN PROGRESS — CI now runs desktop tests and packages/verifies all three update bundles, then publishes complete six-asset releases for matching version tags or eligible stable version bumps on `main`. Hosted workflow/tag publication and native Windows/macOS acceptance are not yet executed for this change.
 - [ ] Live old→new GitHub-hosted update, original-shortcut relaunch, offline/cancel/failed-child recovery, native permissions/trust and user-data continuity on Windows/Linux/macOS.
-- [ ] Release signing/notarization and cache/old-version cleanup policy before production distribution; current integrity trust is the project's HTTPS GitHub publishing account.
+- [x] Define retention policy: keep original/active/previous/orphan update images and archives for recovery; document explicit offline cleanup. No automatic pruning.
+- [ ] Release signing/notarization before production distribution; current integrity trust is the project's HTTPS GitHub publishing account. Certificates and native trust acceptance are not available in this task.
 
 ## Reliability
 
-- [ ] Integrity scan for launcher-managed files.
-- [ ] Repair workflow for cache corruption.
-- [ ] Robust download resume/retry behavior.
-- [ ] Graceful cancellation.
-- [ ] Network timeout tuning.
-- [ ] Proxy support if required by release scope.
-- [ ] Disk-space checks for large installs.
-- [ ] Safe handling of interrupted installations.
+- [x] Managed Minecraft file integrity scan with validated asset-index traversal; launcher images already use manifest validation. Unchecksummed upstream files are reported separately.
+- [x] Explicit guarded verified game/Java/loader preparation repairs managed cache corruption without deleting player data.
+- [x] Bounded transient retry and verified cache reuse; interrupted payloads restart from zero rather than claiming HTTP Range resume.
+- [x] Cooperative download/preparation/repair cancellation and cleanup; retry after cancelled repair is tested.
+- [x] Central connect/request/socket deadlines and bounded operation-specific update/artifact overrides; see TESTING_V0.12.md.
+- [x] Initial network scope explicitly defined as direct HTTPS; configurable authenticated proxy support is excluded from this release scope.
+- [x] Shared per-download disk admission with 16 MiB safety margin, plus existing staged-instance/update checks; concurrent storage reservation is not claimed.
+- [x] Verified private staging and atomic publication reused for game/runtime/modpack/updater operations; incomplete payloads never count as ready.
 
 ## Packaging
 
-- [ ] Windows packaging/install strategy.
-- [ ] Linux packaging strategy.
-- [ ] macOS packaging strategy.
-- [ ] Application icon/metadata.
-- [ ] First-run experience.
-- [ ] Uninstall/data-retention behavior documented.
+- [x] Windows x64 portable complete app-image installation and data/removal policy documented; clean-machine acceptance stays below.
+- [x] Linux x64 portable image with preserved executable permissions; locally built distribution and data/removal policy documented.
+- [x] macOS ARM64 complete app-bundle portable installation documented; native trust/signing acceptance stays open.
+- [x] Shared icon, canonical product/build metadata and derived native versions integrated; final native visual acceptance remains in v1.0.
+- [x] Explicit player selection, Vanilla/modded setup and one-action catalog installation provided; child/native usability acceptance remains in v1.0.
+- [x] INSTALLATION.md documents backup, app-only removal, explicit data removal, OS credentials and updater retention.
 
 ## CI/CD
 
 - [ ] 🚧 IN PROGRESS — Produce a read-only per-version acceptance audit in GitHub Actions; exact unchecked gates and canonical release version remain distinct. Informational script and deterministic unit tests added; new hosted run pending.
-- [ ] 🚧 IN PROGRESS — Automatically publish ordinary Stable GitHub Releases when canonical plain `launcherVersion` increases on `main`; the canonical product version remains `0.7.0` after synchronization with GitHub. DEV/SNAPSHOT publication is tracked separately above; hosted six-asset publication acceptance remains pending.
-- [ ] Build/test CI.
-- [ ] Cross-platform build validation.
-- [ ] Release artifact generation.
-- [ ] Version/tag automation.
-- [ ] Release notes generation/process.
-- [ ] Reproducible/versioned dependency handling.
+- [ ] 🚧 IN PROGRESS — Automatically publish ordinary Stable GitHub Releases when canonical plain `launcherVersion` increases on `main`; the canonical product version is `0.7.1`. DEV/SNAPSHOT publication is tracked separately above; hosted six-asset publication acceptance remains pending.
+- [x] Existing automated core/desktop and Python verification; this change adds diagnostics/repair/logging regressions.
+- [x] Existing hosted Linux/Windows/macOS packaging baseline 39901800185; new revision must pass its own CI before release.
+- [x] Existing portable app images and verified update bundles for all three published targets.
+- [x] Existing canonical SemVer/tag matching and preview CI identity tests; no version bump/tag is authorized by this implementation task.
+- [x] Existing release helper plus development release notes and final candidate checklist in RELEASE_NOTES.md.
+- [x] Common JVM dependency graph locked; native Compose/Skiko versions derive from the pinned host-specific distribution. Byte-identical installers are not claimed.
 
 ## UX polish
 
-- [ ] Global settings screen.
-- [ ] Download queue/status.
-- [ ] Better empty/loading/error states.
-- [ ] Accessible keyboard/focus behavior where practical.
-- [ ] Consistent notifications/errors.
-- [ ] Log viewer/export.
+- [x] Settings groups build identity, update channel, Mojang-review status, bounded launcher log and actual storage locations.
+- [x] Existing preparation/current-file and completed/total progress with cancellation; repair uses the same visible status.
+- [x] Existing catalog states retained; health/settings add scan/loading/empty-log/error/retry and explicit repair outcomes.
+- [ ] 🚧 IN PROGRESS — Standard Compose controls and reachable 400×400 repair footer verified; native focus/keyboard/accessibility acceptance remains a final gate.
+- [x] Health findings and operation outcomes localized in EN/PL/DE; technical report remains secondary. Broader native usability acceptance stays in v1.0.
+- [x] Bounded local launcher-log viewer, rotating redacted messages and allowlisted diagnostic-copy report; raw game logs are not exported.
 
 ## v0.12 quality gate
 
 - [ ] Clean installation works on supported operating systems.
 - [ ] Upgrade from an earlier supported build preserves user instances/accounts/settings appropriately.
-- [ ] CI produces tested release artifacts.
-- [ ] Interrupted downloads/updates do not silently corrupt launcher state.
+- [x] Existing hosted three-platform six-asset baseline 39901800185; current candidate CI is checked independently after push.
+- [x] Existing integrity/staging/failed-child fixtures plus repair cancellation/retry coverage; native interruption acceptance remains explicitly open.
 
 ---
 

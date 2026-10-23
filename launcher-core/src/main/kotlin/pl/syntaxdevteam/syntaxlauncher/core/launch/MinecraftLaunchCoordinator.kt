@@ -21,8 +21,8 @@ import pl.syntaxdevteam.syntaxlauncher.core.minecraft.ResolvedMinecraftVersion
 import pl.syntaxdevteam.syntaxlauncher.core.network.DownloadEvent
 import pl.syntaxdevteam.syntaxlauncher.core.storage.MinecraftInstallationLayout
 
-class GameplayAuthenticationRequiredException : IllegalStateException(
-    "Sign in with a Microsoft account entitled to Minecraft Java before playing.")
+class InvalidPlayerAuthenticationException : IllegalStateException(
+    "The selected player profile has invalid authentication.")
 
 enum class LaunchPhase {
     IDLE, PREPARING_LOADER, PREPARING_GAME, PREPARING_JAVA, BUILDING_PLAN, STARTING_GAME, STARTED, FAILED, CANCELLED,
@@ -62,6 +62,11 @@ class MinecraftLaunchCoordinator(
     private val mutableStatus = MutableStateFlow(LaunchPipelineStatus())
     val status: StateFlow<LaunchPipelineStatus> = mutableStatus.asStateFlow()
 
+    @Volatile var evidence: pl.syntaxdevteam.syntaxlauncher.core.diagnostics.LaunchEvidence? = null
+        private set
+    @Volatile var preparedMetadata: ResolvedMinecraftVersion? = null
+        private set
+
     suspend fun launch(
         version: ResolvedMinecraftVersion,
         account: Account,
@@ -72,12 +77,20 @@ class MinecraftLaunchCoordinator(
     ): LaunchPipelineStatus {
         if (!launchMutex.tryLock()) return mutableStatus.value
         try {
-            if (account !is pl.syntaxdevteam.syntaxlauncher.core.account.PremiumAccount ||
+            evidence = pl.syntaxdevteam.syntaxlauncher.core.diagnostics.LaunchEvidence(
+                version.id, loader?.let { "${it.id}/${it.version}" }, version.javaRequirement?.majorVersion)
+            preparedMetadata = null
+            val validAuthentication = if (account is pl.syntaxdevteam.syntaxlauncher.core.account.OfflineAccount) {
+                authentication == LaunchAuthentication.offline(account)
+            } else account is pl.syntaxdevteam.syntaxlauncher.core.account.PremiumAccount && !(
                 authentication.userType != "msa" || authentication.accessToken.isBlank() ||
-                authentication.accessToken == "0" || authentication.clientId.isBlank()) {
-                throw GameplayAuthenticationRequiredException()
+                authentication.accessToken == "0" || authentication.clientId.isBlank())
+            if (!validAuthentication) {
+                throw InvalidPlayerAuthenticationException()
             }
             val (prepared, runtime) = prepareShared(version, instanceLayout, loader)
+            evidence = evidence?.copy(runtime = runtime, classpathEntries = prepared.filePlan.classpath.size)
+            preparedMetadata = prepared.version
             stage(LaunchPhase.BUILDING_PLAN, "Preparing launch arguments")
             val plan = plans.build(
                 LaunchRequest(
@@ -89,13 +102,18 @@ class MinecraftLaunchCoordinator(
                     authentication = authentication,
                 ),
             )
+            evidence = evidence?.copy(runtime = runtime, mainClass = plan.mainClass,
+                classpathEntries = prepared.filePlan.classpath.size)
+            preparedMetadata = prepared.version
             stage(LaunchPhase.STARTING_GAME, "Starting Minecraft")
             val running = processes.launch(plan)
+            evidence = evidence?.copy(processStarted = true)
             stage(LaunchPhase.STARTED, "Minecraft started (PID ${running.pid ?: "unknown"})")
         } catch (cancelled: CancellationException) {
             stage(LaunchPhase.CANCELLED, "Preparation cancelled")
             throw cancelled
         } catch (error: Exception) {
+            evidence = evidence?.copy(failureType = error.javaClass.simpleName)
             // Never print a full command or authentication arguments.
             log.warn("Minecraft launch pipeline failed: {}", error.javaClass.simpleName)
             stage(LaunchPhase.FAILED, messageFor(error))
@@ -107,9 +125,18 @@ class MinecraftLaunchCoordinator(
 
     /** Common game/Java/loader preparation without a process or account. */
     suspend fun prepareForInstallation(version: ResolvedMinecraftVersion, instanceLayout: MinecraftInstallationLayout,
-        loader: ModLoaderSelection?) {
+        loader: ModLoaderSelection?, recordRepair: Boolean = false) {
         launchMutex.lock()
-        try { prepareShared(version, instanceLayout, loader) }
+        try {
+            val (prepared, runtime) = prepareShared(version, instanceLayout, loader)
+            if (recordRepair) {
+                evidence = pl.syntaxdevteam.syntaxlauncher.core.diagnostics.LaunchEvidence(
+                    version.id, loader?.let { "${it.id}/${it.version}" }, version.javaRequirement?.majorVersion,
+                    runtime = runtime, mainClass = prepared.version.mainClass,
+                    classpathEntries = prepared.filePlan.classpath.size)
+                preparedMetadata = prepared.version
+            }
+        }
         finally { stage(LaunchPhase.IDLE, "Ready to play"); launchMutex.unlock() }
     }
 
@@ -220,7 +247,7 @@ class MinecraftLaunchCoordinator(
 
     private fun messageFor(error: Exception): String {
         val reason = when (error) {
-            is GameplayAuthenticationRequiredException -> error.message!!
+            is InvalidPlayerAuthenticationException -> error.message!!
             is pl.syntaxdevteam.syntaxlauncher.core.content.GraphicsEnhancementException -> error.message ?: "Cannot prepare graphics enhancement."
             is ModLoaderException -> error.message ?: "Could not prepare the mod loader."
             is MinecraftProcessException -> "Cannot start Minecraft. Check the game logs."

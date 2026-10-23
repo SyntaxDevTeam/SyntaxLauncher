@@ -1,6 +1,6 @@
 # SyntaxLauncher Architecture
 
-> **Current access policy — 22 October 2026:** Microsoft authentication, a Minecraft: Java Edition entitlement and a verified Java profile are required before gameplay. The desktop revalidates the session before every launch. Nickname-only/non-premium gameplay is retired for all server configurations; historical offline milestones below are not exceptions. Existing local worlds and profiles are preserved. The first AppID request was declined; revised review and live-account acceptance remain separate gates.
+> **Player profiles — 22 October 2026:** SyntaxLauncher supports both explicit offline/non-premium players and Microsoft accounts. The player manager saves, selects, renames offline nicknames and removes profiles independently of game instances, worlds and add-ons; the active player survives restart. Microsoft Play still requires fresh official authentication, Java entitlement and profile verification, with no automatic offline fallback. The maintainer explicitly restored dual-mode product scope after the authenticated-only AppID-review change. The renewed request described immutable commit b915ad2, not this dual-mode revision; no allowlist approval is claimed.
 
 ## 1. Purpose
 
@@ -588,3 +588,7 @@ acceptance gates before claiming comprehensive loader support.
 ## 23. Presentation localization
 
 The desktop `i18n` package owns UTF-8 EN/PL/DE resources, locale selection and Compose-scoped `LocalStrings`. Core remains locale/UI independent and exposes typed launch and startup-update stages. Presentation maps those stages to translation keys; logs retain diagnostic text. An additive `ui_language` property uses the existing schema-1 atomic preferences store with dedicated language-only reads/writes so normal profile saves cannot overwrite the selected UI language. Missing language settings preserve backward reading compatibility; unsupported locale tags fall back to English without discarding stored data.
+
+## Diagnostics and maintenance boundary
+
+`core/diagnostics` contains structured launch evidence, bounded local log signature classification, managed-file scanning and allowlisted report export. It retains no account/session or launch argument objects. The coordinator captures selected runtime/main-class/classpath counts and failure type; the desktop adds selected-instance inventory and matching process status. `DesktopLauncherSession.repair` shares the launch/preparation job guard and repository activity lease, then calls common preparation without account access or process creation. Cancellation releases the lease; UI shows explicit completion/cancellation/failure. Settings reads only bounded launcher messages. Core networking owns disk admission and existing download integrity/retry/cancellation; desktop owns redacting rotating log appenders.

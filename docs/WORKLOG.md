@@ -8,6 +8,49 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+
+## 2026-10-23 — Complete diagnostic implementation and production hardening before final acceptance
+
+**Milestone:** v0.11 / v0.12
+**Author/Agent:** Codex
+**Status:** Completed — v0.11 and scoped production implementation; final native/signing/hosted-update acceptance remains Partial
+
+### Completed
+- Followed the maintainer's instruction to defer live Microsoft account work while Mojang AppID approval is pending. Preserved official premium entitlement checks and the pre-existing explicit offline/player-manager working-tree changes, including account/preferences/UI tests; no live premium success or review approval is claimed.
+- Updated the stale checkout by fast-forwarding to origin/main a68c25d after retaining all local changes in a Git stash backup. Preserved the published bounded MinecraftDiagnostics classifier, privacy/stale-process tests, CI readiness audit and release evidence. The health scan reuses that classifier; old failure UI forwards into the same guarded repair path.
+- Added managed client/library/native/index/logging/asset integrity scans, unchecksummed-file counts, launch/Java/main-class/classpath and local mod evidence, fixed confidence/category reports and safe report copy. Raw logs/account objects/argument values/private paths are not exported. A successful repair clears previous failure evidence, and preparation/repair cannot reuse old process logs or exits.
+- Added selected-game health UI in EN/PL/DE, fixed-footer explicit repair, progress/cancel/outcome/re-scan, local game-log access and shared job/activity guards. Repair reuses the verified Minecraft/loader/Java preparation pipeline, validates unchanged profile requirements and never starts a game or deletes worlds/mods/options.
+- Added shared disk-space admission, redacting rotating launcher logs, bounded settings log viewer/storage locations and common JVM dependency lockfiles. Native Compose/Skiko families remain host-selected at pinned distribution versions.
+- Documented portable installation/first run, backup/removal/OS credentials, direct-HTTPS scope, interrupted-payload restart, updater retention, candidate notes and remaining native/signing gates. Product version stays 0.7.1; no Stable release/tag created.
+
+### Changed files
+- `launcher-core/.../diagnostics/{GameDiagnostics,SecretRedactor,MinecraftDiagnostics}.kt`, `launch/MinecraftLaunchCoordinator.kt`, `network/{DownloadManager,DiskSpace}.kt` — health evidence/scanning/classification, repair snapshots, privacy and download admission.
+- `launcher-desktop/.../{DesktopLauncherSession,Main}.kt`, `ui/{GameHealthDialog,MinecraftDiagnosticsDialog,LauncherSettingsContent,SyntaxLauncherApp}.kt`, logging converter/config and EN/PL/DE bundles — guarded maintenance, health/settings UI, log retention and native wiring.
+- Diagnostic/repair/disk/logging/session/translated-render regression tests; root/module build files and dependency locks.
+- Pre-existing player manager/account/preferences/UI/translation/doc changes retained, verified and included under the standing publication instruction.
+- `README.md`, `docs/{ARCHITECTURE,DEVELOPMENT,DESIGN,MILESTONES,ROADMAP,RELEASE_READINESS,RELEASE_NOTES,INSTALLATION,TESTING_V0.11,TESTING_V0.12}.md` and this worklog — actual scope, evidence and final acceptance.
+
+### Verification
+- `./gradlew --offline test build :launcher-desktop:createDistributable` — PASS on final sources: 248 tests, 244 passed, four opt-in official-network smoke tests skipped, zero failures/errors; Linux application image built. Common dependency locks regenerated/reviewed and used without `--write-locks` for final verification.
+- `python3 -m unittest discover -s scripts -p 'test_*.py'` — PASS: 14 version/packaging/publication/readiness tests.
+- `python3 scripts/release_readiness.py --format markdown` — PASS; v0.11 26 completed/0 open, v0.12 36 completed/9 open. The audit correctly keeps independent native/signing/deferred-account gates open.
+- Deterministic repair — missing/corrupt file restoration, cancelled repair/retry, no child process, preserved worlds/options/mods, no account-vault access, duplicate Play protection and fresh subsequent scan pass. Stale/symlink/unrelated logs and previous same-game process evidence are rejected.
+- EN/PL/DE health UI at 400×400 and 820×700 — PASS; fixed-footer repair is reachable and refreshed results display after repair. Inspected Polish 400×400 production Compose render; PNGs remain generated/uncommitted.
+- Native Linux package smoke — PASS for application startup, live catalog/metadata loading and platform file-log output using isolated `/tmp` XDG data. Initial sandbox-only attempt could not access X11; the authorized native attempt succeeded and was deliberately stopped after 12 seconds (timeout status 124). No Minecraft game, real account or user world was used. No clean-machine/all-platform UX claim.
+- `git diff --check` — PASS. Commit/push and this revision's hosted CI outcome are reported in chat after publication.
+
+### Roadmap updates
+- `[x] v0.11 / evidence, diagnostic engine, safe repair, translated UI and deterministic privacy/repair quality gates`
+- `[x] v0.12 / reliability implementation, documented packaging/retention, versioned dependencies, settings and log/report access`
+- `[ ] v0.12 / native installation/upgrade/channel-switch acceptance, signing/notarization and final keyboard/focus checks — remain open`
+- `[ ] Microsoft / approved-AppID live acceptance — explicitly deferred by maintainer, not waived for a full premium release`
+
+### Follow-ups / known issues
+- Complete the nine explicitly open v0.12 acceptance items and broader v1.0 native/gameplay/migration matrix before declaring a stable public release. Signing certificates/trust acceptance and Windows/macOS sessions are not supplied by this Linux task.
+- Existing limited Forge/OptiFine/dependency-parser support matrices remain in force; no historical compatibility expansion or complete mod solver is claimed.
+- This task's initial local-only assessment missed newer published diagnostics. Synchronization and preservation are recorded above; no remote history was rewritten. The integration stash remains as a recoverable backup.
+
+
 ## 2026-10-23 — Verify final three-platform CI and resolve previous preview-publication blocker
 
 **Milestone:** v0.11 — Diagnostics; v0.12 — CI/CD and distribution
