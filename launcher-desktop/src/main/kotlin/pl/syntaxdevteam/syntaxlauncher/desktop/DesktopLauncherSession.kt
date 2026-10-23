@@ -109,8 +109,9 @@ class DesktopLauncherSession(
         // A preparation error may occur before a child process starts. Never
         // attribute an older game's exit code or logs to this attempt.
         val process = processManager.status.value
-        val currentRun = if (process.startedAt != null &&
-            !process.startedAt.isBefore(attempt.requestedAt.minusSeconds(5))) {
+        val processStartedAt = process.startedAt
+        val currentRun = if (processStartedAt != null &&
+            !processStartedAt.isBefore(attempt.requestedAt.minusSeconds(5))) {
             process
         } else pl.syntaxdevteam.syntaxlauncher.core.launch.MinecraftProcessStatus()
         diagnostics.analyze(
