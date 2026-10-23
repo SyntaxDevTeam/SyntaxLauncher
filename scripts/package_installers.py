@@ -6,7 +6,6 @@ No game, account, settings or launcher-update directory is an installer payload.
 """
 import argparse
 import hashlib
-import json
 import os
 from pathlib import Path
 import re
@@ -16,6 +15,7 @@ import tempfile
 import urllib.request
 import uuid
 import xml.etree.ElementTree as ET
+import zipfile
 
 from launcher_version import parse_launcher_version, read_launcher_version
 
@@ -51,6 +51,16 @@ def native_version(version, platform):
     if platform == 'macos-arm64' and parts[0] == 0:
         parts[0] = 1  # Existing jpackage macOS compatibility mapping only.
     return '.'.join(map(str, parts))
+
+
+def linux_release(version, build='0', attempt='1'):
+    numeric_version(version)
+    if not re.fullmatch(r'[0-9]+', build) or not re.fullmatch(r'[1-9][0-9]*', attempt):
+        raise ValueError('Invalid package build identity')
+    prerelease = version.split('+')[0].partition('-')[2]
+    if not prerelease:
+        return '1'
+    return '0.' + prerelease.lower().replace('-', '.') + '.' + build + '.' + attempt
 
 
 def validate_image(image, platform):
@@ -95,10 +105,17 @@ def wix_source(image, version, output):
                   Scope='perUser', Language='1033', InstallerVersion='500')
     add(package, 'MajorUpgrade', DowngradeErrorMessage='A newer SyntaxLauncher is already installed.',
         Schedule='afterInstallInitialize')
+    upgrade = add(package, 'Upgrade', Id=UPGRADE_CODE)
+    add(upgrade, 'UpgradeVersion', Minimum=native_version(version, 'windows-x64'),
+        Maximum=native_version(version, 'windows-x64'), IncludeMinimum='yes', IncludeMaximum='yes',
+        OnlyDetect='yes', Property='SAMEVERSIONINSTALLED')
+    add(package, 'Launch', Condition='NOT SAMEVERSIONINSTALLED OR Installed',
+        Message='Uninstall the previous preview of this version before installing this build. Your games and settings will remain.')
     add(package, 'MediaTemplate', EmbedCab='yes')
     add(package, 'Icon', Id='LauncherIcon', SourceFile=str(BRANDING / 'syntaxlauncher-icon.ico'))
     add(package, 'Property', Id='ARPPRODUCTICON', Value='LauncherIcon')
     add(package, 'Property', Id='ARPURLINFOABOUT', Value='https://syntaxdevteam.pl')
+    add(package, 'Property', Id='ARPCOMMENTS', Value='SyntaxLauncher ' + version)
     local = add(package, 'StandardDirectory', Id='LocalAppDataFolder')
     programs = add(local, 'Directory', Id='UserPrograms', Name='Programs')
     target = add(programs, 'Directory', Id='INSTALLFOLDER', Name='SyntaxLauncher')
@@ -126,6 +143,7 @@ def wix_source(image, version, output):
     add(component, 'Shortcut', Id='StartShortcut', Name='SyntaxLauncher', Target='[INSTALLFOLDER]SyntaxLauncher.exe',
         WorkingDirectory='INSTALLFOLDER', Icon='LauncherIcon')
     add(component, 'RemoveFolder', Id='RemoveMenu', On='uninstall')
+    add(component, 'RemoveFolder', Id='RemoveUserProgramsIfEmpty', Directory='UserPrograms', On='uninstall')
     add(component, 'RegistryValue', Root='HKCU', Key='Software\\SyntaxDevTeam\\SyntaxLauncher\\Installer',
         Name='StartMenu', Type='integer', Value='1', KeyPath='yes')
     add(feature, 'ComponentRef', Id='StartMenu')
@@ -178,7 +196,30 @@ def appdir(image, destination):
     shutil.copyfile(ROOT / 'LICENSE', destination / 'LICENSE')
 
 
+def desktop_template(text, kind):
+    # Minimal/headless installations may have xdg-utils but none of its target directories.
+    # Keep the JDK's own maintainer script; prepare only shared standard menu directories.
+    marker = 'set -e\n' if kind == 'deb' else '%post\n'
+    if marker not in text:
+        raise ValueError('Unrecognized jpackage desktop-integration template')
+    return text.replace(marker, marker + '\nmkdir -p /usr/share/applications /usr/share/desktop-directories /etc/xdg/menus/applications-merged\n', 1)
+
+
+def linux_resources(work):
+    executable = Path(shutil.which(jpackage_tool()) or jpackage_tool()).resolve()
+    module = executable.parent.parent / 'jmods/jdk.jpackage.jmod'
+    resources = work / 'resources'
+    resources.mkdir()
+    with zipfile.ZipFile(module) as archive:
+        for kind, source, target in [('deb', 'template.postinst', 'postinst'),
+                                     ('rpm', 'template.spec', 'syntaxlauncher.spec')]:
+            text = archive.read('classes/jdk/jpackage/internal/resources/' + source).decode('utf-8')
+            (resources / target).write_text(desktop_template(text, kind), encoding='utf-8')
+    return resources
+
+
 def linux(image, version, output, work):
+    resources = linux_resources(work)
     for kind in ('deb', 'rpm'):
         folder = work / kind
         folder.mkdir()
@@ -186,7 +227,8 @@ def linux(image, version, output, work):
                    '--app-version', native_version(version, 'linux-x64'), '--vendor', 'SyntaxDevTeam',
                    '--description', 'Minecraft launcher by SyntaxDevTeam', '--license-file', ROOT / 'LICENSE',
                    '--linux-package-name', 'syntaxlauncher', '--linux-shortcut', '--linux-menu-group', 'Games',
-                   '--dest', folder]
+                   '--linux-app-release', linux_release(version, os.environ.get('GITHUB_RUN_NUMBER', '0'), os.environ.get('GITHUB_RUN_ATTEMPT', '1')),
+                   '--resource-dir', resources, '--dest', folder]
         if kind == 'deb':
             command += ['--linux-deb-maintainer', 'wieszczy85@gmail.com', '--linux-app-category', 'games']
         else:

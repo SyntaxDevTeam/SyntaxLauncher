@@ -29,7 +29,7 @@ grep -qx keep-world "$XDG_DATA_HOME/syntaxlauncher/instances/smoke/saves/marker"
 grep -qx keep-settings "$XDG_CONFIG_HOME/syntaxlauncher/marker"
 # Inspect and install/remove the RPM on an actual RPM distribution, not with --nodeps.
 rpm -qpi "$packages/syntaxlauncher-linux-x64.rpm" > "$evidence/rpm-metadata.txt"
-docker run --rm -v "$packages:/packages:ro" fedora:43 bash -euc '
+docker run --rm -v "$packages:/packages:ro" fedora:44 bash -euc '
     mkdir -p /root/.local/share/syntaxlauncher/instances/smoke/saves
     echo keep-world > /root/.local/share/syntaxlauncher/instances/smoke/saves/marker
     dnf install -y /packages/syntaxlauncher-linux-x64.rpm

@@ -22,6 +22,14 @@ Get-ChildItem $source -File -Recurse -Force | ForEach-Object {
         throw "Installed payload mismatch: $relative"
     }
 }
+# A second build with the same numeric MSI version must not register a second product.
+python scripts/package_installers.py --image "$source" --platform windows-x64 --output launcher-desktop/build/installer-duplicate
+if ($LASTEXITCODE -ne 0) { throw 'Duplicate-version fixture build failed' }
+$duplicate = (Resolve-Path 'launcher-desktop/build/installer-duplicate/syntaxlauncher-windows-x64.msi').Path
+$p = Start-Process msiexec.exe -ArgumentList "/i `"$duplicate`" /qn /norestart /l*v `"$evidence/same-version.log`"" -Wait -PassThru
+if ($p.ExitCode -ne 1603 -or !(Select-String -Path "$evidence/same-version.log" -SimpleMatch 'Uninstall the previous preview of this version')) {
+    throw "Same-version duplicate was not blocked by the expected launch condition: $($p.ExitCode)"
+}
 Remove-Item "$app/SyntaxLauncher.exe"
 Invoke-Msi "/fa `"$msi`" /qn /norestart /l*v `"$evidence/repair.log`""
 if (!(Test-Path "$app/SyntaxLauncher.exe")) { throw 'MSI repair did not restore the launcher' }

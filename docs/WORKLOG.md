@@ -9,6 +9,36 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 ---
 
 
+## 2026-10-23 — Resolve initial native packaging checks and preview upgrade ordering
+
+**Milestone:** v0.12 / native distribution
+**Author/Agent:** Codex
+**Status:** Partial — fixes locally verified; repeat native hosted checks pending
+
+### Completed
+- Initial CI 40009406959 passed application/loader verification and the full macOS DMG job. Windows correctly stopped at WiX WIX7015 requiring explicit EULA acceptance. The maintainer then explicitly accepted the WiX v7 OSMF EULA and confirmed compliance with its conditions in this chat; CI now records that acceptance before loading the UI extension. No fee purchase or signing/notarization claim is made.
+- Linux built DEB/RPM/AppImage but DEB installation exposed missing writable XDG menu directories on the minimal runner. Added packaging-time adaptation of the matching JDK's own postinst/spec templates to create shared standard menu directories before registration, rather than masking failed package scripts or merely preparing the test host.
+- Added explicit same-numeric-version MSI duplicate detection while permitting normal repair/maintenance, with a second-build native negative smoke. Added per-user parent-directory cleanup for empty directories and canonical version in installer comments.
+- DEB/RPM preview revisions now include prerelease and CI build/attempt below Stable revision 1; real dpkg comparison tests verify repeated DEV → Stable → 1.0 ordering. Updated the RPM lifecycle environment to current Fedora 44, confirmed through the Fedora project's published download page.
+
+### Changed files
+- `scripts/{package_installers,test_package_installers}.py`, `packaging/smoke-{linux.sh,windows.ps1}`, workflow — native scripts, EULA acknowledgment, MSI guards, preview revisions and Fedora lifecycle.
+- `docs/{INSTALLATION,DEVELOPMENT,WORKLOG}.md` — actual behavior, prerequisites and initial hosted outcomes.
+
+### Verification
+- `python3 -m unittest discover -s scripts -p 'test_*.py'` — PASS, 21 tests, including actual dpkg version ordering and template fail-closed behavior.
+- Application source and Gradle configuration are unchanged from the prior passing full test/build. Native fixes require their own repeated hosted acceptance; reported in chat after push.
+- Initial hosted macOS job — PASS: DMG construction, read-only verification/mount, Applications link and copy/removal smoke. Initial Windows/Linux failures described above prevented incomplete preview publication.
+- `git diff --check` — PASS; native clean-machine/signing/gameplay gates remain unchecked.
+
+### Roadmap updates
+- Installer items remain in progress until the corrected hosted lifecycle/publication succeeds; no final release gates waived.
+
+### Follow-ups / known issues
+- Same numeric MSI versions require uninstall/reinstall; the wizard now rejects accidental duplicate product registration. All signing/trust/native GUI and actual cross-version upgrade gates remain open.
+
+---
+
 ## 2026-10-23 — Prepare WiX v7, DMG and multi-distribution Linux installers
 
 **Milestone:** v0.12 / native distribution
@@ -19,7 +49,7 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 - Followed the maintainer's explicit request for Windows WiX v7, macOS and Linux formats beyond DEB. Added WiX 7.0.0 MSI, DMG, DEB/RPM and a single-file AppImage option using the same verified application payload as portable/update assets. Kept canonical version 0.9.3-DEV and public Stable 0.9.2 unchanged.
 - Authored explicit Windows per-user components with stable path-derived GUIDs, HKCU key paths, stable UpgradeCode, downgrade blocking, real WixUI installation wizard, Start menu entry and app-only uninstall. WiX is pinned/checked independently of jpackage's Windows MSI integration.
 - Added branded ICO/ICNS format conversions from the existing PNG; only macOS keeps the native pre-1.0 major mapping. Windows/Linux use the actual numeric SemVer core so future 1.0 Windows upgrades are not ordered below an artificial 1.9 package.
-- Added host-native packaging and lifecycle CI: Windows payload hash/repair/uninstall/menu/data preservation; DMG verify/read-only mount/application copy/removal; DEB dependency installation/removal, isolated Xvfb startup; RPM installation/removal in Fedora 43 with dependency resolution; AppImage extract/startup. Installer tools/runtime use versioned official AppImage assets and pinned SHA-256.
+- Added host-native packaging and lifecycle CI: Windows payload hash/repair/uninstall/menu/data preservation; DMG verify/read-only mount/application copy/removal; DEB dependency installation/removal, isolated Xvfb startup; RPM installation/removal in Fedora 44 with dependency resolution; AppImage extract/startup. Installer tools/runtime use versioned official AppImage assets and pinned SHA-256.
 - Added fail-closed complete-set/checksum verification before publication. New DEV/SNAPSHOT/future Stable jobs require five installers and SHA256SUMS-installers.txt alongside the six existing portable/update files. Build Explorer remains portable-only. Existing installed bootstrap/updater keeps newer images in user storage and never rewrites package-owned files.
 
 ### Changed files

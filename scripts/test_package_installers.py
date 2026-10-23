@@ -1,12 +1,13 @@
 import os
 from pathlib import Path
 import subprocess
+import shutil
 import tempfile
 import unittest
 from unittest.mock import patch
 import xml.etree.ElementTree as ET
 
-from package_installers import (NS, UPGRADE_CODE, appdir, native_version, validate_image, wix_source, windows)
+from package_installers import (NS, UPGRADE_CODE, appdir, native_version, linux_release, desktop_template, validate_image, wix_source, windows)
 from verify_installers import NAMES, verify
 from publish_preview import PLATFORMS, publish
 
@@ -20,6 +21,20 @@ class InstallerTest(unittest.TestCase):
         for version in ['1.2', '1.2.3;evil', '256.0.0', '1.256.0', '1.0.65536']:
             with self.assertRaises(ValueError):
                 native_version(version, 'windows-x64')
+
+    def test_linux_preview_revisions_sort_before_stable_and_distinguish_builds(self):
+        self.assertEqual('0.dev.42.2', linux_release('0.9.3-DEV', '42', '2'))
+        self.assertEqual('0.rc.1.43.1', linux_release('0.9.3-rc.1', '43', '1'))
+        self.assertEqual('1', linux_release('0.9.3', '44', '1'))
+        if shutil.which('dpkg'):
+            versions = ['0.9.3-' + linux_release('0.9.3-DEV', '42', '1'),
+                        '0.9.3-' + linux_release('0.9.3-DEV', '43', '1'),
+                        '0.9.3-' + linux_release('0.9.3', '44', '1'), '1.0.0-1']
+            for older, newer in zip(versions, versions[1:]):
+                subprocess.run(['dpkg', '--compare-versions', older, 'lt', newer], check=True)
+        for build, attempt in [('bad', '1'), ('42', '0')]:
+            with self.assertRaises(ValueError):
+                linux_release('0.9.3-DEV', build, attempt)
 
     def test_msi_has_stable_identity_full_payload_user_scope_and_menu(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -46,7 +61,19 @@ class InstallerTest(unittest.TestCase):
             self.assertTrue(all(c.find('w:RegistryValue', ns).attrib['Root'] == 'HKCU' for c in components))
             self.assertEqual('[INSTALLFOLDER]SyntaxLauncher.exe', package.find('.//w:Shortcut', ns).attrib['Target'])
             self.assertIsNone(package.find('.//w:RemoveFile', ns))
+            self.assertEqual('SAMEVERSIONINSTALLED', package.find('w:Upgrade/w:UpgradeVersion', ns).attrib['Property'])
+            self.assertIn('OR Installed', package.find('w:Launch', ns).attrib['Condition'])
             self.assertEqual('afterInstallInitialize', package.find('w:MajorUpgrade', ns).attrib['Schedule'])
+
+    def test_headless_menu_preparation_retains_native_scripts_and_rejects_unknown_templates(self):
+        for kind, marker in [('deb', 'set -e'), ('rpm', '%post')]:
+            script = desktop_template(marker + '\nDESKTOP_COMMANDS_INSTALL\n', kind)
+            self.assertLess(script.index('mkdir -p'), script.index('DESKTOP_COMMANDS_INSTALL'))
+            self.assertIn('/usr/share/desktop-directories', script)
+            self.assertIn('/etc/xdg/menus/applications-merged', script)
+            self.assertEqual(1, script.count('mkdir -p'))
+        with self.assertRaises(ValueError):
+            desktop_template('unknown future format', 'deb')
 
     def test_wrong_wix_major_cannot_silently_build_with_old_toolset(self):
         with patch('package_installers.subprocess.check_output', return_value='3.14.1'), patch('package_installers.run') as command:
