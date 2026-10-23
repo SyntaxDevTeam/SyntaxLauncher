@@ -3,6 +3,7 @@ package pl.syntaxdevteam.syntaxlauncher.desktop
 import io.ktor.client.HttpClient
 import java.util.concurrent.atomic.AtomicBoolean
 import java.nio.file.Path
+import java.time.Instant
 import pl.syntaxdevteam.syntaxlauncher.core.diagnostics.MinecraftDiagnostics
 import pl.syntaxdevteam.syntaxlauncher.core.diagnostics.MinecraftDiagnosticReport
 import kotlinx.coroutines.CoroutineScope
@@ -48,6 +49,7 @@ data class LastGameAttempt(
     val gameVersion: String,
     val loader: pl.syntaxdevteam.syntaxlauncher.core.loader.ModLoaderSelection?,
     val instanceId: String?,
+    val requestedAt: Instant = Instant.now(),
 )
 
 /**
@@ -104,9 +106,17 @@ class DesktopLauncherSession(
         val failedPreparation = coordinator.status.value
             .takeIf { it.phase == pl.syntaxdevteam.syntaxlauncher.core.launch.LaunchPhase.FAILED }
             ?.detail
+        // A preparation error may occur before a child process starts. Never
+        // attribute an older game's exit code or logs to this attempt.
+        val process = processManager.status.value
+        val currentRun = if (process.startedAt != null &&
+            !process.startedAt.isBefore(attempt.requestedAt.minusSeconds(5))) {
+            process
+        } else pl.syntaxdevteam.syntaxlauncher.core.launch.MinecraftProcessStatus()
         diagnostics.analyze(
             attempt.gameDirectory, attempt.gameVersion, attempt.loader?.id,
-            processManager.status.value, failedPreparation)
+            currentRun.copy(startedAt = currentRun.startedAt ?: attempt.requestedAt),
+            failedPreparation)
     }
 
     /**
