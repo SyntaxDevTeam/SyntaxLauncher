@@ -119,7 +119,7 @@ Run `python3 scripts/release_readiness.py` to view unresolved milestone checkbox
 
 ## v0.11 — Local crash diagnostics (in development)
 
-After a failed Minecraft launch choose **Diagnose the failure**. SyntaxLauncher checks bounded recent local logs, distinguishes probable findings from weak evidence, and offers an explicit **Verify and repair managed files** action for supported integrity/preparation failures. Reports never embed raw log lines or authentication credentials. This stage does not disable mods, reset user settings or remove worlds. See [v0.11 acceptance checklist](docs/TESTING_V0.11.md). Automated/native acceptance remains pending.
+After a failed Minecraft launch choose **Diagnose the failure**. SyntaxLauncher checks bounded recent local logs, distinguishes probable findings from weak evidence, and offers an explicit **Verify and repair managed files** action for supported integrity/preparation failures. Reports never embed raw log lines or authentication credentials. This stage does not disable mods, reset user settings or remove worlds. See [v0.11 acceptance checklist](docs/TESTING_V0.11.md). Hosted core/desktop tests now pass; native/manual diagnostic acceptance remains pending.
 
 ## v0.10 — Ready-made modpacks
 

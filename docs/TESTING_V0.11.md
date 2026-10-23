@@ -10,10 +10,10 @@ When evidence suggests corrupt managed files or a preparation failure, the dialo
 
 ## Automated
 
-- [ ] Classify mod dependency, Java, memory, file integrity and graphics log evidence with appropriate confidence.
-- [ ] Show UNKNOWN/POSSIBLE, not confirmed, for exit code 1 without recent evidence.
-- [ ] Ignore stale log files and symbolic links; read no more than the bounded tail.
-- [ ] Ensure token-like text in logs or exception messages never appears in serialized diagnostic findings.
+- [x] Classify mod dependency, Java, memory, file integrity and graphics log evidence with appropriate confidence.
+- [x] Show UNKNOWN/POSSIBLE, not confirmed, for exit code 1 without recent evidence.
+- [x] Ignore stale log files and symbolic links; read no more than the bounded tail.
+- [x] Ensure token-like text in logs or exception messages never appears in serialized diagnostic findings.
 - [ ] Verify repair dispatch uses the existing instance lease/preparation pipeline and no destructive file operations.
 - [ ] Run full Gradle tests/build and all supported platform packages in CI.
 

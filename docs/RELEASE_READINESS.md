@@ -10,6 +10,8 @@ This is an **evidence register**, not a claim that every historic milestone is f
 - v0.12: substantial automatic updater, channel, packaging and cache-integrity code already exists; signing, old→new native update, interruption and user-data preservation testing remain outstanding.
 - v1.0: **not approved for general stable release** until all independent P0 and release quality gates are satisfied.
 
+**Verification update (23 October):** GitHub Actions [39901800185](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/39901800185) passed core/desktop compile and tests plus official installer smoke. Cross-platform packaging and publisher jobs of the current commit were not yet complete at this checkpoint. A prior [run 39900923246](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/39900923246) produced all three platform packages and Build Explorer upload, but the DEV tag publishing step failed with HTTP 403 for the repository publication token. This is an authorization problem, not evidence of a packaging failure. The repository owner must fix the `SYNTAXLAUNCHER_RELEASE_TOKEN` Contents write permission/organization approval before preview publications can succeed.
+
 ## Release-blocking evidence
 
 | Gate | Current evidence | What remains |

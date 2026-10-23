@@ -700,6 +700,8 @@ Goal: install/export repeatable instance definitions and support a mainstream mo
 
 # v0.11 — Diagnostics and Repair
 
+**Verification update (23 October 2026):** the initial bounded diagnostic engine, privacy tests, translated UI and explicit managed-file repair compile and pass the hosted core/desktop verification in [CI 39901800185](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/39901800185). Native and real-crash repair acceptance remain open. This is not completion of all v0.11 items.
+
 Goal: turn raw logs/exit codes into actionable launcher diagnostics.
 
 ## Evidence collection
@@ -755,7 +757,7 @@ Goal: prepare the launcher for stable public release.
 
 - [x] Define update channel strategy: Stable uses non-prerelease GitHub Releases and SemVer; opt-in DEV/SNAPSHOT use isolated pre-releases and numeric CI run/attempt identity. Channel selection never permits an automatic rollback; remote and cached candidates must pass the same version/build comparison.
 - [x] Isolate Linux jpackage child-launch state, preserve private startup diagnostics/exit codes, enable Skiko/JNA native access and initialize missing channel choices from the installed build; local native handoff and regression verification pass.
-- [ ] 🚧 IN PROGRESS — Publish immutable DEV after verified main pushes and SNAPSHOT via manual main dispatch; persist translated launcher-channel choice and isolate cached recovery per channel. Local tests/build, translated 400×400 dialog renders and Linux Stable/DEV packages pass; hosted publication and native channel-switch acceptance pending.
+- [ ] 🚧 IN PROGRESS — Publish immutable DEV after verified main pushes and SNAPSHOT via manual main dispatch; persist translated launcher-channel choice and isolate cached recovery per channel. Three platform packaging passed in CI 39900923246, but GitHub DEV tag publication failed HTTP 403 for the repository publication token; owner authorization and native channel-switch acceptance pending.
 - [x] Implement pre-home packaged startup checks, bounded network checks and Retry/Continue UI; development runs bypass execution. Mocked HTTP and Compose receipt/recovery tests pass.
 - [x] Download through the shared client/downloader with SHA-256, length verification, cancellation, retries, `.part` staging and cached archive revalidation.
 - [x] Verify GitHub release asset digest and per-file manifest SHA-256; reject wrong platform/version, unsafe paths/links, duplicate/extra ZIP entries and oversized packages.

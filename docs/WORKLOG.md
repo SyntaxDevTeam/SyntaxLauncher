@@ -8,6 +8,39 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-23 — Correct Kotlin diagnostic timestamp and verify v0.11 compile
+
+**Milestone:** v0.11 — Diagnostics and Repair; v0.12 — Release Operations
+**Author/Agent:** GPT-6
+**Status:** Partial — hosted verify passed, final cross-platform/update publication acceptance pending
+
+### Completed
+- Fixed Kotlin smart-cast issue in the desktop module by assigning the nullable process timestamp to a local variable before checking it.
+- The current source was verified in [Actions 39901800185](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/39901800185): the core/desktop compilation, Gradle tests and existing official installer checks passed. Portable app matrix was queued after verify; do not infer its result from that fact.
+- Verified earlier full native packaging (run 39900923246) passed on Windows, Linux and macOS, and Build Explorer publication succeeded; the *preview GitHub Release publication job* separately failed during tag creation with HTTP 403 from the personal access token. No successful DEV release is claimed.
+- Maintained intentionally unchanged canonical product `launcherVersion=0.7.1`: an automatic stable version bump would publish development code before native/third-party release acceptance.
+
+### Changed files
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/DesktopLauncherSession.kt` — local timestamp to satisfy cross-module nullability.
+- `docs/{WORKLOG,ROADMAP,RELEASE_READINESS,TESTING_V0.11}.md`, `README.md` — accurate verification and remaining publication blockers.
+
+### Verification
+- `./gradlew test` / `./gradlew build` — PASS as part of hosted CI verify on 39901800185; not run locally.
+- Built-in installer regression checks — PASS in the same hosted verify job.
+- Native packaging for the *newest* source — queued at time of record; previous commit's three platform packages passed in run 39900923246.
+- Manual in-game diagnostic and native update acceptance — NOT RUN.
+
+### Roadmap updates
+- `[ ] v0.11 / Diagnostics quality gate` — code and unit tests pass CI, native/real-failure validation still needed.
+- `[ ] v0.12 / DEV publication and native update` — publication token authorization and real update matrix remain open.
+
+### Follow-ups / known issues
+- GitHub preview publishing: `SYNTAXLAUNCHER_RELEASE_TOKEN` currently receives `Resource not accessible by personal access token` (HTTP 403) creating `refs/tags/dev-*`. A repository/org owner must authorize Contents read/write for SyntaxDevTeam/SyntaxLauncher; do not paste tokens into chat or source.
+- Microsoft AppID approval and native signing/notarization are independent v1.0 gates.
+
+---
+
+
 ## 2026-10-23 — Add explicit local log-folder access to failure diagnostics
 
 **Milestone:** v0.11 — Diagnostics and Repair
