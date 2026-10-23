@@ -122,7 +122,7 @@ compose.desktop {
                 packageName = "syntaxlauncher"
                 debMaintainer = "wieszczy85@gmail.com"
                 rpmLicenseType = "MIT"
-                menuGroup = "Games"
+                menuGroup = "Game"
                 shortcut = true
                 iconFile.set(project.file("src/main/resources/branding/syntaxlauncher-icon.png"))
             }

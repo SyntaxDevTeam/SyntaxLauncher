@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
+trap 'echo "Installer smoke failed at line $LINENO" >&2' ERR
 packages="$PWD/launcher-desktop/build/installers"
 evidence="$PWD/launcher-desktop/build/installer-evidence"
 mkdir -p "$evidence"
@@ -20,8 +21,10 @@ startup() {
     fi
 }
 sudo apt-get install -y "$packages/syntaxlauncher-linux-x64.deb"
-test -x /opt/syntaxlauncher/bin/SyntaxLauncher
-find /usr/share/applications -name '*syntaxlauncher*.desktop' | grep -q .
+test -x /opt/syntaxlauncher/bin/SyntaxLauncher || { dpkg -L syntaxlauncher; exit 1; }
+desktop_entry="$(find /usr/share/applications /usr/local/share/applications -iname '*syntaxlauncher*.desktop' -print -quit 2>/dev/null || true)"
+test -n "$desktop_entry"
+desktop-file-validate "$desktop_entry"
 startup /opt/syntaxlauncher/bin/SyntaxLauncher deb-startup
 sudo apt-get remove -y syntaxlauncher
 test ! -e /opt/syntaxlauncher/bin/SyntaxLauncher

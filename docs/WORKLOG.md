@@ -9,6 +9,36 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 ---
 
 
+## 2026-10-23 — Validate Linux desktop registration across system menu locations
+
+**Milestone:** v0.12 / native distribution
+**Author/Agent:** Codex
+**Status:** Partial — local native validation complete; final hosted lifecycle/publication pending
+
+### Completed
+- CI 40012411135 built all Linux formats and successfully configured the DEB, confirming the modular-JDK and minimal-system fixes. The smoke then stopped at its too-narrow installed-file/menu guard before startup/RPM checks. Broadened desktop registration lookup to both standard system XDG application directories and case-insensitive application naming, with explicit failing-line/payload diagnostics.
+- Actual desktop-file validation exposed jpackage's unregistered Categories=Games value. Changed the group to the registered Game category in both Gradle and native package authoring, and made desktop-file-validate mandatory in the native Linux lifecycle smoke.
+- Rebuilt the application and DEB locally with JDK 25 to match CI; confirmed the expected executable path/permissions and retained adapted maintainer script. Rebuilt the corrected Game desktop entry and validated it successfully.
+
+### Changed files
+- `scripts/package_installers.py`, `launcher-desktop/build.gradle.kts` — registered desktop game category.
+- `packaging/smoke-linux.sh` — standard menu location lookup, desktop validation and actionable guard diagnostics.
+- `docs/{INSTALLATION,WORKLOG}.md` — copyable RPM commands and verification record.
+
+### Verification
+- `python3 -m unittest discover -s scripts -p 'test_*.py'` — PASS, 21 tests. `bash -n` and `git diff --check` — PASS.
+- JDK 25 `:launcher-desktop:createDistributable` — PASS; JDK 25 DEB construction and executable/path/maintainer-script inspection — PASS.
+- Real corrected DEB desktop file — desktop-file-validate PASS; no unregistered category error remains.
+- Final hosted checks/publication are reported in chat after push; Windows/macOS packaging behavior is unchanged from its successful native checks.
+
+### Roadmap updates
+- Linux/full-publication items remain in progress until the complete hosted lifecycle succeeds. Existing native GUI/signing/prior-version-upgrade gates remain open.
+
+### Follow-ups / known issues
+- No support matrix expansion beyond the documented architecture and native-library baselines.
+
+---
+
 ## 2026-10-23 — Native Windows/macOS acceptance and modular-JDK Linux resources
 
 **Milestone:** v0.12 / native distribution

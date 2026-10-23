@@ -236,7 +236,7 @@ def linux(image, version, output, work):
         command = [jpackage_tool(), '--type', kind, '--app-image', image, '--name', 'SyntaxLauncher',
                    '--app-version', native_version(version, 'linux-x64'), '--vendor', 'SyntaxDevTeam',
                    '--description', 'Minecraft launcher by SyntaxDevTeam', '--license-file', ROOT / 'LICENSE',
-                   '--linux-package-name', 'syntaxlauncher', '--linux-shortcut', '--linux-menu-group', 'Games',
+                   '--linux-package-name', 'syntaxlauncher', '--linux-shortcut', '--linux-menu-group', 'Game',
                    '--linux-app-release', linux_release(version, os.environ.get('GITHUB_RUN_NUMBER', '0'), os.environ.get('GITHUB_RUN_ATTEMPT', '1')),
                    '--resource-dir', resources, '--dest', folder]
         if kind == 'deb':
