@@ -158,3 +158,7 @@ backfills a historical version from a newer `main` commit.
 **v0.8.0:** Complete its documented acceptance gates and then set
 `launcherVersion=0.8.0` in one intentional version-bump commit. Do not
 mark v0.8 as available before that build and its stable release succeed.
+
+## Native installer bootstrap — 23 October 2026
+
+MSI, DMG, DEB/RPM and AppImage wrap the same verified application image used by update ZIPs. The existing startup updater remains a per-user, side-by-side bootstrap: it never overwrites MSI/RPM/DPKG-managed files or a mounted AppImage/DMG. The package manager continues to report the installed bootstrap's version, which can differ from the newer running user-owned image. Removing the system package leaves user data and cached update images, but removes its shortcut/bootstrap. To update the system-managed bootstrap itself, install a newer native package with its package manager. Installer channel choice is embedded in the image; it does not reset an existing saved channel. Installer publication requires all five installers, checksum inventory and the existing six portable/update assets; Build Explorer remains portable-only.

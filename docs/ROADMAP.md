@@ -809,6 +809,14 @@ Goal: prepare the launcher for stable public release.
 - [x] Explicit player selection, Vanilla/modded setup and one-action catalog installation provided; child/native usability acceptance remains in v1.0.
 - [x] INSTALLATION.md documents backup, app-only removal, explicit data removal, OS credentials and updater retention.
 
+## Native installers — requested 23 October 2026
+
+- [ ] 🚧 IN PROGRESS — Windows x64 WiX 7.0.0 MSI with a per-user wizard, Start menu shortcut, stable upgrade identity and native install/payload/repair/removal/data-preservation CI smoke.
+- [ ] 🚧 IN PROGRESS — macOS ARM64 branded DMG with Applications link and native verification/mount/copy/removal smoke.
+- [ ] 🚧 IN PROGRESS — Linux x64 DEB/RPM plus pinned-tool AppImage, desktop integration, DEB/AppImage startup and Fedora RPM dependency-resolved install/removal evidence.
+- [ ] 🚧 IN PROGRESS — Require complete installers plus SHA-256 inventory alongside portable/update assets before DEV/SNAPSHOT/future Stable publication; preserve existing updater bootstrap/user-data ownership.
+- [ ] Clean-machine GUI/trust, representative cross-version upgrades, RPM graphical startup and additional distribution acceptance; signing/notarization stay independent gates.
+
 ## CI/CD
 
 - [ ] 🚧 IN PROGRESS — Produce a read-only per-version acceptance audit in GitHub Actions; exact unchecked gates and canonical release version remain distinct. Informational script and deterministic unit tests added; new hosted run pending.

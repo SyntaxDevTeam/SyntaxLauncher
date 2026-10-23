@@ -122,7 +122,7 @@ jobs:
           retention-days: 14
 
   distributables:
-    name: Portable app (${{ matrix.os }})
+    name: Application and installers (${{ matrix.os }})
     needs: verify
     runs-on: ${{ matrix.os }}
     timeout-minutes: 50
@@ -155,6 +155,53 @@ jobs:
           gradle --no-daemon --stacktrace "-PlauncherBuildNumber=$GITHUB_RUN_NUMBER" "-PlauncherCommit=$GITHUB_SHA" "-PlauncherUpdateChannel=${{ needs.verify.outputs.build_channel }}" :launcher-desktop:createDistributable
           python scripts/package_update.py --source launcher-desktop/build/compose/binaries/main/app --platform "${{ matrix.artifact }}" --version "$version" --output "launcher-desktop/build/updates/syntaxlauncher-update-${{ matrix.artifact }}.zip"
           gradle --no-daemon --stacktrace "-PlauncherBuildNumber=$GITHUB_RUN_NUMBER" "-PlauncherCommit=$GITHUB_SHA" "-PlauncherUpdateChannel=${{ needs.verify.outputs.build_channel }}" "-PupdateBundle=build/updates/syntaxlauncher-update-${{ matrix.artifact }}.zip" :launcher-desktop:verifyUpdateBundle
+      - name: Install Linux packaging tools
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y rpm fakeroot desktop-file-utils xvfb
+      - uses: actions/setup-dotnet@v5
+        if: runner.os == 'Windows'
+        with:
+          dotnet-version: '8.0.x'
+      - name: Install pinned WiX v7
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          dotnet tool install --tool-path "$env:RUNNER_TEMP/wix7" wix --version 7.0.0
+          if ($LASTEXITCODE -ne 0) { throw 'WiX v7 installation failed' }
+          "$env:RUNNER_TEMP/wix7" | Out-File -FilePath $env:GITHUB_PATH -Append
+          & "$env:RUNNER_TEMP/wix7/wix.exe" extension add --global WixToolset.UI.wixext/7.0.0
+          if ($LASTEXITCODE -ne 0) { throw 'WiX v7 UI extension installation failed' }
+      - name: Build native installers from the verified application image
+        shell: bash
+        run: |
+          image=launcher-desktop/build/compose/binaries/main/app/SyntaxLauncher
+          if [[ "$RUNNER_OS" == macOS ]]; then image="$image.app"; fi
+          python scripts/package_installers.py --image "$image" --platform "${{ matrix.artifact }}" --output launcher-desktop/build/installers
+      - name: Test Debian, Fedora RPM and AppImage lifecycle
+        if: runner.os == 'Linux'
+        run: bash packaging/smoke-linux.sh
+      - name: Test WiX v7 install, payload, repair and uninstall
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./packaging/smoke-windows.ps1
+      - name: Test DMG mount and application copy
+        if: runner.os == 'macOS'
+        run: bash packaging/smoke-macos.sh
+      - name: Upload tested installers
+        uses: actions/upload-artifact@v7
+        with:
+          name: native-installers-${{ matrix.artifact }}-${{ github.sha }}
+          path: launcher-desktop/build/installers/*
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload installer evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: native-installer-evidence-${{ matrix.artifact }}-${{ github.sha }}
+          path: launcher-desktop/build/installer-evidence/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Show jpackage diagnostics on failure
         if: failure()
         shell: bash
@@ -211,6 +258,16 @@ jobs:
           pattern: syntaxlauncher-*-${{ github.sha }}
           path: release-assets
           merge-multiple: true
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: native-installers-*-${{ github.sha }}
+          path: release-assets
+          merge-multiple: true
+      - name: Verify complete installer set and write checksums
+        run: python3 scripts/verify_installers.py --directory release-assets --write
       - name: Publish all platform updates together
         env:
           # A fine-grained PAT with repository Contents: write can be used
@@ -264,7 +321,7 @@ jobs:
             # GITHUB_TOKEN-created tags do not invoke another workflow; publish from this verified run.
             publish_release "$RELEASE_TAG" --target "$GITHUB_SHA" --draft --generate-notes --notes "<!-- syntaxlauncher-build:$GITHUB_RUN_NUMBER.$GITHUB_RUN_ATTEMPT -->" --title "SyntaxLauncher $RELEASE_TAG"
           fi
-          gh release upload "$RELEASE_TAG" release-assets/*.zip release-assets/*.tar.gz --clobber
+          gh release upload "$RELEASE_TAG" release-assets/*.zip release-assets/*.tar.gz release-assets/*.msi release-assets/*.dmg release-assets/*.deb release-assets/*.rpm release-assets/*.AppImage release-assets/SHA256SUMS-installers.txt --clobber
           # Preview releases are published separately and never become latest stable.
           gh release edit "$RELEASE_TAG" --draft=false --latest
 
@@ -290,7 +347,14 @@ jobs:
           pattern: syntaxlauncher-*-${{ github.sha }}
           path: release-assets
           merge-multiple: true
-      - name: Publish all six assets as an immutable preview
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: native-installers-*-${{ github.sha }}
+          path: release-assets
+          merge-multiple: true
+      - name: Verify complete installer set and write checksums
+        run: python3 scripts/verify_installers.py --directory release-assets --write
+      - name: Publish complete applications and installers as an immutable preview
         env:
           GH_TOKEN: ${{ secrets.SYNTAXLAUNCHER_RELEASE_TOKEN || github.token }}
           GH_REPO: ${{ github.repository }}
@@ -298,7 +362,7 @@ jobs:
         run: >-
           python3 scripts/publish_preview.py --channel "$PREVIEW_CHANNEL"
           --run "$GITHUB_RUN_NUMBER" --attempt "$GITHUB_RUN_ATTEMPT"
-          --commit "$GITHUB_SHA" --assets release-assets
+          --commit "$GITHUB_SHA" --assets release-assets --installers
 
 
   publish-build-explorer:

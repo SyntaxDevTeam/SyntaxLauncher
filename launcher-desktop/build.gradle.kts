@@ -31,7 +31,7 @@ tasks.test {
 }
 
 val launcherVersion = providers.gradleProperty("launcherVersion")
-// jpackage on macOS requires a non-zero numeric major and does not accept SemVer prerelease labels.
+// Native formats use the numeric SemVer core; only macOS needs the pre-1.0 compatibility mapping.
 // Derive the native package version from the canonical launcherVersion; never maintain another version value.
 val nativePackageVersion = launcherVersion.map { product ->
     val numeric = product.substringBefore('-').substringBefore('+')
@@ -39,7 +39,7 @@ val nativePackageVersion = launcherVersion.map { product ->
     require(parts.size == 3 && parts.all { it.matches(Regex("(0|[1-9][0-9]*)")) }) {
         "launcherVersion must contain a numeric SemVer core."
     }
-    listOf(if (parts[0] == "0") "1" else parts[0], parts[1], parts[2]).joinToString(".")
+    numeric
 }
 val launcherBuildNumber = providers.gradleProperty("launcherBuildNumber")
     .orElse(providers.environmentVariable("GITHUB_RUN_NUMBER")).orElse("local")
@@ -101,7 +101,7 @@ compose.desktop {
         jvmArgs += "--enable-native-access=ALL-UNNAMED"
 
         nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+            targetFormats(TargetFormat.Dmg, TargetFormat.Deb, TargetFormat.Rpm)
             // Keep JSSE elliptic-curve TLS support in the trimmed jlink runtime.
             modules("jdk.crypto.ec")
             packageName = "SyntaxLauncher"
@@ -109,7 +109,21 @@ compose.desktop {
             packageVersion = nativePackageVersion.get()
             description = "A lightweight, modern Minecraft launcher by SyntaxDevTeam"
             vendor = "SyntaxDevTeam"
+            licenseFile.set(rootProject.file("LICENSE"))
+            windows {
+                iconFile.set(project.file("src/main/resources/branding/syntaxlauncher-icon.ico"))
+            }
+            macOS {
+                packageVersion = nativePackageVersion.get().let { if (it.startsWith("0.")) "1." + it.substringAfter('.') else it }
+                bundleID = "pl.syntaxdevteam.syntaxlauncher"
+                iconFile.set(project.file("src/main/resources/branding/syntaxlauncher-icon.icns"))
+            }
             linux {
+                packageName = "syntaxlauncher"
+                debMaintainer = "wieszczy85@gmail.com"
+                rpmLicenseType = "MIT"
+                menuGroup = "Games"
+                shortcut = true
                 iconFile.set(project.file("src/main/resources/branding/syntaxlauncher-icon.png"))
             }
         }

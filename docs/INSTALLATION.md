@@ -12,6 +12,26 @@ Use a complete portable application archive from this project's GitHub Releases.
 
 Release signing/notarization is still a production gate; unsigned packages may encounter native trust restrictions. Signing certificates and approved native trust behavior are not claimed. Do not disable system protections as a workaround.
 
+## Native installer previews
+
+The 0.9.3-DEV packaging work adds these formats to newly verified DEV/SNAPSHOT builds. Availability is conditional on the corresponding complete hosted build and installer smoke checks; Stable 0.9.2 remains the original portable-only release and is not modified.
+
+| Target | File | Installation |
+| --- | --- | --- |
+| Windows x64 | `syntaxlauncher-windows-x64.msi` | WiX 7.0.0 wizard; installs for the current user under LocalAppData/Programs/SyntaxLauncher and creates a Start menu shortcut. Remove through Windows Installed apps. |
+| macOS ARM64 | `syntaxlauncher-macos-arm64.dmg` | Open the image and drag SyntaxLauncher into Applications. Remove the application bundle to uninstall. |
+| Debian/Ubuntu/Mint x64 | `syntaxlauncher-linux-x64.deb` | Install with the graphical package installer or `sudo apt install ./syntaxlauncher-linux-x64.deb`; remove package `syntaxlauncher`. |
+| Fedora/openSUSE and other compatible RPM systems x64 | `syntaxlauncher-linux-x64.rpm` | Install with the distribution's package manager (`dnf install ./…rpm` or `zypper install ./…rpm`); remove package `syntaxlauncher`. |
+| Other compatible desktop Linux systems x64 | `syntaxlauncher-linux-x64.AppImage` | Mark executable and open; this is a single-file portable application, not a system package. Where FUSE is unavailable, `./syntaxlauncher-linux-x64.AppImage --appimage-extract-and-run` uses temporary extraction. |
+
+Linux DEB/RPM install the launcher under `/opt/syntaxlauncher` and register a desktop menu entry. All formats contain the launcher's Java runtime; Minecraft Java remains managed separately. AppImage does not eliminate native compatibility requirements: this build uses the Ubuntu 24.04 x64 application baseline, requires a compatible glibc desktop/graphics stack, and does not promise Alpine/musl, all historical distributions or Linux ARM64 support. Fedora RPM installation/removal is tested in a Fedora 43 container; a container lifecycle test does not certify graphical gameplay. openSUSE and other distributions require their own native acceptance before being called verified.
+
+Installer SHA-256 hashes are published as `SHA256SUMS-installers.txt`. The first installer previews are unsigned; Apple notarization and trusted Windows publisher signatures remain open production gates. Installer builds and temporary mount tests do not certify native trust prompts or all clean-machine workflows.
+
+Windows MSI versions use the numeric canonical SemVer core. Installers from different DEV builds sharing that core are not an automatic upgrade path; uninstall the previous preview before installing another of the same core, while retaining data. A newer numeric MSI version supports major upgrades; downgrade blocking and fresh-install/repair/removal smoke coverage do not replace a real prior-version upgrade acceptance test. macOS retains the existing pre-1.0 native version mapping, while the application/update manifests keep the exact product SemVer.
+
+Installers only own application files and shortcuts. Package removal leaves worlds, accounts, settings, cached Java and launcher-update images in the user locations below. Removing the AppImage or app bundle likewise leaves those data. Back up data before changing versions; none of the installers automatically removes game data.
+
 ## First game
 
 Select or add an explicit offline player. Microsoft acceptance is deferred while Mojang reviews the AppID; existing Microsoft code is retained and failed authentication never silently becomes offline play. Choose Vanilla, or create a separate game with mods. Choose extras/modpacks in the catalog, Install, then Play. Advanced local imports are secondary. Offline identities cannot authenticate to servers requiring a verified Microsoft session.

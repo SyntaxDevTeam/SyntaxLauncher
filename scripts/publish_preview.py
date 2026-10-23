@@ -6,6 +6,7 @@ import re
 import subprocess
 
 from launcher_version import read_launcher_version
+from verify_installers import verify as verify_installers
 
 PLATFORMS = ("linux-x64", "windows-x64", "macos-arm64")
 
@@ -18,7 +19,7 @@ def preview_tag(channel, version, run, attempt):
     return f"{channel}-{run}.{attempt}-v{version}"
 
 
-def publish(channel, version, run, attempt, commit, assets):
+def publish(channel, version, run, attempt, commit, assets, installers=False):
     tag = preview_tag(channel, version, run, attempt)
     if not re.fullmatch(r"[a-fA-F0-9]{40}", commit):
         raise ValueError("Expected a full verified commit SHA")
@@ -26,6 +27,8 @@ def publish(channel, version, run, attempt, commit, assets):
         f"syntaxlauncher-update-{platform}.zip", f"syntaxlauncher-{platform}.tar.gz")]
     if any(not file.is_file() or file.stat().st_size == 0 for file in files):
         raise ValueError("All six verified platform assets are required before publishing")
+    if installers:
+        files += verify_installers(assets)
     # No clobber: retries get a new GITHUB_RUN_ATTEMPT, never mutate a published build.
     # Creating the ref explicitly fails closed if a pre-existing tag points elsewhere.
     subprocess.run(["gh", "api", "--method", "POST", "repos/{owner}/{repo}/git/refs",
@@ -45,8 +48,9 @@ def main():
     parser.add_argument("--attempt", required=True)
     parser.add_argument("--commit", required=True)
     parser.add_argument("--assets", type=Path, required=True)
+    parser.add_argument("--installers", action="store_true", help="Require all native installers and verified checksum inventory")
     args = parser.parse_args()
-    publish(args.channel, read_launcher_version(), args.run, args.attempt, args.commit, args.assets)
+    publish(args.channel, read_launcher_version(), args.run, args.attempt, args.commit, args.assets, args.installers)
 
 
 if __name__ == "__main__":

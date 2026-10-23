@@ -9,6 +9,41 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 ---
 
 
+## 2026-10-23 — Prepare WiX v7, DMG and multi-distribution Linux installers
+
+**Milestone:** v0.12 / native distribution
+**Author/Agent:** Codex
+**Status:** Partial — implementation/local verification complete; native hosted acceptance tracked separately
+
+### Completed
+- Followed the maintainer's explicit request for Windows WiX v7, macOS and Linux formats beyond DEB. Added WiX 7.0.0 MSI, DMG, DEB/RPM and a single-file AppImage option using the same verified application payload as portable/update assets. Kept canonical version 0.9.3-DEV and public Stable 0.9.2 unchanged.
+- Authored explicit Windows per-user components with stable path-derived GUIDs, HKCU key paths, stable UpgradeCode, downgrade blocking, real WixUI installation wizard, Start menu entry and app-only uninstall. WiX is pinned/checked independently of jpackage's Windows MSI integration.
+- Added branded ICO/ICNS format conversions from the existing PNG; only macOS keeps the native pre-1.0 major mapping. Windows/Linux use the actual numeric SemVer core so future 1.0 Windows upgrades are not ordered below an artificial 1.9 package.
+- Added host-native packaging and lifecycle CI: Windows payload hash/repair/uninstall/menu/data preservation; DMG verify/read-only mount/application copy/removal; DEB dependency installation/removal, isolated Xvfb startup; RPM installation/removal in Fedora 43 with dependency resolution; AppImage extract/startup. Installer tools/runtime use versioned official AppImage assets and pinned SHA-256.
+- Added fail-closed complete-set/checksum verification before publication. New DEV/SNAPSHOT/future Stable jobs require five installers and SHA256SUMS-installers.txt alongside the six existing portable/update files. Build Explorer remains portable-only. Existing installed bootstrap/updater keeps newer images in user storage and never rewrites package-owned files.
+
+### Changed files
+- `scripts/{package_installers,verify_installers,test_package_installers,publish_preview}.py`, `packaging/smoke-*` and `.github/workflows/build.yml` — installer authoring/build, native acceptance, checksums and complete-set publishing.
+- `launcher-desktop/build.gradle.kts` and `branding/{syntaxlauncher-icon.ico,syntaxlauncher-icon.icns,README.md}` — platform metadata/version behavior, icons and provenance.
+- `README.md`, `docs/{ARCHITECTURE,DEVELOPMENT,INSTALLATION,MILESTONES,ROADMAP,UPDATING,WORKLOG}.md` — exact scope, dependency/runtime/ABI requirements, user-data/upgrade policy and pending native gates.
+
+### Verification
+- `./gradlew --offline test build :launcher-desktop:createDistributable` — PASS: 257 tests (253 passed, four opt-in network tests skipped), build and Linux app image.
+- `python3 -m unittest discover -s scripts -p 'test_*.py'` — PASS, 19 tests including installer versions/identity/payload, wrong WiX rejection, real AppDir quoting/permissions and incomplete/corrupt-set publication rejection.
+- `python3 -m unittest discover -s tests -p 'test_*.py'` — PASS, six Build Explorer tests. Workflow YAML parses; POSIX smoke scripts pass `bash -n`; `git diff --check` — PASS.
+- Local DEB and AppImage construction — PASS. Initial DEB attempt correctly refused a JDK-26 image passed to JDK-25 jpackage; repeating with the image's exact JDK succeeded. AppImage tool/runtime bytes matched pinned official release digests. Inspected DEB metadata/dependencies. Did not install a system package on the maintainer's machine.
+- Local extracted AppImage native startup — PASS: live manifest/metadata loaded using isolated temporary XDG data; deliberately stopped after 12 seconds (timeout 124). No account/world/gameplay acceptance is inferred.
+- Commit/push, hosted Windows/macOS/Linux lifecycle checks and installer asset availability are checked and reported in chat; unverified roadmap items remain in progress until that evidence exists.
+
+### Roadmap updates
+- `[ ] v0.12 / Native installers — Windows WiX v7, DMG, DEB/RPM/AppImage and complete-set publication implemented; native hosted outcomes pending`
+- `[ ] v0.12 / Native installers — clean-machine GUI/trust, prior-version upgrades, additional distributions and RPM graphical startup remain independent gates`
+
+### Follow-ups / known issues
+- First installer previews are unsigned. No certificates/notarization, Flatpak/repository hosting or CPU-target expansion is claimed. AppImage needs compatible glibc/graphics; Alpine/musl/all historical Linux releases are not promised. Same-numeric-version MSI previews require uninstall/reinstall; cross-version native upgrade acceptance remains open. OS package managers report the bootstrap version, not any newer side-by-side updater image.
+
+---
+
 ## 2026-10-23 — Verify Stable 0.9.2 publication and preserve next development version
 
 **Milestone:** v0.12 / release publication

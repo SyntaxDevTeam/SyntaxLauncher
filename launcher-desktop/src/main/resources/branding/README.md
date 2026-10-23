@@ -31,3 +31,7 @@ Asset: `profiles-workshop.png`, generated with the built-in image_gen tool (opaq
 Final generation prompt:
 
 > Use case: stylized-concept. Asset type: background illustration for the Game Profiles library inside a Minecraft-style desktop launcher. Create one wide 16:9 cinematic voxel illustration, no UI, no text, no lettering, no logos. Scene: a welcoming block-built explorer's workshop and archive overlooking a blue mountain valley at dusk; shelves with colorful block books and a few distinct miniature terrain dioramas, crafting table, softly glowing blue map table; several softly lit square doorways suggest separate adventures. Original fantasy environment, not a copy of any screenshot or existing game asset. Rich navy, stone blue and warm subtle amber lights, consistent with a polished voxel valley hero. Center and left areas calm and low-detail so a dark translucent profile list and detail pane can overlay; main recognizable workshop architecture at upper-right and far background. Beautiful clean geometric forms, child-friendly, calm, depth and atmosphere, no characters, no weapons, no busy glow or excessive particles. Full-bleed image, high quality raster, opaque background.
+
+## Native installer icons — 23 October 2026
+
+`syntaxlauncher-icon.ico` (Windows multi-resolution) and `syntaxlauncher-icon.icns` (macOS) are format conversions of the existing 512×512 `syntaxlauncher-icon.png`, made with Pillow. No new artwork or image-generation prompt was used. The source gateway artwork/provenance above remains authoritative.

@@ -517,3 +517,7 @@ Defer Microsoft live-account work while awaiting Mojang approval; retain the exi
 ## Main-window profile UX — 23 October 2026
 
 The maintainer requests a profile library inside the existing main window, a conditional creation wizard and selected-game memory under global settings. This refines v0.2/v0.12 presentation without replacing the existing guarded instance/content/install services or waiving their native/gameplay acceptance. The wizard keeps Vanilla/With mods, loader, content choice and final review explicit, automatically prepares exact dependencies for complete packs and opens the shared inline catalog for individual extras.
+
+## Native installer preparation — 23 October 2026
+
+The maintainer explicitly requests Windows WiX v7, macOS and Linux formats beyond DEB. v0.12 distribution now includes a WiX 7 MSI, DMG, DEB/RPM and an AppImage portable option, with host-specific build/smoke/publication evidence. These additions target the existing Windows x64, Linux x64 and macOS ARM64 matrix. Flatpak/repository hosting, additional CPU targets, publisher signing/notarization and broad clean-machine/upgrade acceptance are independent follow-ups; no new Stable version is requested by this work.
