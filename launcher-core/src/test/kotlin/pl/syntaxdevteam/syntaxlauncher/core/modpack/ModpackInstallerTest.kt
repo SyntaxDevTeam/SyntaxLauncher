@@ -61,6 +61,7 @@ class ModpackInstallerTest {
             "javaVersion":{"component":"fixture","majorVersion":21},
             "downloads":{"client":{"url":"https://fixture.test/client","sha1":"${hash(client, "SHA-1")}","size":${client.size}}}}"""
         val requested = mutableListOf<String>()
+        var expectedLoader: String? = null
         val http = HttpClient(MockEngine { request ->
             requested += request.url.encodedPath
             when (request.url.encodedPath) {
@@ -72,7 +73,7 @@ class ModpackInstallerTest {
                 "/data/required.jar" -> respond(mod)
                 "/data/source.mrpack" -> respond(pack)
                 "/v2/search" -> {
-                    assertEquals("""[["project_type:modpack"]]""", request.url.parameters["facets"])
+                    assertEquals(if (expectedLoader == null) """[["project_type:modpack"]]""" else """[["project_type:modpack"],["categories:$expectedLoader"]]""", request.url.parameters["facets"])
                     assertNull(request.url.parameters["game_versions"])
                     respond("""{"hits":[{"project_id":"PACKROOT","title":"Forest adventure","icon_url":"https://cdn.modrinth.com/pack.png"}]}""")
                 }
@@ -115,6 +116,21 @@ class ModpackInstallerTest {
         val catalog = ModpackCatalog(http, downloads, installer)
         fun source() = root.resolve("source.mrpack").also { Files.write(it, pack) }
         fun close() { http.close() }
+    }
+
+    @Test fun wizardPackSearchAndInstallRespectChosenLoaderAndName() = runBlocking {
+        val fixture = Fixture()
+        try {
+            fixture.expectedLoader = "fabric"
+            val project = fixture.catalog.search(loader = "fabric").single()
+            val installed = fixture.catalog.installForProfile(project, "fabric", "My chosen name")
+            assertEquals("My chosen name", installed.name)
+            assertEquals("fabric", installed.loader?.id)
+            val before = fixture.requested.count { it.endsWith("source.mrpack") }
+            assertFailsWith<ModpackCompatibilityException> { fixture.catalog.installForProfile(project, "neoforge", "Wrong loader") }
+            assertEquals(before, fixture.requested.count { it.endsWith("source.mrpack") })
+            assertEquals(listOf(installed), fixture.repo.list().instances)
+        } finally { fixture.close() }
     }
 
     @Test fun catalogInstallsReadyIsolatedGameAndExportsOriginalWithoutWorldsOrDownloadedMods() = runBlocking {

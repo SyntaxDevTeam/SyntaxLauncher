@@ -57,6 +57,18 @@ fun ContentCatalogDialog(instance: MinecraftInstance, session: DesktopLauncherSe
     onInstanceInstalled: (MinecraftInstance) -> Unit = {}) {
     val strings = LocalStrings.current
     var busy by remember { mutableStateOf(false) }
+    DialogWindow(onCloseRequest = { if (!busy) onDismiss() }, title = strings.text("catalog.title"),
+        state = rememberDialogState(size = DpSize(820.dp, 650.dp)), resizable = true) {
+        ContentCatalogPanel(instance, session, canModify, { busy = it; onBusyChange(it) }, onManage, onDismiss, onInstanceInstalled)
+    }
+}
+
+@Composable
+internal fun ContentCatalogPanel(instance: MinecraftInstance, session: DesktopLauncherSession, canModify: Boolean,
+    onBusyChange: (Boolean) -> Unit, onManage: () -> Unit, onDismiss: () -> Unit,
+    onInstanceInstalled: (MinecraftInstance) -> Unit = {}) {
+    val strings = LocalStrings.current
+    var busy by remember { mutableStateOf(false) }
     var shaderAvailable by remember(instance.id) { mutableStateOf(false) }
     var optiFineAvailable by remember(instance.id) { mutableStateOf(false) }
     var managingPacks by remember { mutableStateOf(false) }
@@ -75,8 +87,6 @@ fun ContentCatalogDialog(instance: MinecraftInstance, session: DesktopLauncherSe
         catch (cancelled: CancellationException) { throw cancelled }
         catch (failure: Exception) { optiFineIssue = true; LoggerFactory.getLogger("ContentCatalog").warn("OptiFine availability check failed", failure) }
     }
-    DialogWindow(onCloseRequest = { if (!busy) onDismiss() }, title = strings.text("catalog.title"),
-        state = rememberDialogState(size = DpSize(820.dp, 650.dp)), resizable = true) {
         SyntaxTheme {
             Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                 if (managingPacks) InstalledPacks(instance, session, canModify,
@@ -110,7 +120,6 @@ fun ContentCatalogDialog(instance: MinecraftInstance, session: DesktopLauncherSe
                     onRetryCompatibility = if (shaderIssue || optiFineIssue) ({ compatibilityRefresh++ }) else null)
             }
         }
-    }
 }
 
 /** No file/version/dependency review in the normal path: pick a compatible item, then Install. */
@@ -349,7 +358,7 @@ internal fun catalogSummaryKey(title: String): String? = when (title.lowercase(j
 }
 
 @Composable
-private fun CatalogProjectIcon(project: ModrinthProject, section: CatalogSection,
+internal fun CatalogProjectIcon(project: ModrinthProject, section: CatalogSection,
     load: suspend (String) -> ByteArray?, compact: Boolean) {
     var bitmap by remember(project.iconUrl) { mutableStateOf<ImageBitmap?>(null) }
     LaunchedEffect(project.iconUrl) {

@@ -59,7 +59,7 @@ class LauncherHomeRenderTest {
         try {
             scene.awaitReady()
             scene.screenshot("home-1440x810")
-            assertTrue(scene.text("MEMORY ALLOCATION").boundsInRoot.bottom < 810)
+            assertTrue(scene.nodes().none { it.label() == "MEMORY ALLOCATION" })
             assertNotNull(scene.text("SyntaxPlayer · Offline / non-premium"))
             assertFalse(scene.text("PLAY MINECRAFT").config.contains(SemanticsProperties.Disabled))
             assertTrue(scene.nodes().none { it.label() == "Offline nickname" })
@@ -104,7 +104,7 @@ class LauncherHomeRenderTest {
             scene.nodes().first { it.label().startsWith("Survival · ") }.click()
             scene.frames()
             assertNotNull(scene.text("SURVIVAL"))
-            assertNotNull(scene.text("4 GB"))
+            assertTrue(scene.nodes().none { it.label() == "MEMORY ALLOCATION" })
             assertTrue(scene.text("PLAY MINECRAFT").boundsInRoot.bottom < 810)
         } finally { scene.close(); session.shutdown() }
     }
@@ -128,8 +128,7 @@ class LauncherHomeRenderTest {
                 } else {
                     scene.scrollSettingsToEnd()
                     scene.screenshot("home-${width}x${height}-scrolled")
-                    val memory = scene.text("MEMORY ALLOCATION")
-                    memory.assertFullyVisible(height, "Settings at $width x $height, density $density")
+                    assertTrue(scene.nodes().none { it.label() == "MEMORY ALLOCATION" })
                 }
             } finally { scene.close(); session.shutdown() }
         }
@@ -190,14 +189,16 @@ class LauncherHomeRenderTest {
                 assertTrue(settings.boundsInRoot.left >= 0 && settings.boundsInRoot.right <= width - if (width == 400) 108 else 0)
                 val languageMenu = scene.nodes().first { it.config.getOrNull(SemanticsProperties.ContentDescription)?.contains(strings.text("language.choose")) == true }
                 assertTrue(languageMenu.boundsInRoot.right <= settings.boundsInRoot.left)
-                assertTrue(scene.nodes().any { it.label() == strings.text("game.my_games") })
+                assertEquals(1, scene.nodes().count { it.label() == strings.text("game.my_games") })
+                assertTrue(scene.nodes().none { it.label() == strings.text("ui.memory_allocation") })
+                assertTrue(scene.text(strings.text("game.style")).positionInRoot.y > scene.text(strings.text("ui.game_version")).positionInRoot.y)
+                assertTrue(scene.nodes().none { it.label() == strings.text("ui.built_for_the_adventure") })
                 assertNotNull(scene.text(strings.text("ui.your_world")))
                 assertNotNull(scene.text(strings.text("ui.your_adventure")))
                 scene.screenshot("home-${language.code}-${width}x${height}")
                 if (width < 760) {
                     scene.scrollSettingsToEnd()
-                    val memory = scene.text(strings.text("ui.memory_allocation"))
-                    memory.assertFullyVisible(height, "Settings for ${language.code} at $width x $height")
+                    assertTrue(scene.nodes().none { it.label() == strings.text("ui.memory_allocation") })
                     scene.screenshot("home-${language.code}-${width}x${height}-setup")
                 }
             } finally { scene.close(); session.shutdown() }
@@ -314,6 +315,108 @@ class LauncherHomeRenderTest {
                 scene.screenshot("home-saved-player-${language.code}")
             } finally { scene.close(); session.shutdown() }
         }
+    }
+
+    @Test fun profileNavigationUsesMainPageAndShowsContentsWithoutChangingWorlds() = runBlocking(Dispatchers.Swing) {
+        for (language in UiLanguage.entries) for ((width, height) in listOf(1440 to 810, 400 to 400)) {
+            val strings = UiStrings(language)
+            val session = session()
+            val profile = session.instances.create("Adventure", "26.3")
+            val game = session.instances.gameDirectory(profile)
+            Files.createDirectories(game.resolve("saves/My world"))
+            Files.writeString(game.resolve("saves/My world/level.dat"), "keep")
+            Files.createDirectories(game.resolve("resourcepacks")); Files.writeString(game.resolve("resourcepacks/Blue.zip"), "zip")
+            session.preferences.save(session.preferences.load().copy(selectedInstanceId = profile.id))
+            val scene = ImageComposeScene(width, height, coroutineContext = Dispatchers.Swing) {
+                CompositionLocalProvider(LocalStrings provides strings) { SyntaxLauncherApp(session) }
+            }
+            try {
+                scene.awaitReady(strings.text("ui.play_minecraft"))
+                scene.nodes().first { it.config.getOrNull(SemanticsProperties.TestTag) == "nav-profiles" }.click()
+                withTimeout(5000) {
+                    while (scene.nodes().none { it.label().contains("My world") }) { scene.render(System.nanoTime()).close(); delay(20) }
+                }
+                assertTrue(scene.nodes().any { it.config.getOrNull(SemanticsProperties.TestTag) == "profiles-page" })
+                assertTrue(scene.nodes().none { it.label() == strings.text("ui.play_minecraft") })
+                assertTrue(scene.nodes().any { it.label() == strings.text("profiles.create") })
+                assertTrue(scene.nodes().any { it.label().contains("Blue.zip") })
+                val create = scene.nodes().first { it.config.getOrNull(SemanticsProperties.TestTag) == "create-profile" }
+                assertTrue(create.boundsInRoot.height >= 40 && create.boundsInRoot.right <= width)
+                scene.screenshot("profiles-${language.code}-$width")
+                scene.text(strings.text("ui.home")).click(); scene.frames()
+                assertNotNull(scene.text(strings.text("ui.play_minecraft")))
+                assertEquals("keep", Files.readString(game.resolve("saves/My world/level.dat")))
+                assertEquals(profile, session.instances.get(profile.id))
+            } finally { scene.close(); session.shutdown() }
+        }
+    }
+
+    @Test fun settingsUseActiveProfileMemoryAndPersistWithoutChangingOtherGames() = runBlocking(Dispatchers.Swing) {
+        val session = session()
+        val active = session.instances.create("Active", "26.3", maximumMemoryMiB = 4096)
+        val other = session.instances.create("Other", "26.3", maximumMemoryMiB = 2048)
+        session.preferences.save(session.preferences.load().copy(selectedInstanceId = active.id))
+        val scene = ImageComposeScene(1440, 900, coroutineContext = Dispatchers.Swing) { SyntaxLauncherApp(session) }
+        try {
+            scene.awaitReady()
+            scene.nodes().first { it.config.getOrNull(SemanticsProperties.TestTag) == "launcher-settings" }.click()
+            scene.frames()
+            assertNotNull(scene.text("MEMORY ALLOCATION"))
+            val slider = scene.nodes().first { it.config.getOrNull(SemanticsProperties.TestTag) == "settings-memory-slider" }
+            slider.config[SemanticsActions.SetProgress].action!!.invoke(6144f)
+            scene.frames()
+            scene.nodes().first { it.config.getOrNull(SemanticsProperties.TestTag) == "settings-memory-save" }.click()
+            withTimeout(5000) {
+                while (session.instances.get(active.id).maximumMemoryMiB != 6144) { scene.render(System.nanoTime()).close(); delay(20) }
+            }
+            scene.frames(); scene.screenshot("settings-memory")
+            assertEquals(2048, session.instances.get(other.id).maximumMemoryMiB)
+            assertEquals(8192, session.preferences.load().maximumMemoryMiB)
+        } finally { scene.close(); session.shutdown() }
+    }
+
+    @Test fun legacyMemoryDraftIsDiscardedOnCloseAndSaveSurvivesRestart() = runBlocking(Dispatchers.Swing) {
+        val session = session()
+        val scene = ImageComposeScene(1440, 900, coroutineContext = Dispatchers.Swing) { SyntaxLauncherApp(session) }
+        try {
+            scene.awaitReady()
+            fun gear() = scene.nodes().first { it.config.getOrNull(SemanticsProperties.TestTag) == "launcher-settings" }
+            fun slider() = scene.nodes().first { it.config.getOrNull(SemanticsProperties.TestTag) == "settings-memory-slider" }
+            gear().click(); scene.frames()
+            slider().config[SemanticsActions.SetProgress].action!!.invoke(5120f); scene.frames()
+            scene.text("Close").click(); scene.frames()
+            assertEquals(8192, session.preferences.load().maximumMemoryMiB)
+            gear().click(); scene.frames()
+            assertNotNull(scene.text("8192 MiB · 8.0 GB"))
+            slider().config[SemanticsActions.SetProgress].action!!.invoke(5120f); scene.frames()
+            scene.nodes().first { it.config.getOrNull(SemanticsProperties.TestTag) == "settings-memory-save" }.click()
+            withTimeout(5000) { while (session.preferences.load().maximumMemoryMiB != 5120) { scene.render(System.nanoTime()).close(); delay(20) } }
+        } finally { scene.close(); session.shutdown() }
+        assertEquals(5120, session.preferences.load().maximumMemoryMiB)
+    }
+
+    @Test fun creationWizardFitsInsideTheActualMinimumLauncherWindow() = runBlocking(Dispatchers.Swing) {
+        val session = session()
+        val scene = ImageComposeScene(400, 400, coroutineContext = Dispatchers.Swing) { SyntaxLauncherApp(session) }
+        try {
+            scene.awaitReady()
+            scene.nodes().first { it.config.getOrNull(SemanticsProperties.TestTag) == "nav-profiles" }.click(); scene.frames()
+            scene.nodes().first { it.config.getOrNull(SemanticsProperties.TestTag) == "create-profile" }.click(); scene.frames()
+            fun next() = scene.nodes().first { it.config.getOrNull(SemanticsProperties.TestTag) == "wizard-next" }
+            next().assertFullyVisible(400, "Wizard footer")
+            next().click(); scene.frames()
+            assertNotNull(scene.text("✓ Empty — I will add extras later"))
+            next().click(); scene.frames()
+            val name = scene.nodes().first { it.config.getOrNull(SemanticsProperties.TestTag) == "wizard-name" }
+            name.assertFullyVisible(400, "Wizard name")
+            name.config[SemanticsActions.SetText].action!!.invoke(AnnotatedString("Small adventure")); scene.frames()
+            next().click(); scene.frames()
+            assertTrue(session.instances.list().instances.isEmpty())
+            scene.screenshot("wizard-inside-400")
+            next().click()
+            withTimeout(5000) { while (session.instances.list().instances.isEmpty()) { scene.render(System.nanoTime()).close(); delay(20) } }
+            assertEquals("Small adventure", session.instances.list().instances.single().name)
+        } finally { scene.close(); session.shutdown() }
     }
 
     private suspend fun session(packCatalog: Boolean = false, savedPlayer: Boolean = false, emptyPlayers: Boolean = false): DesktopLauncherSession {

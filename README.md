@@ -18,6 +18,14 @@ Home → **Game health and repair** scans the selected game's managed files, exp
 
 Microsoft account acceptance is **deferred while awaiting Mojang AppID approval** (maintainer instruction, 23 October 2026); existing code and explicit offline profiles remain. Implementation work on diagnostics/hardening is separate from final clean-machine, hosted updater, signing/notarization and native gameplay/DPI acceptance. See [v0.11 verification](docs/TESTING_V0.11.md), [v0.12 final gates](docs/TESTING_V0.12.md) and [installation/backup/removal](docs/INSTALLATION.md).
 
+## Profiles, creation and memory settings
+
+Open **Game profiles** in the header to browse profiles inside the main launcher window. Select a profile to see its game/loader, installed mods, worlds, textures, shaders and configuration count; use Edit per row or create a separate profile with the new wizard. The workshop backdrop distinguishes this page from Home. Advanced clone/import/trash/restore actions remain available.
+
+The creation wizard branches through Vanilla/With mods, a mod loader when needed, and **complete modpack / individual catalog extras / empty**. Complete packs are filtered and validated for the chosen loader; their own definition sets exact game/dependency versions. Other profiles check compatible versions before final confirmation. Nothing is written before that confirmation; existing worlds stay separate. Individual extras open in the inline catalog after creation; empty profiles download game/Java files on first Play.
+
+Memory allocation now lives under the settings gear for the currently selected game. Save persists that game's setting; Close discards an unsaved draft. Game type sits below Game version on Home. The footer links directly to the SyntaxDevTeam website, Discord and this GitHub repository.
+
 ## Project philosophy
 
 **Non-negotiable audience:** children playing Minecraft. The normal experience must be extraordinarily simple: choose an item or ready-made set from the launcher catalog, click Install, then Play. The launcher handles compatible versions and required components. Manual file import and technical settings are advanced tools. This applies to mods, modpacks, shaders, resource packs, OptiFine and future content; a backend alone does not complete the experience.
@@ -96,7 +104,7 @@ Fabric and Quilt startup were confirmed by the maintainer on 20 October 2026; lo
 
 ## Automatic GitHub Releases
 
-The earlier v0.7.0 HTTP 403 publication incident is historical. The release-readiness register records public Stable v0.7.1 and verified six-asset DEV publication in CI 39901800185. Current product version remains 0.7.1; this task does not publish a new Stable version. See [release evidence](docs/RELEASE_READINESS.md).
+The earlier v0.7.0 HTTP 403 publication incident is historical. The release-readiness register records public Stable v0.7.1 and verified six-asset DEV publication in CI 39901800185. The canonical product version is now 0.9.2, explicitly approved by the maintainer for Stable publication with the embedded profile/settings workflow. Verify publication in the release register. See [release evidence](docs/RELEASE_READINESS.md).
 
 
 The sole product version is `launcherVersion` in [`gradle.properties`](gradle.properties). A higher plain `X.Y.Z` pushed to `main` publishes Stable after tests and all platform packages pass. Matching manual `vX.Y.Z` tags remain supported. Every successful `main` push also publishes an immutable **DEV** GitHub pre-release, including changes without a product-version bump. Run the workflow manually on `main` with `preview_channel=snapshot` to publish **SNAPSHOT** (or choose `dev` for a manual DEV build). Preview releases never become GitHub's latest stable release.

@@ -17,10 +17,12 @@ import pl.syntaxdevteam.syntaxlauncher.core.network.*
 /** Packs create a fresh game and therefore never inherit the currently selected game's version/loader. */
 class ModpackCatalog(private val http: HttpClient, private val downloads: DownloadManager,
     private val installer: ModpackInstaller, private val api: String = "https://api.modrinth.com/v2") {
-    suspend fun search(query: String = "", offset: Int = 0): List<ModrinthProject> {
+    suspend fun search(query: String = "", offset: Int = 0, loader: String? = null): List<ModrinthProject> {
         require(query.length <= 100 && offset in 0..1000)
+        require(loader == null || loader in setOf("minecraft", "fabric", "quilt", "forge", "neoforge"))
         val text = http.get("$api/search") {
-            parameter("query", query.trim()); parameter("facets", """[["project_type:modpack"]]""")
+            parameter("query", query.trim()); parameter("facets", if (loader == null) """[["project_type:modpack"]]"""
+                else """[["project_type:modpack"],["categories:$loader"]]""")
             parameter("index", if (query.isBlank()) "downloads" else "relevance"); parameter("limit", 20); parameter("offset", offset)
         }.bodyAsText()
         if (text.length > 2_000_000) throw ModpackFormatException("Modpack catalog response exceeds limits.")
@@ -34,8 +36,16 @@ class ModpackCatalog(private val http: HttpClient, private val downloads: Downlo
         }
     }
 
-    suspend fun install(project: ModrinthProject, progress: (ModpackProgress) -> Unit = {}): MinecraftInstance = withContext(Dispatchers.IO) {
+    suspend fun install(project: ModrinthProject, progress: (ModpackProgress) -> Unit = {}): MinecraftInstance =
+        installSelected(project, progress)
+
+    suspend fun installForProfile(project: ModrinthProject, loader: String, name: String,
+        progress: (ModpackProgress) -> Unit = {}): MinecraftInstance = installSelected(project, progress, loader, name)
+
+    private suspend fun installSelected(project: ModrinthProject, progress: (ModpackProgress) -> Unit = {},
+        requiredLoader: String? = null, name: String? = null): MinecraftInstance = withContext(Dispatchers.IO) {
         require(validId(project.id))
+        require(requiredLoader == null || requiredLoader in setOf("minecraft", "fabric", "quilt", "forge", "neoforge"))
         val details = Json.parseToJsonElement(http.get("$api/project/${project.id}").bodyAsText()).jsonObject
         if (details["id"]?.jsonPrimitive?.content != project.id || details["project_type"]?.jsonPrimitive?.content != "modpack") {
             throw ModpackFormatException("This project is not a modpack.")
@@ -46,6 +56,7 @@ class ModpackCatalog(private val http: HttpClient, private val downloads: Downlo
         val versions = Json.parseToJsonElement(text).jsonArray.map { it.jsonObject }
             .filter { it["project_id"]?.jsonPrimitive?.content == project.id &&
                 it["loaders"]?.jsonArray?.any { v -> v.jsonPrimitive.content in setOf("fabric", "quilt", "forge", "neoforge", "minecraft") } == true }
+            .filter { requiredLoader == null || it["loaders"]?.jsonArray?.any { v -> v.jsonPrimitive.content == requiredLoader } == true }
             .sortedWith(compareBy<JsonObject> { if (it["version_type"]?.jsonPrimitive?.content == "release") 0 else 1 }
                 .thenByDescending { it["date_published"]?.jsonPrimitive?.content.orEmpty() })
         val version = versions.firstOrNull() ?: throw ModpackCompatibilityException("No supported client modpack version is available.")
@@ -70,7 +81,10 @@ class ModpackCatalog(private val http: HttpClient, private val downloads: Downlo
             if (plan.minecraftVersion !in games || (plan.requestedLoader?.id ?: "minecraft") !in loaders) {
                 throw ModpackCompatibilityException("Modpack index does not match its published game/loader compatibility.")
             }
-            installer.install(archive, onProgress = progress)
+            if (requiredLoader != null && (plan.requestedLoader?.id ?: "minecraft") != requiredLoader) {
+                throw ModpackCompatibilityException("This modpack does not use the loader chosen in the profile wizard.")
+            }
+            installer.install(archive, name = name, onProgress = progress)
         } finally { Files.walk(working).use { paths -> paths.sorted(Comparator.reverseOrder()).forEach(Files::deleteIfExists) } }
     }
     private fun validId(value: String) = value.matches(Regex("[A-Za-z0-9]{4,32}"))

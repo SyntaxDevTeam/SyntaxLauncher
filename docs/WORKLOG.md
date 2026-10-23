@@ -9,6 +9,45 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 ---
 
 
+## 2026-10-23 — Embedded game profiles, guided creation and shared legal footer; Stable 0.9.2
+
+**Milestone:** v0.12 / pre-1.0 interface corrections
+**Author/Agent:** Codex
+**Status:** Completed — implementation and local verification; hosted publication outcome reported in chat
+
+### Completed
+- Moved RAM allocation into settings for the active profile, with explicit Save and discarded unsaved drafts. Legacy settings save immediately without a delayed stale write; other game profiles retain their memory limits. Removed duplicate sidebar profile navigation and placed Game type below Game version.
+- Embedded the searchable profile list and read-only content inventory in the main launcher, retaining per-row Edit, clone/import previews and recoverable trash/restore. Added a distinct generated voxel workshop background with the full prompt/tool provenance in the branding README. Inventory inspection is bounded and rejects symlink roots/folders; worlds are not opened or modified.
+- Added a draft-only conditional creation wizard: Vanilla/mods, loader, complete pack/individual catalog additions/empty profile, name and final review. Loader-filtered packs validate their actual archive definition before publication. Compatible game/loader discovery, cancellation/retry and duplicate confirmation guards reuse existing services; the individual-additions catalog stays in the main window.
+- Replaced the old footer slogan with accessible website, Discord and repository icons. On the maintainer's additional request, moved Privacy, Terms, publisher contact and the full existing unofficial/unaffiliated Mojang/Microsoft notice from the player sidebar to the shared footer on all pages. Compact layout reserves space for the full legal text and keeps the wizard's controls reachable at 400×400.
+- Preserved the maintainer's local canonical version edit to 0.9.2. The maintainer explicitly authorized “Tak, opublikuj Stable 0.9.2”. Include all changes under the standing push instruction and use the existing tested three-platform Stable publication workflow. No account/world/settings schema changes or live premium approval claims.
+
+### Changed files
+- `launcher-desktop/.../ui/{SyntaxLauncherApp,InstanceWorkspace,ProfileWizard,ContentCatalog,LauncherSettingsContent,LauncherFooter,SyntaxComponents}.kt`, `desktop/{DesktopLauncherSession,ProfileContents}.kt` — main-window navigation, inventory/wizard/settings/persistence, community/legal footer.
+- `launcher-core/.../modpack/ModpackCatalog.kt` and installer tests — chosen loader and profile-name handling while retaining the original installation API.
+- Desktop home/settings/wizard/footer tests, EN/PL/DE resources and `branding/{profiles-workshop.png,README.md}` — translated interactions, responsive rendering and asset provenance.
+- `gradle.properties`, `README.md`, `docs/{ARCHITECTURE,DESIGN,DEVELOPMENT,MILESTONES,ROADMAP,RELEASE_NOTES,RELEASE_READINESS,WORKLOG}.md` — canonical version and actual scope/acceptance/publication documentation.
+
+### Verification
+- `./gradlew --offline test build :launcher-desktop:createDistributable` — PASS: 257 tests, 253 passed, 4 opt-in official-network tests skipped, zero failures/errors; Linux application image built.
+- `python3 -m unittest discover -s scripts -p 'test_*.py'` — PASS: 14 publication/version/readiness tests.
+- EN/PL/DE wide and 400×400 Compose rendering/interactions — profile inventory without world mutation, conditional wizard final-only writes, cancellation and duplicate prevention, active-profile/legacy RAM persistence and exact footer URLs/full disclaimer. A real main-window 400×400 wizard test covers the space occupied by header and legal footer; its initial clipped name field was corrected with a shorter adaptive wizard header.
+- Visually inspected wide Polish profiles, settings and compact wizard renders. Generated test screenshots stay uncommitted in the build directory.
+- Native Linux application-image startup — PASS with isolated temporary XDG data, live version catalog/metadata loaded; stopped deliberately after 12 seconds. No real player/account/world or Minecraft gameplay used. This smoke predates the final footer placement and is not cross-platform acceptance.
+- `python3 scripts/release_readiness.py --format markdown` — PASS; v0.11 26 completed/0 open; v0.12 36 completed/9 open. `git diff --check` — PASS. Commit, hosted CI and public six-asset Stable release verification are reported in chat.
+
+### Roadmap updates
+- `[x] Main-window profiles and settings / selected-game memory, sidebar order and single profile navigation`
+- `[x] Main-window profiles and settings / embedded inventory, thematic background and retained advanced management`
+- `[x] Main-window profiles and settings / conditional creation, filtered packs, inline extras and mutation guards`
+- `[x] Main-window profiles and settings / community links and shared legal footer across translated compact/wide layouts`
+- `[ ] Native focus/DPI/window-manager/gameplay acceptance — remains an independent final gate`
+
+### Follow-ups / known issues
+- Microsoft live acceptance remains deferred pending Mojang approval. Native signing/notarization, clean-machine installs/upgrades and final gameplay/accessibility coverage remain open in the existing v0.12/v1.0 checklists. Stable 0.9.2 is a bounded pre-1.0 release, not completion of those gates.
+
+---
+
 ## 2026-10-23 — Complete diagnostic implementation and production hardening before final acceptance
 
 **Milestone:** v0.11 / v0.12

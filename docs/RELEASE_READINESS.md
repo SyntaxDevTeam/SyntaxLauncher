@@ -40,3 +40,9 @@ A milestone may be declared **feature implemented** when implementation and dete
 ## Current implementation extension — 23 October 2026
 
 The maintainer deferred premium/Mojang acceptance while requesting v0.11/v0.12 implementation before final corrections. Current health diagnostics extends the published classifier with managed-file integrity, Java/main-class/classpath and mod inventory, safe report copy, guarded/cancellable repair and EN/PL/DE compact-screen tests. v0.12 adds rotating redacted launcher logs, settings/log/storage access, disk admission, dependency locks, installation/removal/retention policy and candidate release notes. See TESTING_V0.11.md and TESTING_V0.12.md for exact scope. The earlier CI baseline above predates these extensions; current local and hosted outcomes are recorded in WORKLOG/chat. Final native installs/upgrades, signing/notarization, focus/DPI/gameplay and deferred premium acceptance remain independent gates.
+
+## Stable 0.9.2 — explicit maintainer release request
+
+The maintainer explicitly approved Stable 0.9.2 on 23 October 2026 after the embedded profile/settings changes were prepared and locally verified. The canonical version change is retained from the maintainer's local edit. This is a bounded pre-1.0 release, not a declaration that all v0.11/v0.12 native or v1.0 gates are complete. Stable publication must be verified after the version-bump commit passes all three package jobs. Final commit/CI/release URLs and six-asset availability are reported in chat.
+
+New scope: selected-game RAM settings with Save/Close, one header profile entry, version-before-game-type sidebar order, embedded profile inventory and wizard, filtered complete packs, inline extras selection and exact community links. Microsoft approval remains deferred; no new premium/native gameplay/signing claim is made.

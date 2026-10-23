@@ -166,6 +166,16 @@ class DesktopLauncherSession(
 
     suspend fun removePremiumAccount(uuid: String) = removePlayerAccount(uuid)
 
+    suspend fun savePreferencesNow(value: LauncherPreferences) {
+        val old = synchronized(lock) {
+            check(!closing.get()) { "SyntaxLauncher is closing." }
+            settingsJob.also { it?.cancel(); settingsJob = null }
+        }
+        old?.cancelAndJoin()
+        preferences.save(value)
+        synchronized(lock) { pendingPreferences = value }
+    }
+
     fun rememberPreferences(value: LauncherPreferences) {
         synchronized(lock) {
             if (closing.get()) return

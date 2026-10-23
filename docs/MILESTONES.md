@@ -513,3 +513,7 @@ All v1.0 quality-gate items in `docs/ROADMAP.md` must be checked. Known critical
 ## Maintainer sequencing — 23 October 2026
 
 Defer Microsoft live-account work while awaiting Mojang approval; retain the existing implementation and explicit offline profiles. Proceed with v0.11 diagnostics/repair and v0.12 production implementation, then final corrections and documented native/release acceptance. This sequencing does not waive signatures, native tests or the final v1.0 premium criterion; their release scope must remain explicit. See TESTING_V0.11.md and TESTING_V0.12.md.
+
+## Main-window profile UX — 23 October 2026
+
+The maintainer requests a profile library inside the existing main window, a conditional creation wizard and selected-game memory under global settings. This refines v0.2/v0.12 presentation without replacing the existing guarded instance/content/install services or waiving their native/gameplay acceptance. The wizard keeps Vanilla/With mods, loader, content choice and final review explicit, automatically prepares exact dependencies for complete packs and opens the shared inline catalog for individual extras.

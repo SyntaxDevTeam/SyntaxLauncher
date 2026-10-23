@@ -14,6 +14,14 @@ Agents and contributors MUST keep this file synchronized with actual repository 
 
 ---
 
+## Main-window profiles and settings — 23 October 2026
+
+- [x] Move selected-game memory into settings with explicit Save, draft cancellation, busy guards and per-profile/legacy persistence; remove sidebar RAM and duplicate Game profiles navigation.
+- [x] Place Game type below Game version; embed profile list/details/Edit in the main content region with a distinct workshop illustration and retained clone/import/trash/restore.
+- [x] Add conditional in-page profile wizard, loader-filtered complete packs, verified compatibility, final-only publication, inline extras catalog and cancellation/duplicate safeguards.
+- [x] Replace footer slogan with accessible website/Discord/GitHub icons targeting the requested destinations and relocate Privacy/Terms/contact/full Mojang/Microsoft disclaimer from sidebar to shared footer; verify EN/PL/DE wide/400×400 behavior.
+- [ ] Native focus, DPI, window-manager and graphical-game acceptance of this revision remains part of final release testing.
+
 ## Current delivery — 23 October 2026
 
 Microsoft live-account work is **deferred pending Mojang AppID approval**, per maintainer instruction. It does not block implementation of v0.11/v0.12; the final v1.0 premium criterion is not waived. v0.11 implementation and v0.12 production implementation are tracked below, with final native/signing/hosted-update acceptance kept explicitly open. See [TESTING_V0.11.md](TESTING_V0.11.md), [TESTING_V0.12.md](TESTING_V0.12.md) and [INSTALLATION.md](INSTALLATION.md).
