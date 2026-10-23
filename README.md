@@ -113,6 +113,10 @@ For a saved game choose **Choose extras**, pick a compatible item and press **In
 
 The maintainer confirmed private texture activation, shaders with automatic Iris and Vanilla 1.21.1 / OptiFine J1 startup after these changes. No exact OS/loader/Iris/pack matrix was supplied; broader native/platform and extended recovery acceptance remains tracked under v1.0. See [the v0.9 acceptance record](docs/TESTING_V0.9.md). The product version and release status are unchanged.
 
+## v0.11 — Local crash diagnostics (in development)
+
+After a failed Minecraft launch choose **Diagnose the failure**. SyntaxLauncher checks bounded recent local logs, distinguishes probable findings from weak evidence, and offers an explicit **Verify and repair managed files** action for supported integrity/preparation failures. Reports never embed raw log lines or authentication credentials. This stage does not disable mods, reset user settings or remove worlds. See [v0.11 acceptance checklist](docs/TESTING_V0.11.md). Automated/native acceptance remains pending.
+
 ## v0.10 — Ready-made modpacks
 
 Choose **Modpacks** on the home screen, or **Choose extras → Modpacks**, select an adventure and press **Install**. The launcher chooses the published release, reads its exact Minecraft/loader requirements, verifies required files and prepares Minecraft, the loader and Java automatically. The finished game becomes selected on the home screen; press **Play**. No existing saved game is required. Progress and Cancel remain available; unsupported requirements and damaged downloads never produce a falsely completed game.

@@ -704,44 +704,44 @@ Goal: turn raw logs/exit codes into actionable launcher diagnostics.
 
 ## Evidence collection
 
-- [ ] Collect launch plan summary without secrets.
+- [ ] 🚧 IN PROGRESS — Collect safe contextual game/version and last-run process metadata; launch-plan summary without credentials still pending verified CI.
 - [ ] Capture selected Java runtime/version.
-- [ ] Capture Minecraft/loader version.
+- [ ] 🚧 IN PROGRESS — Record exact last attempted Minecraft/loader version and game path, independently of later profile selection; CI pending.
 - [ ] Capture installed mod inventory and versions.
-- [ ] Capture process exit code.
-- [ ] Parse Minecraft latest log where available.
-- [ ] Parse crash reports where available.
+- [ ] 🚧 IN PROGRESS — Include last process exit code with confidence-aware findings; CI pending.
+- [ ] 🚧 IN PROGRESS — Read a bounded tail of recent latest.log without reflecting raw lines; CI pending.
+- [ ] 🚧 IN PROGRESS — Check most recent crash report if created after last launch; CI pending.
 
 ## Diagnostic engine
 
-- [ ] Define structured diagnostic findings.
-- [ ] Detect missing Java/runtime failures.
-- [ ] Detect corrupted/missing launcher-managed files.
-- [ ] Detect common loader/mod dependency failures.
+- [ ] 🚧 IN PROGRESS — Structured findings with evidence category, confidence and safe suggested action; deterministic tests pending CI.
+- [ ] 🚧 IN PROGRESS — Diagnose Java version/missing executable patterns; CI pending.
+- [ ] 🚧 IN PROGRESS — Detect corruption-related log symptoms (not a full filesystem audit); CI pending.
+- [ ] 🚧 IN PROGRESS — Detect common mod loader/dependency patterns; CI pending.
 - [ ] Detect common incompatible mod combinations where evidence is sufficient.
-- [ ] Distinguish probable cause from confirmed cause.
-- [ ] Avoid claiming certainty from weak evidence.
+- [ ] 🚧 IN PROGRESS — Findings declare PROBABLE/POSSIBLE instead of claiming certainty; CI pending.
+- [ ] 🚧 IN PROGRESS — Exit code alone yields UNKNOWN/POSSIBLE and recommends reviewing local logs; CI pending.
 
 ## Repair
 
-- [ ] Verify/repair Minecraft managed files.
-- [ ] Re-download corrupt assets/libraries.
+- [ ] 🚧 IN PROGRESS — Explicit user-triggered prepareForInstallation verifies/re-downloads managed Minecraft/loader/Java files under an instance activity lease, preserving worlds/mods; CI pending.
+- [ ] 🚧 IN PROGRESS — Reuse existing checksum-based shared Minecraft preparation downloader for missing/corrupt assets/libraries; CI pending.
 - [ ] Repair/reinstall managed runtime where safe.
 - [ ] Offer mod update/disable suggestions when supported by evidence.
 - [ ] Require explicit user action for destructive repairs.
 
 ## v0.11 UI
 
-- [ ] Human-readable crash summary.
+- [ ] 🚧 IN PROGRESS — Crash diagnostic dialog with localized categories and explanations; CI/native UX pending.
 - [ ] Technical details/log access.
-- [ ] Suggested actions.
-- [ ] One-click safe repair actions where available.
+- [ ] 🚧 IN PROGRESS — Context-specific static guidance for Java, mods, memory, graphics and authentication; CI/native UX pending.
+- [ ] 🚧 IN PROGRESS — Explicit Verify and repair managed files button for integrity/preparation findings; CI/native acceptance pending.
 
 ## v0.11 quality gate
 
-- [ ] Diagnostics never expose access/refresh tokens.
+- [ ] 🚧 IN PROGRESS — Never display raw log lines, launch arguments or tokens; token-redaction regression tests added, CI pending.
 - [ ] Repair actions are scoped and explain what they will change.
-- [ ] Generic `Exit code 1` is supplemented by more useful evidence when available.
+- [ ] 🚧 IN PROGRESS — Evidence-based symptom findings replace bare exit-code guidance when recent logs are available; CI pending.
 
 ---
 

@@ -383,6 +383,8 @@ A supported pack can be installed from scratch into an isolated instance without
 
 ## v0.11 — Diagnostics and Repair
 
+**Initial implementation, 23 October 2026:** local bounded-log inspection and structured confidence-aware findings, including a translated failure dialog and explicit checksum-backed verification of managed files, have been added. GitHub CI and manual diagnostic/repair acceptance are pending. The full evidence/repair matrix remains open; see [TESTING_V0.11.md](TESTING_V0.11.md).
+
 ### Objective
 
 Answer the practical question users actually have when Minecraft does not start: what failed, why, and what can be fixed safely?

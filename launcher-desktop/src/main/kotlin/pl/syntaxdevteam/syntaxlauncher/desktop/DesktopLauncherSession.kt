@@ -2,6 +2,9 @@ package pl.syntaxdevteam.syntaxlauncher.desktop
 
 import io.ktor.client.HttpClient
 import java.util.concurrent.atomic.AtomicBoolean
+import java.nio.file.Path
+import pl.syntaxdevteam.syntaxlauncher.core.diagnostics.MinecraftDiagnostics
+import pl.syntaxdevteam.syntaxlauncher.core.diagnostics.MinecraftDiagnosticReport
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -38,6 +41,14 @@ import pl.syntaxdevteam.syntaxlauncher.core.minecraft.ResolvedMinecraftVersion
 import pl.syntaxdevteam.syntaxlauncher.core.storage.MinecraftInstallationLayout
 import pl.syntaxdevteam.syntaxlauncher.core.storage.LauncherPreferences
 import pl.syntaxdevteam.syntaxlauncher.core.storage.LauncherPreferencesStore
+
+/** Metadata retained for the *last attempted game*, independent of later UI selection. */
+data class LastGameAttempt(
+    val gameDirectory: Path,
+    val gameVersion: String,
+    val loader: pl.syntaxdevteam.syntaxlauncher.core.loader.ModLoaderSelection?,
+    val instanceId: String?,
+)
 
 /**
  * Window lifetime: download jobs survive recompositions but not launcher
@@ -83,6 +94,54 @@ class DesktopLauncherSession(
     private var pendingPreferences: LauncherPreferences? = null
     private val mutableLaunchIssue = MutableStateFlow<String?>(null)
     val launchIssue = mutableLaunchIssue.asStateFlow()
+    @Volatile var lastGameAttempt: LastGameAttempt? = null
+        private set
+    private val diagnostics = MinecraftDiagnostics()
+
+    /** Read bounded local game logs; never return raw log text, tokens or process arguments. */
+    suspend fun diagnoseLastGame(): MinecraftDiagnosticReport? = withContext(Dispatchers.IO) {
+        val attempt = lastGameAttempt ?: return@withContext null
+        val failedPreparation = coordinator.status.value
+            .takeIf { it.phase == pl.syntaxdevteam.syntaxlauncher.core.launch.LaunchPhase.FAILED }
+            ?.detail
+        diagnostics.analyze(
+            attempt.gameDirectory, attempt.gameVersion, attempt.loader?.id,
+            processManager.status.value, failedPreparation)
+    }
+
+    /**
+     * Explicit, safe repair: verified game/loader/Java preparation only.
+     * Does not remove mods, saves, configs or replace the instance metadata.
+     */
+    suspend fun repairLastGameFiles() = withContext(Dispatchers.IO) {
+        val attempt = lastGameAttempt ?: error("No game attempt to repair.")
+        check(processManager.status.value.state !in setOf(
+            MinecraftProcessState.RUNNING, MinecraftProcessState.STARTING)) {
+            "Stop Minecraft before verifying its managed files."
+        }
+        val profile = attempt.instanceId?.let { instances.get(it) }
+        val layout = profile?.let(instances::layoutFor) ?: legacyLayout
+        check(layout.gameDir.toAbsolutePath().normalize() ==
+            attempt.gameDirectory.toAbsolutePath().normalize()) {
+            "The game directory changed since the failure."
+        }
+        check(profile == null || (profile.minecraftVersionId == attempt.gameVersion &&
+            profile.loader == attempt.loader)) {
+            "The game settings changed. Launch again before repairing."
+        }
+        val entry = versionCatalog.fetchManifest().versions
+            .firstOrNull { it.id == attempt.gameVersion }
+            ?: error("The Minecraft version is no longer present in Mojang metadata.")
+        val resolved = versionResolver.resolve(entry)
+        instances.beginLaunch(attempt.instanceId)
+        try {
+            coordinator.prepareForInstallation(resolved, layout, attempt.loader)
+        } finally {
+            withContext(kotlinx.coroutines.NonCancellable) {
+                instances.endPreparation(attempt.instanceId)
+            }
+        }
+    }
     private val accountMutex = Mutex()
     private val mutableSavedAccounts = MutableStateFlow<List<SavedAccount>>(emptyList())
     val savedAccounts = mutableSavedAccounts.asStateFlow()
@@ -151,6 +210,9 @@ class DesktopLauncherSession(
                 mutableLaunchIssue.value = "Sign in with a Microsoft account entitled to Minecraft Java before playing."
                 return false
             }
+            lastGameAttempt = LastGameAttempt(
+                gameDirectory = instance?.let(instances::gameDirectory) ?: legacyLayout.gameDir,
+                gameVersion = version.id, loader = instance?.loader, instanceId = instance?.id)
             mutableLaunchIssue.value = null
             mutablePreparingAccount.value = true
             launchJob = scope.launch {

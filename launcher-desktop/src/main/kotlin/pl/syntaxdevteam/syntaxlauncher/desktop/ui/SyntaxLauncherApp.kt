@@ -324,6 +324,7 @@ private fun LauncherPanel(
     var menuOpen by remember { mutableStateOf(false) }
     var instanceMenuOpen by remember { mutableStateOf(false) }
     var accountInfoOpen by remember { mutableStateOf(false) }
+    var diagnosticsOpen by remember { mutableStateOf(false) }
     var ramMiB by remember { mutableStateOf(saved.maximumMemoryMiB.toFloat()) }
     // Preserve Legacy Vanilla's own settings when switching to UUID-scoped profiles.
     var legacyVersionId by remember { mutableStateOf(saved.selectedVersionId) }
@@ -700,6 +701,8 @@ private fun LauncherPanel(
             onDismiss = { if (!modsBusy) managingMods = null },
         )
     }
+
+    if (diagnosticsOpen) MinecraftDiagnosticsDialog(session, onDismiss = { diagnosticsOpen = false })
 
     if (accountInfoOpen) {
         AlertDialog(onDismissRequest = { accountInfoOpen = false },
@@ -1113,6 +1116,10 @@ private fun LauncherPanel(
             )
             if (process.state == MinecraftProcessState.CRASHED ||
                 launch.phase == LaunchPhase.FAILED) {
+                TextButton(
+                    onClick = { diagnosticsOpen = true },
+                    enabled = !locked,
+                ) { Text(strings.text("diagnostics.open")) }
                 process.stderrLog?.parent?.let {
                     Text(strings.text("ui.logs_0", it), style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)

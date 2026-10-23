@@ -8,6 +8,45 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-23 — Begin v0.11 local diagnostics and scoped repair
+
+**Milestone:** v0.11 — Diagnostics and Repair
+**Author/Agent:** GPT-6
+**Status:** Partial — source/test implementation; hosted CI and native acceptance pending
+
+### Completed
+- Confirmed the current head was green in hosted CI 39839934723; v0.9/v0.10 bounded roadmaps are checked and the maintainer reported completing the combined test session (specific platform/combination outcomes not supplied).
+- Added a UI-independent, bounded, read-only diagnostic scanner for recent game logs, run output and crash reports. Returned findings are static messages, never raw log content, authentication arguments or tokens.
+- Classified common Java, memory, mod dependencies, missing classes, ZIP/hash integrity, graphics and authentication errors with confidence levels; a bare exit code produces a possible UNKNOWN finding.
+- Added a localized crash diagnostics dialog, tied to the actual last attempted game even if the user later changes selection.
+- Added explicit Verify and repair managed files, reusing checksum-based game/loader/Java preparation with the existing per-instance activity lease. The action does not delete saved worlds or personal mods.
+- Added synthetic tests for classification, stale/symlink rejection, bounded log tails and token non-reflection.
+
+### Changed files
+- `launcher-core/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/core/diagnostics/MinecraftDiagnostics.kt` — scanner and structured result.
+- `launcher-core/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/core/diagnostics/MinecraftDiagnosticsTest.kt` — deterministic evidence/privacy tests.
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/{DesktopLauncherSession,ui/MinecraftDiagnosticsDialog,ui/SyntaxLauncherApp}.kt` — last game tracking, repair service and failure dialog.
+- `launcher-desktop/src/main/resources/i18n/{en,pl,de}.properties` — translated guidance.
+- `README.md`, `docs/{MILESTONES,ROADMAP,TESTING_V0.11,WORKLOG}.md` — scope and acceptance.
+
+### Verification
+- `./gradlew test` / `./gradlew build` — NOT RUN locally (GitHub connector editing; hosted CI is required).
+- Hosted CI — PENDING for the new commit; last pre-change head 39839934723 completed successfully.
+- Native/real-world tests — NOT RUN for v0.11; the maintainer's v0.9/v0.10 completion report is separate.
+
+### Roadmap updates
+- `[ ] v0.11 / evidence, diagnosis, UI and explicit managed-file repair` — initial implementation submitted, awaiting CI/native acceptance.
+- `[ ] v0.11 / complete mod inventory, repair policy, advanced evidence and quality gates` — not implemented.
+- `[ ] v0.12 and v1.0 / native acceptance, signing, approval, production checks` — unchanged.
+
+### Follow-ups / known issues
+- Add verified runtime/mod inventory details and exact actionable checks; expand repair only with read-only integrity plans and user approval.
+- Native Windows/Linux/macOS keyboard/privacy and actual repair flows require separate acceptance; no v1.0 release.
+- Microsoft AppID approval remains unverified; do not claim premium live authentication acceptance or offline entitlement bypass.
+
+---
+
+
 ## 2026-10-22 — Keep gateway branding in the header and clear the home hero
 
 **Milestone:** v0.1 — Desktop visual refinement
