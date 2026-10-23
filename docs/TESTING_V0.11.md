@@ -19,6 +19,8 @@ When evidence suggests corrupt managed files or a preparation failure, the dialo
 
 ## Manual acceptance
 
+- [ ] Open the last attempted game's local logs via the explicit button, including after selecting a different game. The action must not upload or display raw logs.
+
 - [ ] Crash an isolated test game with an intentionally missing mod dependency; inspect a useful diagnosis.
 - [ ] Simulate damaged launcher-managed cache and use **Verify and repair managed files**, without changing worlds/mods.
 - [ ] Verify stale logs are not confused with a different instance after changing selection.

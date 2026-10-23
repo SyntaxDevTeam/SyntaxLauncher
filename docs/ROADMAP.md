@@ -733,7 +733,7 @@ Goal: turn raw logs/exit codes into actionable launcher diagnostics.
 ## v0.11 UI
 
 - [ ] 🚧 IN PROGRESS — Crash diagnostic dialog with localized categories and explanations; CI/native UX pending.
-- [ ] Technical details/log access.
+- [ ] 🚧 IN PROGRESS — Offer a user-clicked Open local game logs folder action; no automatic upload/raw log text is shown. CI/native confirmation pending.
 - [ ] 🚧 IN PROGRESS — Context-specific static guidance for Java, mods, memory, graphics and authentication; CI/native UX pending.
 - [ ] 🚧 IN PROGRESS — Explicit Verify and repair managed files button for integrity/preparation findings; CI/native acceptance pending.
 

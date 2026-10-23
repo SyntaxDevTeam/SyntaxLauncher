@@ -84,18 +84,34 @@ fun MinecraftDiagnosticsDialog(session: DesktopLauncherSession, onDismiss: () ->
             }
         },
         dismissButton = {
-            if (hasRepair && !repaired) TextButton(
-                enabled = !repairing && !loading,
-                onClick = {
-                    repairing = true
-                    scope.launch {
-                        try { session.repairLastGameFiles(); repaired = true }
-                        catch (cancelled: CancellationException) { throw cancelled }
-                        catch (_: Exception) { problem = true }
-                        finally { repairing = false }
-                    }
-                },
-            ) { Text(strings.text(if (repairing) "diagnostics.repairing" else "diagnostics.repair")) }
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                session.lastGameAttempt?.let { attempt ->
+                    TextButton(enabled = !repairing && !loading, onClick = {
+                        val folder = attempt.gameDirectory.resolve("logs")
+                        try {
+                            check(java.nio.file.Files.isDirectory(folder,
+                                java.nio.file.LinkOption.NOFOLLOW_LINKS)) { "Game logs directory is unavailable." }
+                            check(java.awt.Desktop.isDesktopSupported() &&
+                                java.awt.Desktop.getDesktop().isSupported(java.awt.Desktop.Action.OPEN)) {
+                                "Opening folders is not supported by this desktop."
+                            }
+                            java.awt.Desktop.getDesktop().open(folder.toFile())
+                        } catch (_: Exception) { problem = true }
+                    }) { Text(strings.text("diagnostics.open_logs")) }
+                }
+                if (hasRepair && !repaired) TextButton(
+                    enabled = !repairing && !loading,
+                    onClick = {
+                        repairing = true
+                        scope.launch {
+                            try { session.repairLastGameFiles(); repaired = true }
+                            catch (cancelled: CancellationException) { throw cancelled }
+                            catch (_: Exception) { problem = true }
+                            finally { repairing = false }
+                        }
+                    },
+                ) { Text(strings.text(if (repairing) "diagnostics.repairing" else "diagnostics.repair")) }
+            }
         },
     )
 }

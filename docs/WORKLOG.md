@@ -8,6 +8,37 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-23 — Add explicit local log-folder access to failure diagnostics
+
+**Milestone:** v0.11 — Diagnostics and Repair
+**Author/Agent:** GPT-6
+**Status:** Partial — implemented, CI/native acceptance pending
+
+### Completed
+- Added an explicit Open local game logs action beside diagnosis/managed-file repair; it opens the last attempted game's own logs directory rather than the currently selected game's folder.
+- Guarded against a redirected/missing logs directory and unsupported desktop folder-opening APIs. Game log contents are not loaded into the diagnostic dialog or transmitted by the launcher.
+- Added EN/PL/DE translations, continuing the low-disclosure diagnostic guidance.
+
+### Changed files
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/MinecraftDiagnosticsDialog.kt` — safe native file manager action.
+- `launcher-desktop/src/main/resources/i18n/{en,pl,de}.properties` — labels.
+- `docs/{ROADMAP,TESTING_V0.11,WORKLOG}.md` — partial acceptance status.
+
+### Verification
+- `./gradlew test` / `./gradlew build` — not run locally; GitHub CI required.
+- Native desktop open-folder acceptance — pending.
+- Earlier diagnostic core/desktop CI verify task passed on run 39900923246; additional changes require their own hosted acceptance.
+
+### Roadmap updates
+- `[ ] v0.11 / Technical details/log access` — implementation added; native acceptance pending.
+
+### Follow-ups / known issues
+- Raw logs can still contain sensitive information and should not be attached to support tickets without review.
+- A complete redacted support-bundle export remains outside this action.
+
+---
+
+
 ## 2026-10-23 — Add non-destructive release-readiness audit for final stabilization
 
 **Milestone:** v0.12 — Production Hardening; v1.0 — Stable Release
