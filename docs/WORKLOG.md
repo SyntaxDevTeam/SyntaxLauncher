@@ -8,6 +8,37 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-23 — Verify final three-platform CI and resolve previous preview-publication blocker
+
+**Milestone:** v0.11 — Diagnostics; v0.12 — CI/CD and distribution
+**Author/Agent:** GPT-6
+**Status:** Completed for hosted verification; live/native acceptance remains open
+
+### Completed
+- Confirmed GitHub Actions [39901800185](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/39901800185) completed successfully across core+desktop verification, official loader smoke tests, Linux/Windows/macOS packaging, release bundle verification and Build Explorer publication.
+- Confirmed public six-asset DEV release `dev-180.1-v0.7.1`. The earlier 403 from run 39900923246 is not a current publication failure; no speculation about what credential/permission changed.
+- Kept Stable at v0.7.1. This is an explicit DEV development build, not a v0.11/v1.0 stable release, and native gameplay, Microsoft approval and signing remain independent.
+
+### Changed files
+- `docs/RELEASE_READINESS.md`, `docs/ROADMAP.md`, `docs/TESTING_V0.11.md`, `docs/WORKLOG.md` — reconcile authenticated public publication and CI acceptance evidence.
+
+### Verification
+- `./gradlew test` / `./gradlew build` — PASS in hosted run 39901800185.
+- All three platform packages and update bundles — PASS in hosted run 39901800185.
+- GitHub DEV (six release assets), Build Explorer — PASS in hosted run 39901800185.
+- Live native/gameplay/entitlement verification — NOT RUN as part of this CI; remains open.
+
+### Roadmap updates
+- `[x] v0.11 / Automated full tests and three-platform packaging` — verified.
+- `[ ] v0.11 / Manual diagnostic and repair acceptance` — remains open.
+- `[ ] v0.12 / Native update and SNAPSHOT channel acceptance` — remains open.
+
+### Follow-ups / known issues
+- Do not equate a successful DEV release with permission to advance the canonical Stable SemVer or to publish a v1.0 release.
+
+---
+
+
 ## 2026-10-23 — Correct Kotlin diagnostic timestamp and verify v0.11 compile
 
 **Milestone:** v0.11 — Diagnostics and Repair; v0.12 — Release Operations

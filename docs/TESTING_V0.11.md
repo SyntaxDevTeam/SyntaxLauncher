@@ -15,7 +15,7 @@ When evidence suggests corrupt managed files or a preparation failure, the dialo
 - [x] Ignore stale log files and symbolic links; read no more than the bounded tail.
 - [x] Ensure token-like text in logs or exception messages never appears in serialized diagnostic findings.
 - [ ] Verify repair dispatch uses the existing instance lease/preparation pipeline and no destructive file operations.
-- [ ] Run full Gradle tests/build and all supported platform packages in CI.
+- [x] Run full Gradle tests/build and all supported platform packages in CI: [run 39901800185](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/39901800185) passed, including DEV/Build Explorer publication.
 
 ## Manual acceptance
 
