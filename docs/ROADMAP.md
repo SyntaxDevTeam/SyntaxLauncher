@@ -788,6 +788,7 @@ Goal: prepare the launcher for stable public release.
 
 ## CI/CD
 
+- [ ] 🚧 IN PROGRESS — Produce a read-only per-version acceptance audit in GitHub Actions; exact unchecked gates and canonical release version remain distinct. Informational script and deterministic unit tests added; new hosted run pending.
 - [ ] 🚧 IN PROGRESS — Automatically publish ordinary Stable GitHub Releases when canonical plain `launcherVersion` increases on `main`; the canonical product version remains `0.7.0` after synchronization with GitHub. DEV/SNAPSHOT publication is tracked separately above; hosted six-asset publication acceptance remains pending.
 - [ ] Build/test CI.
 - [ ] Cross-platform build validation.

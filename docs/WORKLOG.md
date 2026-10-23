@@ -8,6 +8,41 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-23 — Add non-destructive release-readiness audit for final stabilization
+
+**Milestone:** v0.12 — Production Hardening; v1.0 — Stable Release
+**Author/Agent:** GPT-6
+**Status:** Partial — read-only release gate auditing added, hosted verification pending
+
+### Completed
+- Introduced a dependency-free read-only roadmap auditor that lists completed/open/P0-or-approval checklist counts for each historical and final milestone.
+- Explicitly separated canonical product SemVer from roadmap progress and refused automatic status rewriting, guessing native acceptance or counting a green build as AppID approval.
+- Added deterministic Python tests covering blocked/open stages, duplicate milestones, version key integrity and report caveats.
+- Added an informational per-run GitHub Actions summary after the existing Python test suites. It never fails CI merely because future v1.0 gates remain open.
+- Recorded the remaining P0 production gates, including live Microsoft app approval, actual Java Edition entitlement verification, native release signing/notarization and multi-platform update/data-preservation acceptance.
+
+### Changed files
+- `scripts/release_readiness.py`, `scripts/test_release_readiness.py` — deterministic milestone scanner and tests.
+- `.github/workflows/build.yml` — informational release gate summary.
+- `docs/RELEASE_READINESS.md`, `docs/{ROADMAP,WORKLOG}.md`, `README.md` — remaining acceptance and usage.
+
+### Verification
+- `./gradlew test` and `./gradlew build` — NOT RUN locally (GitHub connector-only editing).
+- Python script tests — NOT RUN locally; collected by existing hosted `unittest discover -s scripts -p test_*.py` step.
+- CI — pending for this commit. Release audits do not certify gameplay or cross-platform native installation.
+- Manual end-to-end — NOT RUN.
+
+### Roadmap updates
+- `[ ] v0.12 / CI/CD / Read-only milestone acceptance audit` — source implemented, awaiting CI.
+- `[ ] v1.0 / Microsoft approval, platform and quality gates` — remain open.
+
+### Follow-ups / known issues
+- Run `python3 scripts/release_readiness.py --enforce v0.10` for a scope-limited v0.10 checklist check. Do not use this to infer independent v1.0 readiness.
+- Do not bump `launcherVersion` or trigger stable publishing until current source CI is green and the stable release support scope is deliberately confirmed.
+
+---
+
+
 ## 2026-10-23 — Begin v0.11 local diagnostics and scoped repair
 
 **Milestone:** v0.11 — Diagnostics and Repair
