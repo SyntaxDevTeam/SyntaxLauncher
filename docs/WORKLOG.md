@@ -11,8 +11,8 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ## 2026-10-24 — Sequential milestone reconciliation and compatibility gaps
 
-**Milestone:** v0.1–v0.12 / v1.0 readiness  
-**Author/Agent:** Codex  
+**Milestone:** v0.1–v0.12 / v1.0 readiness
+**Author/Agent:** Codex
 **Status:** Partial — verified implementation gaps closed; native/gameplay, dependency semantics and external approval/signing gates remain open
 
 ### Completed
