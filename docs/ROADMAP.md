@@ -153,7 +153,7 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 - [x] retry policy handles transient network failures, HTTP 408/425/429/5xx and integrity/size failures with bounded backoff. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [x] SHA-1 and expected-size validation is shared for downloaded and cached files. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [x] downloads are written to `.part` and finalized with atomic move where supported, falling back to replace move only after verification. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
-- [ ] 🚧 IN PROGRESS — typed network, HTTP, integrity, size, filesystem and conflicting-target download errors are implemented; final UI mapping remains pending.
+- [x] Map typed download/HTTP/integrity/size/disk/permission/conflicting-target failures to safe EN/PL/DE launch advice; nested cause, privacy, retry and compact full-text tests pass. See [v0.1 verification](TESTING_V0.1.md#typed-launch-failures-and-native-java-verification).
 
 ## Java Runtime Manager
 
@@ -161,12 +161,12 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 - [x] `JavaRuntime` now records executable/home/version plus source/component/platform/release identity. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [x] Resolve managed Java before creating the launch request; complete coordinator and real Java-subprocess wiring regressions pass. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [x] compatible launcher-managed runtimes are discovered and reused before any runtime-index network call; complete manifest-backed integrity and `java -version` checks guard reuse. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
-- [ ] 🚧 IN PROGRESS — official Mojang runtime index is used as the distribution source and selected by the Minecraft-declared component plus detected platform; full live platform verification remains pending.
+- [ ] 🚧 IN PROGRESS — official Mojang runtime index is used as the distribution source and selected by the Minecraft-declared component plus detected platform; Linux Java 21/25 cold install, execution, offline reuse and controlled repair pass; the new hosted Windows/Linux/macOS managed-runtime matrix awaits its first run.
 - [x] missing Mojang runtime manifests/files are downloaded through the shared verified `DownloadManager`, including retry/cancellation/progress behavior. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [x] runtime manifests and every installed file are checked by size/SHA-1; directories and symlinks are checked on reuse; corrupted/incomplete runtimes are rejected and reinstalled automatically. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
-- [ ] 🚧 IN PROGRESS — Windows/Linux/macOS Java executable resolution is implemented, including `bin/java.exe`, `bin/java` and macOS `jre.bundle/Contents/Home/bin/java`; full platform execution remains pending.
+- [ ] 🚧 IN PROGRESS — Windows/Linux/macOS Java executable resolution is implemented, including `bin/java.exe`, `bin/java` and macOS `jre.bundle/Contents/Home/bin/java`; a new native CI test exercises actual managed Java 21/25 executables, offline reuse and repair on all three distributed targets; local Linux passes and hosted results are pending.
 - [x] staged and published runtimes are executed with `java -version`, parsed for modern/legacy version formats and rejected when the major version differs from Minecraft metadata. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
-- [ ] 🚧 IN PROGRESS — typed runtime errors distinguish unsupported platform, metadata, manifest, install, verification and Java-version mismatch failures; Compose error mapping remains pending.
+- [x] Map unsupported Java platform, index/manifest, install and verification/version failures to localized launch advice. Malformed index JSON is wrapped in a typed Java metadata error; real Play/Retry and compact EN/PL/DE tests cover the UI. See [v0.1 verification](TESTING_V0.1.md#typed-launch-failures-and-native-java-verification).
 - [x] runtime installation uses a staging directory, safe manifest paths, manifest-declared executable flags/symlinks, a completion marker and atomic directory publication where supported. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [x] controlled MockEngine tests cover target/manifest parsing, initial installation, no-network warm reuse and automatic repair after a managed runtime file is removed. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [x] runtime models/services remain entirely in `launcher-core` and independent from Compose UI. Evidence: [C01](MILESTONE_CLOSURE.md#c01).

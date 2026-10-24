@@ -7,6 +7,16 @@ import kotlin.test.assertIs
 class MojangRuntimeMetadataParserTest {
     private val parser = MojangRuntimeMetadataParser()
 
+    @Test fun malformedRuntimeIndexHasATypedSafeFailure() {
+        for (payload in listOf("not-json private-secret", "[]", "{\"id\":\"private-secret\"}")) {
+            val failure = kotlin.test.assertFailsWith<JavaRuntimeMetadataException> {
+                MojangRuntimeMetadataParser().parseTarget(payload, "linux", "java-runtime-delta")
+            }
+            kotlin.test.assertFalse(failure.message.orEmpty().contains("private-secret"))
+            kotlin.test.assertNotNull(failure.cause)
+        }
+    }
+
     @Test
     fun `selects newest fully available component for platform`() {
         val payload = """

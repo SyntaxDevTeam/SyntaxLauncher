@@ -52,7 +52,11 @@ class MojangRuntimeMetadataParser(
         platformKey: String,
         component: String,
     ): MojangRuntimeTarget {
-        val root = json.decodeFromString<Map<String, Map<String, List<RuntimeTargetDto>>>>(payload)
+        val root = try {
+            json.decodeFromString<Map<String, Map<String, List<RuntimeTargetDto>>>>(payload)
+        } catch (failure: kotlinx.serialization.SerializationException) {
+            throw JavaRuntimeMetadataException("Unable to parse Mojang Java runtime index.", failure)
+        }
         val targets = root[platformKey]?.get(component).orEmpty()
         if (targets.isEmpty()) {
             throw JavaRuntimeMetadataException(

@@ -8,6 +8,10 @@ v0.1 implementation: metadata/catalog/rules, downloads, runtime selection, launc
 
 The desktop uses the canonical build version for launch placeholders and User-Agent. `LauncherPreferencesStoreTest`, launch/coordinator/process and account tests cover the existing foundations; no actual graphical Vanilla cold start is inferred. The packaged Linux runtime fetched and verified Mojang catalog/release metadata over HTTPS. CI now repeats this probe on each native app image, before publication.
 
+### Further v0.1 closure — typed launch advice and managed Java
+
+`LaunchFailureReason` now provides bounded, type-based safe categories instead of guessing exception names. Desktop localizes all categories and shows complete recovery advice in EN/PL/DE. Actual Play→Java metadata failure and reachable retry are rendered/tested at wide and 400×400 sizes. Malformed runtime-index JSON has a typed domain failure. `ManagedJavaOfficialSmokeTest` adds real cold installation, execution, network-disabled reuse and controlled repair on each published native target; local Linux 21/25 passed before push. Hosted results are recorded only after CI. This does not establish graphical Minecraft/native trust acceptance. See [v0.1 evidence](TESTING_V0.1.md#typed-launch-failures-and-native-java-verification).
+
 ## C02
 
 v0.2 implementation: the UUID repository, explicit non-destructive legacy import, atomic metadata, independent game directories, activity leases, clone/trash/restore and selected-game RAM/JVM overrides are covered by repository, copy/activity and launch integration tests. Profile deletion confirmation and direct restore interactions were verified in DEV 190.1 / CI 40063797333. These are automated filesystem/UI results, not confirmation of two simultaneously played Minecraft worlds or large real-world save migration. Existing schema 1 remains backward readable and preserves unknown fields; no incompatible schema 2 has been introduced.

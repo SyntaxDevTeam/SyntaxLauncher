@@ -10,6 +10,45 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 
 
+
+## 2026-10-24 — Close typed launch advice gaps and add native managed-Java acceptance
+
+**Milestone:** v0.1
+**Author/Agent:** Codex
+**Status:** Completed — implementation/local tests; cross-platform Java acceptance awaits this revision's CI
+
+### Completed
+- Replaced exception-class-name heuristics with stable `LaunchFailureReason` codes and a bounded typed cause walk. Nested integrity/network/disk failures retain appropriate recovery advice under runtime wrappers. Raw exception messages, URLs, credentials and paths are never used as the user-facing launch fallback.
+- Added EN/PL/DE advice for downloads, HTTP availability, integrity, space, permissions, conflicting targets, file limits, Java platform/metadata/install/verification, player/loader/graphics/launch-plan/process failures and unknown preparation errors.
+- Wrapped malformed Java-index decoding in `JavaRuntimeMetadataException`; real Play testing found that this previously appeared as a generic game/settings failure.
+- Moved failure advice out of the narrow status-label row to full action-section width, preserving complete instructions in compact windows. Real Compose Play→failure tests verify all three languages at 1440×810 and 400×400, no ellipsis, enabled retry and scrolling to Play. Coordinator retry clears the prior failure and reaches an actual fixture subprocess.
+- Added opt-in `ManagedJavaOfficialSmokeTest` and gated each native package job on it. Official Minecraft 1.21.11/26.3 metadata selects managed Java 21/25; the test installs/verifies/executes it, proves reuse with networking disabled and repairs a removed manifest-backed release file without altering a separate world marker. Native jobs upload JUnit evidence as `managed-java-<platform>`.
+
+### Changed files
+- Core launch failure model/coordinator and runtime-index parser — typed safe errors and domain wrapping.
+- Core failure/coordinator/runtime-parser tests and new managed-Java official smoke — classification/privacy/retry and actual runtime acceptance.
+- Desktop home, launch-failure text helper, EN/PL/DE resources and rendered tests — full-width localized recovery advice and reachable retry.
+- `.github/workflows/build.yml` — managed Java acceptance on Windows x64, Linux x64 and macOS ARM64 before packaging.
+- README, architecture, development, TESTING_V0.1, ROADMAP and closure evidence — exact verification and remaining native/gameplay boundaries.
+
+### Verification
+- `./gradlew --offline test build :launcher-desktop:createDistributable` — PASS in 1m40s: 277 cases, 272 passed, five opt-in network cases skipped, no failures/errors.
+- Actual Linux `ManagedJavaOfficialSmokeTest` — PASS in 27s; both Java 21 and 25 executed, offline reuse and repair passed. Hosted Windows/macOS acceptance is not inferred from this local result.
+- EN/PL/DE wide/400×400 actual Play failure and retry reachability — PASS. Polish compact render reviewed; screenshots remain ignored build evidence.
+- `git diff --check` — PASS. Current hosted CI/publication is checked after push and reported in chat.
+- Minecraft graphical gameplay, native focus/DPI/trust and premium approval were not performed by these tests.
+
+### Roadmap updates
+- `[x] v0.1 / Download infrastructure / Typed download errors mapped to localized advice`.
+- `[x] v0.1 / Java Runtime Manager / Typed runtime error mapping in Compose`.
+- `[ ]` Actual managed-Java verification on all distributed targets remains pending until the new hosted matrix passes; local Linux evidence is recorded.
+- `[ ]` Broader Vanilla cold/warm graphical launch, native usability/update/trust, Microsoft approval and signing remain independent.
+
+### Follow-ups / known issues
+- The initial UI test exposed malformed-index classification and compact advice truncation; both were fixed before the final passing full suite.
+- A passing managed Java executable is not proof of a Minecraft game boot. No product-version bump or new Stable release is authorized.
+
+
 ## 2026-10-24 — Continue loader metadata closure after DEV 192 acceptance
 
 **Milestone:** v0.7 / v0.8 compatibility diagnostics

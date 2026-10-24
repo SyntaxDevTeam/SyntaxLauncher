@@ -34,6 +34,7 @@ data class LaunchPipelineStatus(
     val completedFiles: Int = 0,
     val totalFiles: Int = 0,
     val currentFileProgress: Float? = null,
+    val failure: LaunchFailureReason? = null,
 ) {
     val isPreparing: Boolean
         get() = phase in setOf(
@@ -116,7 +117,8 @@ class MinecraftLaunchCoordinator(
             evidence = evidence?.copy(failureType = error.javaClass.simpleName)
             // Never print a full command or authentication arguments.
             log.warn("Minecraft launch pipeline failed: {}", error.javaClass.simpleName)
-            stage(LaunchPhase.FAILED, messageFor(error))
+            val reason = LaunchFailureReason.from(error)
+            mutableStatus.value = LaunchPipelineStatus(phase = LaunchPhase.FAILED, detail = reason.summary, failure = reason)
         } finally {
             launchMutex.unlock()
         }
@@ -245,22 +247,4 @@ class MinecraftLaunchCoordinator(
         }
     }
 
-    private fun messageFor(error: Exception): String {
-        val reason = when (error) {
-            is InvalidPlayerAuthenticationException -> error.message!!
-            is pl.syntaxdevteam.syntaxlauncher.core.content.GraphicsEnhancementException -> error.message ?: "Cannot prepare graphics enhancement."
-            is ModLoaderException -> error.message ?: "Could not prepare the mod loader."
-            is MinecraftProcessException -> "Cannot start Minecraft. Check the game logs."
-            is LaunchPlanException -> "Cannot construct launch arguments for this version."
-            is IllegalArgumentException -> "Unsupported Minecraft metadata or launch settings."
-            else -> when {
-                error.javaClass.simpleName.contains("Java", ignoreCase = true) ->
-                    "Java installation or verification failed."
-                error.javaClass.simpleName.contains("Download", ignoreCase = true) ->
-                    "Could not download a required game file."
-                else -> "Minecraft preparation failed. Check the connection and available disk space."
-            }
-        }
-        return "$reason (${error.javaClass.simpleName})"
-    }
 }

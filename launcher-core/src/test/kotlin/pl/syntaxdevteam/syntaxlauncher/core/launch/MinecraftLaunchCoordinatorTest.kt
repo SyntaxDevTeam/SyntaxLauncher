@@ -41,7 +41,8 @@ class MinecraftLaunchCoordinatorTest {
     fun preparesClientJavaLaunchPlanAndProcess() = runBlocking {
         val client = "client-fixture".encodeToByteArray()
         val root = Files.createTempDirectory("syntaxlauncher-pipeline-")
-        val http = HttpClient(MockEngine { respond(client) })
+        var unavailable = true
+        val http = HttpClient(MockEngine { if (unavailable) respond("unavailable", io.ktor.http.HttpStatusCode.ServiceUnavailable) else respond(client) })
         val java = Path.of(System.getProperty("java.home"), "bin",
             if (System.getProperty("os.name").startsWith("Windows", true)) "java.exe" else "java")
         val runtime = JavaRuntime(java.parent.parent, java, 21, "21")
@@ -65,10 +66,18 @@ class MinecraftLaunchCoordinatorTest {
             platform = platform,
         )
         try {
+            val offline = OfflineAccount.create("RetryTest")
+            val failed = coordinator.launch(version(client), offline, LaunchOptions(),
+                instanceLayout = instanceLayout, authentication = LaunchAuthentication.offline(offline))
+            assertEquals(LaunchPhase.FAILED, failed.phase)
+            assertEquals(LaunchFailureReason.REMOTE_FILE, failed.failure)
+            assertTrue(captured == null)
+            unavailable = false
             val status = coordinator.launch(version(client),
                 pl.syntaxdevteam.syntaxlauncher.core.account.PremiumAccount("SyntaxTest", UUID.fromString("12345678-1234-1234-1234-123456789abc")), LaunchOptions(maximumMemoryMiB = 3072),
                 instanceLayout = instanceLayout, authentication = fixtureAuthentication())
             assertEquals(LaunchPhase.STARTED, status.phase)
+            assertEquals(null, status.failure)
             assertTrue(Files.exists(layout.versionJar("test-release")))
             val plan = assertNotNull(captured)
             assertTrue("-Xmx3072M" in plan.jvmArguments)

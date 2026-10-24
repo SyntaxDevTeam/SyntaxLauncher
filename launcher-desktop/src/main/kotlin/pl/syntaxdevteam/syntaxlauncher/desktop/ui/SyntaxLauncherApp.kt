@@ -858,7 +858,7 @@ private fun LauncherPanel(
                                 else -> strings.text("ui.ready_when_you_are")
                             },
                             style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                        Text(
+                        if (launch.phase != LaunchPhase.FAILED) Text(
                             when {
                                 isRunning -> strings.text("ui.minecraft_is_running_in_a_separate_window")
                                 launch.isPreparing -> strings.text(when (launch.phase) {
@@ -868,7 +868,6 @@ private fun LauncherPanel(
                                     LaunchPhase.BUILDING_PLAN -> "launch.plan"
                                     else -> "launch.start"
                                 })
-                                launch.phase == LaunchPhase.FAILED -> launch.detail
                                 else -> strings.text("ui.your_game_files_and_java_are_managed_automatically")
                             },
                             style = MaterialTheme.typography.bodySmall,
@@ -896,6 +895,12 @@ private fun LauncherPanel(
                         },
                     )
                 }
+                if (launch.phase == LaunchPhase.FAILED) {
+                    Text(localizedLaunchFailure(launch, strings),
+                        modifier = Modifier.fillMaxWidth().testTag("launch-status-detail"),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 if (launch.isPreparing || preparingAccount) {
                     val fraction = launch.currentFileProgress
                     if (fraction == null) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
@@ -912,7 +917,7 @@ private fun LauncherPanel(
                             premiumId = selectedPlayer?.takeIf { it.microsoft }?.account?.uuid?.toString())
                     } },
                     enabled = canPlay,
-                    modifier = Modifier.fillMaxWidth().height(62.dp)
+                    modifier = Modifier.fillMaxWidth().height(62.dp).testTag("launch-play")
                         .background(Brush.horizontalGradient(
                             if (canPlay) listOf(SyntaxBrand.playStart, SyntaxBrand.blue)
                             else listOf(SyntaxBrand.field, SyntaxBrand.field),

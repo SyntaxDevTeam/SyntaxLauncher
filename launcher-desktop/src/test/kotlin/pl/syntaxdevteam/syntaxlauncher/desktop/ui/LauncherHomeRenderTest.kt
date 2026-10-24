@@ -463,6 +463,41 @@ class LauncherHomeRenderTest {
         } finally { scene.close(); session.shutdown() }
     }
 
+    @Test fun actualPlayFailureShowsLocalizedAdviceAndAllowsRetryAtCompactSizes() = runBlocking(Dispatchers.Swing) {
+        for (language in UiLanguage.entries) for ((width, height) in listOf(1440 to 810, 400 to 400)) {
+            val session = session()
+            val strings = UiStrings(language)
+            val scene = ImageComposeScene(width, height, coroutineContext = Dispatchers.Swing) {
+                CompositionLocalProvider(LocalStrings provides strings) { SyntaxLauncherApp(session) }
+            }
+            try {
+                scene.awaitReady(strings.text("ui.play_minecraft"))
+                scene.text(strings.text("ui.play_minecraft")).click()
+                val advice = strings.text("launch.failure.java_metadata")
+                withTimeout(10000) {
+                    while (session.coordinator.status.value.phase != pl.syntaxdevteam.syntaxlauncher.core.launch.LaunchPhase.FAILED ||
+                        (scene.nodes().firstOrNull { it.label() == strings.text("ui.play_minecraft") }
+                            ?.config?.contains(SemanticsProperties.Disabled) ?: true)) {
+                        scene.render(System.nanoTime()).close(); delay(20)
+                    }
+                }
+                assertEquals(pl.syntaxdevteam.syntaxlauncher.core.launch.LaunchFailureReason.JAVA_METADATA,
+                    session.coordinator.status.value.failure)
+                scene.frames()
+                scene.reveal("launch-status-detail")
+                val node = scene.text(advice)
+                node.assertFullyVisible(height, "Localized failure advice")
+                val layouts = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+                assertTrue(node.config[SemanticsActions.GetTextLayoutResult].action!!.invoke(layouts))
+                assertTrue(layouts.none { it.hasVisualOverflow }, "Failure advice must not lose its recovery action")
+                assertTrue(scene.nodes().none { "JavaRuntimeMetadataException" in it.label() })
+                scene.screenshot("launch-failure-${language.code}-$width")
+                scene.reveal("launch-play")
+                scene.text(strings.text("ui.play_minecraft")).assertFullyVisible(height, "Retry Play action")
+            } finally { scene.close(); session.shutdown() }
+        }
+    }
+
     private suspend fun session(packCatalog: Boolean = false, savedPlayer: Boolean = false, emptyPlayers: Boolean = false): DesktopLauncherSession {
         val state = withContext(Dispatchers.IO) {
             Files.createTempDirectory(root, "profile-")
