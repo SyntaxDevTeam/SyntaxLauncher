@@ -8,6 +8,40 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-24 — Complete native installer preview publication verification
+
+**Milestone:** v0.12 / native distribution
+**Author/Agent:** Codex
+**Status:** Completed — installer preparation and automated preview acceptance
+
+### Completed
+- Verified successful hosted workflow [40013941601](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/40013941601) for `cfcbe79cae2bfb44e1c1e05707a004af1d0148f5`: core/desktop verification, Windows/Linux/macOS package/lifecycle jobs, preview publication and Build Explorer all passed; Stable publication correctly skipped.
+- Verified public [DEV build 188.1](https://github.com/SyntaxDevTeam/SyntaxLauncher/releases/tag/dev-188.1-v0.9.3-DEV) has all 12 non-empty assets, including MSI, DMG, DEB, RPM and AppImage. Downloaded SHA256SUMS-installers.txt and compared all five entries with public GitHub asset digests: exact match.
+- Replaced prospective installer availability wording with actual download/evidence links.
+
+### Changed files
+- `README.md`, `docs/INSTALLATION.md` — available installer preview and download instructions.
+- `docs/RELEASE_READINESS.md` — exact hosted native lifecycle and publication evidence, remaining acceptance scope.
+- `docs/ROADMAP.md`, `docs/WORKLOG.md` — close Linux/full-publication preparation items without closing independent final gates.
+
+### Verification
+- `./gradlew test` / `./gradlew build` — PASS in hosted workflow 40013941601 for the published implementation; NOT RUN again locally for documentation-only completion.
+- Native CI — PASS: MSI install/hash/menu/duplicate/repair/removal; DMG verify/mount/copy/removal; DEB install/menu/start/remove, Fedora 44 RPM dependency-resolved lifecycle, AppImage start.
+- Public release metadata and downloaded installer inventory — PASS, five hashes match and 12 assets present.
+- `git diff --check` — PASS. Follow-up documentation commit CI is checked after push.
+
+### Roadmap updates
+- [x] v0.12 / Native installers / Linux DEB/RPM/AppImage lifecycle.
+- [x] v0.12 / Native installers / Complete installer and checksum publication.
+- [ ] Interactive clean-machine GUI/trust, representative upgrades, RPM graphics, additional distributions and signing/notarization remain open.
+
+### Follow-ups / known issues
+- Stable 0.9.2 and canonical 0.9.3-DEV are unchanged.
+- The maintainer asked to finish this installer task before the later EXE-icon/footer/profile-deletion/Vanilla-packs UI corrections; those corrections are still pending.
+
+---
+
+
 
 ## 2026-10-23 — Validate Linux desktop registration across system menu locations
 

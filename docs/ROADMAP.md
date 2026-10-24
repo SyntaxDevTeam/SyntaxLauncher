@@ -813,8 +813,8 @@ Goal: prepare the launcher for stable public release.
 
 - [x] Windows x64 WiX 7.0.0 MSI with a per-user wizard, Start menu shortcut, stable upgrade identity, same-core duplicate blocking and native install/payload/repair/removal/data-preservation CI smoke (40011156165).
 - [x] macOS ARM64 branded DMG with Applications link and native verification/mount/copy/removal smoke (40011156165).
-- [ ] 🚧 IN PROGRESS — Linux x64 DEB/RPM plus pinned-tool AppImage, desktop integration, DEB/AppImage startup and Fedora RPM dependency-resolved install/removal evidence.
-- [ ] 🚧 IN PROGRESS — Require complete installers plus SHA-256 inventory alongside portable/update assets before DEV/SNAPSHOT/future Stable publication; preserve existing updater bootstrap/user-data ownership.
+- [x] Linux x64 DEB/RPM plus pinned-tool AppImage, validated desktop integration, DEB/AppImage startup and Fedora 44 RPM dependency-resolved install/removal/data-preservation checks (CI 40013941601).
+- [x] Require complete installers plus SHA-256 inventory alongside portable/update assets before DEV/SNAPSHOT/future Stable publication; preserve existing updater bootstrap/user-data ownership. DEV 188.1 published all 12 assets; the five inventory hashes match public GitHub asset digests (CI 40013941601).
 - [ ] Clean-machine GUI/trust, representative cross-version upgrades, RPM graphical startup and additional distribution acceptance; signing/notarization stay independent gates.
 
 ## CI/CD

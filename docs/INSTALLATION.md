@@ -14,7 +14,7 @@ Release signing/notarization is still a production gate; unsigned packages may e
 
 ## Native installer previews
 
-The 0.9.3-DEV packaging work adds these formats to newly verified DEV/SNAPSHOT builds. Availability is conditional on the corresponding complete hosted build and installer smoke checks; Stable 0.9.2 remains the original portable-only release and is not modified.
+Download the five installer formats from [0.9.3-DEV build 188.1](https://github.com/SyntaxDevTeam/SyntaxLauncher/releases/tag/dev-188.1-v0.9.3-DEV). [Workflow 40013941601](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/40013941601) passed all three platform jobs and published the complete 12-asset release (five installers, installer checksum inventory, three portable archives and three updater bundles). Later DEV/SNAPSHOT builds use the same complete-set publication gate. Stable 0.9.2 remains the original portable-only release and is not modified.
 
 | Target | File | Installation |
 | --- | --- | --- |

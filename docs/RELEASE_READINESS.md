@@ -48,3 +48,13 @@ The maintainer explicitly approved Stable 0.9.2 on 23 October 2026 after the emb
 New scope: selected-game RAM settings with Save/Close, one header profile entry, version-before-game-type sidebar order, embedded profile inventory and wizard, filtered complete packs, inline extras selection and exact community links. Microsoft approval remains deferred; no new premium/native gameplay/signing claim is made.
 
 Verified publication: [Stable v0.9.2](https://github.com/SyntaxDevTeam/SyntaxLauncher/releases/tag/v0.9.2), commit `e5b4daaf2d6208316b452a11e7eb478b9c03a18f`, [successful workflow 40005510889](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/40005510889). All six non-empty platform assets are uploaded; the release is public and not prerelease. The maintainer advanced the working development version to 0.9.3-DEV during publication; Stable remains 0.9.2.
+
+## Native installer preview acceptance — 24 October 2026
+
+[DEV 188.1 / 0.9.3-DEV](https://github.com/SyntaxDevTeam/SyntaxLauncher/releases/tag/dev-188.1-v0.9.3-DEV) is public from commit `cfcbe79cae2bfb44e1c1e05707a004af1d0148f5`. [Workflow 40013941601](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/40013941601) passed core/desktop verification, all three platform jobs, complete preview publication and Build Explorer publication. The release contains 12 non-empty assets: five native installers, their SHA-256 inventory, three portable archives and three updater ZIPs. The downloaded five-entry inventory agrees with GitHub's public SHA-256 asset digests. Stable remains 0.9.2.
+
+- Windows x64: WiX 7.0.0 MSI installation, full payload hashes, Start menu registration, same-core duplicate rejection, repair and app-only removal with data preservation passed.
+- macOS ARM64: DMG verification, mounting, Applications link, bundle copy/identity and temporary app removal passed.
+- Linux x64: DEB install, registered/validated desktop entry, Xvfb startup and app-only removal passed; Fedora 44 RPM dependency-resolved installation/removal preserved data; AppImage extraction and Xvfb startup passed.
+
+This closes preparation and automated lifecycle/publication acceptance. Interactive clean-machine GUI/trust checks, actual prior-version upgrades, RPM graphical startup, additional distributions and signing/notarization remain open. The later UI requests concerning the portable EXE icon, footer alignment, profile deletion and Vanilla packs entry are separate follow-up work and are not covered by this installer acceptance.
