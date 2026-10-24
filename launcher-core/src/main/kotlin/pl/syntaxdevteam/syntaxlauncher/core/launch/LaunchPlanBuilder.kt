@@ -1,5 +1,6 @@
 package pl.syntaxdevteam.syntaxlauncher.core.launch
 
+import pl.syntaxdevteam.syntaxlauncher.core.account.PremiumAccount
 import pl.syntaxdevteam.syntaxlauncher.core.minecraft.MinecraftOperatingSystem
 import pl.syntaxdevteam.syntaxlauncher.core.minecraft.MinecraftVersionType
 
@@ -9,6 +10,11 @@ class LaunchPlanBuilder(
     private val placeholderResolver: MinecraftArgumentPlaceholderResolver = MinecraftArgumentPlaceholderResolver(),
 ) {
     fun build(request: LaunchRequest): LaunchPlan {
+        require(request.account is PremiumAccount && request.authentication.userType == "msa" &&
+            request.authentication.accessToken.isNotBlank() && request.authentication.accessToken != "0" &&
+            request.authentication.clientId.isNotBlank() && request.authentication.sessionId.isNotBlank()) {
+            "A verified Microsoft / Minecraft Java session is required."
+        }
         val prepared = request.prepared
         val version = prepared.version
         val classpath = prepared.filePlan.classpath

@@ -99,15 +99,14 @@ class DesktopLauncherSessionAccountsTest {
     @Test fun savedIdentitiesSurviveWindowRestartWithoutReadingVaultUntilPlay() = runBlocking {
         val first = Fixture()
         try {
-            first.store.saveOffline("ChildOne")
             first.session.addPremiumAccount()
-            assertEquals(2, first.session.savedAccounts.value.size)
+            assertEquals(1, first.session.savedAccounts.value.size)
         } finally { first.close() }
         val restarted = Fixture(first.root, first.vault)
         try {
             restarted.vault.locked = true
             restarted.session.loadAccounts()
-            assertEquals(listOf("ChildOne", "PlayerOld"), restarted.session.savedAccounts.value.map { it.account.username })
+            assertEquals(listOf("PlayerOld"), restarted.session.savedAccounts.value.map { it.account.username })
             assertEquals("PlayerOld", restarted.session.premiumAccounts.value.single().username)
             val disk = Files.readString(restarted.file)
             assertFalse(disk.contains("fixture-refresh"))
@@ -187,45 +186,45 @@ class DesktopLauncherSessionAccountsTest {
         } finally { f.close() }
     }
 
-    @Test fun offlinePlayWorksWithLockedVaultAndWithoutMicrosoftRefresh() = runBlocking {
+    @Test fun playWithoutMicrosoftAccountIsBlocked() = runBlocking {
         val f = Fixture()
         try {
             f.vault.locked = true
-            f.refresh = { error("Offline must not call Microsoft") }
-            val player = f.session.addOfflineAccount("ChildOne")
-            assertTrue(f.session.play(f.version, player.username, 2048))
-            val plan = withTimeout(10000) { f.captured.await() }
-            f.awaitAccountPreparation()
-            assertTrue("ChildOne" in plan.gameArguments)
-            assertTrue("legacy" in plan.gameArguments)
-            assertFalse("msa" in plan.gameArguments)
-            assertEquals(player, f.session.savedAccounts.value.single().account)
-            assertNull(f.session.launchIssue.value)
-            assertTrue(f.vault.tokens.isEmpty())
+            assertFalse(f.session.play(f.version, "ChildOne", 2048))
+            assertFalse(f.captured.isCompleted)
+            assertTrue(f.session.launchIssue.value.orEmpty().contains("Microsoft"))
         } finally { f.close() }
     }
 
     @Test fun unknownMicrosoftIdentityNeverFallsBackToValidOfflineNickname() = runBlocking {
         val f = Fixture()
         try {
-            f.session.addOfflineAccount("ChildOne")
             assertFalse(f.session.play(f.version, "ChildOne", 2048, premiumId = id.toString()))
             assertFalse(f.captured.isCompleted)
             assertTrue(f.session.launchIssue.value.orEmpty().contains("Microsoft"))
         } finally { f.close() }
     }
 
-    @Test fun offlineManagerPublishesRenameAndRemovalWithoutVaultAccess() = runBlocking {
+    @Test fun historicalLocalProfilesStayOnDiskButCannotBeLaunched() = runBlocking {
         val f = Fixture()
         try {
-            f.vault.locked = true
-            val player = f.session.addOfflineAccount("ChildOne")
-            val renamed = f.session.renameOfflineAccount(player.uuid.toString(), "ChildTwo")
-            assertNotEquals(player.uuid, renamed.uuid)
-            assertEquals(listOf(renamed), f.session.savedAccounts.value.map { it.account })
-            f.session.removePlayerAccount(renamed.uuid.toString())
+            val legacy = OfflineAccount.create("ChildOne")
+            val p = java.util.Properties().apply {
+                setProperty("schema_version", "1")
+                setProperty("accounts", legacy.uuid.toString())
+                setProperty("${legacy.uuid}.name", legacy.username)
+                setProperty("${legacy.uuid}.type", "offline")
+            }
+            Files.newOutputStream(f.file).use { p.store(it, "fixture") }
+            val world = f.layout.gameDir.resolve("saves/world/level.dat")
+            Files.createDirectories(world.parent)
+            Files.writeString(world, "preserved")
+            f.session.loadAccounts()
             assertTrue(f.session.savedAccounts.value.isEmpty())
-            assertTrue(f.store.accounts().isEmpty())
+            assertFalse(f.session.play(f.version, legacy.username, 2048))
+            assertFalse(f.captured.isCompleted)
+            assertEquals("preserved", Files.readString(world))
         } finally { f.close() }
     }
+
 }

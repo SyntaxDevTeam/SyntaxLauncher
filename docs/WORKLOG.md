@@ -9,6 +9,26 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 ---
 
 
+## 2026-10-24 — Authenticated-only AppID readiness implementation
+
+**Milestone:** Microsoft authentication / AppID compliance
+**Status:** Pending new commit-specific CI and live Mojang allowlist decision
+
+### Completed
+- Verified GitHub Actions 40078116601 passed for the settings/developer-mode commit 5dfb7df; the stable publisher was intentionally skipped.
+- Prepared authenticated-only player selection, blocked nickname-only launch in DesktopLauncherSession, and enforced Microsoft session conditions in MinecraftLaunchCoordinator and LaunchPlanBuilder.
+- Changed AccountManager to expose only verified Microsoft profiles. Historical local-only rows stay in storage but cannot create or launch a session; game profiles/world data are not migrated or deleted.
+- Updated account, UI and launch-plan regression tests, current README, developer instructions and AppID readiness documents.
+- Preserved the actual 19/22 October application request chronology, without claiming a particular rejection reason or approval.
+
+### Outstanding
+- New commit-specific hosted CI, platform-native interaction checks, live entitled Java account end-to-end tests (blocked by AppID approval), public website and Entra metadata review, installer signing and native vault validation.
+- Passing tests and documentation are not a guarantee of allowlisting.
+
+---
+
+
+
 
 
 ## 2026-10-24 — Close typed launch advice gaps and add native managed-Java acceptance

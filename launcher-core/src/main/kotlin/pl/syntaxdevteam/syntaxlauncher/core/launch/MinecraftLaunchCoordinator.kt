@@ -81,11 +81,10 @@ class MinecraftLaunchCoordinator(
             evidence = pl.syntaxdevteam.syntaxlauncher.core.diagnostics.LaunchEvidence(
                 version.id, loader?.let { "${it.id}/${it.version}" }, version.javaRequirement?.majorVersion)
             preparedMetadata = null
-            val validAuthentication = if (account is pl.syntaxdevteam.syntaxlauncher.core.account.OfflineAccount) {
-                authentication == LaunchAuthentication.offline(account)
-            } else account is pl.syntaxdevteam.syntaxlauncher.core.account.PremiumAccount && !(
-                authentication.userType != "msa" || authentication.accessToken.isBlank() ||
-                authentication.accessToken == "0" || authentication.clientId.isBlank())
+            val validAuthentication = account is pl.syntaxdevteam.syntaxlauncher.core.account.PremiumAccount &&
+                authentication.userType == "msa" && authentication.accessToken.isNotBlank() &&
+                authentication.accessToken != "0" && authentication.clientId.isNotBlank() &&
+                authentication.sessionId.isNotBlank()
             if (!validAuthentication) {
                 throw InvalidPlayerAuthenticationException()
             }

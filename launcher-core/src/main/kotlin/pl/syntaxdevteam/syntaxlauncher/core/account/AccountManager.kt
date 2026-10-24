@@ -34,36 +34,8 @@ class AccountManager(
     private val sessions = mutableMapOf<String, PremiumSession>()
     private fun key(id: String) = "$applicationId/$id"
 
-    suspend fun accounts(): List<SavedAccount> = io { decode(read()) }
-
-    suspend fun saveOffline(username: String): OfflineAccount = io {
-        val account = OfflineAccount.create(username)
-        val properties = read()
-        put(properties, account, false)
-        save(properties)
-        account
-    }
-
-    /** A nickname change also changes the offline UUID; never merge two saved players. */
-    suspend fun renameOffline(id: String, username: String): OfflineAccount = io {
-        val properties = read()
-        val saved = decode(properties)
-        val previous = saved.firstOrNull { it.account.uuid.toString() == id }
-            ?: error("Player profile no longer exists.")
-        check(!previous.microsoft) { "Microsoft names must be changed through Minecraft." }
-        val account = OfflineAccount.create(username)
-        val newId = account.uuid.toString()
-        check(newId == id || saved.none { it.account.uuid == account.uuid }) {
-            "A player with this nickname already exists."
-        }
-        properties.setProperty("accounts", ids(properties).map { if (it == id) newId else it }.joinToString(","))
-        properties.remove("$id.name")
-        properties.remove("$id.type")
-        properties.setProperty("$newId.name", account.username)
-        properties.setProperty("$newId.type", "offline")
-        save(properties)
-        account
-    }
+    /** Legacy local-only identities stay on disk but are never selectable. */
+    suspend fun accounts(): List<SavedAccount> = io { decode(read()).filter { it.microsoft } }
 
     suspend fun savePremium(session: PremiumSession) = io {
         val properties = read()
@@ -101,7 +73,7 @@ class AccountManager(
 
     suspend fun remove(id: String) = io {
         val properties = read()
-        val account = decode(properties).firstOrNull { it.account.uuid.toString() == id } ?: return@io
+        val account = decode(properties).firstOrNull { it.microsoft && it.account.uuid.toString() == id } ?: return@io
         if (account.microsoft) vault.remove(key(id)) // Failure must not masquerade as successful sign-out.
         sessions.remove(id)
         val ids = ids(properties).filterNot { it == id }

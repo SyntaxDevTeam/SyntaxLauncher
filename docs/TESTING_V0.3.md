@@ -23,14 +23,14 @@ This checklist separates deterministic CI coverage from real Microsoft/Xbox/Mine
 
 ## Account selection / OAuth
 
-- [ ] Offline nickname and old v0.2 instances remain selectable and playable.
+- [ ] Historic local-only account rows cannot be selected or played; their settings, game instances and worlds remain intact.
 - [ ] With a configured ID, Add Microsoft opens the default browser (not an embedded password form) and uses a random-port localhost callback.
 - [ ] A valid login authenticates Xbox, XSTS, Minecraft Services and fetches the verified Java username and UUID.
 - [ ] Cancel/denial, callback CSRF mismatch, browser not available and 180-second timeout produce actionable errors without exposing auth codes.
 - [ ] Add a second account and switch between the two; verify proper Minecraft Java identities.
-- [ ] Close/reopen the launcher: saved Offline and Microsoft identities appear without reading credentials; Play refreshes the saved Microsoft session and uses the current verified username.
+- [ ] Close/reopen the launcher: only Microsoft identities appear, and Play refreshes the saved Microsoft session and uses the current verified Java username.
 - [ ] Sign out removes the saved identity and its local OS refresh credential; after restart it stays removed. A locked store must show an error and retain the identity for retry.
-- [ ] On Linux with a locked/unavailable Secret Service store, Microsoft persistence fails without plaintext fallback; offline Play and saved offline player selection still work.
+- [ ] On Linux with a locked/unavailable Secret Service store, Microsoft persistence fails without plaintext fallback, and all Play paths remain blocked.
 - [ ] Invalid app approval yields an actionable 403 error without leaking tokens; diagnose permission/registration rather than suggesting another launcher's client ID.
 - [ ] A Microsoft account without a Java profile cannot be played as premium.
 

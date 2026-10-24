@@ -53,20 +53,18 @@ class LauncherHomeRenderTest {
     @TempDir lateinit var root: Path
 
     @Test
-    fun homeAllowsExplicitOfflinePlayerBeforeMicrosoftAppApproval() = runBlocking(Dispatchers.Swing) {
+    fun homeShowsVerifiedMicrosoftPlayer() = runBlocking(Dispatchers.Swing) {
         val session = session()
         val scene = ImageComposeScene(1440, 810, coroutineContext = Dispatchers.Swing) { SyntaxLauncherApp(session) }
         try {
             scene.awaitReady()
-            scene.screenshot("home-1440x810")
-            assertTrue(scene.nodes().none { it.label() == "MEMORY ALLOCATION" })
-            assertNotNull(scene.text("SyntaxPlayer · Offline / non-premium"))
+            assertNotNull(scene.text("SyntaxPlayer · Microsoft"))
             assertFalse(scene.text("PLAY MINECRAFT").config.contains(SemanticsProperties.Disabled))
-            assertTrue(scene.nodes().none { it.label() == "Offline nickname" })
+            assertTrue(scene.nodes().none { it.label().contains("Offline / non-premium") })
         } finally { scene.close(); session.shutdown() }
     }
 
-    @Test fun emptyPlayerManagerCreatesAnExplicitPlayableOfflineProfile() = runBlocking(Dispatchers.Swing) {
+    @Test fun emptyPlayerManagerRequiresMicrosoftSignIn() = runBlocking(Dispatchers.Swing) {
         val session = session(emptyPlayers = true)
         val scene = ImageComposeScene(1440, 810, coroutineContext = Dispatchers.Swing) { SyntaxLauncherApp(session) }
         try {
@@ -74,22 +72,10 @@ class LauncherHomeRenderTest {
             assertTrue(scene.text("PLAY MINECRAFT").config.contains(SemanticsProperties.Disabled))
             scene.text("Manage players").click()
             scene.frames()
-            val field = scene.nodes().first { it.config.getOrNull(SemanticsProperties.TestTag) == "player-nickname" }
-            field.config[SemanticsActions.SetText].action!!.invoke(AnnotatedString("TesterOne"))
-            scene.frames()
-            scene.text("Save player").click()
-            withTimeout(5000) {
-                while (session.savedAccounts.value.isEmpty()) { scene.render(System.nanoTime()).close(); delay(20) }
-            }
-            scene.frames()
-            scene.screenshot("player-manager-dialog")
-            scene.text("Done").click()
-            scene.frames()
-            assertNotNull(scene.text("TesterOne · Offline / non-premium"))
-            assertFalse(scene.text("PLAY MINECRAFT").config.contains(SemanticsProperties.Disabled))
+            assertTrue(scene.nodes().none { it.label() == "Add offline player" })
+            assertNotNull(scene.text("Add Microsoft"))
+            assertTrue(scene.text("PLAY MINECRAFT").config.contains(SemanticsProperties.Disabled))
         } finally { scene.close(); session.shutdown() }
-        assertEquals(pl.syntaxdevteam.syntaxlauncher.core.account.OfflineAccount.create("TesterOne").uuid.toString(),
-            session.preferences.load().selectedPlayerId)
     }
 
     @Test
@@ -339,7 +325,7 @@ class LauncherHomeRenderTest {
     }
 
     @Test
-    fun savedOfflinePlayerIsSelectableInEveryLanguage() = runBlocking(Dispatchers.Swing) {
+    fun savedMicrosoftPlayersCanBeSelectedInEveryLanguage() = runBlocking(Dispatchers.Swing) {
         for (language in UiLanguage.entries) {
             val session = session(savedPlayer = true)
             val strings = UiStrings(language)
@@ -348,15 +334,15 @@ class LauncherHomeRenderTest {
             }
             try {
                 scene.awaitReady(strings.text("ui.play_minecraft"))
-                scene.text("SyntaxPlayer · " + strings.text("players.offline")).click()
+                scene.text("SyntaxPlayer · Microsoft").click()
                 scene.frames()
-                scene.text("ChildTwo · " + strings.text("players.offline")).click()
+                scene.text("ChildTwo · Microsoft").click()
                 scene.frames()
                 assertFalse(scene.text(strings.text("ui.play_minecraft")).config.contains(SemanticsProperties.Disabled))
                 delay(500)
-                assertEquals(pl.syntaxdevteam.syntaxlauncher.core.account.OfflineAccount.create("ChildTwo").uuid.toString(),
-                    session.preferences.load().selectedPlayerId)
-                scene.screenshot("home-saved-player-${language.code}")
+                assertEquals("ChildTwo", session.savedAccounts.value.first {
+                    it.account.uuid.toString() == session.preferences.load().selectedPlayerId
+                }.account.username)
             } finally { scene.close(); session.shutdown() }
         }
     }
@@ -521,14 +507,24 @@ class LauncherHomeRenderTest {
         val preferences = LauncherPreferencesStore(state.resolve("settings.properties"))
         preferences.save(LauncherPreferences(nickname = if (emptyPlayers) "" else "SyntaxPlayer", selectedVersionId = "26.3",
             maximumMemoryMiB = 8192))
+        val vaultEntries = mutableMapOf<String, String>()
         val accounts = pl.syntaxdevteam.syntaxlauncher.core.account.AccountManager(
             state.resolve("accounts.properties"), object : pl.syntaxdevteam.syntaxlauncher.core.account.RefreshTokenVault {
-                override fun read(key: String): String? = error("Offline UI must not read credentials")
-                override fun write(key: String, token: String) = error("Offline UI must not write credentials")
-                override fun remove(key: String) = error("Offline UI must not remove credentials")
-            }, "fixture-app", { error("Offline UI must not refresh credentials") })
-        if (!emptyPlayers) accounts.saveOffline("SyntaxPlayer")
-        if (savedPlayer) accounts.saveOffline("ChildTwo")
+                override fun read(key: String): String? = vaultEntries[key]
+                override fun write(key: String, token: String) { vaultEntries[key] = token }
+                override fun remove(key: String) { vaultEntries.remove(key) }
+            }, "fixture-app", { error("Fixture refresh must fail if requested") })
+        val accountId = java.util.UUID.fromString("12345678-1234-1234-1234-123456789abc")
+        if (!emptyPlayers) {
+            accounts.savePremium(pl.syntaxdevteam.syntaxlauncher.core.account.PremiumSession(
+                pl.syntaxdevteam.syntaxlauncher.core.account.PremiumAccount("SyntaxPlayer", accountId),
+                "fixture-minecraft-token", java.time.Instant.now().plusSeconds(3600), "fixture-refresh"))
+            preferences.save(preferences.load().copy(selectedPlayerId = accountId.toString()))
+        }
+        if (savedPlayer) accounts.savePremium(pl.syntaxdevteam.syntaxlauncher.core.account.PremiumSession(
+            pl.syntaxdevteam.syntaxlauncher.core.account.PremiumAccount("ChildTwo",
+                java.util.UUID.fromString("abcdefab-cdef-abcd-efab-cdefabcdefab")),
+            "fixture-minecraft-token", java.time.Instant.now().plusSeconds(3600), "fixture-refresh-two"))
         return DesktopLauncherSession(MinecraftVersionCatalog(http), MinecraftVersionResolver(http),
             MinecraftLaunchCoordinator(MinecraftPreparationService(downloads),
                 MojangJavaRuntimeManager(http, downloads, state.resolve("runtimes")), LaunchPlanBuilder(),

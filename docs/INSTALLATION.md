@@ -36,7 +36,7 @@ Installers only own application files and shortcuts. Package removal leaves worl
 
 ## First game
 
-Select or add an explicit offline player. Microsoft acceptance is deferred while Mojang reviews the AppID; existing Microsoft code is retained and failed authentication never silently becomes offline play. Choose Vanilla, or create a separate game with mods. Choose extras/modpacks in the catalog, Install, then Play. Advanced local imports are secondary. Offline identities cannot authenticate to servers requiring a verified Microsoft session.
+Select **Add Microsoft** in Manage players and sign in using the system browser. A verified Minecraft Java Edition entitlement and profile are mandatory for Play; if Mojang has not allowlisted the AppID, Microsoft gameplay remains unavailable and the launcher must not bypass it. Choose Vanilla or a separate modded game, then Install and Play after successful authentication. Existing instance/world data is preserved independently of any legacy local-only identity.
 
 Use **Game health and repair** if installation or startup fails. Repair checks/downloads launcher-managed files and Java while retaining your worlds/mods/settings. It does not start the game. Settings provides the update channel, launcher log and data locations. A safe diagnostic report can be copied manually for support; nothing is uploaded automatically.
 

@@ -6,7 +6,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-import pl.syntaxdevteam.syntaxlauncher.core.account.OfflineAccount
+import pl.syntaxdevteam.syntaxlauncher.core.account.PremiumAccount
 import pl.syntaxdevteam.syntaxlauncher.core.java.JavaRuntime
 import pl.syntaxdevteam.syntaxlauncher.core.minecraft.MinecraftArgument
 import pl.syntaxdevteam.syntaxlauncher.core.minecraft.MinecraftArguments
@@ -23,7 +23,8 @@ import pl.syntaxdevteam.syntaxlauncher.core.minecraft.PreparedMinecraftVersion
 import pl.syntaxdevteam.syntaxlauncher.core.minecraft.ResolvedMinecraftVersion
 
 class LaunchPlanBuilderTest {
-    private val account = OfflineAccount.create("SyntaxUser")
+    private val account = PremiumAccount("SyntaxUser", java.util.UUID.fromString("12345678-1234-1234-1234-123456789abc"))
+    private val verified = LaunchAuthentication("fixture-access", "fixture-session", "msa", clientId = "fixture-client")
     private val platform = MinecraftPlatform(
         os = MinecraftOperatingSystem.LINUX,
         architecture = MinecraftArchitecture.X86_64,
@@ -100,6 +101,7 @@ class LaunchPlanBuilderTest {
                     maximumMemoryMiB = 4096,
                     extraJvmArguments = listOf("-Dsyntax.test=true"),
                 ),
+                authentication = verified,
             ),
         )
 
@@ -115,7 +117,7 @@ class LaunchPlanBuilderTest {
         assertTrue(classpath.joinToString(":") { it.toString() } in plan.jvmArguments)
         assertTrue(account.username in plan.gameArguments)
         assertTrue(account.uuid.toString().replace("-", "") in plan.gameArguments)
-        assertTrue("0" in plan.gameArguments)
+        assertTrue("fixture-access" in plan.gameArguments)
         assertEquals(runtime.executable.toString(), plan.command.first())
         assertFalse(plan.command.any { "${'$'}{" in it })
         assertTrue(root.resolve("game").toString() in plan.gameArguments)
@@ -152,13 +154,14 @@ class LaunchPlanBuilderTest {
                 ),
                 platform = platform,
                 options = LaunchOptions(),
+                    authentication = verified,
             ),
         )
 
         assertTrue("-Djava.library.path=${root.resolve("natives")}" in plan.jvmArguments)
         assertTrue("-cp" in plan.jvmArguments)
         assertTrue(classpath.single().toString() in plan.jvmArguments)
-        assertTrue("token:0:${account.uuid.toString().replace("-", "")}" in plan.gameArguments)
+        assertTrue("fixture-session" in plan.gameArguments)
     }
 
     @Test
@@ -192,6 +195,7 @@ class LaunchPlanBuilderTest {
                     ),
                     platform = platform,
                     options = LaunchOptions(),
+                    authentication = verified,
                 ),
             )
         }

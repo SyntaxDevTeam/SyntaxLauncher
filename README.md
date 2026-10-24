@@ -6,17 +6,17 @@ Publisher and support: **SyntaxDevTeam / WieszczY**, [wieszczy85@gmail.com](mail
 
 [Project website](https://syntaxdevteam.pl/p/syntaxlauncher) · [Privacy](https://syntaxdevteam.pl/p/syntaxlauncher-prywatnosc) · [Terms](https://syntaxdevteam.pl/p/syntaxlauncher-warunki-uzytkowania) · [Support and account removal](https://syntaxdevteam.pl/p/syntaxlauncher-zarzadzanie-usluga)
 
-> **Player profiles — 22 October 2026:** SyntaxLauncher supports both explicit offline/non-premium players and Microsoft accounts. The player manager saves, selects, renames offline nicknames and removes profiles independently of game instances, worlds and add-ons; the active player survives restart. Microsoft Play still requires fresh official authentication, Java entitlement and profile verification, with no automatic offline fallback. The maintainer explicitly restored dual-mode product scope after the authenticated-only AppID-review change. The renewed request described immutable commit b915ad2, not this dual-mode revision; no allowlist approval is claimed.
+> **Accounts and AppID review — 24 October 2026:** SyntaxLauncher is a Microsoft-authenticated Minecraft: Java Edition launcher. Players must sign in and have a verified Java entitlement/profile before every Play. Local-only legacy identity records remain intact on disk for backup but are neither selectable nor playable. The Minecraft Services AppID has **not** been approved; live login/gameplay acceptance remains blocked pending approval. See [AppID compliance](docs/APPID_COMPLIANCE.md).
 
 SyntaxLauncher is a modern Minecraft launcher from SyntaxDevTeam, written primarily in Kotlin and developed incrementally from a minimal vanilla launcher into a modular launcher with premium authentication, isolated instances, mod loaders, Modrinth integration, modpacks and diagnostics.
 
-The project has implemented a v0.2 Instance Manager, reached **bounded v0.8 Forge/Quilt and v0.9 graphics acceptance**, and completed **v0.10 Modrinth modpack installation** within the documented scope. Official Forge/NeoForge installer smoke tests and three-platform CI packaging pass; the maintainer confirmed private Forge startup and Forge/Quilt mod workflows. Forge now discovers modern V2 builds matching the selected Minecraft version; official reference installation tests also cover 1.21.11, 26.2 and 26.3. v0.9 now includes built-in mods/textures/shaders/OptiFine installation and installed-pack controls within the documented compatibility matrix; the maintainer confirmed private v0.9 gameplay acceptance; the broader native/platform matrix remains open. Modrinth modpacks now install into newly prepared games from the built-in catalog. Minecraft Services reconsideration after the first denial, v0.3 real-account acceptance and documented clean-machine Vanilla startup acceptance remain pending. The Kotlin/Compose launcher now connects the offline account, Mojang metadata, verified game preparation, automatic Java runtime installation, metadata-driven LaunchPlan and MinecraftProcessManager to an actual desktop Play workflow. A real clean-machine Minecraft launch is not yet verified.
+The project has implemented a v0.2 Instance Manager, reached **bounded v0.8 Forge/Quilt and v0.9 graphics acceptance**, and completed **v0.10 Modrinth modpack installation** within the documented scope. Official Forge/NeoForge installer smoke tests and three-platform CI packaging pass; the maintainer confirmed private Forge startup and Forge/Quilt mod workflows. Forge now discovers modern V2 builds matching the selected Minecraft version; official reference installation tests also cover 1.21.11, 26.2 and 26.3. v0.9 now includes built-in mods/textures/shaders/OptiFine installation and installed-pack controls within the documented compatibility matrix; the maintainer confirmed private v0.9 gameplay acceptance; the broader native/platform matrix remains open. Modrinth modpacks now install into newly prepared games from the built-in catalog. Minecraft Services reconsideration after the first denial, v0.3 real-account acceptance and documented clean-machine Vanilla startup acceptance remain pending. The Kotlin/Compose launcher now connects the authenticated account, Mojang metadata, verified game preparation, automatic Java runtime installation, metadata-driven LaunchPlan and MinecraftProcessManager to an actual desktop Play workflow. A real clean-machine Minecraft launch is not yet verified.
 
 ## v0.11 / v0.12 — diagnostics, repair and release preparation
 
 Home → **Game health and repair** scans the selected game's managed files, explains common failures with confidence labels and repairs game files/Java without starting Minecraft or deleting worlds/mods/settings. Copy safe report exports a structured local summary without raw logs, credentials or private paths. Settings now includes a bounded launcher-log viewer, actual data locations and update-channel controls. Launcher logs rotate, sensitive message fields are redacted, downloads check free space and the common JVM dependency graph is locked.
 
-Microsoft account acceptance is **deferred while awaiting Mojang AppID approval** (maintainer instruction, 23 October 2026); existing code and explicit offline profiles remain. Implementation work on diagnostics/hardening is separate from final clean-machine, hosted updater, signing/notarization and native gameplay/DPI acceptance. See [v0.11 verification](docs/TESTING_V0.11.md), [v0.12 final gates](docs/TESTING_V0.12.md) and [installation/backup/removal](docs/INSTALLATION.md).
+Microsoft account acceptance is **deferred while awaiting Mojang AppID approval** (maintainer instruction, 23 October 2026); game launch requires verified Microsoft Java accounts; the implementation remains subject to official AppID allowlisting. Implementation work on diagnostics/hardening is separate from final clean-machine, hosted updater, signing/notarization and native gameplay/DPI acceptance. See [v0.11 verification](docs/TESTING_V0.11.md), [v0.12 final gates](docs/TESTING_V0.12.md) and [installation/backup/removal](docs/INSTALLATION.md).
 
 ## Sequential milestone closure — 24 October 2026
 
@@ -46,7 +46,7 @@ SyntaxLauncher is intentionally developed milestone by milestone.
 
 The first release will **not** try to compete with mature launchers by implementing every feature at once. Instead, v0.1 establishes a clean launcher core capable of:
 
-- using an offline/non-premium account;
+- using a modular account identity boundary (current releases require Microsoft authentication);
 - listing/selecting Minecraft versions;
 - resolving Minecraft metadata, assets, libraries and natives;
 - selecting and installing the Java runtime required by the chosen Minecraft version;
@@ -72,7 +72,7 @@ The v0.2 implementation includes cross-process per-instance file locks, safe clo
 
 ## v0.3 — Microsoft/Premium Accounts
 
-The player manager stores explicit offline profiles and Microsoft identities independently of game instances. Offline players never access the credential vault. Microsoft uses system-browser PKCE, the official Xbox/XSTS/Minecraft exchanges, Java entitlement/profile checks and OS-backed refresh credentials. Every Microsoft Play requires fresh verification; failures never silently fall back to offline. Live acceptance is deferred pending Mojang AppID approval. The request describes the earlier authenticated-only commit b915ad2; restored dual-mode scope is not claimed to satisfy that request's criteria. See [Microsoft application and renewed review](docs/MICROSOFT_APP.md).
+The account manager exposes only authenticated Microsoft identities. Every Play refreshes the official session and verifies Java entitlement and profile; failures block the launch. Historical local profile records and game data are preserved but are not selectable. Approval and live authentication acceptance are pending; see [AppID compliance](docs/APPID_COMPLIANCE.md).
 
 ## Pick Vanilla or play with mods
 
@@ -214,8 +214,8 @@ The current v0.1 implementation includes:
 - Compose Desktop presentation layer;
 - Coroutines, Ktor Client and kotlinx.serialization dependencies;
 - SLF4J/Logback logging foundation;
-- common `Account` boundary and `OfflineAccount` implementation;
-- offline username validation and deterministic Minecraft-compatible offline UUID generation;
+- common `Account` boundary and historical-format read-only legacy identity parser;
+- legacy identity format compatibility (not a game login method);
 - Mojang version manifest DTOs, parser and catalog service;
 - selected-version metadata resolver with SHA-1 verification;
 - release/snapshot classification;
@@ -234,19 +234,19 @@ The current v0.1 implementation includes:
 - `DesktopLauncherSession` owning background launches independently of Compose recomposition and detaching from a running game on window close;
 - the real `Play Minecraft` and `Stop Minecraft` UI actions, download/Java stage progress, crash state, PID/exit code and separate game-process log paths;
 - controlled `MockEngine` pipeline test sources with fake Java manager and a local Java child process;
-- normalized `LaunchAuthentication` for offline sessions without coupling the launch builder to a raw nickname;
+- mandatory Microsoft `LaunchAuthentication` requiring a non-empty verified session;
 - metadata-driven `LaunchPlanBuilder` for modern JVM/game arguments and legacy `minecraftArguments` fallback;
 - strict placeholder substitution for Mojang account/version/assets/natives/classpath/auth/launcher fields;
 - platform-aware classpath construction, RAM JVM arguments and downloaded logging-config injection;
 - structured `LaunchPlan` output containing runtime, working directory, main class, JVM args, game args and the final argument-vector command without shell concatenation;
 - typed launch-plan failures for missing artifacts and unresolved future placeholders;
-- deterministic launch-plan test sources covering modern and legacy argument construction, offline identity, logging, paths containing spaces and unknown-placeholder rejection;
+- deterministic launch-plan test sources covering modern and legacy argument construction, authenticated identity, logging, paths containing spaces and unknown-placeholder rejection;
 - `MinecraftProcessManager` with native `ProcessBuilder` execution, per-run stdout/stderr log files, structured lifecycle/PID/exit status, duplicate-launch protection and explicit detach/terminate shutdown policy;
 - controlled process tests including a real local Java child and synthetic crash/force-stop/detach scenarios;
 - initial unit/integration test sources using Ktor `MockEngine` rather than live Mojang services;
-- a lightweight Compose screen with nickname validation, release/snapshot selection, version selection, RAM control, loading state and retryable metadata errors.
+- a lightweight Compose screen with authenticated account selection, release/snapshot selection, version selection, RAM control, loading state and retryable metadata errors.
 
-The remaining v0.1 engineering work is complete cross-platform artifact verification, first real vanilla Minecraft launch and UI polish. Schema-versioned preferences for offline nickname/version/channel/RAM are now implemented but need desktop acceptance. The new Play action is functional in code but not yet validated against a real Mojang download and game startup.
+The remaining v0.1 engineering work is complete cross-platform artifact verification, first real vanilla Minecraft launch and UI polish. Schema-versioned preferences for Minecraft version/channel/RAM and retained legacy settings are now implemented but need desktop acceptance. The new Play action is functional in code but not yet validated against a real Mojang download and game startup.
 
 ## Continuous integration
 
@@ -274,7 +274,7 @@ The launcher refreshes Mojang’s version list at startup and stores only succes
 
 ## Preferences
 
-SyntaxLauncher stores the selected offline nickname, Minecraft version/channel, RAM allocation, UI language, active game and launcher update channel in a schema-versioned `settings.properties` file inside the OS configuration directory. Writes use a temporary file and atomic publication where supported. Unknown property keys are preserved; an unsupported schema is rejected without erasing user settings. Microsoft credentials are not part of this storage format.
+SyntaxLauncher stores the selected Microsoft account, Minecraft version/channel, RAM allocation, UI language, active game and launcher update channel in a schema-versioned `settings.properties` file inside the OS configuration directory. Writes use a temporary file and atomic publication where supported. Unknown property keys are preserved; an unsupported schema is rejected without erasing user settings. Microsoft credentials are not part of this storage format.
 
 ## Visual identity
 
@@ -319,7 +319,7 @@ Build files are authoritative for exact dependency versions.
 
 | Version | Primary goal |
 |---|---|
-| **v0.1** | Vanilla + offline account + version selection + automatic Java + game launch |
+| **v0.1** | Vanilla + account identity abstraction + version selection + automatic Java + game launch |
 | **v0.2** | Isolated Minecraft instances |
 | **v0.3** | Microsoft / premium accounts |
 | **v0.4** | Fabric loader |
@@ -377,14 +377,6 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full architecture spe
 
 ## Accounts
 
-### Offline / non-premium
-
-Available alongside Microsoft player profiles. Use **Manage players** in the Player section to add and select an **Offline / non-premium** nickname. The launcher remembers the active player after restart. Removing a player does not delete worlds, game profiles or add-ons. Renaming an offline player changes its deterministic UUID, so worlds/servers may treat the new nickname as a different player.
-
-Offline accounts are intended for local play and servers configured to accept offline clients. SyntaxLauncher will not use offline accounts to bypass authentication on servers operating in online mode.
-
-The current implementation already provides a common account model, offline username validation and deterministic UUID generation using Minecraft's `OfflinePlayer:<username>` convention. The launch layer converts that account into normalized offline authentication/session placeholder values rather than embedding offline-specific branching throughout command construction.
-
 ### Microsoft / premium
 
 Implemented for v0.3 with automated fixtures; real sign-in/gameplay remain blocked pending AppID authorization. Use **Manage players → Add Microsoft**. Saved Microsoft names come from the verified Java profile and cannot be edited locally.
@@ -428,7 +420,7 @@ LaunchOptions / platform / feature rules
 LaunchPlan
 ```
 
-The builder resolves Mojang JVM/game arguments, substitutes supported `${...}` placeholders, applies platform-specific classpath separators, injects prepared assets/natives/libraries/game paths, supplies offline identity/session values, adds RAM and logging configuration arguments and produces one structured argument vector.
+The builder resolves Mojang JVM/game arguments, substitutes supported `${...}` placeholders, applies platform-specific classpath separators, injects prepared assets/natives/libraries/game paths, supplies verified Microsoft session values, adds RAM and logging configuration arguments and produces one structured argument vector.
 
 It does **not** create one large shell command string. Paths containing spaces remain individual process arguments, which is safer and avoids platform-specific quoting problems. Legacy metadata without an explicit JVM argument list receives a small compatibility fallback for natives/classpath instead of a hardcoded per-version launch recipe.
 
@@ -507,7 +499,7 @@ This is intended to prevent the project roadmap from drifting away from the real
 
 **v0.1 — Minimal Vanilla Launcher: in progress**
 
-Implemented so far: project/module foundation, offline account primitives, Mojang version discovery and full selected-version parsing, shared verified download infrastructure, client/library/native/assets preparation, platform-aware managed Mojang Java installation, metadata-driven final launch-plan construction and the first lightweight Compose Desktop screen.
+Implemented so far: project/module foundation, legacy identity-format compatibility, Mojang version discovery and full selected-version parsing, shared verified download infrastructure, client/library/native/assets preparation, platform-aware managed Mojang Java installation, metadata-driven final launch-plan construction and the first lightweight Compose Desktop screen.
 
 Still required before v0.1 can be considered accepted: Gradle wrapper/full automated build, real clean-machine vanilla Minecraft launch, cross-platform verification, settings persistence, version-manifest cache and manual UI validation.
 

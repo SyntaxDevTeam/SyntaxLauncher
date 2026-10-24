@@ -10,7 +10,7 @@ SyntaxLauncher is a modular Minecraft launcher written primarily in Kotlin. The 
 
 The launcher must ultimately be able to support:
 
-- explicit offline/non-premium player profiles alongside official Microsoft accounts, with a persistent player manager separate from game instances;
+- Microsoft-authenticated player profiles only, with a persistent player manager separate from game instances; historical local-only rows are inert and preserved only for recovery;
 - official Microsoft/Minecraft authentication for premium accounts;
 - multiple Minecraft versions;
 - automatic Java runtime selection and installation;
@@ -166,7 +166,7 @@ Create abstractions when there are at least two realistic implementations or whe
 
 ## 8. Authentication and security rules
 
-**22 October 2026 maintainer correction:** The maintainer explicitly reaffirmed offline/non-premium support and a player profile manager alongside Microsoft accounts. This supersedes the earlier authenticated-only product change made for AppID review. Keep offline selection explicit; never silently fall back after Microsoft failure or impersonate verified identities. Microsoft launches still require fresh official entitlement/profile checks. The official AppID form requires authentication/ownership regardless of server configuration: document that conflict honestly, preserve the actual b915ad2 submission record, and do not claim this dual-mode revision meets that requirement or has approval.
+**Current product requirement — 24 October 2026:** Only a Microsoft account with a freshly validated Minecraft Java entitlement/profile may launch. Never reintroduce local-only gameplay, nickname-based identities, synthetic sessions, or fallback after failed authentication. Enforce this in UI, DesktopLauncherSession, MinecraftLaunchCoordinator and LaunchPlanBuilder. Preserve legacy user files/worlds without allowing their identities to launch. The AppID remains unapproved: see [docs/APPID_COMPLIANCE.md](docs/APPID_COMPLIANCE.md) for outstanding validation and external website/Entra checks.
 
 - Premium authentication must use official Microsoft/Xbox/Minecraft authentication flows.
 - Never collect or store a user's Microsoft password.
@@ -174,7 +174,7 @@ Create abstractions when there are at least two realistic implementations or whe
 - Access and refresh tokens must never be written to normal logs.
 - Sensitive credentials must not be committed.
 - Prefer OS credential/keychain storage for long-lived secrets once premium authentication is implemented.
-- Offline accounts must never be presented as a way to bypass authentication on `online-mode=true` servers.
+- No game can start without an officially authenticated and freshly verified Minecraft Java entitlement/profile, regardless of the server's online-mode setting.
 - Do not implement mechanisms intended to impersonate premium identities or defeat server authentication.
 
 ## 9. Logging rules

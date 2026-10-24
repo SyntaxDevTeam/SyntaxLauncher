@@ -1,72 +1,42 @@
-# SyntaxLauncher Microsoft application
+# SyntaxLauncher — Microsoft application and Minecraft Services AppID
 
-## Current registration and review status — 22 October 2026
+## Current product policy — 24 October 2026
 
-- Display name: **SyntaxLauncher**; project-owned public Client ID: `4e52f347-1d66-468f-b379-9168778636dc`.
-- Created 19 October 2026. Personal Microsoft accounts; native/public desktop platform; registered redirect `http://localhost/callback`. S256 PKCE, random state and an ephemeral local port are used.
-- The public Client ID is now the desktop runtime default. An explicit `SYNTAXLAUNCHER_MICROSOFT_CLIENT_ID` developer override remains available; this is not a player setting or a workaround for refusal.
-- The desktop embeds no client secret. Entra overview shows one pre-existing secret; its value was not accessed, used or changed in this task. The public-client OAuth code does not use it.
-- Initial form submission: **19 October 2026**, with a visible receipt. **Outcome: declined**, reported directly by the maintainer on 22 October 2026. The generic batch email does not establish that this specific AppID was classified as a bad app or blocked.
-- Renewed submission: **22 October 2026**, using the same AppID/tenant. Visible official receipt: **Thank you for contacting Mojang Studios.** The reviewed implementation is `b915ad282e6a9b32f22e0296ea1165d5e8c9445b`. New decision pending; this proves receipt only.
-- **Allowlist approval and live account sign-in/refresh/gameplay: NOT verified.** Automated HTTP fixtures are not live authorization evidence.
+SyntaxLauncher is an independent Kotlin/Compose desktop launcher for Minecraft: Java Edition on Windows, macOS and Linux. **Gameplay requires a Microsoft account and a freshly verified Java Edition entitlement and profile**. Local-only historical identity records are retained for non-destructive data compatibility but never shown in the account picker or allowed to launch. The launch pipeline rejects missing/non-Microsoft credentials at both session and core layers. Instances/worlds are not linked to the eligibility of an old identity.
 
-## Current product correction — later on 22 October 2026
+Public Microsoft Entra Client ID: `4e52f347-1d66-468f-b379-9168778636dc`.
+Application registration: personal Microsoft accounts; native desktop public client, redirect `http://localhost/callback`; system-browser authorization code with PKCE S256 and random state. Requested scopes: `XboxLive.signin offline_access`. No client secret is embedded or used by the launcher.
 
-The maintainer explicitly reaffirmed the original dual-mode product: **Offline / non-premium** and **Microsoft** players, plus a persistent player manager. The current revision restores offline gameplay as an explicit player selection. Microsoft profiles still use fresh official Java entitlement/profile verification; a failure never selects an offline identity. The player manager supports add/select, offline rename (which changes UUID), confirmed removal without deleting game data and active-player persistence.
+## Authentication and licence verification
 
-The 22 October renewed submission accurately referenced immutable **b915ad2**, whose authenticated-only behavior is recorded below. It does **not** describe this subsequent revision. The official form's authentication/ownership condition applies regardless of server configuration and conflicts with unauthenticated gameplay; we cannot claim the dual-mode product meets that condition or promise allowlist approval. Public pages/Entra descriptions must describe both modes. No duplicate form or new compliance attestation is authorized by this documentation; a correction to the existing submission remains outstanding until actually delivered and confirmed.
+Microsoft OAuth -> Xbox Live user authentication -> XSTS -> Minecraft Services `/authentication/login_with_xbox` -> `/entitlements/mcstore` -> `/minecraft/profile`.
 
-## Historical material changes in submitted b915ad2
+- Entitlement requires `game_minecraft` or `product_minecraft`; empty, malformed, unrelated, Bedrock-only and HTTP error responses fail closed.
+- Minecraft Java profile must produce a valid username and UUID; a Microsoft/Xbox identity alone is insufficient.
+- Every Play obtains fresh verified credentials; refresh failure, changed UUID, missing token/client ID or failed verification stops launch before game file preparation.
+- Refresh secrets are intended for native OS protected storage: Secret Service on Linux, Keychain on macOS, DPAPI on Windows. No unencrypted fallback. The app does not request Microsoft passwords.
 
-The official [AppID Review form](https://aka.ms/mce-reviewappid) explicitly requires authentication and ownership checks before gameplay regardless of server configuration. The old nickname-only workflow did not satisfy that requirement. The denial email gives no individual reason, so this is an evidence-backed compliance gap, not a confirmed explanation from Mojang.
+**No allowlist approval is established.** Automated fixtures and successful CI do not demonstrate real account acceptance. Windows/macOS/Linux OAuth and vault acceptance, live Microsoft/Java ownership, Game Pass edge cases, token rotation and online-mode session verification remain gates.
 
-The submitted b915ad2 desktop did not offer offline/non-premium gameplay. It requires a saved Microsoft account, requests a fresh session at every Play, checks official Java entitlements and profile, and refuses a failed/unavailable check. The shared core coordinator independently rejects anonymous accounts, legacy authentication, zero/missing tokens and missing public client identity before preparation. Existing worlds and legacy identity records are not deleted. Internal historical account/parser fixtures do not authorize public gameplay.
+## Review and submission evidence
 
-Authentication uses Microsoft authorization code + S256 PKCE → Xbox user authentication → XSTS → Minecraft token → `GET /entitlements/mcstore` → `GET /minecraft/profile`. Accepted Java entitlement names are `game_minecraft` or `product_minecraft`; unrelated/Bedrock-only/empty/malformed/error responses fail closed. Profile availability is required as a second check. That implementation forced renewal even if an in-memory session is still valid.
+- 19 October 2026: initial AppID request submitted; the maintainer reported a declined outcome.
+- 22 October 2026: a renewed request submitted for immutable commit `b915ad282e6a9b32f22e0296ea1165d5e8c9445b`, using the same Client ID and tenant.
+- 24 October 2026: a generic Mojang enforcement response was provided to the project. It does not identify a particular rule or prove that this Client ID was classified as malicious. Do not infer approval, specific rejection cause or blocked-app status.
+- Any later code or policy modifications must be disclosed accurately in future correspondence. A previously submitted form does not retroactively describe newer commits. The historical original request evidence is in immutable Git history, not a statement of today's available features.
 
-Public materials identify SyntaxDevTeam and the direct maintainer-selected support address, explain privacy/permissions/removal, state current approval limitations, and prominently disclose independence from Mojang/Microsoft. The original launcher logo is preserved at the maintainer’s request. The generated artwork is not evidence of official endorsement; no individual finding against the logo was supplied by Mojang.
+## Public publisher and disclosures
 
-See [the complete Entra/review evidence checklist](APP_REVIEW_2026-10.md) for public URLs, recommended and optional fields, tests and remaining gates.
+Publisher: **SyntaxDevTeam / WieszczY**. Contact: wieszczy85@gmail.com.
 
-## Confirmed publication and renewed submission
+- Project: https://syntaxdevteam.pl/p/syntaxlauncher
+- Privacy: https://syntaxdevteam.pl/p/syntaxlauncher-prywatnosc
+- Terms: https://syntaxdevteam.pl/p/syntaxlauncher-warunki-uzytkowania
+- Support and account removal: https://syntaxdevteam.pl/p/syntaxlauncher-zarzadzanie-usluga
+- Source and builds: https://github.com/SyntaxDevTeam/SyntaxLauncher
 
-Four application pages are published and checked in the browser:
+Check live pages and Entra application metadata for consistency with the current Microsoft-only application. GitHub documentation changes do **not** modify those external sites. Publisher domain/partner verification was not confirmed and is not asserted. Native installer signing/notarization and cross-platform acceptance are also outstanding.
 
-- [Application](https://syntaxdevteam.pl/p/syntaxlauncher)
-- [Privacy](https://syntaxdevteam.pl/p/syntaxlauncher-prywatnosc)
-- [Terms](https://syntaxdevteam.pl/p/syntaxlauncher-warunki-uzytkowania)
-- [Support/account removal](https://syntaxdevteam.pl/p/syntaxlauncher-zarzadzanie-usluga)
+See the actionable [AppID compliance checklist](APPID_COMPLIANCE.md) and [review evidence](APP_REVIEW_2026-10.md).
 
-Entra homepage/privacy/terms, marketing/support URLs, description, notes and original logo were saved. Leaving/reopening the manifest confirmed persistence. The unused default Microsoft Graph User.Read entry was removed; no broader permission was added. The public-client redirect, audience and security settings were preserved. Optional serviceManagementReference is blank. The directory offers only its default onmicrosoft.com domain in the verified-domain selector; custom publisher-domain and partner verification are not claimed.
-
-The renewed request acknowledged the first refusal and described the removed nickname-only workflow, fresh authentication/entitlement/profile checks before every Play, independent coordinator gate, API purposes, scopes, native credential protection and public policies. It linked immutable implementation b915ad2 and disclosed outstanding live/native tests. It used the same AppID and tenant, identified older offline previews as superseded, and distinguished the Azure administrative contact from public support email. Exact submitted fields/text and receipt are retained in the private local delivery packet; private administrative contact/tenant identifiers are excluded from this public record.
-
-A form receipt establishes neither allowlisting nor live authentication. Await the actual decision without sending duplicate submissions.
-
-## Historical submission record — 19 October 2026
-
-The text below is retained as the original submission record. Its implementation-readiness statements are historical; consult the current product correction above for today’s dual-mode behavior. It must not be reused as current justification or as evidence of live authentication. Historical statements about integration readiness were corrected during subsequent work; current source/tests and acceptance records are authoritative.
-
-## Submitted justification
-
-SyntaxLauncher is an independent third-party desktop launcher for Minecraft: Java Edition, developed by SyntaxDevTeam in Kotlin with a Compose Desktop interface for Windows, macOS and Linux. We request approval of this application's own Microsoft Entra public-client AppID so players who are entitled to Minecraft: Java Edition can sign in with their own Microsoft account and launch the game with their verified Java profile.
-
-The application uses the system browser and the Microsoft identity platform authorization-code flow for personal Microsoft accounts, with S256 PKCE, cryptographically random state and a single-use localhost callback on an ephemeral port. Requested OAuth scopes are XboxLive.signin and offline_access. The launcher then uses the official Xbox Live user authentication and XSTS flow, exchanges the resulting identity at POST https://api.minecraftservices.com/authentication/login_with_xbox, and retrieves the authenticated profile from GET https://api.minecraftservices.com/minecraft/profile. These Minecraft Services endpoints are required to obtain the player's Minecraft access token and verified Java username/UUID for the standard game launch/session flow. A successful Microsoft OAuth response alone is not treated as proof of Java ownership; an unavailable Java profile prevents premium launch.
-
-SyntaxLauncher never asks for or stores a Microsoft password, uses no embedded Microsoft sign-in form, embeds no client secret and does not reuse another launcher's AppID. Access tokens remain in memory. Refresh credentials use native OS-protected storage: Secret Service/libsecret on Linux, Keychain on macOS and user-scoped DPAPI on Windows, with no plaintext fallback. Token-bearing objects and authentication errors are redacted; premium child-process stdout/stderr is not persisted by the launcher. Sessions are refreshed when expiring, refreshed identities must retain the same UUID, and local sign-out removes the saved refresh credential and account identity.
-
-We are seeking approval before declaring premium functionality ready for release. The authentication chain, account lifecycle and browser callback have deterministic automated coverage; Linux native credential storage has also been exercised using a disposable synthetic credential. Approved-AppID end-to-end sign-in, live refresh, authenticated gameplay and native Windows/macOS acceptance remain release gates. We do not claim that mocked tests establish successful live authentication or that this request has already been approved.
-
-## Submitted additional information
-
-Project and implementation reference: https://github.com/SyntaxDevTeam/SyntaxLauncher
-
-The same metadata-driven launch pipeline is used for offline and verified Microsoft accounts; premium launch receives the authenticated Minecraft token and profile rather than a fabricated premium identity. The launcher also provides explicitly labelled offline profiles for local play and servers configured to accept offline-mode clients. This mode does not grant Minecraft ownership, impersonate a verified premium account, authenticate to online-mode servers, or bypass Microsoft/Xbox/Minecraft authentication. A failed premium login is not silently converted into offline play.
-
-The launcher does not implement mechanisms to bypass ownership, licence or server authentication checks, and this approval request is limited to the documented Java authentication/profile integration. Game preparation uses official version metadata and verified downloads through a shared network layer; mutable worlds/settings belong to isolated user instances.
-
-Current implementation status and remaining acceptance checks are recorded in docs/ROADMAP.md and docs/TESTING_V0.3.md in the project repository. We can provide implementation details or additional evidence needed for review. This is a new-AppID approval request, not a report against another application.
-
-## After a review decision
-
-Record the actual approval/denial without including private messages, account tokens or callback URLs. If approved, follow [TESTING_V0.3.md](TESTING_V0.3.md) on an owned entitled account: live consent, restart/refresh, profile identity, real premium game launch and online-mode server identity, plus private log/crash review. Complete native Windows/macOS vault/browser acceptance before checking the full v0.3 quality gate. A successful Entra registration or form receipt cannot substitute for these tests.
+**NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT.**
