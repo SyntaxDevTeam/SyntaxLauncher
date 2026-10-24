@@ -4,9 +4,9 @@ This is an **evidence register**, not a claim that every historic milestone is f
 
 ## Version and publication distinction
 
-- Current documented canonical product version before the next intentional release bump: `0.7.1` in root `gradle.properties`. The public GitHub Releases API has a normal `v0.7.1` release from 22 October 2026.
+- Current canonical product version: `0.9.3-DEV` (Stable `0.9.2`); historical baseline `0.7.1` in root `gradle.properties`. The public GitHub Releases API has a normal `v0.7.1` release from 22 October 2026.
 - Roadmap v0.9 and v0.10: accepted **within the bounded code/installation support matrices**, after automated checks, the documented private v0.9 gameplay confirmation and the maintainer's report that the joint v0.9/v0.10 testing session has ended. The user did not specify the platforms and exact combinations used for this final session.
-- Development v0.11: local crash-diagnostic classification and explicit managed-file verification are now introduced, pending their own CI and native/manual quality gates.
+- v0.11 diagnostics/repair implementation and automated CI are complete within TESTING_V0.11.md; wider native/gameplay quality gates remain open.
 - v0.12: substantial automatic updater, channel, packaging and cache-integrity code already exists; signing, old→new native update, interruption and user-data preservation testing remain outstanding.
 - v1.0: **not approved for general stable release** until all independent P0 and release quality gates are satisfied.
 
@@ -58,3 +58,7 @@ Verified publication: [Stable v0.9.2](https://github.com/SyntaxDevTeam/SyntaxLau
 - Linux x64: DEB install, registered/validated desktop entry, Xvfb startup and app-only removal passed; Fedora 44 RPM dependency-resolved installation/removal preserved data; AppImage extraction and Xvfb startup passed.
 
 This closes preparation and automated lifecycle/publication acceptance. Interactive clean-machine GUI/trust checks, actual prior-version upgrades, RPM graphical startup, additional distributions and signing/notarization remain open. The later UI requests concerning the portable EXE icon, footer alignment, profile deletion and Vanilla packs entry are separate follow-up work and are not covered by this installer acceptance.
+
+## Sequential closure — 24 October 2026
+
+The historical paragraphs above retain their dated evidence. Current implementation closure is in [MILESTONE_CLOSURE.md](MILESTONE_CLOSURE.md), supported targets and actual game reports in [SUPPORT_MATRIX.md](SUPPORT_MATRIX.md), and publisher prerequisites in [SIGNING.md](SIGNING.md). Old build-only pending entries are reconciled against code and tests; real manual gates remain open. The maintainer confirms Linux/Windows 10 Fabric start and world save for Minecraft 1.21.11, 26.2 and 26.3, without exact loader versions. Official newer Forge installations passed without claiming graphical startup. CI now runs packaged-runtime Mojang HTTPS on each target and rejects plain Stable 1.x or later while the final checklist remains open. No new Stable is authorized.

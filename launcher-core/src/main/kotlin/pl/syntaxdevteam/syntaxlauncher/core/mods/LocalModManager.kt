@@ -105,6 +105,7 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
         instanceId: String, sources: List<Path>,
         managed: List<ModrinthManagedInstall> = emptyList(),
         expectedInstance: MinecraftInstance? = null,
+        validateExisting: (List<LocalMod>) -> Unit = {},
     ): LocalModInventory =
         withContext(Dispatchers.IO) {
             require(sources.isNotEmpty() && sources.size <= 32) { "Invalid Modrinth batch size." }
@@ -131,6 +132,7 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
                 }
                 val previous = managedStore.read(instances.gameDirectory(instance))
                 val existing = inspect(instance).mods
+                validateExisting(existing)
                 val staging = mods.resolve(".batch-" + UUID.randomUUID())
                 Files.createDirectory(staging)
                 val published = mutableListOf<Path>()

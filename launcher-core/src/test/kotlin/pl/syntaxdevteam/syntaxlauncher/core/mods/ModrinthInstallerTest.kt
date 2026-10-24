@@ -23,6 +23,31 @@ import pl.syntaxdevteam.syntaxlauncher.core.storage.LauncherPaths
 import pl.syntaxdevteam.syntaxlauncher.core.storage.MinecraftInstallationLayout
 
 class ModrinthInstallerTest {
+    @Test fun declaredConflictWithEnabledManagedModStopsBeforeDownloadAndPreservesInstalledFiles() = runBlocking {
+        val (instances, game) = setup()
+        val profile = instances.create("Conflicts", game, loader = ModLoaderSelection("fabric", "0.18.0"))
+        val bytes = jar("existing")
+        val requests = AtomicInteger()
+        val client = HttpClient(MockEngine { requests.incrementAndGet(); respond(bytes) })
+        try {
+            val local = LocalModManager(instances)
+            val installer = ModrinthInstaller(instances, local, DownloadManager(client))
+            val first = ModrinthInstallPlan(game, "fabric", "ABCDEFGH", listOf(
+                ModrinthInstallEntry("ABCDEFGH", "RELEASEA", "Existing", "1", ModrinthFile("existing.jar",
+                    "https://cdn.modrinth.com/data/existing.jar", sha1(bytes), bytes.size.toLong()), false)), emptyList())
+            installer.install(profile.id, first)
+            val before = local.list(profile.id)
+            val next = ModrinthInstallPlan(game, "fabric", "BCDEFGHI", listOf(
+                ModrinthInstallEntry("BCDEFGHI", "RELEASEB", "Next", "1", ModrinthFile("new.jar",
+                    "https://cdn.modrinth.com/data/new.jar", sha1(bytes), bytes.size.toLong()), false)), emptyList(),
+                incompatibilities = listOf(ModrinthDependency("ABCDEFGH", null, "incompatible")))
+            assertFailsWith<ModrinthConflictException> { installer.install(profile.id, next) }
+            assertEquals(1, requests.get())
+            assertEquals(before, local.list(profile.id))
+            assertTrue(Files.notExists(instances.gameDirectory(profile).resolve("mods/new.jar")))
+        } finally { client.close() }
+    }
+
     private fun jar(modId: String): ByteArray {
         val bytes = ByteArrayOutputStream()
         ZipOutputStream(bytes).use { zip ->

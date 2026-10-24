@@ -54,3 +54,7 @@ Quilt startup was confirmed in the same message; see [v0.8 acceptance](TESTING_V
 - [ ] Observe first-time child users completing the flow without explaining instances or loader terminology.
 
 These checks do not replace the existing real loader startup record or all-platform gameplay gates.
+
+## Additional evidence — 24 October 2026
+
+The maintainer reports Linux and Windows 10, Minecraft 1.21.11 / 26.2 / 26.3 with Fabric, confirming startup and world saving. Exact loader versions, Linux distro and per-machine pairing were not supplied; do not infer them or unrelated isolation/native tests. Unchecksummed library cache fallback is now covered by observed SHA-256 receipts, source/size binding and corruption/redownload fixtures; this detects local corruption, not upstream authenticity.

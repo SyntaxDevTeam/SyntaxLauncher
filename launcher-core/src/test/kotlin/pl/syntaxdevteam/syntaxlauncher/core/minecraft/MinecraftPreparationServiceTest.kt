@@ -27,6 +27,8 @@ class MinecraftPreparationServiceTest {
         val nativeBytes = nativeArchive("libsyntax.so", "native".encodeToByteArray())
         val assetIndexBytes = """
             {
+              "virtual": true,
+              "map_to_resources": true,
               "objects": {
                 "minecraft/sounds/example.ogg": {
                   "hash": "$assetHash",
@@ -137,6 +139,8 @@ class MinecraftPreparationServiceTest {
                 "native".encodeToByteArray(),
                 Files.readAllBytes(layout.versionNatives(version.id).resolve("libsyntax.so")),
             )
+            assertContentEquals(assetBytes, Files.readAllBytes(layout.assetsDir.resolve("virtual/test-assets/minecraft/sounds/example.ogg")))
+            assertContentEquals(assetBytes, Files.readAllBytes(layout.gameDir.resolve("resources/minecraft/sounds/example.ogg")))
             assertEquals(1, prepared.assetIndex?.objects?.size)
             assertTrue(prepared.filePlan.classpath.contains(layout.versionJar(version.id)))
         } finally {

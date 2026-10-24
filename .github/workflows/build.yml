@@ -108,6 +108,8 @@ jobs:
       - name: Summarize remaining release-readiness gates
         shell: bash
         run: python3 scripts/release_readiness.py --format markdown >> "$GITHUB_STEP_SUMMARY"
+      - name: Enforce final acceptance before Stable 1.0 and later
+        run: python3 scripts/release_readiness.py --enforce-production
       - name: Upload test evidence
         if: always()
         uses: actions/upload-artifact@v7
@@ -159,6 +161,12 @@ jobs:
         if: runner.os == 'Windows'
         shell: bash
         run: python scripts/verify_windows_icon.py --exe launcher-desktop/build/compose/binaries/main/app/SyntaxLauncher/SyntaxLauncher.exe
+      - name: Verify Mojang HTTPS with the packaged runtime
+        shell: bash
+        run: |
+          image=launcher-desktop/build/compose/binaries/main/app/SyntaxLauncher
+          if [[ "$RUNNER_OS" == macOS ]]; then image="$image.app"; fi
+          python scripts/verify_native_network.py --image "$image" --platform "${{ matrix.artifact }}"
       - name: Install Linux packaging tools
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y rpm fakeroot desktop-file-utils xvfb

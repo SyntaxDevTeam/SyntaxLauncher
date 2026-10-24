@@ -13,6 +13,66 @@ import pl.syntaxdevteam.syntaxlauncher.core.instance.MinecraftInstance
 import pl.syntaxdevteam.syntaxlauncher.core.loader.ModLoaderSelection
 
 class ModrinthCatalogTest {
+    @Test fun metadataRateLimitsRetryWithBoundedDelayAndPermanentFailuresDoNotLoop() = runBlocking {
+        var calls = 0
+        var status = io.ktor.http.HttpStatusCode.TooManyRequests
+        val waits = mutableListOf<Long>()
+        val client = HttpClient(MockEngine {
+            calls++
+            if (calls == 2) respond(popular)
+            else respond("Unavailable", status, io.ktor.http.headersOf("Retry-After", "999999"))
+        }) { expectSuccess = true }
+        try {
+            val catalog = ModrinthCatalog(client, waitForRetry = { waits += it })
+            assertEquals(1, catalog.search(instance()).size)
+            assertEquals(listOf(5000L), waits)
+            calls = 2; waits.clear()
+            val failure = assertFailsWith<ModrinthApiException> { catalog.search(instance()) }
+            assertEquals(429, failure.statusCode)
+            assertEquals(5, calls)
+            assertEquals(listOf(5000L, 5000L), waits)
+            status = io.ktor.http.HttpStatusCode.Forbidden
+            calls = 2; waits.clear()
+            assertFailsWith<ModrinthApiException> { catalog.search(instance()) }
+            assertEquals(3, calls)
+            assertTrue(waits.isEmpty())
+        } finally { client.close() }
+    }
+
+    @Test fun optionalChoicesAreExplicitAndIncludeTheirRequiredClosureWhileConflictsFailBeforeInstallation() = runBlocking {
+        var conflict = false
+        val client = HttpClient(MockEngine { req ->
+            respond(when (req.url.encodedPath) {
+                "/v2/project/ABCDEFGH/version" -> version("RELEASEA", "ABCDEFGH", "main.jar",
+                    """[{"project_id":"BCDEFGHI","dependency_type":"optional"}]""")
+                "/v2/project/BCDEFGHI" -> """{"title":"Helpful optional mod"}"""
+                "/v2/project/BCDEFGHI/version" -> version("RELEASEB", "BCDEFGHI", "optional.jar",
+                    if (conflict) """[{"project_id":"ABCDEFGH","dependency_type":"incompatible"}]"""
+                    else """[{"project_id":"CDEFGHIJ","dependency_type":"required"}]""")
+                "/v2/project/CDEFGHIJ/version" -> version("RELEASEC", "CDEFGHIJ", "required.jar")
+                else -> error("Unexpected optional dependency request: " + req.url)
+            })
+        })
+        try {
+            val catalog = ModrinthCatalog(client)
+            val project = ModrinthProject("ABCDEFGH", "Main", "", "", 0, null)
+            val default = catalog.plan(instance(), project)
+            assertEquals(listOf("ABCDEFGH"), default.entries.map { it.projectId })
+            assertEquals("Helpful optional mod", default.optionalDependencies.single().title)
+            assertTrue(!default.optionalDependencies.single().selected)
+            val chosen = catalog.plan(instance(), project, selectedOptional = setOf("BCDEFGHI"))
+            assertEquals(listOf("CDEFGHIJ", "BCDEFGHI", "ABCDEFGH"), chosen.entries.map { it.projectId })
+            assertTrue(chosen.entries.single { it.projectId == "BCDEFGHI" }.optional)
+            assertTrue(!chosen.entries.single { it.projectId == "CDEFGHIJ" }.optional)
+            assertTrue(chosen.optionalDependencies.single().selected)
+            assertEquals(1, catalog.plan(instance(), project).entries.size)
+            conflict = true
+            assertFailsWith<IllegalStateException> {
+                catalog.plan(instance(), project, selectedOptional = setOf("BCDEFGHI"))
+            }
+        } finally { client.close() }
+    }
+
     private val sha = "0123456789012345678901234567890123456789"
     private val popular = """{"hits":[{"project_id":"ABCDEFGH","title":"Fast Mod",
         "description":"Speeds up graphics","author":"dev","downloads":123456,"icon_url":null}]}"""

@@ -11,6 +11,7 @@ import json
 import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from launcher_version import SEMVER, parse_launcher_version
 
 ROOT = Path(__file__).resolve().parents[1]
 SECTION = re.compile(r"^# (v(?:0\.\d+|1\.0))\s+—\s+(.+?)\s*$")
@@ -101,10 +102,14 @@ def markdown(items: list[MilestoneSummary], product_version: str) -> str:
 
 
 def read_product_version(properties: str) -> str:
-    versions = re.findall(r"^launcherVersion\s*=\s*(\S+)\s*$", properties, re.MULTILINE)
-    if len(versions) != 1:
-        raise ValueError("Expected one canonical launcherVersion in gradle.properties")
-    return versions[0]
+    return parse_launcher_version(properties)
+
+
+def production_milestone(product_version: str) -> str | None:
+    version = SEMVER.fullmatch(product_version)
+    if version is None:
+        raise ValueError("Invalid canonical product version")
+    return "v1.0" if int(version.group(1)) >= 1 and version.group(4) is None else None
 
 
 def main() -> int:
@@ -112,8 +117,11 @@ def main() -> int:
     parser.add_argument("--roadmap", type=Path, default=ROOT / "docs/ROADMAP.md")
     parser.add_argument("--properties", type=Path, default=ROOT / "gradle.properties")
     parser.add_argument("--format", choices=["markdown", "json"], default="markdown")
-    parser.add_argument("--enforce", metavar="VERSION",
+    enforcement = parser.add_mutually_exclusive_group()
+    enforcement.add_argument("--enforce", metavar="VERSION",
                         help="Nonzero exit if the named milestone still has open checklist items")
+    enforcement.add_argument("--enforce-production", action="store_true",
+                             help="Block Stable 1.x and later while v1.0 acceptance remains open; allow pre-1.0 and previews")
     args = parser.parse_args()
     items = audit(args.roadmap.read_text(encoding="utf-8"))
     version = read_product_version(args.properties.read_text(encoding="utf-8"))
@@ -121,10 +129,11 @@ def main() -> int:
         "productVersion": version,
         "milestones": [{**asdict(i), "ready": i.ready} for i in items],
     }, indent=2) if args.format == "json" else markdown(items, version))
-    if args.enforce is not None:
-        matching = [item for item in items if item.version == args.enforce]
+    target = production_milestone(version) if args.enforce_production else args.enforce
+    if target is not None:
+        matching = [item for item in items if item.version == target]
         if not matching:
-            parser.error(f"Unknown milestone {args.enforce}")
+            parser.error(f"Unknown milestone {target}")
         return 0 if matching[0].ready else 2
     return 0
 

@@ -1,6 +1,10 @@
 import unittest
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
 
-from release_readiness import audit, markdown, read_product_version
+from release_readiness import audit, markdown, read_product_version, production_milestone
 
 
 ROADMAP = """# Intro
@@ -23,6 +27,27 @@ ROADMAP = """# Intro
 
 
 class ReleaseReadinessTest(unittest.TestCase):
+    def test_production_releases_require_the_final_gate_but_previews_remain_testable(self):
+        for version in ["1.0.0", "1.2.3", "2.0.0", "1.0.0+build"]:
+            self.assertEqual("v1.0", production_milestone(version))
+        for version in ["0.9.3", "0.9.3-DEV", "1.0.0-rc.1", "2.0.0-SNAPSHOT"]:
+            self.assertIsNone(production_milestone(version))
+        with self.assertRaises(ValueError):
+            production_milestone("1.invalid")
+    def test_ci_enforcement_blocks_unfinished_production_and_allows_previews(self):
+        with tempfile.TemporaryDirectory() as root:
+            roadmap = Path(root) / "roadmap.md"
+            properties = Path(root) / "gradle.properties"
+            roadmap.write_text(ROADMAP, encoding="utf-8")
+            command = [sys.executable, str(Path(__file__).with_name("release_readiness.py")),
+                       "--roadmap", str(roadmap), "--properties", str(properties), "--enforce-production"]
+            for version, expected in [("1.0.0", 2), ("2.0.0", 2), ("1.0.0-rc.1", 0), ("0.9.3-DEV", 0)]:
+                properties.write_text("launcherVersion=" + version + "\n", encoding="utf-8")
+                self.assertEqual(expected, subprocess.run(command, capture_output=True).returncode, version)
+            roadmap.write_text(ROADMAP.replace("- [ ]", "- [x]"), encoding="utf-8")
+            properties.write_text("launcherVersion=1.0.0\n", encoding="utf-8")
+            self.assertEqual(0, subprocess.run(command, capture_output=True).returncode)
+
     def test_completed_scope_is_separate_from_open_and_blocked_work(self):
         items = audit(ROADMAP)
         self.assertEqual(["v0.9", "v0.10", "v1.0"], [i.version for i in items])

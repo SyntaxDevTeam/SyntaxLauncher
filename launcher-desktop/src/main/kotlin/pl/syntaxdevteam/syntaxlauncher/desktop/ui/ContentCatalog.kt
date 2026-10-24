@@ -184,6 +184,8 @@ fun ContentCatalog(instance: MinecraftInstance?, canModify: Boolean,
                     is pl.syntaxdevteam.syntaxlauncher.core.modpack.ModpackIntegrityException,
                     is pl.syntaxdevteam.syntaxlauncher.core.network.DownloadIntegrityException,
                     is pl.syntaxdevteam.syntaxlauncher.core.network.DownloadSizeMismatchException -> "catalog.integrity_error"
+                    is pl.syntaxdevteam.syntaxlauncher.core.mods.ModrinthConflictException -> "mods.conflict_error"
+                    is pl.syntaxdevteam.syntaxlauncher.core.mods.ModrinthApiException -> "catalog.connection_error"
                     is pl.syntaxdevteam.syntaxlauncher.core.java.JavaRuntimeException -> "catalog.runtime_error"
                     is pl.syntaxdevteam.syntaxlauncher.core.instance.InstanceInUseException -> "catalog.stop_game"
                     is pl.syntaxdevteam.syntaxlauncher.core.network.DownloadNetworkException,

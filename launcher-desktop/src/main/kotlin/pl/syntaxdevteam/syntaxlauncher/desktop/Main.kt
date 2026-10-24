@@ -44,13 +44,30 @@ import pl.syntaxdevteam.syntaxlauncher.core.update.GitHubLauncherReleases
 import pl.syntaxdevteam.syntaxlauncher.core.update.LauncherVersion
 
 fun main(args: Array<String>) {
+    // Read-only packaged-runtime acceptance; bypass all account, storage, updater and UI initialization.
+    if (args.size in 1..2 && args[0] == "--verify-mojang-https") {
+        kotlinx.coroutines.runBlocking {
+            val client = LauncherHttpClientFactory.create(LauncherBuildInfo.version)
+            try {
+                val manifest = MinecraftVersionCatalog(client).fetchManifest()
+                val selected = manifest.versions.single { it.id == manifest.latestRelease }
+                val metadata = MinecraftVersionResolver(client).resolve(selected)
+                check(metadata.id == selected.id && metadata.mainClass.isNotBlank())
+                val result = "NETWORK_PROBE_OK catalog=${manifest.versions.size} metadata=${metadata.id}"
+                if (args.size == 2) java.nio.file.Files.writeString(java.nio.file.Path.of(args[1]), result,
+                    java.nio.file.StandardOpenOption.CREATE_NEW, java.nio.file.StandardOpenOption.WRITE)
+                println(result)
+            } finally { client.close() }
+        }
+        return
+    }
     val paths = LauncherPaths.resolve()
     java.nio.file.Files.createDirectories(paths.logsDir)
     runCatching { java.nio.file.Files.setPosixFilePermissions(paths.logsDir,
         java.nio.file.attribute.PosixFilePermissions.fromString("rwx------")) }
     System.setProperty("syntaxlauncher.logs", paths.logsDir.toString())
     val platform = MinecraftPlatform.detect()
-    val httpClient = LauncherHttpClientFactory.create()
+    val httpClient = LauncherHttpClientFactory.create(LauncherBuildInfo.version)
     val downloader = DownloadManager(httpClient)
     val updateRoot = paths.dataDir.resolve("launcher-updates")
     val preferences = LauncherPreferencesStore(paths.configDir.resolve("settings.properties"))
@@ -93,7 +110,7 @@ fun main(args: Array<String>) {
         coordinator = MinecraftLaunchCoordinator(
             preparation = MinecraftPreparationService(downloader),
             runtimes = runtimeManager,
-            plans = LaunchPlanBuilder(),
+            plans = LaunchPlanBuilder(launcherVersion = LauncherBuildInfo.version),
             processes = processManager,
             layout = MinecraftInstallationLayout.from(paths),
             platform = platform,

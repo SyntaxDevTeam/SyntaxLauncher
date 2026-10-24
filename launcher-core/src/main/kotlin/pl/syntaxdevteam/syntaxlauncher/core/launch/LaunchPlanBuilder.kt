@@ -5,7 +5,7 @@ import pl.syntaxdevteam.syntaxlauncher.core.minecraft.MinecraftVersionType
 
 class LaunchPlanBuilder(
     private val launcherName: String = "SyntaxLauncher",
-    private val launcherVersion: String = "0.1",
+    private val launcherVersion: String = "unknown",
     private val placeholderResolver: MinecraftArgumentPlaceholderResolver = MinecraftArgumentPlaceholderResolver(),
 ) {
     fun build(request: LaunchRequest): LaunchPlan {

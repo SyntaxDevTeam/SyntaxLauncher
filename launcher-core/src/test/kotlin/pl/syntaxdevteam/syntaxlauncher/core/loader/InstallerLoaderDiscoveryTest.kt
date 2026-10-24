@@ -18,7 +18,7 @@ import pl.syntaxdevteam.syntaxlauncher.core.minecraft.MinecraftVersionType
 import pl.syntaxdevteam.syntaxlauncher.core.minecraft.ResolvedMinecraftVersion
 
 class InstallerLoaderDiscoveryTest {
-    @Test fun unsupportedPersistedForgeSelectionsCannotBypassTheVerifiedMatrix() = runBlocking {
+    @Test fun unsupportedPersistedForgeSelectionsCannotBypassOfficialGameVersionMatching() = runBlocking {
         var requests = 0
         val http = HttpClient(MockEngine { request ->
             requests++
@@ -38,15 +38,15 @@ class InstallerLoaderDiscoveryTest {
             assertFailsWith<IncompatibleModLoaderException> {
                 provider.install(base, "14.23.5.2859", layout, runtime)
             }
-            assertEquals(0, requests, "Unsupported historical Forge must fail before downloading anything.")
+            assertEquals(1, requests, "Historical Forge may read discovery, but must not download or execute an installer.")
             assertFailsWith<IncompatibleModLoaderException> {
-                provider.install(base.copy(id = "1.21.1"), "52.1.0", layout, runtime)
+                provider.install(base.copy(id = "1.21.1"), "52.999.0", layout, runtime)
             }
-            assertEquals(1, requests, "Unverified modern builds may read discovery but never fetch an installer.")
+            assertEquals(2, requests, "Unpublished modern builds may read discovery but never fetch an installer.")
         } finally { http.close() }
     }
 
-    @Test fun fallbackUsesNewestGameButPreservesForgeVerifiedSupportMatrix() = runBlocking {
+    @Test fun fallbackUsesNewestOfficiallySupportedGameForBothInstallerProviders() = runBlocking {
         val http = HttpClient(MockEngine { respond(metadata) })
         try {
             val registry = ModLoaderRegistry(listOf(NeoForgeLoaderProvider(http), ForgeLoaderProvider(http)))
@@ -55,8 +55,8 @@ class InstallerLoaderDiscoveryTest {
             assertEquals("26.3", neo.minecraftVersion)
             assertEquals("26.3.0.84", neo.versions.single().version)
             val forge = registry.compatibleGame("forge", catalog.first(), catalog)!!
-            assertEquals("1.21.1", forge.minecraftVersion)
-            assertEquals("52.1.20", forge.versions.single().version)
+            assertEquals("26.3", forge.minecraftVersion)
+            assertEquals("66.1.0", forge.versions.first().version)
         } finally { http.close() }
     }
 
@@ -64,7 +64,10 @@ class InstallerLoaderDiscoveryTest {
         <version>26.3.0.84</version><version>26.2.0.76</version>
         <version>26.1.1.11-beta</version><version>26.1.0.19-beta</version>
         <version>1.21.1-52.1.0</version><version>1.21.1-52.1.20</version><version>1.21.1-52.0.1</version>
-        <version>21.1.48</version>
+        <version>21.1.48</version><version>21.0.167</version>
+        <version>26.3-66.0.9</version><version>26.3-66.1.0</version>
+        <version>26.2-65.1.5</version><version>1.21.11-61.2.4</version>
+        <version>1.12.2-14.23.5.2859</version>
         </versions></versioning></metadata>"""
 
     @Test fun filtersMavenVersionMetadataAndFailsClosedOnInstallerLaunch() = runBlocking {
@@ -75,8 +78,9 @@ class InstallerLoaderDiscoveryTest {
             assertEquals(listOf("26.1.0.19-beta"), neo.compatibleVersions("26.1").map { it.version })
             assertEquals(listOf("26.1.1.11-beta"), neo.compatibleVersions("26.1.1").map { it.version })
             assertEquals(listOf("21.1.48"), neo.compatibleVersions("1.21.1").map { it.version })
+            assertEquals(listOf("21.0.167"), neo.compatibleVersions("1.21").map { it.version })
             val forge = ForgeLoaderProvider(http)
-            assertEquals(listOf("52.1.20"),
+            assertEquals(listOf("52.1.20", "52.1.0", "52.0.1"),
                 forge.compatibleVersions("1.21.1").map { it.version })
             assertEquals(emptyList(), forge.compatibleVersions("1.12.2"))
             val base = ResolvedMinecraftVersion("26.3", MinecraftVersionType.RELEASE,

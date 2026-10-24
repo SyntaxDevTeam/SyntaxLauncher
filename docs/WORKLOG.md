@@ -8,6 +8,53 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+
+## 2026-10-24 — Sequential milestone reconciliation and compatibility gaps
+
+**Milestone:** v0.1–v0.12 / v1.0 readiness  
+**Author/Agent:** Codex  
+**Status:** Partial — verified implementation gaps closed; native/gameplay, dependency semantics and external approval/signing gates remain open
+
+### Completed
+- Reconciled stale implementation-only roadmap entries against existing code and tests, with evidence anchors C01–C12. Milestone totals changed from 224 checked / 262 open to 348 checked / 141 open, including newly explicit separate remaining criteria. This does not declare all stages released or certify manual tests.
+- Added trusted/checksummed parent metadata inheritance with cycle/depth guards and parent/child merge rules; materialized legacy virtual/resources asset views with verified copies, path/link rejection and user-resource preservation.
+- Fed canonical product metadata into game launch/User-Agent, replacing fixed historical version defaults.
+- Added source/size-bound observed SHA-256 receipts for unchecksummed managed library/native cache reuse, detecting same-size corruption without claiming upstream authenticity.
+- Added optional dependency choices to secondary Modrinth review, required closure for selected branches, declared incompatibility guards before download and locked publication, plus bounded HTTP 429/transient retry/deadlines. Normal catalog remains one-action required-only.
+- Removed the Forge single-pair whitelist: exact official Minecraft-coordinate matching and numerical version ordering select modern V2 builds. Corrected NeoForge 1.21 discovery to 21.0.*. Historical Forge V1 remains excluded.
+- Extended official Forge smoke to four reference pairs using metadata-selected managed Java. Actually installed 1.21.11/61.2.4 (Java 21), 26.2/65.1.5 and 26.3/66.1.0 (Java 25), checking generated artifacts and save-directory preservation; no graphical new-pair Forge boot claimed.
+- Added cross-platform packaged-runtime Mojang HTTPS acceptance and a Stable 1.x+ final-checklist enforcement step; pre-1.0/preview publication remains available. No version bump, Stable tag or new Stable request.
+- Recorded maintainer confirmation: Linux and Windows 10; Minecraft 1.21.11, 26.2 and 26.3 with Fabric; game startup/world saving. Exact loader versions, Linux distro and per-machine pairing were not provided.
+- Recorded unavailable publisher certificates/Apple membership; supplied Polish acquisition guidance without purchase/registration/submission.
+
+### Changed files
+- `launcher-core/.../minecraft/` and new resolver/legacy-view tests — inheritance and safe asset views.
+- `launcher-core/.../network/` and `DownloadManagerTest` — observed cache receipts and canonical User-Agent.
+- `launcher-core/.../mods/`, catalog/installer tests and desktop Modrinth UI/resources — optional branches, explicit conflicts and retry handling.
+- `launcher-core/.../loader/`, discovery tests and official smoke — matching Forge builds, NeoForge mapping and actual managed Java.
+- Desktop `Main.kt`, `scripts/verify_native_network.py`, release-readiness scripts/tests and `.github/workflows/build.yml` — packaged HTTPS and production release guards.
+- `docs/MILESTONE_CLOSURE.md`, `SUPPORT_MATRIX.md`, `SIGNING.md`, ROADMAP, README, architecture/development/readiness and milestone test documents — current evidence and explicit remaining scope.
+
+### Verification
+- `JAVA_HOME=/usr/lib/jvm/java-25-amazon-corretto ./gradlew --offline test build :launcher-desktop:createDistributable` — PASS in 1m32s; core 207 cases (203 passed, four opt-in skipped), desktop 60 passed, no failures/errors.
+- `python3 -m unittest discover -s scripts -p 'test_*.py'` — PASS, 25 tests including subprocess production gate checks.
+- Live `ForgeOfficialSmokeTest` for the three additional reference pairs — PASS in 1m; actual official downloads/processors, not game UI.
+- Fresh packaged Linux `verify_native_network.py` — PASS, `NETWORK_PROBE_OK catalog=920 metadata=26.3` using shipped runtime and checksum-verified metadata.
+- `release_readiness.py --enforce-production` — PASS for current DEV; fixtures reject unfinished Stable 1.x/2.x and permit previews/completed gates.
+- `git diff --check` — PASS. Hosted CI/publication is checked after push; final outcome is reported in chat.
+- Manual verification — maintainer Fabric evidence recorded above; no additional gameplay/native trust or premium approval inferred.
+
+### Roadmap updates
+- `[x]` Existing implementation foundations reconciled across v0.1–v0.8; new cache/optional-choice/retry/Forge matching behavior and bounded v1.0 implementation inventory recorded.
+- `[x]` Historical publication evidence reconciled; canonical version remains 0.9.3-DEV, public Stable remains 0.9.2.
+- `[ ]` Real Vanilla cold/warm launch, two-world isolation/import/recovery, native GUI/update/trust, full dependency version reconciliation, complex TOML/Quilt, final security/license/candidate acceptance, Mojang and signing gates remain explicit.
+
+### Follow-ups / known issues
+- Follow remaining stages in `MILESTONE_CLOSURE.md`; documentation-only reconciliation is not a substitute for manual/native evidence.
+- Mojang approval remains deferred; current offline product scope is distinct from the previous authenticated-only submission.
+- Publisher signing requires owner action; see `docs/SIGNING.md`. Historical Forge V1 and universal upstream game/mod compatibility are not claimed.
+
+
 ## 2026-10-24 — Fix profile removal, footer alignment and Vanilla actions; verify EXE branding
 
 **Milestone:** v0.12 / final interface corrections

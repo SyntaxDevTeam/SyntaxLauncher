@@ -39,6 +39,7 @@ class ModrinthInstaller(
             // Already-installed, enabled and byte-identical dependencies need no second download.
             // A tracked identical main project is idempotent too; never replace/enable unrelated local JARs.
             val enabled = mods.list(instanceId).mods.filter { it.enabled }
+            validateConflicts(plan, enabled)
             val pending = plan.entries.filter { entry ->
                 enabled.none { local ->
                     (entry.dependency || (local.modrinth?.projectId == entry.projectId &&
@@ -62,7 +63,8 @@ class ModrinthInstaller(
                 }
                 downloads.downloadAll(requests)
                 mods.importBatch(instanceId, requests.map { it.target },
-                    pending.map { ModrinthManagedInstall(it.file.filename, it.projectId, it.versionId) }, expectedInstance = instance)
+                    pending.map { ModrinthManagedInstall(it.file.filename, it.projectId, it.versionId) }, expectedInstance = instance,
+                    validateExisting = { inventory -> validateConflicts(plan, inventory.filter { it.enabled }) })
             } finally {
                 pending.forEach { entry ->
                     Files.deleteIfExists(staging.resolve(entry.file.filename + ".part"))
@@ -71,6 +73,15 @@ class ModrinthInstaller(
                 Files.deleteIfExists(staging)
             }
         }
+
+    private fun validateConflicts(plan: ModrinthInstallPlan, installed: List<LocalMod>) {
+        if (plan.incompatibilities.any { conflict -> installed.any { mod ->
+            val origin = mod.modrinth
+            origin != null && (conflict.projectId == null || origin.projectId == conflict.projectId) &&
+                (conflict.versionId == null || origin.versionId == conflict.versionId) &&
+                (conflict.projectId != null || conflict.versionId != null)
+        } }) throw ModrinthConflictException()
+    }
 
     /** All updates must come from fresh, reviewed Modrinth metadata. */
     suspend fun update(instanceId: String, selected: List<ModrinthAvailableUpdate>): LocalModInventory =
@@ -137,3 +148,5 @@ class ModrinthInstaller(
         return digest.digest().joinToString("") { "%02x".format(it) }
     }
 }
+
+class ModrinthConflictException : IllegalStateException("An enabled installed mod conflicts with this selection; disable it or choose another mod")

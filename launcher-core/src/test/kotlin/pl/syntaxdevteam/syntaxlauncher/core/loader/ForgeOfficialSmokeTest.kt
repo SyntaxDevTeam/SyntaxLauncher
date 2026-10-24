@@ -1,13 +1,11 @@
 package pl.syntaxdevteam.syntaxlauncher.core.loader
 
 import java.nio.file.Files
-import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assumptions.assumeTrue
-import pl.syntaxdevteam.syntaxlauncher.core.java.JavaRuntime
 import pl.syntaxdevteam.syntaxlauncher.core.minecraft.MinecraftVersionCatalog
 import pl.syntaxdevteam.syntaxlauncher.core.minecraft.MinecraftVersionResolver
 import pl.syntaxdevteam.syntaxlauncher.core.network.DownloadManager
@@ -33,34 +31,40 @@ class ForgeOfficialSmokeTest {
         val http = LauncherHttpClientFactory.create()
         try {
             val catalog = MinecraftVersionCatalog(http).fetchManifest()
-            val minecraft = catalog.versions.first { it.id == "1.21.1" }
-            val base = MinecraftVersionResolver(http).resolve(minecraft)
-            val client = requireNotNull(base.clientDownload)
             val downloader = DownloadManager(http)
-            downloader.download(DownloadRequest(
-                id = "official-vanilla-client-for-forge",
-                url = client.url,
-                target = layout.versionJar(base.id),
-                expectedSha1 = client.sha1,
-                expectedSize = client.size,
-            ))
-            val java = Path.of(System.getProperty("java.home"), "bin",
-                if (System.getProperty("os.name").startsWith("Windows", true)) "java.exe" else "java")
-            val runtime = JavaRuntime(java.parent.parent, java, 21, "CI Java runtime")
-            val resolved = ProcessorInstallerV2Engine(
-                http, downloader, flavor = InstallerV2Flavor.FORGE,
-            ).install(base, "52.1.20", layout, runtime)
-            assertTrue(resolved.mainClass.matches(Regex("[A-Za-z_$][A-Za-z0-9_$.]*")))
-            val vanillaNames = base.libraries.map { it.name }.toSet()
-            val forgeLibraries = resolved.libraries.filter { it.name !in vanillaNames }
-            assertTrue(forgeLibraries.isNotEmpty())
-            assertTrue(forgeLibraries.all { library ->
-                library.downloads.artifact?.let { artifact ->
-                    Files.isRegularFile(layout.librariesDir.resolve(artifact.path ?: "missing"))
-                } ?: false
-            }, "Every Forge runtime artifact must be published to the verified cache.")
-            assertEquals(base.javaRequirement, resolved.javaRequirement)
-            assertTrue(Files.notExists(layout.gameDir), "Forge installer must not mutate saves.")
+            val runtimes = pl.syntaxdevteam.syntaxlauncher.core.java.MojangJavaRuntimeManager(http, downloader, root.resolve("runtimes"))
+            val targets = System.getenv("SYNTAXLAUNCHER_FORGE_SMOKE_TARGETS")?.split(',')
+                ?: listOf("1.21.1:52.1.20", "1.21.11:61.2.4", "26.2:65.1.5", "26.3:66.1.0")
+            for (target in targets) {
+                val game = target.substringBefore(':')
+                val forge = target.substringAfter(':')
+                val layout = layout.copy(gameDir = root.resolve("instances").resolve(game))
+                val minecraft = catalog.versions.first { it.id == game }
+                val base = MinecraftVersionResolver(http).resolve(minecraft)
+                val client = requireNotNull(base.clientDownload)
+                downloader.download(DownloadRequest(
+                    id = "official-vanilla-client-for-forge",
+                    url = client.url,
+                    target = layout.versionJar(base.id),
+                    expectedSha1 = client.sha1,
+                    expectedSize = client.size,
+                ))
+                val runtime = runtimes.resolve(requireNotNull(base.javaRequirement),
+                    pl.syntaxdevteam.syntaxlauncher.core.minecraft.MinecraftPlatform.detect())
+                val resolved = ForgeLoaderProvider(http, downloader).install(base, forge, layout, runtime)
+                assertTrue(resolved.mainClass.matches(Regex("[A-Za-z_$][A-Za-z0-9_$.]*")))
+                val vanillaNames = base.libraries.map { it.name }.toSet()
+                val forgeLibraries = resolved.libraries.filter { it.name !in vanillaNames }
+                assertTrue(forgeLibraries.isNotEmpty())
+                assertTrue(forgeLibraries.all { library ->
+                    library.downloads.artifact?.let { artifact ->
+                        Files.isRegularFile(layout.librariesDir.resolve(artifact.path ?: "missing"))
+                    } ?: false
+                }, "Every Forge runtime artifact must be published to the verified cache.")
+                assertEquals(base.javaRequirement, resolved.javaRequirement)
+                assertTrue(Files.notExists(layout.gameDir), "Forge installer must not mutate saves.")
+                println("FORGE_COMPATIBILITY_OK minecraft=$game forge=$forge java=${runtime.majorVersion}")
+            }
         } finally { http.close() }
     }
 }

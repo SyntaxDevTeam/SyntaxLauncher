@@ -11,7 +11,7 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 
 object LauncherHttpClientFactory {
-    fun create(): HttpClient =
+    fun create(productVersion: String = "development"): HttpClient =
         HttpClient(CIO) {
             expectSuccess = true
 
@@ -32,7 +32,7 @@ object LauncherHttpClientFactory {
 
             defaultRequest {
                 headers {
-                    append(HttpHeaders.UserAgent, "SyntaxLauncher/0.1 (+https://github.com/SyntaxDevTeam/SyntaxLauncher)")
+                    append(HttpHeaders.UserAgent, "SyntaxLauncher/$productVersion (+https://github.com/SyntaxDevTeam/SyntaxLauncher)")
                 }
             }
         }

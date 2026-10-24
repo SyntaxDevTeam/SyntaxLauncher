@@ -60,7 +60,7 @@ This section records b915ad2 and its submission. The maintainer subsequently res
 
 - [x] Replace deprecated desktop resource/dialog calls with Compose resource bitmap decoding and `DialogWindow`; align OfflineAccount copy visibility with its private constructor and remove redundant loader null checks. Full local tests/build and Linux package verification pass; native window acceptance remains separate.
 - [x] Embed the semantic product version, CI run number and source SHA at build time; show exact CI build identity in the launcher header and updater without altering release-version comparisons. Local builds have an explicit non-CI label.
-- [ ] 🚧 IN PROGRESS — Consolidate product SemVer in root `gradle.properties` for Gradle modules, embedded metadata, jpackage numeric version derivation, update bundles, GitHub Actions tags and Build Explorer publication; source and deterministic tests committed, final CI acceptance pending.
+- [x] Canonical product SemVer propagates from root `gradle.properties` through modules, embedded metadata, native versions, updates, CI and Build Explorer; existing hosted publication and version tooling tests pass. Evidence: [C12](MILESTONE_CLOSURE.md#c12).
 - [ ] 🚧 IN PROGRESS — Replace native window decorations with branded controls integrated into the existing Compose header (drag, minimize, maximize/restore, close, 8 resize grips, 400×400 minimum). Source implementation and unit coverage for resize geometry added; real native/manual acceptance on Windows, macOS and Linux X11/Wayland, DPI and small screens remains open.
 - [ ] Complete manual usability checks for dragging over navigation, resizing, maximization, multi-monitor behavior and updates on all supported window managers.
 
@@ -70,7 +70,7 @@ This section records b915ad2 and its submission. The maintainer subsequently res
 
 Goal: launch a selected vanilla Minecraft version using an offline account and an automatically resolved Java runtime.
 
-**Current status:** 🚧 Implementation in progress. The offline identity, Mojang catalog/metadata resolver, verified game preparation, Java manager, launch planner and process manager are now composed into a desktop launch pipeline. Compose exposes a real Play action, per-stage and per-file progress, cancellation, process status/exit code/log paths and a stop action. Window close cancels ongoing preparation and detaches from an already running Minecraft process. The version-list cache and local Gradle test/build verification passed on 20 October 2026; live Minecraft, native platform and other release acceptance gates remain open.
+**Current status:** implementation and automated verification reconciled on 24 October 2026; live/native release gates remain open. Historical details below are superseded where a linked closure record is present. The offline identity, Mojang catalog/metadata resolver, verified game preparation, Java manager, launch planner and process manager are now composed into a desktop launch pipeline. Compose exposes a real Play action, per-stage and per-file progress, cancellation, process status/exit code/log paths and a stop action. Window close cancels ongoing preparation and detaches from an already running Minecraft process. The version-list cache and local Gradle test/build verification passed on 20 October 2026; live Minecraft, native platform and other release acceptance gates remain open.
 
 ## Interface languages — explicitly requested 20 October 2026
 
@@ -89,10 +89,10 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 - [x] Coroutines dependency and background service integration compile and pass tests.
 - [x] Shared Ktor Client configuration compiles and deterministic HTTP regressions pass.
 - [x] kotlinx.serialization configuration and parser regressions pass.
-- [ ] 🚧 IN PROGRESS — SLF4J API and Logback desktop backend configured; file logging/final production policy is still pending.
+- [x] Configure SLF4J/Logback with rotating, redacted launcher files and documented retention; SafeLogMessageTest and production logback.xml verify the bounded logging policy. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [x] Kotlin/JUnit5 framework executes the complete core and desktop regression suite.
 - [x] Add `.gitignore` for IDE/build/runtime/generated files.
-- [ ] 🚧 IN PROGRESS — platform-aware data/config/cache/log/runtime path resolution and Minecraft installation layout implemented; lifecycle/integration remains pending.
+- [x] Resolve platform-aware data/config/cache/log/runtime paths and use them in desktop/core lifecycles; LauncherPathsTest and DesktopLauncherSessionAccountsTest pass. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 
 ## Offline account
 
@@ -100,12 +100,12 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 - [x] `OfflineAccount` implemented and verified by core regressions.
 - [x] Minecraft-style offline username validation passes deterministic unit and rendered UI tests.
 - [x] Deterministic Minecraft offline UUID generation passes the existing compatibility regressions.
-- [ ] 🚧 IN PROGRESS — versioned atomic preferences store now persists the offline nickname without credentials, with unknown-key retention; first full Gradle/GUI acceptance pending.
-- [ ] 🚧 IN PROGRESS — offline nickname field and explanatory text are present in the v0.1 UI; final account-state integration remains pending.
+- [x] Persist offline identity/preferences atomically with schema and unknown-key retention; preference, account-manager and real Compose save/restart tests pass. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] Provide the persistent explicit offline player manager and explanation; empty/saved-player creation/selection tests pass without accessing the credential vault. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 
 ## Minecraft version discovery
 
-- [ ] 🚧 IN PROGRESS — official Mojang `version_manifest_v2.json` fetch service implemented; full Gradle/runtime verification remains pending.
+- [x] official Mojang `version_manifest_v2.json` fetch service implemented. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [x] Version manifest parser and DTO/domain mapping verified by deterministic tests.
 - [x] Release/snapshot/legacy version type mapping verified by parser tests.
 - [ ] 🚧 IN PROGRESS — release filtering is implemented in the first Compose UI; full UI build/manual verification remains pending.
@@ -115,91 +115,91 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 
 ## Version metadata resolver
 
-- [ ] 🚧 IN PROGRESS — selected version metadata download service implemented and wired to UI; full live/Gradle verification remains pending.
+- [x] selected version metadata download service implemented and wired to UI. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [x] Version id/type parsing verified by metadata fixture tests.
 - [x] Client download metadata parsing verified by metadata fixture tests.
 - [x] Library/download/classifier metadata parsing verified by metadata fixture tests.
 - [x] Asset-index metadata parsing verified by metadata fixture tests.
 - [x] Main-class parsing verified by metadata fixture tests.
 - [ ] 🚧 IN PROGRESS — modern JVM/game arguments and legacy `minecraftArguments` parsing are now consumed by `LaunchPlanBuilder`; full Gradle/real-launch verification remains pending.
-- [ ] 🚧 IN PROGRESS — Java requirement/component metadata parsing is implemented and consumed by the managed runtime manager; full build/live verification remains pending.
+- [x] Java requirement/component metadata parsing is implemented and consumed by the managed runtime manager. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [x] OS/version/architecture and feature rule parsing verified by deterministic tests.
-- [ ] Support metadata inheritance where required by supported versions.
+- [x] Resolve checksum-verified catalog parent metadata with bounded cycle/depth checks, child library precedence and inherited arguments/runtime/client; deterministic regressions pass. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [x] Ordered allow/disallow rule evaluation and argument filtering pass deterministic regressions.
 - [x] Representative modern/legacy metadata fixture tests execute successfully in the full suite.
 
 ## Minecraft files
 
-- [ ] 🚧 IN PROGRESS — `MinecraftPreparationService` now executes the planned client JAR download through the shared verified downloader; Gradle/integration execution remains pending.
-- [ ] 🚧 IN PROGRESS — client JAR SHA-1 and size are verified before the `.part` file is atomically published; Gradle tests remain pending.
-- [ ] 🚧 IN PROGRESS — required classpath libraries are selected for the current OS/architecture/rules and planned to cache paths; execution verification remains pending.
-- [ ] 🚧 IN PROGRESS — preparation service downloads missing planned libraries through bounded shared infrastructure; Gradle/integration execution remains pending.
-- [ ] 🚧 IN PROGRESS — library hashes/sizes are verified by the generic integrity layer before publication; Gradle tests remain pending.
-- [ ] 🚧 IN PROGRESS — native classifier selection including `${arch}` replacement implemented and tested in source; Gradle execution remains pending.
-- [ ] 🚧 IN PROGRESS — planned native archives are downloaded through the shared verified downloader; Gradle/integration execution remains pending.
-- [ ] 🚧 IN PROGRESS — verified native archives are extracted into a regenerated version-specific natives directory with `META-INF` exclusion and Zip Slip protection; full execution remains pending.
-- [ ] 🚧 IN PROGRESS — asset index is now included in the executable preparation download plan and verified before parsing; Gradle/integration execution remains pending.
-- [ ] 🚧 IN PROGRESS — asset-index parser and Mojang asset-object URL/cache planner are integrated into preparation; duplicate hashes are de-duplicated.
-- [ ] 🚧 IN PROGRESS — missing asset objects are planned and downloaded through the shared manager; Gradle/integration execution remains pending.
-- [ ] 🚧 IN PROGRESS — verified existing client/libraries/natives/assets are reused without network access; controlled MockEngine test source covers cache reuse but Gradle execution remains pending.
-- [ ] 🚧 IN PROGRESS — downloads use sibling `.part` files and publish only after successful size/hash verification; interrupted/failed partials are cleaned and never treated as valid cache.
+- [x] `MinecraftPreparationService` now executes the planned client JAR download through the shared verified downloader. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] client JAR SHA-1 and size are verified before the `.part` file is atomically published. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] Select OS/architecture/rule-compatible classpath libraries and cache paths; LibraryResolverTest and MinecraftPreparationServiceTest pass. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] preparation service downloads missing planned libraries through bounded shared infrastructure. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] library hashes/sizes are verified by the generic integrity layer before publication. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] native classifier selection including `${arch}` replacement implemented and tested in source. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] planned native archives are downloaded through the shared verified downloader. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] Extract verified native archives with META-INF exclusions and path containment; NativeExtractorTest and complete preparation regressions pass. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] asset index is now included in the executable preparation download plan and verified before parsing. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] asset-index parser and Mojang asset-object URL/cache planner are integrated into preparation; duplicate hashes are de-duplicated. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] missing asset objects are planned and downloaded through the shared manager. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] Reuse verified existing clients/libraries/natives/assets without network requests; warm-cache preparation regressions pass. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] downloads use sibling `.part` files and publish only after successful size/hash verification; interrupted/failed partials are cleaned and never treated as valid cache. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 
 ## Download infrastructure
 
-- [ ] 🚧 IN PROGRESS — centralized `DownloadManager` now streams all planned artifacts through the shared Ktor client; full Gradle/runtime verification remains pending.
+- [x] centralized `DownloadManager` now streams all planned artifacts through the shared Ktor client. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [x] Structured coroutine cancellation propagates through batches and removes active `.part` files before completion, preserving existing targets and cancelling queued requests. Deterministic single/concurrent-batch cancellation and retry regressions plus local `test build` pass (21 October 2026); native cancel-during-game-preparation acceptance remains separate.
-- [ ] 🚧 IN PROGRESS — batch downloads use a coroutine `Semaphore` with configurable bounded parallelism (default 6); Gradle execution remains pending.
-- [ ] 🚧 IN PROGRESS — typed batch/file start, progress, retry, complete and failure events are exposed to application callers; Compose progress UI is not wired yet.
-- [ ] 🚧 IN PROGRESS — retry policy handles transient network failures, HTTP 408/425/429/5xx and integrity/size failures with bounded backoff; controlled retry test source added.
-- [ ] 🚧 IN PROGRESS — SHA-1 and expected-size validation is shared for downloaded and cached files; controlled integrity/cache test sources added.
-- [ ] 🚧 IN PROGRESS — downloads are written to `.part` and finalized with atomic move where supported, falling back to replace move only after verification; Gradle execution remains pending.
+- [x] batch downloads use a coroutine `Semaphore` with configurable bounded parallelism (default 6). Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] typed batch/file start, progress, retry, complete and failure events are exposed to application callers. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] retry policy handles transient network failures, HTTP 408/425/429/5xx and integrity/size failures with bounded backoff. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] SHA-1 and expected-size validation is shared for downloaded and cached files. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] downloads are written to `.part` and finalized with atomic move where supported, falling back to replace move only after verification. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [ ] 🚧 IN PROGRESS — typed network, HTTP, integrity, size, filesystem and conflicting-target download errors are implemented; final UI mapping remains pending.
 
 ## Java Runtime Manager
 
-- [ ] 🚧 IN PROGRESS — Java requirement (`component` + `majorVersion`) is parsed from Minecraft metadata and now drives runtime resolution; full Gradle/live verification remains pending.
-- [ ] 🚧 IN PROGRESS — `JavaRuntime` now records executable/home/version plus source/component/platform/release identity; full build verification remains pending.
-- [ ] 🚧 IN PROGRESS — `JavaRuntimeManager` is wired into `MinecraftLaunchCoordinator`; returned runtime feeds `LaunchRequest` before `ProcessBuilder`. Full live/Gradle verification is pending.
-- [ ] 🚧 IN PROGRESS — compatible launcher-managed runtimes are discovered and reused before any runtime-index network call; complete manifest-backed integrity and `java -version` checks guard reuse.
+- [x] Java requirement (`component` + `majorVersion`) is parsed from Minecraft metadata and now drives runtime resolution. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] `JavaRuntime` now records executable/home/version plus source/component/platform/release identity. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] Resolve managed Java before creating the launch request; complete coordinator and real Java-subprocess wiring regressions pass. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] compatible launcher-managed runtimes are discovered and reused before any runtime-index network call; complete manifest-backed integrity and `java -version` checks guard reuse. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [ ] 🚧 IN PROGRESS — official Mojang runtime index is used as the distribution source and selected by the Minecraft-declared component plus detected platform; full live platform verification remains pending.
-- [ ] 🚧 IN PROGRESS — missing Mojang runtime manifests/files are downloaded through the shared verified `DownloadManager`, including retry/cancellation/progress behavior; Gradle/live execution remains pending.
-- [ ] 🚧 IN PROGRESS — runtime manifests and every installed file are checked by size/SHA-1; directories and symlinks are checked on reuse; corrupted/incomplete runtimes are rejected and reinstalled automatically.
+- [x] missing Mojang runtime manifests/files are downloaded through the shared verified `DownloadManager`, including retry/cancellation/progress behavior. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] runtime manifests and every installed file are checked by size/SHA-1; directories and symlinks are checked on reuse; corrupted/incomplete runtimes are rejected and reinstalled automatically. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [ ] 🚧 IN PROGRESS — Windows/Linux/macOS Java executable resolution is implemented, including `bin/java.exe`, `bin/java` and macOS `jre.bundle/Contents/Home/bin/java`; full platform execution remains pending.
-- [ ] 🚧 IN PROGRESS — staged and published runtimes are executed with `java -version`, parsed for modern/legacy version formats and rejected when the major version differs from Minecraft metadata.
+- [x] staged and published runtimes are executed with `java -version`, parsed for modern/legacy version formats and rejected when the major version differs from Minecraft metadata. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [ ] 🚧 IN PROGRESS — typed runtime errors distinguish unsupported platform, metadata, manifest, install, verification and Java-version mismatch failures; Compose error mapping remains pending.
-- [ ] 🚧 IN PROGRESS — runtime installation uses a staging directory, safe manifest paths, manifest-declared executable flags/symlinks, a completion marker and atomic directory publication where supported.
-- [ ] 🚧 IN PROGRESS — controlled MockEngine tests cover target/manifest parsing, initial installation, no-network warm reuse and automatic repair after a managed runtime file is removed; `./gradlew test` execution remains pending.
-- [ ] 🚧 IN PROGRESS — runtime models/services remain entirely in `launcher-core` and independent from Compose UI; full build verification remains pending.
-- [ ] Document/finalize supported runtime platform matrix; current Mojang mapping covers Windows x86/x64/ARM64, Linux x86/x64 and macOS x64/ARM64 where the requested component exists, while unsupported official combinations fail explicitly.
+- [x] runtime installation uses a staging directory, safe manifest paths, manifest-declared executable flags/symlinks, a completion marker and atomic directory publication where supported. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] controlled MockEngine tests cover target/manifest parsing, initial installation, no-network warm reuse and automatic repair after a managed runtime file is removed. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] runtime models/services remain entirely in `launcher-core` and independent from Compose UI. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] Publish distribution/runtime boundaries and exact available gameplay evidence in [SUPPORT_MATRIX.md](SUPPORT_MATRIX.md); component availability and unsupported combinations fail explicitly. Native acceptance is separate.
 
 ## Launch planning
 
 - [ ] 🚧 IN PROGRESS — `LaunchOptions` memory bounds are now passed from the Compose RAM control into the real Play pipeline and consumed by `LaunchPlanBuilder`; Gradle/live acceptance remains pending.
-- [ ] 🚧 IN PROGRESS — `LaunchRequest` now binds common `Account`, verified `PreparedMinecraftVersion`, resolved `JavaRuntime`, platform, features, options and normalized `LaunchAuthentication`; process-layer integration remains pending.
+- [x] `LaunchRequest` now binds common `Account`, verified `PreparedMinecraftVersion`, resolved `JavaRuntime`, platform, features, options and normalized `LaunchAuthentication`. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [ ] 🚧 IN PROGRESS — classpath is assembled from prepared libraries plus client JAR and substituted with the target platform classpath separator; full Gradle/real-launch verification remains pending.
-- [ ] 🚧 IN PROGRESS — Mojang placeholders are substituted explicitly for account/version/game/assets/natives/classpath/library/auth/launcher fields; unknown placeholders fail with a typed launch-plan error instead of reaching Java unresolved.
-- [ ] 🚧 IN PROGRESS — Mojang rule filtering for JVM/game arguments is applied before placeholder substitution; full Gradle execution remains pending.
-- [ ] 🚧 IN PROGRESS — `-Xms`/`-Xmx` are generated from `LaunchOptions` and extra JVM arguments are appended without shell-string concatenation; UI wiring remains pending.
-- [ ] 🚧 IN PROGRESS — `${assets_root}`, `${assets_index_name}` and legacy `${game_assets}` values are derived from prepared asset state; legacy virtual/map-to-resources materialization remains a separate compatibility limitation.
+- [x] Mojang placeholders are substituted explicitly for account/version/game/assets/natives/classpath/library/auth/launcher fields; unknown placeholders fail with a typed launch-plan error instead of reaching Java unresolved. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] Mojang rule filtering for JVM/game arguments is applied before placeholder substitution. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] `-Xms`/`-Xmx` are generated from `LaunchOptions` and extra JVM arguments are appended without shell-string concatenation. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] Bind modern and legacy asset placeholders; materialize verified virtual and per-game resources views with safe paths, cache repair and preservation of different user files. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [ ] 🚧 IN PROGRESS — `${natives_directory}` is bound to the version-specific prepared native directory; full launch execution remains pending.
-- [ ] 🚧 IN PROGRESS — `${game_directory}` is bound to the platform-aware prepared game directory; v0.2 will later replace this global v0.1 directory with instance state.
-- [ ] 🚧 IN PROGRESS — offline username/UUID/session/access token/user type are normalized through `LaunchAuthentication.offline()` without hardwiring raw nickname handling throughout the builder; premium credentials can later use the same boundary.
-- [ ] 🚧 IN PROGRESS — metadata logging argument `${path}` is bound to the verified downloaded logging configuration when present.
-- [ ] 🚧 IN PROGRESS — legacy versions without metadata JVM arguments receive explicit natives path and classpath fallback arguments rather than a version-specific hardcoded launch recipe.
+- [x] Bind game_directory to the selected UUID game directory, retaining separate original Legacy Vanilla storage. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] offline username/UUID/session/access token/user type are normalized through `LaunchAuthentication.offline()` without hardwiring raw nickname handling throughout the builder; premium credentials can later use the same boundary. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] metadata logging argument `${path}` is bound to the verified downloaded logging configuration when present. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] legacy versions without metadata JVM arguments receive explicit natives path and classpath fallback arguments rather than a version-specific hardcoded launch recipe. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [ ] 🚧 IN PROGRESS — structured `LaunchPlan` now directly feeds `MinecraftProcessManager` through `MinecraftLaunchCoordinator`; compilation/full real-Minecraft launch acceptance remains pending.
-- [ ] 🚧 IN PROGRESS — deterministic unit-test sources cover modern placeholder construction, memory/logging/classpath/offline identity, legacy JVM fallback, arguments containing spaces and rejection of unknown placeholders; `./gradlew test` execution remains pending.
+- [x] deterministic unit-test sources cover modern placeholder construction, memory/logging/classpath/offline identity, legacy JVM fallback, arguments containing spaces and rejection of unknown placeholders. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 
 ## Process management
 
 - [ ] 🚧 IN PROGRESS — `MinecraftProcessManager` starts `LaunchPlan.command` with `ProcessBuilder` in the prepared game working directory; full Gradle and real Minecraft launch verification remain pending.
-- [ ] 🚧 IN PROGRESS — each launch creates a distinct Minecraft run directory under launcher logs with separate redirected `stdout.log` and `stderr.log`; POSIX log files use owner-only permissions and native redirects survive launcher detach.
-- [ ] 🚧 IN PROGRESS — `StateFlow<MinecraftProcessStatus>` exposes IDLE/STARTING/RUNNING/STOPPED/CRASHED/DETACHED, PID, start/end timestamps, log paths, actionable failure message and exit code; Compose presentation remains pending.
-- [ ] 🚧 IN PROGRESS — non-zero natural exits become CRASHED and zero exits STOPPED; requested termination becomes STOPPED even when the OS exit code is non-zero; full integration verification remains pending.
-- [ ] 🚧 IN PROGRESS — mutex-guarded process ownership rejects duplicate launches until the previous process exit is observed; controlled test source added.
+- [x] each launch creates a distinct Minecraft run directory under launcher logs with separate redirected `stdout.log` and `stderr.log`; POSIX log files use owner-only permissions and native redirects survive launcher detach. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] `StateFlow<MinecraftProcessStatus>` exposes IDLE/STARTING/RUNNING/STOPPED/CRASHED/DETACHED, PID, start/end timestamps, log paths, actionable failure message and exit code. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] Classify natural nonzero/zero exits as CRASHED/STOPPED and requested termination as STOPPED; real subprocess regressions pass. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] mutex-guarded process ownership rejects duplicate launches until the previous process exit is observed. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [ ] 🚧 IN PROGRESS — explicit `terminate(gracePeriodMillis)` first requests graceful termination and then forces termination if necessary; cancellation and OS-specific edge cases still need live acceptance.
 - [ ] 🚧 IN PROGRESS — explicit `shutdown(DETACH | TERMINATE)` policy defines launcher close behavior; DETACH leaves Minecraft alive with stdout/stderr redirected to files; desktop window-close integration remains pending.
-- [ ] 🚧 IN PROGRESS — typed process startup, duplicate-launch, closed-manager and forced-termination failures are defined without logging a full launch command or authentication arguments; full Gradle execution remains pending.
-- [ ] 🚧 IN PROGRESS — five process-manager test scenarios cover a real JDK subprocess, separate stdout/stderr logs, duplicate protection, crashes and relaunch, force-stop, detach, and retry after startup failure; Gradle/JUnit execution remains pending.
+- [x] typed process startup, duplicate-launch, closed-manager and forced-termination failures are defined without logging a full launch command or authentication arguments. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] five process-manager test scenarios cover a real JDK subprocess, separate stdout/stderr logs, duplicate protection, crashes and relaunch, force-stop, detach, and retry after startup failure. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [ ] 🚧 IN PROGRESS — Compose observes process `StateFlow` and displays PID, exit code, errors and process log directory; Stop calls `terminate()`. Window close uses DETACH after canceling ongoing downloads; full UI lifecycle testing pending.
 
 ## v0.1 UI
@@ -229,7 +229,7 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 - [ ] 🚧 IN PROGRESS — real `Play Minecraft` action now runs prepared metadata → verified game downloads/assets/natives → managed Java → `LaunchPlanBuilder` → `MinecraftProcessManager`; live vanilla launch acceptance is pending.
 - [ ] 🚧 IN PROGRESS — `MinecraftLaunchCoordinator` exposes preparation phases, per-file progress and completion counts through `StateFlow`; Compose displays status and progress and offers cancellation.
 - [ ] 🚧 IN PROGRESS — catalog/metadata errors have retry actions; pipeline preparation/Java/launch errors and process crashes display human-oriented messages and log paths; detailed error mapping/manual verification remain open.
-- [ ] 🚧 IN PROGRESS — nickname/version/channel/RAM controls and Play are disabled during preparation or while the game runs; duplicate launch is also guarded in the session/core.
+- [x] nickname/version/channel/RAM controls and Play are disabled during preparation or while the game runs; duplicate launch is also guarded in the session/core. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [ ] 🚧 IN PROGRESS — `DesktopLauncherSession` owns application-scope jobs, cancels outstanding preparation on window close, shuts down process manager with DETACH and closes the shared Ktor client; cross-platform close acceptance is pending.
 - [ ] 🚧 IN PROGRESS — the UI exposes a `Stop Minecraft` action and running/stopped/crashed/exit-code indicators from ProcessManager; real-game/manual verification remains pending.
 - [ ] 🚧 IN PROGRESS — Compose restores and debounces storage of nickname, selected version, release/snapshot channel and RAM via atomic schema-versioned properties; tests and desktop acceptance pending.
@@ -255,9 +255,9 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 - [ ] 🚧 IN PROGRESS — Full local `./gradlew build` and Linux `createDistributable` pass (20 October 2026); remaining native platform release acceptance stays open.
 - [ ] Fresh launcher state can download prerequisites and start a supported vanilla Minecraft release.
 - [ ] Second launch reuses valid cached data instead of redownloading everything.
-- [ ] Offline identity remains stable for the same username.
-- [ ] Java is selected automatically without requiring a globally installed Java when managed runtime installation succeeds.
-- [ ] No premium authentication/mod/loader feature has leaked into v0.1 scope unnecessarily.
+- [x] Offline identity remains stable for the same username; deterministic UUID/account and persistence tests pass. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] Java is selected automatically without requiring a globally installed Java when managed runtime installation succeeds. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] No premium authentication/mod/loader feature has leaked into v0.1 scope unnecessarily. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 
 ---
 
@@ -295,27 +295,27 @@ Goal: separate user installations into isolated, manageable Minecraft instances 
 - [x] Shared versions, libraries and assets cache paths are preserved by the per-instance layout; unit assertions passed.
 - [x] Atomic per-instance `instance.json` publication with explicit errors for corrupt/newer metadata; CI tests passed.
 - [ ] 🚧 IN PROGRESS — schema 1 read/write supports unknown-field preservation; later schema migrations remain to be designed/tested.
-- [ ] 🚧 IN PROGRESS — explicit non-destructive import copies the v0.1 game folder while leaving source untouched.
+- [x] explicit non-destructive import copies the v0.1 game folder while leaving source untouched. Evidence: [C02](MILESTONE_CLOSURE.md#c02).
 - [ ] 🚧 IN PROGRESS — cloning rejects symlinks/special files, reports preflight size and streamed copy progress, stages data atomically without reusing abandoned staging, and preserves unknown metadata; real-world tests remain open.
 
 ## Instance management
 
-- [ ] 🚧 IN PROGRESS — create, rename, edit instance version/RAM/JVM settings, list alphabetically, clone worlds and move to recoverable trash.
+- [x] create, rename, edit instance version/RAM/JVM settings, list alphabetically, clone worlds and move to recoverable trash. Evidence: [C02](MILESTONE_CLOSURE.md#c02).
 - [x] Selected instance UUID persists as an optional schema-1 preferences key, compatible with older settings; CI suite passed.
 - [ ] 🚧 IN PROGRESS — deletion uses `data/instance-trash/`, with in-app restore and original UUID preservation; CI/manual restore verification remains pending.
 
 ## Launch integration
 
 - [x] Selected instance overrides the existing launch pipeline's game directory without duplicating the launch engine; integration test passed.
-- [ ] 🚧 IN PROGRESS — per-instance min/max RAM and extra JVM arguments override launcher defaults when an instance is active.
-- [ ] 🚧 IN PROGRESS — the v0.1 Legacy Vanilla profile remains available with its original game folder.
+- [x] per-instance min/max RAM and extra JVM arguments override launcher defaults when an instance is active. Evidence: [C02](MILESTONE_CLOSURE.md#c02).
+- [x] the v0.1 Legacy Vanilla profile remains available with its original game folder. Evidence: [C02](MILESTONE_CLOSURE.md#c02).
 - [ ] Manual acceptance: launch two profiles with the same Minecraft version and confirm independent worlds/configurations.
 
 ## v0.2 UI
 
 - [x] Add a home instance dropdown using the existing guarded selection path for Legacy Vanilla and UUID profiles; a deterministic Compose interaction test verifies profile/version/RAM display without opening the manager.
 
-- [ ] 🚧 IN PROGRESS — instance selector/manager added to Compose home without changing primary Play CTA.
+- [x] instance selector/manager added to Compose home without changing primary Play CTA. Evidence: [C02](MILESTONE_CLOSURE.md#c02).
 - [ ] 🚧 IN PROGRESS — create, rename, clone, explicit legacy import, dedicated per-instance settings editor and confirm delete/restore actions; cross-platform and UX acceptance pending.
 - [ ] 🚧 IN PROGRESS — corrupt/missing saved instances are explicitly reported and cannot silently redirect Play to Legacy Vanilla.
 - [ ] Preview UX review (window size, instance manager dialog, large folders and keyboard focus) pending.
@@ -334,14 +334,14 @@ Goal: separate user installations into isolated, manageable Minecraft instances 
 
 Goal: add official premium authentication without changing the fundamental Minecraft launch pipeline.
 
-**Status:** 🚧 IN PROGRESS / EXTERNAL BLOCKER — Microsoft OAuth, Xbox/XSTS and Minecraft Services exchanges are implemented and mock-tested, but **a new Microsoft Entra Client ID is not automatically authorized by Minecraft Services**. The project must separately submit its own AppID for Minecraft/Mojang approval/allowlisting. Until explicit confirmation and a real `login_with_xbox` test, authenticated Minecraft Java login and full v0.3 release are **BLOCKED**. The maintainer's one-time v0.2 acceptance waiver is unrelated to this external dependency.
+**Status:** implementation foundations verified; live acceptance deferred by maintainer pending Mojang. Historical registration/submission blockers are reconciled in [C03](MILESTONE_CLOSURE.md#c03). Microsoft OAuth, Xbox/XSTS and Minecraft Services exchanges are implemented and mock-tested, but **a new Microsoft Entra Client ID is not automatically authorized by Minecraft Services**. The project must separately submit its own AppID for Minecraft/Mojang approval/allowlisting. Until explicit confirmation and a real `login_with_xbox` test, authenticated Minecraft Java login and full v0.3 release are **BLOCKED**. The maintainer's one-time v0.2 acceptance waiver is unrelated to this external dependency.
 
 ## External prerequisite — Minecraft Services AppID authorization
 
-- [ ] **P0 / BLOCKED — Register SyntaxLauncher's own native/public Microsoft Entra app** and configure its authorized `http://localhost/callback` redirect. Do not reuse another launcher's Client ID or embed a client secret.
-- [ ] **P0 / BLOCKED — Submit SyntaxLauncher Client ID for Minecraft/Mojang AppID approval (allowlist).** Microsoft Entra registration alone is insufficient. Developers report `HTTP 403 Invalid app registration` at `POST /authentication/login_with_xbox` even when OAuth/Xbox/XSTS work. Check the Minecraft support page `https://help.minecraft.net/hc/en-us/articles/16254801392141` and the linked current submission process. A form reported by a developer in August 2026 was `https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=v4j5cvGGr0GRqy180BHbR-ajEQ1td1ROpz00KtS8Gd5UNVpPTkVLNFVROVQxNkdRMEtXVjNQQjdXVC4u`; verify the current form through Minecraft support before submitting.
+- [x] Registered SyntaxLauncher’s owned public Entra app and localhost redirect; the public app configuration and submitted immutable revision are recorded in MICROSOFT_APP.md. This is registration evidence, not Minecraft allowlisting. Evidence: [C03](MILESTONE_CLOSURE.md#c03).
+- [x] Submitted the owned Client ID for Mojang AppID review; MICROSOFT_APP.md records the receipt and renewed b915ad2 submission. Approval remains deferred and unchecked below. Evidence: [C03](MILESTONE_CLOSURE.md#c03).
 - [ ] **P0 / BLOCKED — Obtain and record explicit approval from Mojang/Minecraft** for the project's Client ID, then perform a real successful Minecraft Services token and Java profile retrieval test.
-- [ ] Keep Xbox/XSTS/Minecraft provider implementations testable with mocked HTTP responses while approval is pending; this does **not** constitute live authentication success.
+- [x] Keep Xbox/XSTS/Minecraft providers testable with mocked HTTP; MicrosoftOAuthTest and MinecraftPremiumAuthenticationTest pass without claiming live authentication. Evidence: [C03](MILESTONE_CLOSURE.md#c03).
 
 ## Account management
 
@@ -351,23 +351,23 @@ Goal: add official premium authentication without changing the fundamental Minec
 - [x] Preserve offline account support; saving/selecting an offline player does not access the credential vault.
 - [x] Add a verified premium account type and token-safe session class; tested.
 - [x] Support multiple saved offline/Microsoft identities; restart coverage uses an isolated test vault.
-- [ ] Allow account selection per launch or as launcher default.
-- [ ] Display account type clearly.
+- [x] Allow saved account selection as the persistent launcher default; account-manager and translated desktop player tests pass. Evidence: [C03](MILESTONE_CLOSURE.md#c03).
+- [x] Display explicit Offline / non-premium or Microsoft identity type in the player selector and manager; translated UI tests pass. Evidence: [C03](MILESTONE_CLOSURE.md#c03).
 
 ## Delivery phases
 
-- [ ] **P0 — Authentication foundation:** typed premium identity, nonce/state + S256 PKCE, OAuth code exchange, Xbox/XSTS/Minecraft profile verification, mocked tests.
+- [x] Implement authentication foundation: typed identity, S256 PKCE/state, OAuth/Xbox/XSTS/Minecraft profile and entitlement exchanges with deterministic provider tests. Evidence: [C03](MILESTONE_CLOSURE.md#c03).
 - [ ] **P0 — Desktop sign-in:** system browser with loopback callback and CSRF validation, loading/cancel/error states, configurable registered client ID.
 - [ ] **P0 — Session security:** token redaction, secure OS-backed refresh credential persistence, refresh and sign-out.
-- [ ] **P0 — Launch integration:** selected verified account supplies Minecraft token without an alternate launcher pipeline.
-- [ ] **P1 — Account workspace:** multiple stored offline/Microsoft accounts, selection and account identity UI.
+- [x] Pass the selected authenticated account through the common coordinator; DesktopLauncherSessionAccountsTest and premium coordinator regressions pass. Evidence: [C03](MILESTONE_CLOSURE.md#c03).
+- [x] Implement multiple saved offline/Microsoft identities and persistent active selection; AccountManagerTest and PlayerProfilesTest pass. Evidence: [C03](MILESTONE_CLOSURE.md#c03).
 - [ ] **Release acceptance:** approved Microsoft app registration, live sign-in/refresh and premium Minecraft game launch.
 
 ## Microsoft authentication
 
 - [ ] 🚧 IN PROGRESS — native public-client OAuth request/code exchange and refresh implemented; localhost browser callback UI remains.
 - [x] Implement S256 PKCE, cryptographic CSRF state and unique request verifier; tested.
-- [ ] Never request/store Microsoft password.
+- [x] Use the system-browser public-client flow without collecting or storing a Microsoft password; browser callback and OAuth contract tests pass. Evidence: [C03](MILESTONE_CLOSURE.md#c03).
 - [x] Implement Xbox user-token exchange to Microsoft OAuth token, covered by MockEngine integration test.
 - [x] Implement Xbox XSTS auth with Minecraft relying party, covered by MockEngine.
 - [ ] 🚧 IN PROGRESS — login_with_xbox implemented with typed HTTP-403 app-registration errors; only mocked tests so far.
@@ -379,15 +379,15 @@ Goal: add official premium authentication without changing the fundamental Minec
 
 - [ ] 🚧 IN PROGRESS — premium LaunchPlan now flags credential-bearing sessions and default process starter discards stdout/stderr rather than persisting raw tokens. Game-owned logs and crash reports still require security review.
 
-- [ ] Refresh expired/expiring sessions automatically when possible.
+- [x] Refresh Microsoft sessions through the account manager, verifying unchanged identity; deterministic lifecycle tests pass. Live acceptance still awaits Mojang. Evidence: [C03](MILESTONE_CLOSURE.md#c03).
 - [ ] Store long-lived secrets/tokens using an appropriate secure OS mechanism.
 - [ ] Redact tokens from logs and exceptions.
-- [ ] Support sign-out/revoke-local-session behavior.
-- [ ] Handle refresh failure by requesting authentication again.
+- [x] Remove the local refresh credential and saved identity on sign-out; preserve identity on vault removal failure. Remote grant revocation is not claimed. Evidence: [C03](MILESTONE_CLOSURE.md#c03).
+- [x] Refuse premium Play after refresh failure with a re-authentication path; no offline fallback. DesktopLauncherSessionAccountsTest passes. Evidence: [C03](MILESTONE_CLOSURE.md#c03).
 
 ## Launch integration
 
-- [ ] Convert authenticated account/session to existing launch account/session inputs.
+- [x] Convert verified account/session data to the existing normalized launch inputs; premium/coordinator tests pass. Evidence: [C03](MILESTONE_CLOSURE.md#c03).
 - [ ] 🚧 IN PROGRESS — coordinator accepts normalized premium LaunchAuthentication and uses standard metadata placeholder replacement; desktop selection and live verification pending.
 - [x] Both account types use MinecraftLaunchCoordinator with a normalized LaunchAuthentication.
 
@@ -417,7 +417,7 @@ Goal: add official premium authentication without changing the fundamental Minec
 
 Goal: introduce the first mod loader and validate a reusable loader architecture.
 
-**Status:** 🚧 CI verified ([successful run](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/39317269516): core/desktop tests,
+**Status:** maintainer additionally confirmed Linux/Windows 10 Fabric startup and world saving for Minecraft 1.21.11, 26.2 and 26.3 on 24 October; exact loader versions were not supplied. See [C04](MILESTONE_CLOSURE.md#c04). Earlier CI verified ([successful run](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/39317269516): core/desktop tests,
 native packages for Windows/Linux/macOS and Build Explorer publishing). The maintainer confirmed real Fabric and Quilt testing on 20 October 2026; game boot acceptance is passed. Cross-platform, fault-injection and library-integrity acceptance remain separately tracked. See [v0.4 checklist](TESTING_V0.4.md).
 v0.3 official Microsoft approval is an independent external dependency and does not block
 offline account tests for this milestone.
@@ -448,7 +448,7 @@ offline account tests for this milestone.
 - [ ] Validate the complete simplified discovery/install/Play flow on native supported platforms and observe first-time child users; no child usability or all-platform acceptance is inferred from renders.
 
 - [ ] 🚧 IN PROGRESS — Vanilla/Fabric creation and settings controls implemented; manual desktop usability pending.
-- [ ] 🚧 IN PROGRESS — Vanilla remains explicit; profile compatibility and data preservation test pending.
+- [x] Vanilla remains explicit; metadata coexistence and profile/world preservation tests pass. Evidence: [C04](MILESTONE_CLOSURE.md#c04).
 - [ ] 🚧 IN PROGRESS — Fabric version picker from API, stable version preferred; keyboard/small-window acceptance pending.
 - [ ] 🚧 IN PROGRESS — Incompatible and API error feedback added; error-state acceptance pending.
 
@@ -460,7 +460,7 @@ offline account tests for this milestone.
 - [ ] Fabric selection and writable game data are instance-scoped (automated coverage passes; real-world acceptance pending).
 - [x] Fabric instance launches through the same coordinator; maintainer-confirmed real boot on 20 October 2026.
 - [x] A second playable provider, Quilt, uses the registry/shared coordinator; deterministic profile tests and maintainer-confirmed Quilt boot pass. Forge-family processor execution remains separate.
-- [ ] Confirm checksum availability/fallback strategy for Fabric libraries whose profile omits hashes.
+- [x] Unchecksummed library/native cache reuse requires a URL/size-bound observed SHA-256 receipt; corruption/missing receipt forces download. Local detection does not claim upstream authenticity. Evidence: [C04](MILESTONE_CLOSURE.md#c04).
 - [ ] Pass the `docs/TESTING_V0.4.md` *manual* checklist on target desktop platforms.
 
 ---
@@ -469,7 +469,7 @@ offline account tests for this milestone.
 
 Goal: manage local mod JARs safely before adding online repositories.
 
-**Status:** 🚧 Implementation on main; CI/manual acceptance pending. Real Fabric and Quilt startup tests were subsequently confirmed by the maintainer on 20 October 2026. Local mod-management gameplay and native UX acceptance remain separate.
+**Status:** implementation and current automated CI verified; manual game/native acceptance remains open. Real Fabric and Quilt startup tests were subsequently confirmed by the maintainer on 20 October 2026. Local mod-management gameplay and native UX acceptance remain separate.
 See [v0.5 test checklist](TESTING_V0.5.md).
 
 ## Mod model
@@ -487,7 +487,7 @@ See [v0.5 test checklist](TESTING_V0.5.md).
 - [ ] 🚧 IN PROGRESS — Remove JAR to a recoverable instance-local trash folder; manual acceptance pending.
 - [ ] 🚧 IN PROGRESS — Enable/disable with a reversible `.jar.disabled` rename; acceptance pending.
 - [ ] 🚧 IN PROGRESS — Show installed local mods and basic metadata in a scrollable dialog; UX check pending.
-- [ ] 🚧 IN PROGRESS — Warn about missing/conflicting declared Fabric dependencies; version ranges advisory only.
+- [x] Warn about missing/conflicting declared Fabric dependencies; version ranges advisory only. Evidence: [C05](MILESTONE_CLOSURE.md#c05).
 - [x] Local mod mutations use the instance repository cross-process activity lock and remain instance-scoped; automated regressions pass.
 
 ## Dependency awareness
@@ -513,27 +513,26 @@ See [v0.5 test checklist](TESTING_V0.5.md).
 Goal: browse popular or searched compatible mods, read details, install dependencies,
 and later deliver version-aware updates.
 
-**Status:** 🚧 Partial implementation pushed to `main`. Automated CI/manual UI/game
-acceptance still pending. The maintainer confirmed real Fabric and Quilt startup on 20 October 2026; this does not imply completion of every Modrinth workflow. See [v0.6 checklist](TESTING_V0.6.md).
+**Status:** implemented discovery/required-dependency installation and transactional updates are verified in the current automated suite and hosted CI. Optional-dependency choices and declared managed-origin conflict guards are now tested; general dependency reconciliation and native/game acceptance remain open. The maintainer confirmed real Fabric and Quilt startup on 20 October 2026; this does not imply completion of every Modrinth workflow. See [v0.6 checklist](TESTING_V0.6.md).
 
 ## Discovery and Modrinth client
 
-- [ ] 🚧 IN PROGRESS — Isolated Modrinth API v2 adapter for popular mod charts and search; CI pending.
-- [ ] 🚧 IN PROGRESS — Sort popular mods by Modrinth download count, not a hardcoded list.
-- [ ] 🚧 IN PROGRESS — Search projects and retrieve project body/license.
-- [ ] 🚧 IN PROGRESS — List compatible releases and filter by exact Minecraft version and loader.
-- [ ] 🚧 IN PROGRESS — Exclude server-only versions from desktop installation.
-- [ ] 🚧 IN PROGRESS — Respect platform API limits with modest page sizes and a descriptive User-Agent; production rate-limit/retry UX pending.
-- [ ] 🚧 IN PROGRESS — Support installed Fabric loader now, other loader types after their own implementation.
+- [x] Isolated Modrinth API v2 adapter for popular mod charts and search. Evidence: [C06](MILESTONE_CLOSURE.md#c06).
+- [x] Sort popular mods by Modrinth download count, not a hardcoded list. Evidence: [C06](MILESTONE_CLOSURE.md#c06).
+- [x] Search projects and retrieve project body/license. Evidence: [C06](MILESTONE_CLOSURE.md#c06).
+- [x] List compatible releases and filter by exact Minecraft version and loader. Evidence: [C06](MILESTONE_CLOSURE.md#c06).
+- [x] Exclude server-only versions from desktop installation. Evidence: [C06](MILESTONE_CLOSURE.md#c06).
+- [x] Bounded pages, canonical product User-Agent, 15-second API deadlines and three-attempt transient/429 retry with capped Retry-After; permanent errors fail immediately with translated retryable UI. Evidence: [C06](MILESTONE_CLOSURE.md#c06).
+- [x] Support installed Fabric loader now, other loader types after their own implementation. Evidence: [C06](MILESTONE_CLOSURE.md#c06).
 
 ## Installation and dependencies
 
-- [ ] 🚧 IN PROGRESS — Resolve transitive required Modrinth dependencies into a reviewable plan.
-- [ ] 🚧 IN PROGRESS — Include compatible files, versions, sizes and SHA-1 checksums before downloads.
-- [ ] 🚧 IN PROGRESS — Download staged JARs through the shared downloader, then atomically import the batch under an instance lock.
-- [ ] 🚧 IN PROGRESS — Reject incompatible Minecraft/loader versions, server-only files and malformed or untrusted CDN metadata.
-- [ ] 🚧 IN PROGRESS — Show optional and declared incompatible projects as notices, but comprehensive conflict enforcement remains open.
-- [ ] 🚧 IN PROGRESS — Preflight duplicate filenames/mod IDs and preserve pre-existing local mods.
+- [x] Resolve transitive required Modrinth dependencies into a reviewable plan. Evidence: [C06](MILESTONE_CLOSURE.md#c06).
+- [x] Include compatible files, versions, sizes and SHA-1 checksums before downloads. Evidence: [C06](MILESTONE_CLOSURE.md#c06).
+- [x] Download staged JARs through the shared downloader, then atomically import the batch under an instance lock. Evidence: [C06](MILESTONE_CLOSURE.md#c06).
+- [x] Reject incompatible Minecraft/loader versions, server-only files and malformed or untrusted CDN metadata. Evidence: [C06](MILESTONE_CLOSURE.md#c06).
+- [x] Optional choices resolve selected branches; explicit incompatible declarations fail within a plan and against enabled managed origins before download and under the instance lock before import. Full local/version reconciliation remains separate. Evidence: [C06](MILESTONE_CLOSURE.md#c06).
+- [x] Preflight duplicate filenames/mod IDs and preserve pre-existing local mods. Evidence: [C06](MILESTONE_CLOSURE.md#c06).
 - [ ] 🚧 IN PROGRESS — Persist instance-local project/version and verify saved SHA-256 on read; CI/manual acceptance pending.
 - [ ] Evaluate version-range conflicts and reconcile already-installed dependencies rather than rejecting all duplicates.
 
@@ -543,24 +542,25 @@ acceptance still pending. The maintainer confirmed real Fabric and Quilt startup
 - [ ] 🚧 IN PROGRESS — Install selected compatible update with reviewed hash and prior-byte backup; CI and gameplay acceptance pending.
 - [ ] 🚧 IN PROGRESS — Batch update of managed mods with no missing/different required dependency; UI/CI acceptance pending.
 - [ ] 🚧 IN PROGRESS — Transactional per-instance JAR replacement, retained backup and explicit last-update rollback; CI/manual acceptance pending.
-- [ ] Explain unmatched local mods.
+- [x] Explain unmatched local mods. Evidence: [C06](MILESTONE_CLOSURE.md#c06).
 
 ## v0.6 UI
 
 - [x] Expose Choose mods directly from the home screen and open Modrinth discovery first for newly created modded games; the advanced manager retains the installed-mod view.
-- [ ] 🚧 IN PROGRESS — Popular mods in a loader/version-filtered browser inside Instances → Mods.
-- [ ] 🚧 IN PROGRESS — Project detail and external Modrinth page link.
-- [ ] 🚧 IN PROGRESS — Search, pagination, installation review and install confirmation.
-- [ ] Dependency conflict resolution choices and optional-dependency picker.
+- [x] Popular mods in a loader/version-filtered browser inside Instances → Mods. Evidence: [C06](MILESTONE_CLOSURE.md#c06).
+- [x] Project detail and external Modrinth page link. Evidence: [C06](MILESTONE_CLOSURE.md#c06).
+- [x] Search, pagination, installation review and install confirmation. Evidence: [C06](MILESTONE_CLOSURE.md#c06).
+- [x] Add an optional-dependency picker to the advanced installation review; EN/PL/DE compact interaction and install-while-replanning guards pass. Evidence: [C06](MILESTONE_CLOSURE.md#c06).
+- [ ] Full dependency conflict reconciliation choices for arbitrary installed local mods and version ranges; unsupported cases fail rather than replacing files silently.
 - [ ] 🚧 IN PROGRESS — Manual update check/results in Mods UI; bulk/single replacement remains open.
 
 ## v0.6 quality gate
 
-- [ ] Compatible mods are installed and incompatible ones are rejected.
-- [ ] Required dependencies are installed correctly or yield actionable diagnostics.
-- [ ] Existing local mods and other instances are preserved.
-- [ ] No Modrinth metadata code leaks into the generic launcher.
-- [ ] Automated tests and multi-platform packaging pass.
+- [x] Compatible mods are installed and incompatible ones are rejected. Evidence: [C06](MILESTONE_CLOSURE.md#c06).
+- [x] Required dependencies are installed correctly or yield actionable diagnostics. Evidence: [C06](MILESTONE_CLOSURE.md#c06).
+- [x] Existing local mods and other instances are preserved. Evidence: [C06](MILESTONE_CLOSURE.md#c06).
+- [x] No Modrinth metadata code leaks into the generic launcher. Evidence: [C06](MILESTONE_CLOSURE.md#c06).
+- [x] Automated tests and multi-platform packaging pass. Evidence: [C06](MILESTONE_CLOSURE.md#c06).
 - [ ] Manual discovery/read/install and actual Fabric game startup pass.
 
 ---
@@ -586,7 +586,7 @@ Goal: add a second major loader and prove the loader architecture is genuinely r
 
 - [ ] 🚧 IN PROGRESS — Generic Modrinth adapter already filters by the instance loader; NeoForge profile/UI integration added. Live install acceptance pending.
 - [ ] 🚧 IN PROGRESS — Identify NeoForge mods from META-INF/neoforge.mods.toml; richer TOML dependency/version semantics remain open.
-- [ ] Detect common incompatible loader combinations.
+- [x] Detect common incompatible loader combinations. Evidence: [C07](MILESTONE_CLOSURE.md#c07).
 
 ## v0.7 quality gate
 
@@ -598,15 +598,15 @@ Goal: add a second major loader and prove the loader architecture is genuinely r
 
 # v0.8 — Forge and Quilt
 
-**Status: accepted for the documented support scope (21 October 2026).** The maintainer confirmed private Forge startup and Forge/Quilt mod installation/startup in this chat. No OS matrix or exact Quilt/mod versions were supplied. [The acceptance record and support matrix](TESTING_V0.8.md) distinguish that confirmation, official hosted installer tests and deterministic pipeline tests. Historical Forge V1 and unverified Forge V2 versions remain unsupported; acceptance does not claim universal historical or native-platform compatibility. Development now proceeds to v0.9; no release/tag or product-version change is implied.
+**Status: accepted for the documented support scope (21 October 2026).** The maintainer confirmed private Forge startup and Forge/Quilt mod installation/startup in this chat. No OS matrix or exact Quilt/mod versions were supplied. [The acceptance record and support matrix](TESTING_V0.8.md) distinguish that confirmation, official hosted installer tests and deterministic pipeline tests. Historical Forge V1 remains unsupported; modern Forge V2 discovery now follows exact official Minecraft coordinates, with four reference installation pairs documented; acceptance does not claim universal historical or native-platform compatibility. Development now proceeds to v0.9; no release/tag or product-version change is implied.
 
 Goal: broaden loader support while preserving historical-version compatibility deliberately.
 
 ## Forge
 
-- [x] Discover official Forge Maven versions with compatibility filtering; restrict v0.8 selection to the verified 1.21.1 / Forge 52.1.20 pair.
+- [x] Discover and numerically order official modern Forge V2 versions for the exact selected Minecraft version; recheck official membership before install. No single-pair whitelist. Evidence: [C08](MILESTONE_CLOSURE.md#c08).
 - [x] Download and SHA-1 verify Forge V2 installer; inspect client processors and execute official 1.21.1/52.1.20 installation smoke (GitHub Actions 39560642818; reconfirmed by 39634747655).
-- [x] Initial supported V2 installer matrix scoped to Minecraft 1.21.1 / Forge 52.1.20; unsupported versions absent from selector and rejected on install even for persisted profiles. Historical Forge V1 support intentionally excluded and covered by rejection tests.
+- [x] Official V2 reference installations cover 1.21.1/52.1.20, 1.21.11/61.2.4, 26.2/65.1.5 and 26.3/66.1.0 with Mojang-declared managed Java. Historical V1 stays excluded and tested as rejected. Evidence: [C08](MILESTONE_CLOSURE.md#c08).
 - [x] Forge V2 uses common PreparedModLoaderProvider and ProcessorInstallerV2Engine; official installation smoke, synthetic full coordinator regression and maintainer-confirmed private startup pass.
 - [x] Read Forge/NeoForge mod identity and explicit required/incompatible dependencies from bounded TOML subsets, prefer instance-matching manifests and warn on wrong loader families; deterministic regressions pass. Full TOML/version-range solving is outside this bounded parser contract.
 - [x] Forge version and loader-filtered Modrinth browser available for the supported profile; private mod installation/startup confirmed by the maintainer on 21 October 2026.
@@ -633,7 +633,8 @@ Goal: broaden loader support while preserving historical-version compatibility d
 
 ## Optional compatibility expansion outside the accepted matrix
 
-- [ ] Expand historical Forge/V1 and additional V2 support only with explicit installer/runtime/real-game tests; current rejection is intentional.
+- [x] Expand modern V2 discovery and official processor acceptance to three additional current Minecraft versions; actual new-pair gameplay remains in the OS/game matrix. Evidence: [C08](MILESTONE_CLOSURE.md#c08).
+- [ ] Historical Forge V1 is outside the current supported matrix; implementation and real old-game acceptance remain future compatibility work.
 - [ ] Complete complex TOML/Quilt dependency and version-range semantics; current direct advisory warnings are not a full solver (see also v0.6 dependency reconciliation).
 - [ ] Record an explicit OS/version/mod matrix for mixed-loader gameplay, native UI and interruption/recovery; existing cross-milestone/platform release gates remain open.
 
@@ -789,7 +790,7 @@ Goal: prepare the launcher for stable public release.
 - [ ] 🚧 IN PROGRESS — CI now runs desktop tests and packages/verifies all three update bundles, then publishes complete six-asset releases for matching version tags or eligible stable version bumps on `main`. Hosted workflow/tag publication and native Windows/macOS acceptance are not yet executed for this change.
 - [ ] Live old→new GitHub-hosted update, original-shortcut relaunch, offline/cancel/failed-child recovery, native permissions/trust and user-data continuity on Windows/Linux/macOS.
 - [x] Define retention policy: keep original/active/previous/orphan update images and archives for recovery; document explicit offline cleanup. No automatic pruning.
-- [ ] Release signing/notarization before production distribution; current integrity trust is the project's HTTPS GitHub publishing account. Certificates and native trust acceptance are not available in this task.
+- [ ] Release signing/notarization before production distribution; maintainer confirms no certificates/Apple account yet. Obtain prerequisites through [SIGNING.md](SIGNING.md), then integrate and verify native trust.
 
 ## Reliability
 
@@ -821,8 +822,8 @@ Goal: prepare the launcher for stable public release.
 
 ## CI/CD
 
-- [ ] 🚧 IN PROGRESS — Produce a read-only per-version acceptance audit in GitHub Actions; exact unchecked gates and canonical release version remain distinct. Informational script and deterministic unit tests added; new hosted run pending.
-- [ ] 🚧 IN PROGRESS — Automatically publish ordinary Stable GitHub Releases when canonical plain `launcherVersion` increases on `main`; the canonical product version is `0.7.1`. DEV/SNAPSHOT publication is tracked separately above; hosted six-asset publication acceptance remains pending.
+- [x] Read-only per-version acceptance audit runs in GitHub Actions; current canonical version and phase checklist remain separate (verified CI 40063797333). Evidence: [C12](MILESTONE_CLOSURE.md#c12).
+- [x] Automatic Stable publication on canonical plain-version increases verified by Stable v0.9.2 / CI 40005510889; DEV 190.1 publishes all 12 current assets. Canonical version is 0.9.3-DEV; no new Stable publication is authorized. Evidence: [C12](MILESTONE_CLOSURE.md#c12).
 - [x] Existing automated core/desktop and Python verification; this change adds diagnostics/repair/logging regressions.
 - [x] Existing hosted Linux/Windows/macOS packaging baseline 39901800185; new revision must pass its own CI before release.
 - [x] Existing portable app images and verified update bundles for all three published targets.
@@ -854,38 +855,40 @@ Goal: declare the architecture and primary feature set stable for end users.
 
 ## Supported feature set
 
-- [ ] Offline accounts.
+- [x] Offline accounts. Implementation verified within [published scope](SUPPORT_MATRIX.md); final native/gameplay gates below remain independent.
 - [ ] Microsoft premium accounts.
 - [ ] Vanilla Minecraft versions within documented support matrix.
-- [ ] Automatic Java runtime management.
-- [ ] Isolated instances.
-- [ ] Fabric.
-- [ ] NeoForge.
-- [ ] Forge.
-- [ ] Quilt.
-- [ ] Local mod management.
-- [ ] Modrinth search/install/update/dependency resolution.
-- [ ] OptiFine integration within documented compatibility limits.
-- [ ] Shader management.
-- [ ] Resource-pack management.
-- [ ] Supported modpack import/export flow.
-- [ ] Diagnostics and repair.
-- [ ] Launcher self-update.
+- [x] Automatic Java runtime management. Implementation verified within [published scope](SUPPORT_MATRIX.md); final native/gameplay gates below remain independent.
+- [x] Isolated instances. Implementation verified within [published scope](SUPPORT_MATRIX.md); final native/gameplay gates below remain independent.
+- [x] Fabric. Implementation verified within [published scope](SUPPORT_MATRIX.md); final native/gameplay gates below remain independent.
+- [x] NeoForge. Implementation verified within [published scope](SUPPORT_MATRIX.md); final native/gameplay gates below remain independent.
+- [x] Forge. Implementation verified within [published scope](SUPPORT_MATRIX.md); final native/gameplay gates below remain independent.
+- [x] Quilt. Implementation verified within [published scope](SUPPORT_MATRIX.md); final native/gameplay gates below remain independent.
+- [x] Local mod management. Implementation verified within [published scope](SUPPORT_MATRIX.md); final native/gameplay gates below remain independent.
+- [ ] 🚧 IN PROGRESS — Modrinth search/install/transactional updates, required and optional dependency choices implemented; full installed-version reconciliation remains open.
+- [x] OptiFine integration within documented compatibility limits. Implementation verified within [published scope](SUPPORT_MATRIX.md); final native/gameplay gates below remain independent.
+- [x] Shader management. Implementation verified within [published scope](SUPPORT_MATRIX.md); final native/gameplay gates below remain independent.
+- [x] Resource-pack management. Implementation verified within [published scope](SUPPORT_MATRIX.md); final native/gameplay gates below remain independent.
+- [x] Supported modpack import/export flow. Implementation verified within [published scope](SUPPORT_MATRIX.md); final native/gameplay gates below remain independent.
+- [x] Diagnostics and repair. Implementation verified within [published scope](SUPPORT_MATRIX.md); final native/gameplay gates below remain independent.
+- [x] Launcher self-update. Implementation verified within [published scope](SUPPORT_MATRIX.md); final native/gameplay gates below remain independent.
 - [ ] Windows/Linux/macOS support according to published matrix.
 
 ## Documentation and release readiness
 
 - [ ] README reflects actual v1.0 behavior.
 - [ ] Architecture documentation matches code.
-- [ ] User installation/use documentation exists.
-- [ ] Authentication/security behavior is documented.
-- [ ] Supported Minecraft/loader/platform matrix is published.
-- [ ] Known limitations are documented.
+- [x] User installation/use documentation exists. See [installation](INSTALLATION.md), [support matrix](SUPPORT_MATRIX.md) and [closure evidence](MILESTONE_CLOSURE.md).
+- [x] Authentication/security behavior is documented. See [installation](INSTALLATION.md), [support matrix](SUPPORT_MATRIX.md) and [closure evidence](MILESTONE_CLOSURE.md).
+- [x] Supported Minecraft/loader/platform matrix is published. See [installation](INSTALLATION.md), [support matrix](SUPPORT_MATRIX.md) and [closure evidence](MILESTONE_CLOSURE.md).
+- [x] Known limitations are documented. See [installation](INSTALLATION.md), [support matrix](SUPPORT_MATRIX.md) and [closure evidence](MILESTONE_CLOSURE.md).
 - [ ] Migration path from pre-1.0 launcher state is tested/documented.
 - [ ] License/third-party notices are correct.
 - [ ] Release notes are prepared.
 
 ## v1.0 quality gate
+
+- [ ] Obtain trusted Windows signing and Apple Developer ID/notarization, integrate before update manifests and verify native trust. External prerequisites are documented in [SIGNING.md](SIGNING.md).
 
 - [ ] Complete native graphics-catalog/installed-pack window, focus, keyboard, DPI and live cancellation acceptance across the published supported platforms; record exact game/loader/renderer/pack combinations and extended texture priority/restart/recovery behavior. Moved from v0.9 on 21 October 2026 following bounded private maintainer acceptance; not executed/certified by that confirmation.
 - [ ] Full automated test suite passes.

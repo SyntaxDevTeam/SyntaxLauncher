@@ -10,13 +10,17 @@ Publisher and support: **SyntaxDevTeam / WieszczY**, [wieszczy85@gmail.com](mail
 
 SyntaxLauncher is a modern Minecraft launcher from SyntaxDevTeam, written primarily in Kotlin and developed incrementally from a minimal vanilla launcher into a modular launcher with premium authentication, isolated instances, mod loaders, Modrinth integration, modpacks and diagnostics.
 
-The project has implemented a v0.2 Instance Manager, reached **bounded v0.8 Forge/Quilt and v0.9 graphics acceptance**, and completed **v0.10 Modrinth modpack installation** within the documented scope. Official Forge/NeoForge installer smoke tests and three-platform CI packaging pass; the maintainer confirmed private Forge startup and Forge/Quilt mod workflows. Forge remains restricted to Minecraft 1.21.1 / 52.1.20. v0.9 now includes built-in mods/textures/shaders/OptiFine installation and installed-pack controls within the documented compatibility matrix; the maintainer confirmed private v0.9 gameplay acceptance; the broader native/platform matrix remains open. Modrinth modpacks now install into newly prepared games from the built-in catalog. Minecraft Services reconsideration after the first denial, v0.3 real-account acceptance and documented clean-machine Vanilla startup acceptance remain pending. The Kotlin/Compose launcher now connects the offline account, Mojang metadata, verified game preparation, automatic Java runtime installation, metadata-driven LaunchPlan and MinecraftProcessManager to an actual desktop Play workflow. A real clean-machine Minecraft launch is not yet verified.
+The project has implemented a v0.2 Instance Manager, reached **bounded v0.8 Forge/Quilt and v0.9 graphics acceptance**, and completed **v0.10 Modrinth modpack installation** within the documented scope. Official Forge/NeoForge installer smoke tests and three-platform CI packaging pass; the maintainer confirmed private Forge startup and Forge/Quilt mod workflows. Forge now discovers modern V2 builds matching the selected Minecraft version; official reference installation tests also cover 1.21.11, 26.2 and 26.3. v0.9 now includes built-in mods/textures/shaders/OptiFine installation and installed-pack controls within the documented compatibility matrix; the maintainer confirmed private v0.9 gameplay acceptance; the broader native/platform matrix remains open. Modrinth modpacks now install into newly prepared games from the built-in catalog. Minecraft Services reconsideration after the first denial, v0.3 real-account acceptance and documented clean-machine Vanilla startup acceptance remain pending. The Kotlin/Compose launcher now connects the offline account, Mojang metadata, verified game preparation, automatic Java runtime installation, metadata-driven LaunchPlan and MinecraftProcessManager to an actual desktop Play workflow. A real clean-machine Minecraft launch is not yet verified.
 
 ## v0.11 / v0.12 — diagnostics, repair and release preparation
 
 Home → **Game health and repair** scans the selected game's managed files, explains common failures with confidence labels and repairs game files/Java without starting Minecraft or deleting worlds/mods/settings. Copy safe report exports a structured local summary without raw logs, credentials or private paths. Settings now includes a bounded launcher-log viewer, actual data locations and update-channel controls. Launcher logs rotate, sensitive message fields are redacted, downloads check free space and the common JVM dependency graph is locked.
 
 Microsoft account acceptance is **deferred while awaiting Mojang AppID approval** (maintainer instruction, 23 October 2026); existing code and explicit offline profiles remain. Implementation work on diagnostics/hardening is separate from final clean-machine, hosted updater, signing/notarization and native gameplay/DPI acceptance. See [v0.11 verification](docs/TESTING_V0.11.md), [v0.12 final gates](docs/TESTING_V0.12.md) and [installation/backup/removal](docs/INSTALLATION.md).
+
+## Sequential milestone closure — 24 October 2026
+
+[Closure evidence](docs/MILESTONE_CLOSURE.md) reconciles stale implementation tasks and records new inheritance/legacy asset handling, local integrity receipts, optional Modrinth dependencies and matching Forge discovery. [Support matrix](docs/SUPPORT_MATRIX.md) distinguishes native packaging from gameplay: the maintainer confirmed Fabric startup and world saving on Linux and Windows 10 for Minecraft 1.21.11, 26.2 and 26.3; exact Fabric versions were not supplied. [Signing prerequisites](docs/SIGNING.md) remain external. Stable 1.x publication is now blocked by unfinished final gates; this work does not change the product version.
 
 ## Windows executable branding
 
@@ -121,7 +125,7 @@ Choose **Your setup → Launcher updates → Stable / SNAPSHOT / DEV** and resta
 
 ## v0.8 — Forge and Quilt (accepted within the documented matrix)
 
-Forge modern installer V2 shares the staged processor engine with NeoForge. The supported Forge pair is **Minecraft 1.21.1 / Forge 52.1.20**; historical V1 and unverified V2 pairs are rejected, including when selected by an existing profile. The maintainer confirmed private Forge startup and Forge/Quilt mod installation/startup on 21 October 2026. No OS list, exact Quilt/mod versions or logs were supplied, so this is not an all-platform or all-version certification. The existing in-app Forge test warning remains as a conservative scope reminder.
+Forge modern installer V2 shares the staged processor engine with NeoForge. Discovery matches exact official Minecraft coordinates, orders builds numerically and validates the selected installer target. Reference installations cover **1.21.1 / 52.1.20, 1.21.11 / 61.2.4, 26.2 / 65.1.5 and 26.3 / 66.1.0**, using metadata-selected Java. Historical V1 remains unavailable. The maintainer confirmed private Forge startup and Forge/Quilt mod installation/startup on 21 October 2026. No OS list, exact Quilt/mod versions or logs were supplied, so this is not an all-platform or all-version certification. The existing in-app Forge test warning remains as a conservative scope reminder.
 
 All five modes use the same preparation, Java, launch-plan and process pipeline. The new deterministic coordinator matrix exercises the real adapters against local synthetic metadata and Forge-family processor fixtures; official installer smoke tests and Windows/Linux/macOS packaging also passed in hosted CI. Java requirements come from Mojang metadata; missing requirements fail before downloads. Legacy arguments stay in the shared planner. Full TOML/version-range solving, historical Forge expansion and the broader native/gameplay matrix remain open. See [the v0.8 evidence and support matrix](docs/TESTING_V0.8.md).
 
@@ -460,7 +464,7 @@ Loader support is intentionally staged:
 
 - Fabric — v0.4
 - NeoForge — v0.7
-- Forge — v0.8 (official SHA-1-verified V2 installation passed for 1.21.1/52.1.20; in-game startup not yet accepted)
+- Forge — v0.8 (official SHA-1-verified V2 installation passed for 1.21.1/52.1.20; private 1.21.1 startup accepted; newer pairs have installer evidence)
 - Quilt — v0.8 (official Quilt Meta v3 profile and instance selection; actual game acceptance pending)
 
 Local mod management arrives in v0.5, followed by Modrinth integration and dependency resolution in v0.6.

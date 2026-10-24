@@ -79,6 +79,7 @@ class NeoForgeLoaderProvider(http: HttpClient, private val downloads: DownloadMa
     private fun versionPrefix(minecraftVersionId: String): String? {
         val parts = minecraftVersionId.split('.')
         return when {
+            parts.size == 2 && parts[0] == "1" -> parts[1] + ".0."
             parts.size >= 3 && parts[0] == "1" -> parts[1] + "." + parts[2] + "."
             parts.size == 2 && parts[0].toIntOrNull() != null -> minecraftVersionId + ".0."
             parts.size >= 3 && parts[0].toIntOrNull() != null -> minecraftVersionId + "."
@@ -109,20 +110,30 @@ class ForgeLoaderProvider(http: HttpClient, private val downloader: DownloadMana
             http, downloads, flavor = InstallerV2Flavor.FORGE,
         ).install(base, version, layout, runtime)
     }
-    // v0.8 initial acceptance matrix. Do not offer historical/V1 or unverified versions.
-    private val verifiedV2Versions = mapOf("1.21.1" to setOf("52.1.20"))
+    // Forge 25 introduced installer V2. Older V1 artifacts require a different installer engine.
+    // Within V2, discover exact Minecraft prefixes from official Maven metadata, never a pinned pair.
+    private fun modernVersion(value: String): Boolean =
+        value.substringBefore('.').toIntOrNull()?.let { it >= 25 } == true &&
+            value.matches(Regex("[0-9]+(?:\\.[0-9]+){1,3}(?:-[A-Za-z0-9._-]+)?"))
 
-    override suspend fun supportedMinecraftVersions(catalog: List<String>): List<String> =
-        catalog.filter { it in verifiedV2Versions }
+    override suspend fun supportedMinecraftVersions(catalog: List<String>): List<String> {
+        val published = metadata()
+        return catalog.filter { game ->
+            val prefix = "$game-"
+            published.any { it.startsWith(prefix) && modernVersion(it.removePrefix(prefix)) }
+        }
+    }
 
     override suspend fun compatibleVersions(minecraftVersionId: String): List<ModLoaderVersion> {
         require(minecraftVersionId.matches(Regex("[A-Za-z0-9._-]{1,80}")))
-        val verified = verifiedV2Versions[minecraftVersionId] ?: return emptyList()
-        val prefix = minecraftVersionId + "-"
-        return metadata().asReversed().filter {
-            it.startsWith(prefix) && it.removePrefix(prefix) in verified
-        }.map {
-            ModLoaderVersion(it.removePrefix(prefix), !it.contains("beta", ignoreCase = true))
-        }
+        val prefix = "$minecraftVersionId-"
+        return metadata().filter { it.startsWith(prefix) }.map { it.removePrefix(prefix) }
+            .filter(::modernVersion).sortedWith { first, second ->
+                val left = first.substringBefore('-').split('.').map { it.toIntOrNull() ?: 0 }
+                val right = second.substringBefore('-').split('.').map { it.toIntOrNull() ?: 0 }
+                (0 until maxOf(left.size, right.size)).firstNotNullOfOrNull { index ->
+                    right.getOrElse(index) { 0 }.compareTo(left.getOrElse(index) { 0 }).takeIf { it != 0 }
+                } ?: first.compareTo(second)
+            }.map { ModLoaderVersion(it, !it.contains('-')) }
     }
 }

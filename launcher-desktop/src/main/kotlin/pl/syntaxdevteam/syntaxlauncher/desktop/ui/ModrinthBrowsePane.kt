@@ -27,6 +27,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.material3.Checkbox
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -112,9 +114,9 @@ fun ModrinthBrowsePane(
                 label = { Text(strings.text("ui.find_a_mod")) },
                 singleLine = true,
                 modifier = Modifier.weight(1f),
-                enabled = !busy,
+                enabled = !busy && !resolving,
             )
-            Button(enabled = !loading && !busy, onClick = {
+            Button(enabled = !loading && !busy && !resolving, onClick = {
                 submitted = text.trim()
                 offset = 0
             }) { Text(strings.text("ui.search")) }
@@ -139,7 +141,7 @@ fun ModrinthBrowsePane(
                         val isSelected = selected?.id == project.id
                         OutlinedButton(
                             onClick = { selected = project; error = null },
-                            modifier = Modifier.fillMaxWidth(), enabled = !busy,
+                            modifier = Modifier.fillMaxWidth().testTag("modrinth-project-${project.id}"), enabled = !busy && !resolving,
                         ) {
                             Column(modifier = Modifier.fillMaxWidth(),
                                 verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -155,10 +157,10 @@ fun ModrinthBrowsePane(
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick = { offset = (offset - 20).coerceAtLeast(0) },
-                            enabled = offset > 0 && !loading && !busy) { Text(strings.text("ui.previous")) }
+                            enabled = offset > 0 && !loading && !busy && !resolving) { Text(strings.text("ui.previous")) }
                         Text(strings.text("ui.page") + (offset / 20 + 1), modifier = Modifier.padding(top = 10.dp))
                         OutlinedButton(onClick = { offset += 20 },
-                            enabled = found.size == 20 && !loading && !busy && offset < 1000) {
+                            enabled = found.size == 20 && !loading && !busy && !resolving && offset < 1000) {
                             Text(strings.text("ui.next")) }
                     }
                 }
@@ -177,7 +179,7 @@ fun ModrinthBrowsePane(
                         detail?.let { info ->
                             Text(strings.text("ui.license") + (info.license ?: strings.text("ui.unknown")),
                                 style = MaterialTheme.typography.labelMedium)
-                            OutlinedButton(enabled = !busy, onClick = {
+                            OutlinedButton(enabled = !busy && !resolving, onClick = {
                                 runCatching {
                                     if (Desktop.isDesktopSupported()) {
                                         Desktop.getDesktop().browse(URI(info.projectUrl))
@@ -190,7 +192,7 @@ fun ModrinthBrowsePane(
                         }
                         if (plan == null && !detailsLoading) {
                             Button(enabled = canModify && !busy && !resolving,
-                                onClick = {
+                                modifier = Modifier.testTag("modrinth-review-plan"), onClick = {
                                     resolving = true
                                     error = null
                                     scope.launch {
@@ -207,8 +209,31 @@ fun ModrinthBrowsePane(
                             Text(strings.text("ui.ready_to_install"), style = MaterialTheme.typography.titleMedium)
                             proposal.entries.forEach { entry ->
                                 Text("• " + entry.title + " · " + entry.versionNumber +
-                                    (if (entry.dependency) strings.text("ui.required") else ""),
+                                    (if (entry.optional) strings.text("mods.optional_label") else if (entry.dependency) strings.text("ui.required") else ""),
                                     style = MaterialTheme.typography.bodySmall)
+                            }
+                            if (proposal.optionalDependencies.isNotEmpty()) {
+                                Text(strings.text("mods.optional_choices"), style = MaterialTheme.typography.titleSmall)
+                                proposal.optionalDependencies.forEach { choice ->
+                                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                        Checkbox(checked = choice.selected, enabled = canModify && !busy && !resolving,
+                                            modifier = Modifier.testTag("modrinth-optional-${choice.key}"),
+                                            onCheckedChange = { checked ->
+                                                val selectedChoices = proposal.optionalDependencies.filter { it.selected }.map { it.key }.toSet()
+                                                val next = if (checked) selectedChoices + choice.key else selectedChoices - choice.key
+                                                resolving = true; error = null
+                                                scope.launch {
+                                                    try {
+                                                        plan = catalog.plan(instance, current,
+                                                            proposal.entries.single { !it.dependency }.versionId, next)
+                                                    } catch (cancelled: CancellationException) { throw cancelled }
+                                                    catch (failure: Exception) { error = failure.message ?: strings.text("catalog.install_error") }
+                                                    finally { resolving = false }
+                                                }
+                                            })
+                                        Text(choice.title, style = MaterialTheme.typography.bodySmall)
+                                    }
+                                }
                             }
                             proposal.notices.forEach { notice ->
                                 Text(strings.text("ui.note") + notice, style = MaterialTheme.typography.bodySmall,
@@ -218,9 +243,9 @@ fun ModrinthBrowsePane(
                                 strings.text("ui.mods_execute_third_party_code_when_minecraft_starts"),
                                 style = MaterialTheme.typography.bodySmall)
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Button(enabled = canModify && !busy,
-                                    onClick = { onInstall(proposal) }) { Text(strings.text("ui.install_to_this_instance")) }
-                                TextButton(enabled = !busy, onClick = { plan = null }) {
+                                Button(enabled = canModify && !busy && !resolving,
+                                    modifier = Modifier.testTag("modrinth-install-plan"), onClick = { onInstall(proposal) }) { Text(strings.text("ui.install_to_this_instance")) }
+                                TextButton(enabled = !busy && !resolving, onClick = { plan = null }) {
                                     Text(strings.text("ui.cancel")) }
                             }
                         }

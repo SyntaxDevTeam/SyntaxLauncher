@@ -27,3 +27,7 @@ Normal tests do not require Mojang approval or Microsoft credentials. Optional o
 - [ ] Final candidate's hosted three-platform packages and complete publication accepted.
 
 Microsoft approval and live premium testing are deferred by the maintainer on 23 October 2026. No approval or successful premium gameplay is implied by this implementation. Do not check the final v0.12/v1.0 native gates until evidence exists.
+
+## Additional closure — 24 October 2026
+
+Packaged Mojang HTTPS is checked with the shipped runtime, independently of system Java. CI requires it for each platform. Plain Stable 1.x and later publication now enforces all v1.0 gates; previews do not bypass the distinction between testing and production. Certificates/Apple Developer membership are unavailable; [SIGNING.md](SIGNING.md) records the acquisition path rather than claiming signed packages.

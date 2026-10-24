@@ -189,7 +189,7 @@ class DownloadManager(
 
         val partial = partialPath(request.target)
         val digest = MessageDigest.getInstance("SHA-1")
-        val sha256 = request.expectedSha256?.let { MessageDigest.getInstance("SHA-256") }
+        val sha256 = if (request.expectedSha256 != null || ObservedDownloadDigest.required(request)) MessageDigest.getInstance("SHA-256") else null
         var downloadedBytes = 0L
         var lastReportedBytes = 0L
 
@@ -251,14 +251,16 @@ class DownloadManager(
                     }
                 }
 
+                val actualSha256 = sha256?.digest()?.toHex()
                 verifyCompletedDownload(
                     request = request,
                     actualSize = downloadedBytes,
                     actualSha1 = digest.digest().toHex(),
-                    actualSha256 = sha256?.digest()?.toHex(),
+                    actualSha256 = actualSha256,
                 )
                 currentCoroutineContext().ensureActive()
                 moveIntoPlace(partial, request.target)
+                if (ObservedDownloadDigest.required(request)) ObservedDownloadDigest.write(request, downloadedBytes, checkNotNull(actualSha256))
             }
         } catch (cancelled: CancellationException) {
             throw cancelled
@@ -355,7 +357,8 @@ class DownloadManager(
                 existing.expectedSha1 != request.expectedSha1 ||
                 existing.expectedSha256 != request.expectedSha256 ||
                 existing.expectedSize != request.expectedSize ||
-                existing.maximumBytes != request.maximumBytes
+                existing.maximumBytes != request.maximumBytes ||
+                existing.pinUnverifiedCache != request.pinUnverifiedCache
             ) {
                 throw DownloadTargetConflictException(request.target)
             }

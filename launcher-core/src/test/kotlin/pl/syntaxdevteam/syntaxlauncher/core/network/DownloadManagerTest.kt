@@ -15,6 +15,31 @@ import kotlin.test.assertFalse
 import kotlinx.coroutines.runBlocking
 
 class DownloadManagerTest {
+    @Test fun unhashedLibraryCacheRequiresObservedDigestAndRepairsCorruptionOrChangedSource() = runBlocking {
+        val calls = AtomicInteger()
+        val payload = "library".toByteArray()
+        val http = HttpClient(MockEngine { calls.incrementAndGet(); respond(payload) })
+        val folder = Files.createTempDirectory("unhashed-library")
+        val target = folder.resolve("library.jar")
+        val request = DownloadRequest("unhashed", "https://example.invalid/library.jar", target, pinUnverifiedCache = true)
+        try {
+            val manager = DownloadManager(http)
+            Files.writeString(target, "corrupt") // A pre-existing file without a receipt is never trusted.
+            assertEquals(DownloadResultStatus.DOWNLOADED, manager.download(request).status)
+            assertEquals(DownloadResultStatus.CACHED, manager.download(request).status)
+            assertEquals(1, calls.get())
+            Files.writeString(target, "corrupt") // Same byte count must still fail validation.
+            assertEquals(DownloadResultStatus.DOWNLOADED, manager.download(request).status)
+            assertContentEquals(payload, Files.readAllBytes(target))
+            assertEquals(2, calls.get())
+            assertEquals(DownloadResultStatus.DOWNLOADED, manager.download(request.copy(url = "https://example.invalid/other.jar")).status)
+            assertEquals(3, calls.get())
+            Files.writeString(ObservedDownloadDigest.receipt(request), "future-schema\n")
+            assertEquals(DownloadResultStatus.DOWNLOADED, manager.download(request).status)
+            assertEquals(4, calls.get())
+        } finally { http.close() }
+    }
+
     @Test
     fun `downloads verified file once and then reuses cache`() = runBlocking {
         val payload = "syntax-launcher".encodeToByteArray()

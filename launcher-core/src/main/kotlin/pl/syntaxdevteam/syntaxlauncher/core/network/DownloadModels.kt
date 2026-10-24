@@ -11,6 +11,7 @@ data class DownloadRequest(
     val expectedSha256: String? = null,
     val requestTimeoutMillis: Long? = null,
     val maximumBytes: Long? = null,
+    val pinUnverifiedCache: Boolean = false,
 ) {
     init {
         require(maximumBytes == null || maximumBytes >= 0)

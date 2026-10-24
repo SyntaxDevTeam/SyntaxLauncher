@@ -1,6 +1,11 @@
 package pl.syntaxdevteam.syntaxlauncher.core.mods
 
 import io.ktor.client.HttpClient
+import io.ktor.client.request.HttpRequestBuilder
+import io.ktor.client.plugins.expectSuccess
+import io.ktor.client.plugins.timeout
+import io.ktor.http.isSuccess
+import kotlinx.coroutines.delay
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.statement.bodyAsText
@@ -24,9 +29,12 @@ data class ModrinthVersion(val id: String, val projectId: String, val name: Stri
     val loaders: List<String>, val environment: String?, val published: String,
     val files: List<ModrinthFile>, val dependencies: List<ModrinthDependency>)
 data class ModrinthInstallEntry(val projectId: String, val versionId: String, val title: String,
-    val versionNumber: String, val file: ModrinthFile, val dependency: Boolean)
+    val versionNumber: String, val file: ModrinthFile, val dependency: Boolean, val optional: Boolean = false)
+data class ModrinthOptionalDependency(val key: String, val title: String, val selected: Boolean)
 data class ModrinthInstallPlan(val minecraftVersionId: String, val loaderId: String,
-    val projectId: String, val entries: List<ModrinthInstallEntry>, val notices: List<String>)
+    val projectId: String, val entries: List<ModrinthInstallEntry>, val notices: List<String>,
+    val optionalDependencies: List<ModrinthOptionalDependency> = emptyList(),
+    val incompatibilities: List<ModrinthDependency> = emptyList())
 data class ModrinthAvailableUpdate(val fileName: String, val projectId: String,
     val currentVersionId: String, val newVersionId: String, val newVersionNumber: String,
     val newFile: ModrinthFile? = null, val currentSha256: String = "")
@@ -35,7 +43,8 @@ data class ModrinthUpdateReport(val updates: List<ModrinthAvailableUpdate>,
 
 /** Modrinth API v2 adapter, isolated from UI and filesystem. */
 class ModrinthCatalog(private val http: HttpClient,
-    private val apiRoot: String = "https://api.modrinth.com/v2") {
+    private val apiRoot: String = "https://api.modrinth.com/v2",
+    private val waitForRetry: suspend (Long) -> Unit = { delay(it) }) {
     private val json = Json { ignoreUnknownKeys = true }
 
     /** Dynamic most-downloaded results scoped to the selected Minecraft version and loader. */
@@ -45,13 +54,13 @@ class ModrinthCatalog(private val http: HttpClient,
         require(instance.minecraftVersionId.matches(Regex("[A-Za-z0-9._+-]{1,100}")))
         require(offset in 0..1000 && text.length <= 100)
         val facets = """[["project_type:mod"],["categories:$loader"],["versions:${instance.minecraftVersionId}"]]"""
-        val payload = http.get("$apiRoot/search") {
+        val payload = request("/search") {
             parameter("query", text.trim())
             parameter("facets", facets)
             parameter("index", if (text.isBlank()) "downloads" else "relevance")
             parameter("offset", offset)
             parameter("limit", 20)
-        }.bodyAsText()
+        }
         val obj = json.parseToJsonElement(payload) as? JsonObject ?: error("Invalid Modrinth search response.")
         return obj.array("hits").mapNotNull {
             val hit = it as? JsonObject ?: return@mapNotNull null
@@ -72,7 +81,8 @@ class ModrinthCatalog(private val http: HttpClient,
     }
 
     /** Entire transitive required-dependency closure is reviewed before file writes. */
-    suspend fun plan(instance: MinecraftInstance, project: ModrinthProject, selectedVersionId: String? = null): ModrinthInstallPlan {
+    suspend fun plan(instance: MinecraftInstance, project: ModrinthProject, selectedVersionId: String? = null,
+        selectedOptional: Set<String> = emptySet()): ModrinthInstallPlan {
         val loader = instance.loader?.id ?: error("Cannot install mods into Vanilla.")
         checkLoader(loader)
         val selected = (if (selectedVersionId == null) versions(project.id, loader, instance.minecraftVersionId).firstOrNull()
@@ -81,8 +91,11 @@ class ModrinthCatalog(private val http: HttpClient,
         val entries = linkedMapOf<String, ModrinthInstallEntry>()
         val visiting = mutableSetOf<String>()
         val notices = mutableListOf<String>()
+        require(selectedOptional.size <= 32)
+        val optional = linkedMapOf<String, ModrinthOptionalDependency>()
+        val incompatible = mutableListOf<ModrinthDependency>()
 
-        suspend fun visit(version: ModrinthVersion, label: String, dependency: Boolean, depth: Int) {
+        suspend fun visit(version: ModrinthVersion, label: String, dependency: Boolean, depth: Int, chosenOptional: Boolean = false) {
             check(depth < 16 && entries.size < 32) { "Too many nested dependencies; review manually." }
             if (version.projectId in entries) {
                 check(entries.getValue(version.projectId).versionId == version.id) {
@@ -110,20 +123,46 @@ class ModrinthCatalog(private val http: HttpClient,
                         }
                         visit(dep, dep.projectId, true, depth + 1)
                     }
-                    "optional" -> notices += label + " has an optional dependency: " +
-                        (spec.projectId ?: spec.versionId ?: "unknown")
-                    "incompatible" -> notices += label + " declares an incompatibility with: " +
-                        (spec.projectId ?: spec.versionId ?: "unknown")
+                    "optional" -> {
+                        val key = spec.projectId ?: spec.versionId?.let { "version:$it" } ?: continue
+                        check(optional.size < 32 || key in optional) { "Too many optional dependencies" }
+                        val selectedChoice = key in selectedOptional
+                        val optionalVersion = if (selectedChoice) when {
+                            spec.versionId != null -> fetchVersion(spec.versionId)
+                            spec.projectId != null -> versions(spec.projectId, loader, instance.minecraftVersionId).firstOrNull()
+                            else -> null
+                        } else null
+                        if (selectedChoice) {
+                            checkNotNull(optionalVersion) { "No compatible optional dependency" }
+                            check(spec.projectId == null || optionalVersion.projectId == spec.projectId) { "Optional dependency belongs to another project" }
+                        }
+                        val projectId = spec.projectId ?: optionalVersion?.projectId
+                        val title = if (projectId != null) try {
+                            getObject("/project/$projectId").string("title") ?: projectId
+                        } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+                        catch (_: Exception) { projectId } else key
+                        optional[key] = ModrinthOptionalDependency(key, title, selectedChoice)
+                        if (selectedChoice) visit(checkNotNull(optionalVersion), title, true, depth + 1, true)
+                    }
+                    "incompatible" -> {
+                        incompatible += spec
+                        notices += label + " declares an incompatibility with: " + (spec.projectId ?: spec.versionId ?: "unknown")
+                    }
                 }
             }
             val file = version.files.firstOrNull() ?: error("No verified JAR available for " + label)
             entries[version.projectId] = ModrinthInstallEntry(version.projectId, version.id,
-                label, version.number, file, dependency)
+                label, version.number, file, dependency, chosenOptional)
             visiting.remove(version.projectId)
         }
         visit(selected, project.title, false, 0)
+        check(incompatible.none { conflict -> entries.values.any { entry ->
+            (conflict.projectId == null || entry.projectId == conflict.projectId) &&
+                (conflict.versionId == null || entry.versionId == conflict.versionId) &&
+                (conflict.projectId != null || conflict.versionId != null)
+        } }) { "Selected mods declare an incompatibility; deselect an optional add-on or choose another mod" }
         return ModrinthInstallPlan(instance.minecraftVersionId, loader, project.id,
-            entries.values.toList(), notices)
+            entries.values.toList(), notices, optional.values.toList(), incompatible.toList())
     }
 
     /** Detect only newer, compatible versions for checksum-matched Modrinth installs. */
@@ -169,11 +208,11 @@ class ModrinthCatalog(private val http: HttpClient,
 
     private suspend fun versions(projectId: String, loader: String, game: String): List<ModrinthVersion> {
         require(validId(projectId))
-        val payload = http.get("$apiRoot/project/$projectId/version") {
+        val payload = request("/project/$projectId/version") {
             parameter("loaders", """["$loader"]""")
             parameter("game_versions", """["$game"]""")
             parameter("include_changelog", false)
-        }.bodyAsText()
+        }
         val values = json.parseToJsonElement(payload) as? JsonArray ?: error("Invalid Modrinth versions.")
         return values.mapNotNull { parseVersion(it as? JsonObject) }
             .filter { game in it.gameVersions && loader in it.loaders &&
@@ -189,8 +228,24 @@ class ModrinthCatalog(private val http: HttpClient,
             ?: error("Invalid dependency version from Modrinth.")
     }
 
+    private suspend fun request(path: String, configure: HttpRequestBuilder.() -> Unit = {}): String {
+        for (attempt in 1..3) {
+            val response = http.get(apiRoot + path) {
+                expectSuccess = false
+                timeout { requestTimeoutMillis = 15_000 }
+                configure()
+            }
+            if (response.status.isSuccess()) return response.bodyAsText()
+            val retryable = response.status.value in setOf(408, 425, 429, 500, 502, 503, 504)
+            if (!retryable || attempt == 3) throw ModrinthApiException(response.status.value)
+            val seconds = response.headers["Retry-After"]?.toLongOrNull()?.coerceIn(0, 5)
+            waitForRetry(seconds?.times(1000) ?: (250L * attempt))
+        }
+        error("Unreachable Modrinth retry state")
+    }
+
     private suspend fun getObject(path: String): JsonObject =
-        json.parseToJsonElement(http.get(apiRoot + path).bodyAsText()) as? JsonObject
+        json.parseToJsonElement(request(path)) as? JsonObject
             ?: error("Invalid Modrinth response.")
 
     private fun parseVersion(obj: JsonObject?): ModrinthVersion? {
@@ -241,3 +296,5 @@ class ModrinthCatalog(private val http: HttpClient,
     private fun JsonObject.array(key: String): List<JsonElement> = (this[key] as? JsonArray)?.toList().orEmpty()
     private fun JsonObject.strings(key: String) = array(key).mapNotNull { (it as? JsonPrimitive)?.contentOrNull }
 }
+
+class ModrinthApiException(val statusCode: Int) : IllegalStateException("Modrinth API returned HTTP $statusCode; retry later")

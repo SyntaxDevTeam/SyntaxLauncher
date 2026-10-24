@@ -87,6 +87,8 @@ class MinecraftPreparationService(
             val assets = filePlanner.planAssets(assetIndex, layout)
                 .map { it.toDownloadRequest() }
             allResults += downloadManager.downloadAll(assets, downloadListener)
+            LegacyAssetViews().materialize(assetIndex,
+                version.assetsId ?: version.assetIndex?.id ?: "legacy", layout)
         }
 
         if (filePlan.natives.isNotEmpty()) {
@@ -124,6 +126,7 @@ class MinecraftPreparationService(
             target = target,
             expectedSha1 = sha1.takeIf(String::isNotBlank),
             expectedSize = size.takeIf { it >= 0L },
+            pinUnverifiedCache = kind in setOf(MinecraftDownloadKind.LIBRARY, MinecraftDownloadKind.NATIVE) && sha1.isBlank(),
         )
 
     private fun resetGeneratedDirectory(directory: Path) {

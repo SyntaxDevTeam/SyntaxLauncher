@@ -33,6 +33,10 @@ class DownloadIntegrityVerifier {
             request.expectedSha256?.let { expected ->
                 if (!hash(target, "SHA-256").equals(expected, ignoreCase = true)) return@withContext false
             }
+            if (ObservedDownloadDigest.required(request)) {
+                val observed = ObservedDownloadDigest.expected(request) ?: return@withContext false
+                if (hash(target, "SHA-256") != observed) return@withContext false
+            }
             true
         }
 

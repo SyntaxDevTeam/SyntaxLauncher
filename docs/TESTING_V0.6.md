@@ -27,3 +27,7 @@
 **Limitations:** This is a v0.6 slice, not the complete milestone. Managed project/version persistence, compatible updates, backups and explicit last-update rollback are implemented and deterministically tested. Optional dependency choices, comprehensive version-constraint reconciliation, crash-resume recovery and native/game workflow acceptance remain open. Source project
 and dependencies remain under Modrinth distribution rights. User-installed mods
 execute third-party code when Minecraft loads.
+
+## Additional closure — 24 October 2026
+
+Optional branches can be selected in advanced review; unselected branches are not fetched. Tests cover required closure of selected branches, deselection, same-plan conflicts, enabled managed-origin conflicts before download and a locked publication recheck. EN/PL/DE compact UI tests prevent installation during replanning. API 429/transient retry is bounded to three attempts with capped Retry-After. Full arbitrary installed-mod/version-range reconciliation and native gameplay acceptance remain open. See [C06](MILESTONE_CLOSURE.md#c06).
