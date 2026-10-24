@@ -2,11 +2,11 @@ package pl.syntaxdevteam.syntaxlauncher.desktop.ui
 
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.ImageComposeScene
-import androidx.compose.ui.semantics.SemanticsNode
-import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.*
 import java.util.UUID
 import java.time.Instant
 import kotlin.test.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.swing.Swing
 import pl.syntaxdevteam.syntaxlauncher.core.account.*
