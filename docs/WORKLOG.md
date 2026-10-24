@@ -10,6 +10,35 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 
 
+
+## 2026-10-24 — Record actual managed Java acceptance on all distributed platforms
+
+**Milestone:** v0.1
+**Author/Agent:** Codex
+**Status:** Completed — documentation of verified native runtime results
+
+### Completed
+- Native managed-Java steps in CI 40095551689 for source ac4c8e6 passed on Windows x64, Linux x64 and macOS ARM64.
+- Downloaded and inspected all three JUnit artifacts: one executed test and zero skips/failures/errors per platform, with successful Java 21/1.21.11 and Java 25/26.3 markers; offline reuse and corruption repair passed for each.
+- Closed the official-runtime/platform selection and actual native executable acceptance rows, within the published reference scope. No graphical game, other architecture/component, native trust or live Microsoft approval is inferred.
+
+### Changed files
+- ROADMAP, TESTING_V0.1, SUPPORT_MATRIX and MILESTONE_CLOSURE — exact native results, source revision and artifact links.
+
+### Verification
+- Gradle tests/build — NOT RUN for this documentation-only follow-up; the referenced source already passed local full tests/build and all three hosted managed-Java steps.
+- JUnit archive verification — PASS: all six reference markers, zero skipped tests.
+- `git diff --check` and release-readiness parser — PASS.
+- Full workflow/package/publication status is checked independently before the final report.
+
+### Roadmap updates
+- `[x] v0.1 / Java Runtime Manager / Official component/platform selection with actual execution`.
+- `[x] v0.1 / Java Runtime Manager / Windows/Linux/macOS executable resolution and verification`.
+
+### Follow-ups / known issues
+- Clean-machine graphical Minecraft, native focus/update/trust, signing and Mojang/live-account acceptance remain open. Artifact retention is finite; the workflow/test sources remain reproducible.
+
+
 ## 2026-10-24 — Integrate concurrent authenticated-only main without restoring legacy gameplay
 
 **Milestone:** v0.1 / integration with current account policy

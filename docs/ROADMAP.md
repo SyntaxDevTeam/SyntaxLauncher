@@ -32,7 +32,7 @@ Microsoft live-account work is **deferred pending Mojang AppID approval**, per m
 
 - [x] Enforce authenticated-only launches in the UI, session, coordinator and launch-plan builder; no unauthenticated fallback.
 - [x] Dedicated Microsoft player manager: add, select and remove saved verified identities; worlds/add-ons remain isolated and unaffected.
-- [x] Cover offline launch with a locked credential vault, unknown/failed Microsoft sessions, atomic rename/collision protection, persisted selection and translated/compact UI interactions.
+- [x] Cover rejected unauthenticated launch with a locked credential vault, unknown/failed Microsoft sessions, atomic rename/collision protection, persisted selection and translated/compact UI interactions.
 - [ ] Real authenticated Minecraft Java gameplay and add-on acceptance; approved-AppID sign-in/gameplay, native Windows/macOS vault and UX acceptance remain open.
 - [ ] Synchronize public website policies and Entra metadata to the current Microsoft-only build; the previous review described immutable commit b915ad2, not future changes.
 
@@ -68,7 +68,7 @@ This section records the implementation identified by b915ad2 and its submission
 
 # v0.1 — Minimal Vanilla Launcher
 
-Goal: launch a selected vanilla Minecraft version using an offline account and an automatically resolved Java runtime.
+Goal: launch a selected vanilla Minecraft version using a verified Microsoft account and an automatically resolved Java runtime.
 
 **Current status:** implementation and automated verification reconciled on 24 October 2026; live/native release gates remain open. Historical details below are superseded where a linked closure record is present. The account identity boundary, Mojang catalog/metadata resolver, verified game preparation, Java manager, launch planner and process manager are now composed into a desktop launch pipeline. Compose exposes a real Play action, per-stage and per-file progress, cancellation, process status/exit code/log paths and a stop action. Window close cancels ongoing preparation and detaches from an already running Minecraft process. The version-list cache and local Gradle test/build verification passed on 20 October 2026; live Minecraft, native platform and other release acceptance gates remain open.
 
@@ -94,11 +94,11 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 - [x] Add `.gitignore` for IDE/build/runtime/generated files.
 - [x] Resolve platform-aware data/config/cache/log/runtime paths and use them in desktop/core lifecycles; LauncherPathsTest and DesktopLauncherSessionAccountsTest pass. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 
-## Offline account
+## Account identity and legacy preservation
 
 - [x] Common `Account` model implemented and verified by the local core/desktop suite.
-- [x] `OfflineAccount` implemented and verified by core regressions.
-- [x] Minecraft-style offline username validation passes deterministic unit and rendered UI tests.
+- [x] Legacy identity decoding remains covered solely for file compatibility; unauthenticated gameplay is blocked.
+- [x] Microsoft Java username validation and authenticated-only player UI pass deterministic tests.
 - [x] Deterministic Minecraft offline UUID generation passes the existing compatibility regressions.
 - [x] Persist offline identity/preferences atomically with schema and unknown-key retention; preference, account-manager and real Compose save/restart tests pass. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [x] Preserve old account records on disk only; current player manager exposes authenticated Microsoft identities. Earlier milestone test evidence is historical and does not authorize unauthenticated play.
@@ -161,10 +161,10 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 - [x] `JavaRuntime` now records executable/home/version plus source/component/platform/release identity. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [x] Resolve managed Java before creating the launch request; complete coordinator and real Java-subprocess wiring regressions pass. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [x] compatible launcher-managed runtimes are discovered and reused before any runtime-index network call; complete manifest-backed integrity and `java -version` checks guard reuse. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
-- [ ] 🚧 IN PROGRESS — official Mojang runtime index is used as the distribution source and selected by the Minecraft-declared component plus detected platform; Linux Java 21/25 cold install, execution, offline reuse and controlled repair pass; the new hosted Windows/Linux/macOS managed-runtime matrix awaits its first run.
+- [x] Select official Mojang Java by Minecraft-declared component/platform; actual Java 21/25 cold installation, execution, network-disabled reuse and corruption repair pass on Windows x64, Linux x64 and macOS ARM64 in CI 40095551689. Scope and JUnit evidence: [v0.1 verification](TESTING_V0.1.md#hosted-managed-java-acceptance--ci-198).
 - [x] missing Mojang runtime manifests/files are downloaded through the shared verified `DownloadManager`, including retry/cancellation/progress behavior. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [x] runtime manifests and every installed file are checked by size/SHA-1; directories and symlinks are checked on reuse; corrupted/incomplete runtimes are rejected and reinstalled automatically. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
-- [ ] 🚧 IN PROGRESS — Windows/Linux/macOS Java executable resolution is implemented, including `bin/java.exe`, `bin/java` and macOS `jre.bundle/Contents/Home/bin/java`; a new native CI test exercises actual managed Java 21/25 executables, offline reuse and repair on all three distributed targets; local Linux passes and hosted results are pending.
+- [x] Execute actual managed `bin/java.exe`, `bin/java` and macOS bundle Java on the three published targets; Java 21/25, fresh offline-cache managers and repaired installations pass CI 40095551689 without using system Java. This is runtime acceptance, not graphical Minecraft acceptance.
 - [x] staged and published runtimes are executed with `java -version`, parsed for modern/legacy version formats and rejected when the major version differs from Minecraft metadata. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [x] Map unsupported Java platform, index/manifest, install and verification/version failures to localized launch advice. Malformed index JSON is wrapped in a typed Java metadata error; real Play/Retry and compact EN/PL/DE tests cover the UI. See [v0.1 verification](TESTING_V0.1.md#typed-launch-failures-and-native-java-verification).
 - [x] runtime installation uses a staging directory, safe manifest paths, manifest-declared executable flags/symlinks, a completion marker and atomic directory publication where supported. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
@@ -183,7 +183,7 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 - [x] Bind modern and legacy asset placeholders; materialize verified virtual and per-game resources views with safe paths, cache repair and preservation of different user files. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [ ] 🚧 IN PROGRESS — `${natives_directory}` is bound to the version-specific prepared native directory; full launch execution remains pending.
 - [x] Bind game_directory to the selected UUID game directory, retaining separate original Legacy Vanilla storage. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
-- [x] offline username/UUID/session/access token/user type are normalized through `LaunchAuthentication.offline()` without hardwiring raw nickname handling throughout the builder; premium credentials can later use the same boundary. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] Microsoft profile/credentials are normalized through `LaunchAuthentication`; its former unauthenticated factory is removed and invalid launch inputs are rejected. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [x] metadata logging argument `${path}` is bound to the verified downloaded logging configuration when present. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [x] legacy versions without metadata JVM arguments receive explicit natives path and classpath fallback arguments rather than a version-specific hardcoded launch recipe. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [ ] 🚧 IN PROGRESS — structured `LaunchPlan` now directly feeds `MinecraftProcessManager` through `MinecraftLaunchCoordinator`; compilation/full real-Minecraft launch acceptance remains pending.
@@ -350,7 +350,7 @@ Goal: add official premium authentication without changing the fundamental Minec
 - [x] Introduce account manager/service and connect desktop persistence; deterministic tests pass.
 - [x] Preserve old identity records without deleting associated game data; never expose them as selectable profiles.
 - [x] Add a verified premium account type and token-safe session class; tested.
-- [x] Support multiple saved offline/Microsoft identities; restart coverage uses an isolated test vault.
+- [x] Support multiple saved Microsoft identities and preserve legacy rows; restart coverage uses an isolated test vault.
 - [x] Allow saved account selection as the persistent launcher default; account-manager and translated desktop player tests pass. Evidence: [C03](MILESTONE_CLOSURE.md#c03).
 - [x] Display only authenticated Microsoft identities in the player selector and manager; translation and rendering tests remain acceptance gates.
 
@@ -393,9 +393,9 @@ Goal: add official premium authentication without changing the fundamental Minec
 
 ## v0.3 UI
 
-- [ ] 🚧 IN PROGRESS — choose saved Offline or Microsoft identities in the home sidebar; desktop persistence and deterministic render tests are implemented, full native/live UX acceptance pending.
+- [ ] 🚧 IN PROGRESS — choose saved Microsoft identities in the home sidebar; desktop persistence and deterministic render tests are implemented, full native/live UX acceptance pending.
 - [ ] 🚧 IN PROGRESS — native browser / localhost PKCE flow wired to Add Microsoft when an owned app ID is configured; real sign-in pending.
-- [x] Offline profile remains independently selectable and used by the original launch path.
+- [x] Legacy local identities cannot be selected or launched; original world files remain preserved.
 - [ ] Show premium profile name/avatar when available.
 - [ ] 🚧 IN PROGRESS — Sign out removes the local refresh credential and saved identity; a vault error retains the account in the UI. Native acceptance remains pending; remote Microsoft grant revocation is not claimed.
 
@@ -405,7 +405,7 @@ Goal: add official premium authentication without changing the fundamental Minec
 
 ## v0.3 quality gate
 
-- [ ] Offline launching still works.
+- [ ] Live authenticated launch succeeds; unauthenticated launch is rejected.
 - [ ] Premium account can authenticate through official flow.
 - [ ] Premium account can launch Minecraft with authenticated session.
 - [ ] Tokens do not appear in normal logs.
@@ -420,7 +420,7 @@ Goal: introduce the first mod loader and validate a reusable loader architecture
 **Status:** maintainer additionally confirmed Linux/Windows 10 Fabric startup and world saving for Minecraft 1.21.11, 26.2 and 26.3 on 24 October; exact loader versions were not supplied. See [C04](MILESTONE_CLOSURE.md#c04). Earlier CI verified ([successful run](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/39317269516): core/desktop tests,
 native packages for Windows/Linux/macOS and Build Explorer publishing). The maintainer confirmed real Fabric and Quilt testing on 20 October 2026; game boot acceptance is passed. Cross-platform, fault-injection and library-integrity acceptance remain separately tracked. See [v0.4 checklist](TESTING_V0.4.md).
 v0.3 official Microsoft approval is an independent external dependency and does not block
-offline account tests for this milestone.
+deterministic authenticated-session fixtures for this milestone.
 
 ## Loader abstraction
 

@@ -62,3 +62,15 @@ The home page translates all categories in EN/PL/DE. Error advice occupies the f
 `ManagedJavaOfficialSmokeTest` is opt-in (`SYNTAXLAUNCHER_JAVA_LIVE_SMOKE=1`). It uses official Minecraft 1.21.11 and 26.3 metadata to select actual managed Java; current references request 21 and 25. It downloads/verifies/executes the runtime, constructs a fresh manager with networking disabled to prove cache reuse, removes only the temporary runtime's manifest-backed `release` file and repairs/re-executes it. An unrelated world marker must remain unchanged. These tests concern managed Java, not a Minecraft game boot or OS trust certification.
 
 The native CI matrix runs that test before packaging on Windows x64, Linux x64 and macOS ARM64 and uploads `managed-java-<platform>` JUnit evidence. Local Linux passed both references, offline reuse and repair. Cross-platform acceptance is closed only after the corresponding hosted jobs pass. Full clean-machine Vanilla/gameplay, process-close/native focus and the existing broader manual checklist stay independent.
+
+### Hosted managed Java acceptance — CI 198
+
+The native test steps in [CI 40095551689](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/40095551689), source `ac4c8e6fd2647703688c8288004ffe1b0f9e0d14`, passed for all three targets. Downloaded JUnit archives were inspected: each contains one executed test, **zero skipped**, zero failures/errors and both `MANAGED_JAVA_OK` markers with `offlineReuse=true repair=true`.
+
+| Host | Actual managed Java | Acceptance artifact |
+| --- | --- | --- |
+| Windows x64 | 21 / Minecraft 1.21.11; 25 / 26.3 | [managed-java-windows-x64](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/40095551689/artifacts/12561395377) |
+| Linux x64 | 21 / Minecraft 1.21.11; 25 / 26.3 | [managed-java-linux-x64](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/40095551689/artifacts/12561171627) |
+| macOS ARM64 | 21 / Minecraft 1.21.11; 25 / 26.3 | [managed-java-macos-arm64](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/40095551689/artifacts/12561126960) |
+
+This closes runtime selection/executable acceptance for these reference components on the distributed targets. It does not certify other Java components/architectures, native GUI/trust, Microsoft live entitlement or graphical Minecraft gameplay. CI artifacts have normal retention limits; test sources and workflow remain reproducible.
