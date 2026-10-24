@@ -1104,7 +1104,7 @@ private fun LauncherPanel(
                     }, enabled = !locked, modifier = Modifier.weight(1f)) { Text(strings.text("catalog.open")) }
                     else if (session.modpackCatalog == null) Text(strings.text("game.vanilla_hint"), style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-                    if (session.modpackCatalog != null) TextButton(onClick = { browsingModpacks = true },
+                    if (withMods && session.modpackCatalog != null) TextButton(onClick = { browsingModpacks = true },
                         enabled = !locked, modifier = Modifier.weight(1f).testTag("browse-modpacks")) { Text(strings.text("catalog.modpacks")) }
 
                 }

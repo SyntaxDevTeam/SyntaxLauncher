@@ -8,6 +8,44 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-24 — Fix profile removal, footer alignment and Vanilla actions; verify EXE branding
+
+**Milestone:** v0.12 / final interface corrections
+**Author/Agent:** Codex
+**Status:** Completed — implementation and local verification; hosted publication checked after push
+
+### Completed
+- Found why profile removal failed: the confirmation referenced a nonexistent translation key (missing `all_` prefix), causing a composition exception. Corrected it and kept the confirmation inside the profile page. Added visible Delete per saved profile and direct Restore entries without opening advanced options. Cancellation changes nothing; trash/restore preserves UUID, metadata and worlds, and deletion switches selection to legacy Vanilla.
+- Aligned the full independence notice vertically with legal/community links on wide windows; retained readable compact wrapping and contact information.
+- Show Home Modpacks only for modded games. Compatible Vanilla extras remain accessible from saved-game Choose extras and the creation wizard retains its branching choices.
+- Verified the published DEV 188.1 Windows portable EXE against the repository ICO: all six embedded images match exactly. Stable 0.9.2 only configured the Linux icon; the preceding installer task added Windows ICO wiring. Added dependency-free PE resource verification to every Windows CI build and explained why updating the app does not replace an old bootstrap EXE.
+
+### Changed files
+- `launcher-desktop/src/main/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/{InstanceWorkspace,LauncherFooter,SyntaxLauncherApp}.kt` — profile actions/confirmation, aligned footer and conditional packs entry.
+- `launcher-desktop/src/main/resources/i18n/{en,pl,de}.properties` — translated Delete labels.
+- `launcher-desktop/src/test/kotlin/pl/syntaxdevteam/syntaxlauncher/desktop/ui/{LauncherHomeRenderTest,LauncherFooterTest}.kt` — actual cancel/trash/restore with preserved world and persisted fallback selection (including PL/DE 400×400), Vanilla/modded switching in three languages and wide footer alignment at 760/1024/1440.
+- `scripts/{verify_windows_icon,test_verify_windows_icon}.py`, `.github/workflows/build.yml` — actual PE resource comparison, PE32/PE32+ fixtures, mismatched/truncated rejection and publication guard.
+- `README.md`, `docs/{INSTALLATION,ROADMAP,WORKLOG}.md` — behavior, older Windows bootstrap replacement and verification record.
+
+### Verification
+- Profile removal interaction test — PASS: Cancel, confirm, trash, fallback selection and restore original profile/world.
+- JDK 25 `./gradlew --offline test build :launcher-desktop:createDistributable` — PASS: 259 tests, 255 passed and four opt-in network checks skipped; application image built. Extended removal/fallback/restore interaction in EN 1440×810 and PL/DE 400×400 — PASS. Hosted CI/publication reported after push.
+- Python scripts — PASS, 23 tests, including icon comparison and mismatch/truncation rejection.
+- Published DEV 188.1 portable Windows EXE — PASS: six images byte-identical to source ICO (verified by independent pefile inspection and the new standard-library checker).
+- `git diff --check` — PASS. Generated screenshots reviewed for footer alignment and in-page confirmation.
+
+### Roadmap updates
+- [x] Main-window profiles/settings / 24 October interface corrections.
+- [x] Main-window profiles/settings / Windows embedded branding verification.
+- [ ] Native focus/DPI/window-manager/gameplay acceptance and signing/notarization remain independent final gates.
+
+### Follow-ups / known issues
+- Canonical version remains 0.9.3-DEV and Stable remains 0.9.2. No new Stable tag is requested.
+- The original legacy Vanilla storage is retained as the fallback; recoverable Delete applies to saved UUID game profiles.
+
+---
+
+
 ## 2026-10-24 — Complete native installer preview publication verification
 
 **Milestone:** v0.12 / native distribution

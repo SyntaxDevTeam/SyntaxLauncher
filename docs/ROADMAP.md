@@ -20,6 +20,8 @@ Agents and contributors MUST keep this file synchronized with actual repository 
 - [x] Place Game type below Game version; embed profile list/details/Edit in the main content region with a distinct workshop illustration and retained clone/import/trash/restore.
 - [x] Add conditional in-page profile wizard, loader-filtered complete packs, verified compatibility, final-only publication, inline extras catalog and cancellation/duplicate safeguards.
 - [x] Replace footer slogan with accessible website/Discord/GitHub icons targeting the requested destinations and relocate Privacy/Terms/contact/full Mojang/Microsoft disclaimer from sidebar to shared footer; verify EN/PL/DE wide/400×400 behavior.
+- [x] 24 October corrections: align the independence notice with wide-footer links, show Delete and Restore directly in the profile list, fix the missing confirmation translation and keep confirmation in the main page; hide Home Modpacks in Vanilla mode.
+- [x] Verify the published Windows portable EXE uses all six repository icon images; gate new Windows publication on embedded PE icon verification. Stable 0.9.2 predated Windows icon configuration; a newer portable archive replaces its original bootstrap.
 - [ ] Native focus, DPI, window-manager and graphical-game acceptance of this revision remains part of final release testing.
 
 ## Current delivery — 23 October 2026

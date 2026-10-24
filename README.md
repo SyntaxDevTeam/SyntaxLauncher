@@ -18,17 +18,21 @@ Home → **Game health and repair** scans the selected game's managed files, exp
 
 Microsoft account acceptance is **deferred while awaiting Mojang AppID approval** (maintainer instruction, 23 October 2026); existing code and explicit offline profiles remain. Implementation work on diagnostics/hardening is separate from final clean-machine, hosted updater, signing/notarization and native gameplay/DPI acceptance. See [v0.11 verification](docs/TESTING_V0.11.md), [v0.12 final gates](docs/TESTING_V0.12.md) and [installation/backup/removal](docs/INSTALLATION.md).
 
+## Windows executable branding
+
+Stable 0.9.2 configured the application icon only for Linux, leaving the Windows portable executable with the default Compose/Kotlin icon. The subsequent installer preparation configures the repository ICO for the Windows application image too. The published DEV 188.1 portable EXE has all six icon images byte-identical to that ICO. Every new Windows build checks the embedded PE icon before publication. Extract a complete new portable archive to replace an older bootstrap EXE; automatic launcher updates keep the original bootstrap file.
+
 ## Native installer previews
 
 [DEV build 188.1](https://github.com/SyntaxDevTeam/SyntaxLauncher/releases/tag/dev-188.1-v0.9.3-DEV) provides **Windows x64 MSI (WiX 7.0.0)**, **macOS ARM64 DMG**, and **Linux x64 DEB, RPM and AppImage**, alongside the existing portable archives. Linux packages target Debian/Ubuntu/Mint and compatible RPM systems; AppImage offers a single-file option for other compatible desktop distributions. Formats do not expand the CPU/native-library support matrix. All five installers and their SHA-256 inventory are public; [workflow 40013941601](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/40013941601) passed the three native lifecycle checks. Lifecycle logs are available in its workflow artifacts; signing/notarization and final clean-machine/upgrade acceptance remain open. Stable 0.9.2 is unchanged. See [installation and removal](docs/INSTALLATION.md) and [native build instructions](docs/DEVELOPMENT.md#native-installer-builds).
 
 ## Profiles, creation and memory settings
 
-Open **Game profiles** in the header to browse profiles inside the main launcher window. Select a profile to see its game/loader, installed mods, worlds, textures, shaders and configuration count; use Edit per row or create a separate profile with the new wizard. The workshop backdrop distinguishes this page from Home. Advanced clone/import/trash/restore actions remain available.
+Open **Game profiles** in the header to browse profiles inside the main launcher window. Select a profile to see its game/loader, installed mods, worlds, textures, shaders and configuration count; use Edit per row or create a separate profile with the new wizard. The workshop backdrop distinguishes this page from Home. Each saved profile has a visible **Delete** action with an in-page confirmation. Deleted profiles and their worlds stay in the recoverable trash; **Restore** is available directly in the profile list. Advanced clone/import actions remain available.
 
 The creation wizard branches through Vanilla/With mods, a mod loader when needed, and **complete modpack / individual catalog extras / empty**. Complete packs are filtered and validated for the chosen loader; their own definition sets exact game/dependency versions. Other profiles check compatible versions before final confirmation. Nothing is written before that confirmation; existing worlds stay separate. Individual extras open in the inline catalog after creation; empty profiles download game/Java files on first Play.
 
-Memory allocation now lives under the settings gear for the currently selected game. Save persists that game's setting; Close discards an unsaved draft. Game type sits below Game version on Home. The footer links directly to the SyntaxDevTeam website, Discord and this GitHub repository.
+Memory allocation now lives under the settings gear for the currently selected game. Save persists that game's setting; Close discards an unsaved draft. Game type sits below Game version on Home. The footer links directly to the SyntaxDevTeam website, Discord and this GitHub repository. On wide windows the Mojang/Microsoft independence notice shares the same row as the links; compact windows wrap it readably. Home only shows **Modpacks** for modded games. Vanilla retains compatible extras through **Choose extras**.
 
 ## Project philosophy
 

@@ -47,6 +47,27 @@ fun InstanceWorkspace(
         val compact = maxWidth < 600.dp || maxHeight < 360.dp
         Image(rememberBrandingPainter("branding/profiles-workshop.png"), null, Modifier.matchParentSize(), contentScale = ContentScale.Crop)
         Box(Modifier.matchParentSize().background(Brush.verticalGradient(listOf(SyntaxBrand.background.copy(alpha = .25f), SyntaxBrand.background.copy(alpha = .88f)))))
+        deleting?.let { target ->
+            Surface(Modifier.align(Alignment.Center).padding(16.dp).widthIn(max = 480.dp),
+                shape = RoundedCornerShape(14.dp), color = SyntaxBrand.panel) {
+                Column(Modifier.padding(20.dp).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text(strings.text("profiles.delete") + " · " + target.name, style = MaterialTheme.typography.titleLarge)
+                    Text(strings.text("ui.all_worlds_and_settings_will_remain_recoverable_from_this_work"))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        TextButton(onClick = { deleting = null }, modifier = Modifier.testTag("cancel-delete-profile")) {
+                            Text(strings.text("ui.cancel"))
+                        }
+                        TextButton(onClick = { onDelete(target); deleting = null }, enabled = canModify,
+                            modifier = Modifier.testTag("confirm-delete-profile"),
+                            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
+                            Text(strings.text("profiles.delete"))
+                        }
+                    }
+                }
+            }
+            return@BoxWithConstraints
+        }
         Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
@@ -70,7 +91,17 @@ fun InstanceWorkspace(
                         "ui.no_instances_yet_create_your_first_profile" else "ui.no_profiles_match_your_search"))
                     filtered.forEach { profile ->
                         ProfileRow(profile.name, "Minecraft ${profile.minecraftVersionId} · ${profile.loader?.id ?: "Vanilla"}",
-                            selectedId == profile.id, canModify, { onSelect(profile.id) }, { onEdit(profile) })
+                            selectedId == profile.id, canModify, { onSelect(profile.id) }, { onEdit(profile) },
+                            onDelete = { deleting = profile }, profileId = profile.id)
+                    }
+                    if (trashed.isNotEmpty()) {
+                        HorizontalDivider()
+                        trashed.forEach { entry ->
+                            TextButton(onClick = { onRestore(entry) }, enabled = canModify,
+                                modifier = Modifier.testTag("restore-profile-${entry.instance.id}")) {
+                                Text(strings.text("ui.restore") + " · " + entry.instance.name)
+                            }
+                        }
                     }
                 }
             }
@@ -104,16 +135,12 @@ fun InstanceWorkspace(
                         selected?.let { profile ->
                             OutlinedTextField(cloneName, { cloneName = it }, label = { Text(strings.text("ui.clone_as")) }, singleLine = true, enabled = canModify, modifier = Modifier.fillMaxWidth())
                             OutlinedButton(onClick = { onClonePreview(profile, cloneName.trim()) }, enabled = canModify && cloneName.trim().length in 1..48) { Text(strings.text("ui.review_clone")) }
-                            TextButton(onClick = { deleting = profile }, enabled = canModify) { Text(strings.text("ui.move_to_trash")) }
                         }
                         OutlinedButton(onClick = onImportModpack, enabled = canModify) { Text(strings.text("modpack.import_file")) }
                         onCancelImport?.let { TextButton(onClick = it) { Text(strings.text("ui.cancel")) } }
                         if (hasLegacyGame) {
                             OutlinedTextField(legacyName, { legacyName = it }, label = { Text(strings.text("ui.imported_profile_name")) }, enabled = canModify, modifier = Modifier.fillMaxWidth())
                             TextButton(onClick = { onLegacyPreview(legacyName.trim(), latestVersion) }, enabled = canModify && legacyName.trim().length in 1..48) { Text(strings.text("ui.review_v0_1_import")) }
-                        }
-                        trashed.forEach { entry ->
-                            TextButton(onClick = { onRestore(entry) }, enabled = canModify) { Text(strings.text("ui.restore") + " · " + entry.instance.name) }
                         }
                     }
                 }
@@ -135,10 +162,6 @@ fun InstanceWorkspace(
             }
         }
     }
-    deleting?.let { target -> AlertDialog(onDismissRequest = { deleting = null }, title = { Text(strings.text("ui.move_to_trash")) },
-        text = { Text(strings.text("ui.worlds_and_settings_will_remain_recoverable_from_this_work")) },
-        confirmButton = { TextButton(onClick = { onDelete(target); deleting = null }, enabled = canModify) { Text(strings.text("ui.move_to_trash")) } },
-        dismissButton = { TextButton(onClick = { deleting = null }) { Text(strings.text("ui.cancel")) } }) }
     preview?.let { request -> AlertDialog(onDismissRequest = onCancelPreview, title = { Text(strings.text("ui.confirm_clone")) },
         text = { Column { Text(strings.text("ui.source_0", request.sourcePath)); Text(strings.text("ui.destination_0", request.destinationPath)); Text(strings.text("ui.0_files_1_to_copy_plus_reserve", request.totalFiles, request.totalBytes.toString() + " B")) } },
         confirmButton = { TextButton(onClick = onConfirmPreview, enabled = canModify) { Text(strings.text("ui.start_copy")) } },
@@ -146,12 +169,21 @@ fun InstanceWorkspace(
 }
 
 @Composable
-private fun ProfileRow(title: String, subtitle: String, selected: Boolean, enabled: Boolean, onSelect: () -> Unit, onEdit: (() -> Unit)?) {
+private fun ProfileRow(title: String, subtitle: String, selected: Boolean, enabled: Boolean, onSelect: () -> Unit, onEdit: (() -> Unit)?,
+    onDelete: (() -> Unit)? = null, profileId: String = "") {
     Column(Modifier.fillMaxWidth().background(if (selected) SyntaxBrand.field else Color.Transparent, RoundedCornerShape(10.dp))
         .border(1.dp, if (selected) SyntaxBrand.cyan else SyntaxBrand.border, RoundedCornerShape(10.dp)).padding(10.dp)) {
         TextButton(onClick = onSelect, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.fillMaxWidth()) { Text(title, fontWeight = FontWeight.SemiBold); Text(subtitle, style = MaterialTheme.typography.bodySmall) }
         }
-        onEdit?.let { TextButton(onClick = it, enabled = enabled) { Text(LocalStrings.current.text("profiles.edit")) } }
+        Row {
+            onEdit?.let { TextButton(onClick = it, enabled = enabled) { Text(LocalStrings.current.text("profiles.edit")) } }
+            onDelete?.let { action ->
+                TextButton(onClick = action, enabled = enabled, modifier = Modifier.testTag("delete-profile-$profileId"),
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
+                    Text(LocalStrings.current.text("profiles.delete"))
+                }
+            }
+        }
     }
 }

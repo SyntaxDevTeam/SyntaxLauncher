@@ -6,6 +6,8 @@ The current packaging pipeline targets **Windows x64**, **Linux x64** and **macO
 
 Use a complete portable application archive from this project's GitHub Releases. Extract the entire archive into a directory you own; do not move just the executable out of its accompanying runtime/libraries. The launcher includes its own application runtime. It installs the separate Java version required by Minecraft automatically. Internal `syntaxlauncher-update-*.zip` assets are updater inputs, not initial-install packages.
 
+Windows portable builds after Stable 0.9.2 embed the repository icon in `SyntaxLauncher.exe`; CI compares all embedded icon images against the source ICO. Automatic updates retain the originally extracted bootstrap EXE, so installing a complete newer portable archive is necessary to replace an older executable bearing the default Kotlin icon.
+
 - Windows: extract the `.tar.gz` with a suitable archive tool and open `SyntaxLauncher/SyntaxLauncher.exe`.
 - Linux: extract the `.tar.gz` preserving permissions and open `SyntaxLauncher/bin/SyntaxLauncher`.
 - macOS ARM64: extract the `.tar.gz` preserving the complete `SyntaxLauncher.app`, then open that application.

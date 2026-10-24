@@ -155,6 +155,10 @@ jobs:
           gradle --no-daemon --stacktrace "-PlauncherBuildNumber=$GITHUB_RUN_NUMBER" "-PlauncherCommit=$GITHUB_SHA" "-PlauncherUpdateChannel=${{ needs.verify.outputs.build_channel }}" :launcher-desktop:createDistributable
           python scripts/package_update.py --source launcher-desktop/build/compose/binaries/main/app --platform "${{ matrix.artifact }}" --version "$version" --output "launcher-desktop/build/updates/syntaxlauncher-update-${{ matrix.artifact }}.zip"
           gradle --no-daemon --stacktrace "-PlauncherBuildNumber=$GITHUB_RUN_NUMBER" "-PlauncherCommit=$GITHUB_SHA" "-PlauncherUpdateChannel=${{ needs.verify.outputs.build_channel }}" "-PupdateBundle=build/updates/syntaxlauncher-update-${{ matrix.artifact }}.zip" :launcher-desktop:verifyUpdateBundle
+      - name: Verify portable Windows executable branding
+        if: runner.os == 'Windows'
+        shell: bash
+        run: python scripts/verify_windows_icon.py --exe launcher-desktop/build/compose/binaries/main/app/SyntaxLauncher/SyntaxLauncher.exe
       - name: Install Linux packaging tools
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y rpm fakeroot desktop-file-utils xvfb

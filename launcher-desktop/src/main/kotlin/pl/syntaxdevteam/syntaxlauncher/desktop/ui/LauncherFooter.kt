@@ -38,14 +38,19 @@ internal fun LauncherFooter(compact: Boolean = false) {
     }
     Column(Modifier.fillMaxWidth().testTag("launcher-footer")
         .padding(start = if (compact) 12.dp else 24.dp, end = if (compact) 12.dp else 24.dp, bottom = 4.dp)) {
-        Row(Modifier.fillMaxWidth().height(40.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
+        Row(Modifier.fillMaxWidth().heightIn(min = 40.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(if (compact) Modifier.weight(1f) else Modifier.widthIn(max = 230.dp).padding(end = 16.dp)) {
                 Text(strings.text("ui.syntaxdevteam_minecraft_launcher"), style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text("SyntaxDevTeam · wieszczy85@gmail.com", style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            if (!compact) LegalLinks()
+            if (!compact) {
+                Text(strings.text("legal.disclaimer"), modifier = Modifier.weight(1f).padding(end = 12.dp).testTag("footer-disclaimer"),
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, lineHeight = 11.sp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                LegalLinks()
+            }
             communityLinks.forEach { (id, url, symbol) ->
                 IconButton(onClick = { uri.openUri(url) }, modifier = Modifier.size(40.dp).testTag("footer-$id")) {
                     BrandIcon(symbol, size = 20.dp, tint = SyntaxBrand.heroMuted, description = strings.text("footer.$id"))
@@ -53,7 +58,7 @@ internal fun LauncherFooter(compact: Boolean = false) {
             }
         }
         if (compact) Row { LegalLinks() }
-        Text(strings.text("legal.disclaimer"), modifier = Modifier.testTag("footer-disclaimer"),
+        if (compact) Text(strings.text("legal.disclaimer"), modifier = Modifier.testTag("footer-disclaimer"),
             style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, lineHeight = 11.sp),
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     }

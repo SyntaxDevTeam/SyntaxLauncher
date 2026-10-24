@@ -256,41 +256,85 @@ class LauncherHomeRenderTest {
         assertEquals("", session.preferences.load().selectedInstanceId)
     }
 
-    @Test fun modpacksCanBeDiscoveredBeforeCreatingAnySavedGame() = runBlocking(Dispatchers.Swing) {
-        for (language in UiLanguage.entries) for ((width, height) in listOf(1440 to 810, 400 to 400)) {
+    @Test fun modpacksAreHiddenForVanillaAndAvailableForModdedGames() = runBlocking(Dispatchers.Swing) {
+        for (language in UiLanguage.entries) {
             val session = session(packCatalog = true)
+            val vanilla = session.instances.create("Vanilla game", "26.3")
+            val modded = session.instances.create("Modded game", "26.3", loader = ModLoaderSelection("quilt", "0.28.0"))
+            session.preferences.save(session.preferences.load().copy(selectedInstanceId = vanilla.id))
+            val strings = UiStrings(language)
+            val scene = ImageComposeScene(1440, 810, coroutineContext = Dispatchers.Swing) {
+                CompositionLocalProvider(LocalStrings provides strings) { SyntaxLauncherApp(session) }
+            }
+            try {
+                scene.awaitReady(strings.text("ui.play_minecraft"))
+                fun hasPacks() = scene.nodes().any { it.config.getOrNull(SemanticsProperties.TestTag) == "browse-modpacks" }
+                assertFalse(hasPacks(), "Vanilla must not offer modpacks")
+                scene.text(strings.text("game.with_mods")).click(); scene.frames()
+                assertTrue(hasPacks())
+                scene.text(strings.text("game.vanilla")).click(); scene.frames()
+                assertFalse(hasPacks())
+                assertEquals(2, session.instances.list().instances.size)
+                assertEquals(modded, session.instances.get(modded.id))
+            } finally { scene.close(); session.shutdown() }
+        }
+    }
+
+    @Test fun visibleProfileDeleteSupportsCancelTrashAndRestoreWithoutLosingWorlds() = runBlocking(Dispatchers.Swing) {
+        for ((language, width, height) in listOf(Triple(UiLanguage.EN, 1440, 810), Triple(UiLanguage.PL, 400, 400), Triple(UiLanguage.DE, 400, 400))) {
+            val session = session()
+            val profile = session.instances.create("Adventure", "26.3")
+            val world = session.instances.gameDirectory(profile).resolve("saves/keep.txt")
+            Files.createDirectories(world.parent); Files.writeString(world, "precious world")
+            session.preferences.save(session.preferences.load().copy(selectedInstanceId = profile.id))
             val strings = UiStrings(language)
             val scene = ImageComposeScene(width, height, coroutineContext = Dispatchers.Swing) {
                 CompositionLocalProvider(LocalStrings provides strings) { SyntaxLauncherApp(session) }
             }
             try {
                 scene.awaitReady(strings.text("ui.play_minecraft"))
-                fun packButton() = scene.nodes().first { it.config.getOrNull(SemanticsProperties.TestTag) == "browse-modpacks" }
+                fun tagged(tag: String) = scene.nodes().first { it.config.getOrNull(SemanticsProperties.TestTag) == tag }
+                tagged("nav-profiles").click(); scene.frames()
+                scene.reveal("delete-profile-${profile.id}")
+                assertFalse(tagged("delete-profile-${profile.id}").config.contains(SemanticsProperties.Disabled))
+                tagged("delete-profile-${profile.id}").assertFullyVisible(height, "Delete on profile row")
+                tagged("delete-profile-${profile.id}").click(); scene.frames()
+                withTimeout(5000) {
+                    while (scene.nodes().none { it.config.getOrNull(SemanticsProperties.TestTag) == "cancel-delete-profile" }) scene.frames()
+                }
+                scene.reveal("confirm-delete-profile")
+                tagged("confirm-delete-profile").assertFullyVisible(height, "Delete confirmation")
+                scene.screenshot("profiles-delete-confirm-${language.code}")
+                tagged("cancel-delete-profile").click(); scene.frames()
+                assertEquals(profile, session.instances.get(profile.id))
+                assertEquals("precious world", Files.readString(world))
+                scene.reveal("delete-profile-${profile.id}")
+                tagged("delete-profile-${profile.id}").click(); scene.frames()
+                scene.reveal("confirm-delete-profile")
+                tagged("confirm-delete-profile").click()
                 withTimeout(10000) {
-                    while (packButton().boundsInRoot.height < packButton().size.height - 0.5f) {
-                        // Bring the button into each nested viewport. Scrolling both containers
-                        // by a fixed amount can overshoot the short German settings panel.
-                        scene.nodes().filter { it.config.contains(SemanticsActions.ScrollBy) }.reversed().forEach { container ->
-                            val top = packButton().positionInRoot.y
-                            val bottom = top + packButton().size.height
-                            val viewport = container.boundsInRoot
-                            val delta = when {
-                                viewport.height < 40 -> 0f
-                                top < viewport.top -> top - viewport.top - 8f
-                                bottom > viewport.bottom -> bottom - viewport.bottom + 8f
-                                else -> 0f
-                            }
-                            if (delta != 0f) container.config[SemanticsActions.ScrollBy].action!!.invoke(0f, delta)
-                        }
+                    while (scene.nodes().none { it.config.getOrNull(SemanticsProperties.TestTag) == "restore-profile-${profile.id}" }) {
                         scene.frames()
                     }
                 }
-                val button = packButton()
-                assertFalse(button.config.contains(SemanticsProperties.Disabled))
                 assertTrue(session.instances.list().instances.isEmpty())
-                assertTrue(button.boundsInRoot.left >= 0 && button.boundsInRoot.right <= width && button.boundsInRoot.bottom <= height)
-                scene.screenshot("home-modpacks-${language.code}-$width")
+                assertEquals(1, session.instances.listTrashed().entries.size)
+                withTimeout(5000) {
+                    while (session.preferences.load().selectedInstanceId.isNotBlank()) scene.frames()
+                }
+                scene.reveal("restore-profile-${profile.id}")
+                tagged("restore-profile-${profile.id}").click()
+                withTimeout(10000) {
+                    while (scene.nodes().none { it.config.getOrNull(SemanticsProperties.TestTag) == "delete-profile-${profile.id}" }) {
+                        scene.frames()
+                    }
+                }
+                assertEquals(profile, session.instances.get(profile.id))
+                assertEquals("precious world", Files.readString(world))
+                assertTrue(session.instances.listTrashed().entries.isEmpty())
+                scene.screenshot("profiles-delete-restore-${language.code}")
             } finally { scene.close(); session.shutdown() }
+            assertEquals(profile.id, session.preferences.load().selectedInstanceId)
         }
     }
 
@@ -502,6 +546,29 @@ class LauncherHomeRenderTest {
         assertTrue(bounds.top >= 0 && bounds.bottom <= height && size.height > 0 &&
             bounds.height >= size.height - 0.5f,
             "$context must show the full label: bounds=$bounds, size=$size, viewportHeight=$height")
+    }
+
+    private suspend fun ImageComposeScene.reveal(tag: String) {
+        withTimeout(5000) {
+            fun target() = nodes().first { it.config.getOrNull(SemanticsProperties.TestTag) == tag }
+            fun containsTarget(node: SemanticsNode): Boolean = node.config.getOrNull(SemanticsProperties.TestTag) == tag || node.children.any(::containsTarget)
+            while (target().boundsInRoot.height < target().size.height - 0.5f) {
+                nodes().filter { it.config.contains(SemanticsActions.ScrollBy) && containsTarget(it) }.reversed().forEach { container ->
+                    val node = target()
+                    val top = node.positionInRoot.y
+                    val bottom = top + node.size.height
+                    val viewport = container.boundsInRoot
+                    val delta = when {
+                        viewport.height < 40 -> 0f
+                        top < viewport.top -> top - viewport.top - 8f
+                        bottom > viewport.bottom -> bottom - viewport.bottom + 8f
+                        else -> 0f
+                    }
+                    if (delta != 0f) container.config[SemanticsActions.ScrollBy].action!!.invoke(0f, delta)
+                }
+                frames()
+            }
+        }
     }
 
     private suspend fun ImageComposeScene.frames() {

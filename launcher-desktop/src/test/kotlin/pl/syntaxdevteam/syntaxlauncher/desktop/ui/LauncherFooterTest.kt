@@ -11,6 +11,27 @@ import kotlinx.coroutines.swing.Swing
 import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.*
 
 class LauncherFooterTest {
+    @Test fun wideFooterAlignsTheDisclaimerWithLinksWithoutClipping() = runBlocking(Dispatchers.Swing) {
+        for (language in UiLanguage.entries) for (width in listOf(760, 1024, 1440)) {
+            val scene = ImageComposeScene(width, 130, coroutineContext = Dispatchers.Swing) {
+                CompositionLocalProvider(LocalStrings provides UiStrings(language)) { SyntaxTheme { LauncherFooter() } }
+            }
+            try {
+                repeat(3) { scene.render(System.nanoTime()).close(); delay(20) }
+                fun visit(node: SemanticsNode): List<SemanticsNode> = listOf(node) + node.children.flatMap(::visit)
+                val nodes = scene.semanticsOwners.flatMap { visit(it.rootSemanticsNode) }
+                fun tagged(tag: String) = nodes.first { it.config.getOrNull(SemanticsProperties.TestTag) == tag }.boundsInRoot
+                val disclaimer = tagged("footer-disclaimer")
+                for (tag in listOf("footer-privacy", "footer-terms", "footer-github")) {
+                    val link = tagged(tag)
+                    assertTrue(kotlin.math.abs(disclaimer.center.y - link.center.y) < 1f, "$language / $width / $tag")
+                    assertTrue(disclaimer.right <= link.left)
+                }
+                assertTrue(disclaimer.width > 100 && disclaimer.bottom <= 130)
+            } finally { scene.close() }
+        }
+    }
+
     @Test fun iconsOpenExactCommunityDestinationsInAllLanguagesWithoutTheOldSlogan() = runBlocking(Dispatchers.Swing) {
         for (language in UiLanguage.entries) {
             val opened = mutableListOf<String>()
