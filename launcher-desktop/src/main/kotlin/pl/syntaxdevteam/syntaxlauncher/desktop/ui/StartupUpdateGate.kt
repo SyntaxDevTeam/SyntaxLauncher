@@ -56,6 +56,7 @@ internal fun StartupUpdateGate(
     updater: StartupUpdater?,
     handoff: DesktopUpdateHandoff?,
     onTransferred: () -> Unit,
+    developerMode: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val strings = LocalStrings.current
@@ -100,7 +101,9 @@ internal fun StartupUpdateGate(
             }
         }
     } else SyntaxTheme {
-        StartupUpdateScreen(progress, error, onRetry = { attempt++ }, onContinue = { if (error != null || progress.canContinue) continued = true })
+        StartupUpdateScreen(progress, error, onRetry = { attempt++ },
+            onContinue = { if (error != null || progress.canContinue) continued = true },
+            developerMode = developerMode)
     }
 }
 
@@ -110,6 +113,7 @@ internal fun StartupUpdateScreen(
     error: String?,
     onRetry: () -> Unit,
     onContinue: () -> Unit,
+    developerMode: Boolean = false,
 ) {
     val strings = LocalStrings.current
     Surface(Modifier.fillMaxSize(), color = SyntaxBrand.background) {
@@ -120,8 +124,8 @@ internal fun StartupUpdateScreen(
                 verticalArrangement = Arrangement.spacedBy(18.dp)) {
                 Image(rememberBrandingPainter("branding/hero-mark.png"), strings.text("ui.syntaxlauncher_logo"), Modifier.size(112.dp))
                 Text("SyntaxLauncher", style = MaterialTheme.typography.headlineMedium)
-                Text("v" + LauncherBuildInfo.version + "   /   " + LauncherBuildInfo.buildLabel +
-                    "   /   " + LauncherBuildInfo.shortCommit,
+                Text("v" + LauncherBuildInfo.version + (if (developerMode)
+                    "   /   " + LauncherBuildInfo.buildLabel + "   /   " + LauncherBuildInfo.shortCommit else ""),
                     color = SyntaxBrand.cyan, style = MaterialTheme.typography.labelSmall)
                 Text(if (error == null) strings.text(when (progress.stage) {
                     StartupUpdateStage.CHECKING -> "ui.checking_for_launcher_updates"

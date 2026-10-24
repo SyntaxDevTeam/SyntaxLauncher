@@ -58,6 +58,27 @@ class LauncherPreferencesStoreTest {
     }
 
     @Test
+    fun updateAndDeveloperFlagsPersistIndependentlyAndPreserveOtherSettings() = runBlocking {
+        val file = Files.createTempDirectory("syntax-flags").resolve("settings.properties")
+        val store = LauncherPreferencesStore(file)
+        assertTrue(store.loadAutomaticUpdatesEnabled())
+        assertEquals(false, store.loadDeveloperMode())
+        store.saveAutomaticUpdatesEnabled(false)
+        store.saveDeveloperMode(true)
+        store.save(LauncherPreferences("HorseFan", "26.3"))
+        val restarted = LauncherPreferencesStore(file)
+        assertEquals(false, restarted.loadAutomaticUpdatesEnabled())
+        assertEquals(true, restarted.loadDeveloperMode())
+        restarted.saveDeveloperMode(false)
+        assertEquals(false, restarted.loadAutomaticUpdatesEnabled())
+        Files.writeString(file, Files.readString(file) + "\nfuture_option=keep\n")
+        restarted.saveAutomaticUpdatesEnabled(true)
+        assertTrue(Files.readString(file).contains("future_option=keep"))
+        Files.writeString(file, "schema_version=1\ndeveloper_mode=invalid\n")
+        assertFailsWith<IllegalArgumentException> { restarted.loadDeveloperMode() }
+    }
+
+    @Test
     fun unknownSchemaIsNotDestroyedByLoadOrSave() = runBlocking {
         val file = Files.createTempDirectory("syntax-prefs-newer").resolve("settings.properties")
         val original = "schema_version=999\nfuture_setting=keep\n"

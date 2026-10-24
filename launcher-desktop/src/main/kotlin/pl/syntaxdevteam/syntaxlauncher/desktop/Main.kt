@@ -73,7 +73,14 @@ fun main(args: Array<String>) {
     val preferences = LauncherPreferencesStore(paths.configDir.resolve("settings.properties"))
     val handoff = DesktopUpdateHandoff.parse(args, updateRoot)
     val updatePlatform = UpdatePlatform.detect()
-    val updater = if (System.getProperty("jpackage.app-path") != null && updatePlatform != null) {
+    // Fail closed for unreadable flags: do not override or repair a malformed settings file.
+    val automaticUpdates = runCatching { kotlinx.coroutines.runBlocking {
+        preferences.loadAutomaticUpdatesEnabled()
+    } }.getOrDefault(false)
+    val developerModeAtStartup = runCatching { kotlinx.coroutines.runBlocking {
+        preferences.loadDeveloperMode()
+    } }.getOrDefault(false)
+    val updater = if (automaticUpdates && System.getProperty("jpackage.app-path") != null && updatePlatform != null) {
         StartupUpdater(
             GitHubLauncherReleases(httpClient), downloader,
             updateRoot, paths.cacheDir.resolve("launcher-updates"), updatePlatform,
@@ -138,7 +145,8 @@ fun main(args: Array<String>) {
         val closeLauncher = { session.close { exitApplication() } }
         Window(
             onCloseRequest = closeLauncher,
-            title = "SyntaxLauncher · v" + LauncherBuildInfo.version + " · " + LauncherBuildInfo.buildLabel,
+            title = "SyntaxLauncher · v" + LauncherBuildInfo.version +
+                (if (developerModeAtStartup) " · " + LauncherBuildInfo.buildLabel else ""),
             icon = rememberBrandingPainter("branding/syntaxlauncher-icon.png"),
             state = windowState,
             undecorated = true,
@@ -147,7 +155,7 @@ fun main(args: Array<String>) {
             window.minimumSize = java.awt.Dimension(400, 400)
             LauncherLanguageHost(session.preferences) {
             BoxWithConstraints(Modifier.fillMaxSize()) {
-                StartupUpdateGate(updater, handoff, onTransferred = closeLauncher) {
+                StartupUpdateGate(updater, handoff, onTransferred = closeLauncher, developerMode = developerModeAtStartup) {
                     SyntaxLauncherApp(
                         session = session,
                         chromeInset = 144.dp,

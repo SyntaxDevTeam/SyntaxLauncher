@@ -115,6 +115,10 @@ fun SyntaxLauncherApp(
         var instanceOpenRequest by remember { mutableIntStateOf(0) }
         var setupOpen by remember { mutableStateOf(false) }
         var navigationBusy by remember { mutableStateOf(false) }
+        var developerMode by remember(session) { mutableStateOf(false) }
+        LaunchedEffect(session) {
+            developerMode = runCatching { session.preferences.loadDeveloperMode() }.getOrDefault(false)
+        }
 
         LaunchedEffect(session) {
             try {
@@ -215,13 +219,14 @@ fun SyntaxLauncherApp(
                         Text("JAVA EDITION   /   v" + LauncherBuildInfo.version,
                             color = SyntaxBrand.heroMuted, style = MaterialTheme.typography.labelSmall,
                             letterSpacing = 1.sp)
-                        Text(LauncherBuildInfo.buildLabel + "   /   " + LauncherBuildInfo.shortCommit,
+                        if (developerMode) Text(LauncherBuildInfo.buildLabel + "   /   " + LauncherBuildInfo.shortCommit,
                             color = SyntaxBrand.cyan, style = MaterialTheme.typography.labelSmall,
                             letterSpacing = 0.6.sp)
                     }
                 } else {
                     Spacer(Modifier.width(6.dp))
-                    Text(LauncherBuildInfo.compactBuildLabel, modifier = Modifier.weight(1f), maxLines = 1,
+                    Text(if (developerMode) LauncherBuildInfo.compactBuildLabel else "v" + LauncherBuildInfo.version,
+                        modifier = Modifier.weight(1f), maxLines = 1,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                         color = SyntaxBrand.cyan, style = MaterialTheme.typography.labelSmall)
                 }
@@ -242,7 +247,7 @@ fun SyntaxLauncherApp(
             if (setupOpen && (catalog !is ManifestState.Ready || persisted == null || settingsError != null)) androidx.compose.material3.AlertDialog(
                 onDismissRequest = { setupOpen = false },
                 title = { Text(strings.text("ui.your_setup")) },
-                text = { LauncherSettingsContent(session) },
+                text = { LauncherSettingsContent(session, onDeveloperModeChanged = { developerMode = it }) },
                 confirmButton = { TextButton(onClick = { setupOpen = false }) { Text(strings.text("ui.close")) } },
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f))

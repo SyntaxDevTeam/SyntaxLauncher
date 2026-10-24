@@ -131,6 +131,33 @@ class LauncherPreferencesStore(private val file: Path) {
             }
         }
 
+
+    /** Additive schema-1 flags; profile/language/channel saves retain both values. */
+    suspend fun loadAutomaticUpdatesEnabled(): Boolean = loadFlag("automatic_updates_enabled", true)
+    suspend fun saveAutomaticUpdatesEnabled(enabled: Boolean) = saveFlag("automatic_updates_enabled", enabled)
+    suspend fun loadDeveloperMode(): Boolean = loadFlag("developer_mode", false)
+    suspend fun saveDeveloperMode(enabled: Boolean) = saveFlag("developer_mode", enabled)
+
+    private suspend fun loadFlag(key: String, default: Boolean): Boolean = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            val properties = readProperties()
+            if (!properties.isEmpty()) validateSchema(properties)
+            properties.getProperty(key)?.toBooleanStrictOrNull()
+                ?: if (!properties.containsKey(key)) default
+                else throw IllegalArgumentException("Invalid saved launcher setting: ${key}")
+        }
+    }
+
+    private suspend fun saveFlag(key: String, value: Boolean) = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            val properties = readProperties()
+            if (!properties.isEmpty()) validateSchema(properties)
+            properties.setProperty("schema_version", "1")
+            properties.setProperty(key, value.toString())
+            writeProperties(properties)
+        }
+    }
+
     private fun writeProperties(properties: Properties) {
         Files.createDirectories(file.parent)
         val temp = file.resolveSibling("." + file.fileName + "." + UUID.randomUUID() + ".part")
