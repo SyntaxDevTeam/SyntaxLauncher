@@ -451,7 +451,7 @@ class LauncherHomeRenderTest {
 
     @Test fun actualPlayFailureShowsLocalizedAdviceAndAllowsRetryAtCompactSizes() = runBlocking(Dispatchers.Swing) {
         for (language in UiLanguage.entries) for ((width, height) in listOf(1440 to 810, 400 to 400)) {
-            val session = session()
+            val session = session(allowFixtureRefresh = true)
             val strings = UiStrings(language)
             val scene = ImageComposeScene(width, height, coroutineContext = Dispatchers.Swing) {
                 CompositionLocalProvider(LocalStrings provides strings) { SyntaxLauncherApp(session) }
@@ -484,7 +484,7 @@ class LauncherHomeRenderTest {
         }
     }
 
-    private suspend fun session(packCatalog: Boolean = false, savedPlayer: Boolean = false, emptyPlayers: Boolean = false): DesktopLauncherSession {
+    private suspend fun session(packCatalog: Boolean = false, savedPlayer: Boolean = false, emptyPlayers: Boolean = false, allowFixtureRefresh: Boolean = false): DesktopLauncherSession {
         val state = withContext(Dispatchers.IO) {
             Files.createTempDirectory(root, "profile-")
         }
@@ -513,7 +513,13 @@ class LauncherHomeRenderTest {
                 override fun read(key: String): String? = vaultEntries[key]
                 override fun write(key: String, token: String) { vaultEntries[key] = token }
                 override fun remove(key: String) { vaultEntries.remove(key) }
-            }, "fixture-app", { error("Fixture refresh must fail if requested") })
+            }, "fixture-app", {
+                check(allowFixtureRefresh) { "Fixture refresh must fail if requested" }
+                pl.syntaxdevteam.syntaxlauncher.core.account.PremiumSession(
+                    pl.syntaxdevteam.syntaxlauncher.core.account.PremiumAccount("SyntaxPlayer",
+                        java.util.UUID.fromString("12345678-1234-1234-1234-123456789abc")),
+                    "fixture-fresh-minecraft-token", java.time.Instant.now().plusSeconds(3600), "fixture-fresh-refresh")
+            })
         val accountId = java.util.UUID.fromString("12345678-1234-1234-1234-123456789abc")
         if (!emptyPlayers) {
             accounts.savePremium(pl.syntaxdevteam.syntaxlauncher.core.account.PremiumSession(

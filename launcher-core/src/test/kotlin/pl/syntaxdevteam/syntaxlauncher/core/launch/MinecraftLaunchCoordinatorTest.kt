@@ -66,9 +66,10 @@ class MinecraftLaunchCoordinatorTest {
             platform = platform,
         )
         try {
-            val offline = OfflineAccount.create("RetryTest")
-            val failed = coordinator.launch(version(client), offline, LaunchOptions(),
-                instanceLayout = instanceLayout, authentication = LaunchAuthentication.offline(offline))
+            val player = pl.syntaxdevteam.syntaxlauncher.core.account.PremiumAccount("SyntaxTest",
+                UUID.fromString("12345678-1234-1234-1234-123456789abc"))
+            val failed = coordinator.launch(version(client), player, LaunchOptions(),
+                instanceLayout = instanceLayout, authentication = fixtureAuthentication())
             assertEquals(LaunchPhase.FAILED, failed.phase)
             assertEquals(LaunchFailureReason.REMOTE_FILE, failed.failure)
             assertTrue(captured == null)

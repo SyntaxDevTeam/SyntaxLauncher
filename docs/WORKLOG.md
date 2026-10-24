@@ -9,6 +9,35 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 ---
 
 
+
+## 2026-10-24 — Integrate concurrent authenticated-only main without restoring legacy gameplay
+
+**Milestone:** v0.1 / integration with current account policy
+**Author/Agent:** Codex
+**Status:** Completed — merged implementation/local verification; hosted matrix checked after push
+
+### Completed
+- The push was safely rejected because `main` advanced to 06d292f/424083f while the v0.1 improvements were being verified. Fetched and merged that history without force-push or dropping either body of work.
+- Preserved the maintainer's newer authenticated-only requirement and current AGENTS.md, DesktopLauncherSession/coordinator/planner/account-manager gates. No production authentication checks were weakened.
+- Adapted the new retry regression to a synthetic PremiumAccount fixture and the actual Play UI test to a controlled, explicitly allowed fresh-session test provider. Default fixtures still fail if an unexpected refresh is attempted. These are deterministic tests, not live Microsoft entitlement acceptance.
+
+### Changed files
+- `MinecraftLaunchCoordinatorTest.kt` — authenticated failure/retry fixture.
+- `LauncherHomeRenderTest.kt` — opt-in mocked fresh Microsoft session for the new actual Play test.
+- Remote changes were merged intact, including current account/security policy and its documentation.
+
+### Verification
+- Full merged `./gradlew --offline test build :launcher-desktop:createDistributable` — PASS in 1m40s; 277 cases, 272 passed, five opt-in network cases skipped, no failures/errors.
+- `git diff --check` — PASS.
+- Live Mojang AppID/entitlement approval remains unverified; no live authentication test is inferred from fixtures.
+
+### Roadmap updates
+- Preserved the merged roadmap and pending hosted managed-Java matrix; earlier local typed-error acceptance remains valid.
+
+### Follow-ups / known issues
+- CI must verify this combined revision, including native managed Java on all distributed targets. Current product remains 0.9.3-DEV; no new Stable was requested.
+
+
 ## 2026-10-24 — Authenticated-only AppID readiness implementation
 
 **Milestone:** Microsoft authentication / AppID compliance
