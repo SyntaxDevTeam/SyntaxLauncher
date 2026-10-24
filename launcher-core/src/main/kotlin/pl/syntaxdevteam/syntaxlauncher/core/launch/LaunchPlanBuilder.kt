@@ -8,11 +8,13 @@ class LaunchPlanBuilder(
     private val launcherName: String = "SyntaxLauncher",
     private val launcherVersion: String = "unknown",
     private val placeholderResolver: MinecraftArgumentPlaceholderResolver = MinecraftArgumentPlaceholderResolver(),
+    private val clock: java.time.Clock = java.time.Clock.systemUTC(),
 ) {
     fun build(request: LaunchRequest): LaunchPlan {
         require(request.account is PremiumAccount && request.authentication.userType == "msa" &&
             request.authentication.accessToken.isNotBlank() && request.authentication.accessToken != "0" &&
-            request.authentication.clientId.isNotBlank() && request.authentication.sessionId.isNotBlank()) {
+            request.authentication.clientId.isNotBlank() && request.authentication.sessionId.isNotBlank() &&
+            request.authentication.expiresAt.isAfter(java.time.Instant.now(clock))) {
             "A verified Microsoft / Minecraft Java session is required."
         }
         val prepared = request.prepared

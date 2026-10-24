@@ -1,6 +1,6 @@
 # SyntaxLauncher Design Guidelines
 
-**22 October 2026 maintainer correction:** Present a player selector and a dedicated manager for both Offline / non-premium and Microsoft players. Save the active player across restarts; support offline nickname creation/rename, selection and confirmed removal without deleting game data. Keep Play disabled until a saved player is selected; Microsoft checks remain mandatory for Microsoft profiles with no silent fallback. Keep Privacy/Terms, contact and independence notice visible. Preserve the selected blue gateway header/application icon and landscape-only home hero.
+**Current account policy — 24 October 2026:** Present a player selector and manager for Microsoft Java Edition players only. Persist selection across restarts. Add through browser sign-in and remove with confirmation without deleting game data. Keep Play disabled without a selected Microsoft player; every Play requires fresh entitlement/profile verification and failures block launch. Keep Privacy/Terms, contact and independence notice visible. Preserve the selected blue gateway header/application icon and landscape-only home hero.
 
 This document defines the mandatory visual and interaction principles for SyntaxLauncher.
 

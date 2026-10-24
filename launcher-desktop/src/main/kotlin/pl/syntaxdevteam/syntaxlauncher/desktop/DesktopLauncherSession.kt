@@ -174,7 +174,6 @@ class DesktopLauncherSession(
 
     fun play(
         version: ResolvedMinecraftVersion,
-        nickname: String,
         maximumMemoryMiB: Int,
         instance: MinecraftInstance? = null,
         premiumId: String? = null,

@@ -903,7 +903,7 @@ private fun LauncherPanel(
                 }
                 Button(
                     onClick = { resolved?.let {
-                        session.play(it, selectedPremium?.username.orEmpty(), ramMiB.toInt(), activeInstance,
+                        session.play(it, ramMiB.toInt(), activeInstance,
                             premiumId = selectedPremium?.uuid?.toString())
                     } },
                     enabled = canPlay,

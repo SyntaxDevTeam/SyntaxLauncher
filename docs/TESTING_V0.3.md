@@ -37,7 +37,7 @@ This checklist separates deterministic CI coverage from real Microsoft/Xbox/Mine
 ## Premium launch and security
 
 - [ ] Launch a real client using Premium, join an online-mode server that you own/test on, and verify actual identity.
-- [ ] Confirm the same game preparation, Java runtime manager and instance directories are used for offline and premium accounts.
+- [ ] Confirm Microsoft accounts use shared game preparation/Java/instance paths and legacy identities cannot start a process; existing worlds stay intact.
 - [ ] Wait until a premium session is close to expiry; verify refresh or clean sign-in retry.
 - [ ] Search launcher/game stdout and stderr, game-owned logs, crash reports and launcher diagnostics for tokens; do not share raw sensitive output.
 - [ ] Verify Windows, macOS and Linux native distributables and browser callback handling.

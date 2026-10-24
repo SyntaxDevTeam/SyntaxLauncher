@@ -58,4 +58,18 @@ class MicrosoftOAuthTest {
         assertEquals("msa", session.launchAuthentication(id).userType)
         assertFalse(session.toString().contains("private-token"))
     }
+    @Test fun rejectedOrEmptyOAuthTokenCannotBecomeASession() = runBlocking {
+        for ((body, status) in listOf(
+            """{"access_token":"fixture-private"}""" to io.ktor.http.HttpStatusCode.BadRequest,
+            """{"access_token":""}""" to io.ktor.http.HttpStatusCode.OK,
+            """{"access_token":"0"}""" to io.ktor.http.HttpStatusCode.OK)) {
+            val client = HttpClient(MockEngine { respond(body, status) })
+            try {
+                val auth = MicrosoftOAuth(client, id)
+                val failure = assertFailsWith<IllegalStateException> { auth.refresh("fixture-refresh") }
+                assertFalse(failure.message.orEmpty().contains("fixture-"))
+            } finally { client.close() }
+        }
+    }
+
 }

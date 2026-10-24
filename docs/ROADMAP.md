@@ -30,6 +30,8 @@ Microsoft live-account work is **deferred pending Mojang AppID approval**, per m
 
 ## Microsoft-only player management and AppID readiness — 24 October 2026
 
+- [x] Reject non-success OAuth/Xbox/XSTS replies, empty/zero tokens, missing or mismatched XSTS identities and missing/expired Minecraft lifetime; deterministic tests verify no downstream stage after failure.
+
 - [x] Enforce authenticated-only launches in the UI, session, coordinator and launch-plan builder; no unauthenticated fallback.
 - [x] Dedicated Microsoft player manager: add, select and remove saved verified identities; worlds/add-ons remain isolated and unaffected.
 - [x] Cover rejected unauthenticated launch with a locked credential vault, unknown/failed Microsoft sessions, atomic rename/collision protection, persisted selection and translated/compact UI interactions.
@@ -99,8 +101,8 @@ Goal: launch a selected vanilla Minecraft version using a verified Microsoft acc
 - [x] Common `Account` model implemented and verified by the local core/desktop suite.
 - [x] Legacy identity decoding remains covered solely for file compatibility; unauthenticated gameplay is blocked.
 - [x] Microsoft Java username validation and authenticated-only player UI pass deterministic tests.
-- [x] Deterministic Minecraft offline UUID generation passes the existing compatibility regressions.
-- [x] Persist offline identity/preferences atomically with schema and unknown-key retention; preference, account-manager and real Compose save/restart tests pass. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] Legacy deterministic UUID decoding is retained solely for preservation compatibility.
+- [x] Preserve legacy identity/preferences atomically with schema and unknown-key retention; preference, account-manager and real Compose save/restart tests pass. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [x] Preserve old account records on disk only; current player manager exposes authenticated Microsoft identities. Earlier milestone test evidence is historical and does not authorize unauthenticated play.
 
 ## Minecraft version discovery
@@ -187,7 +189,7 @@ Goal: launch a selected vanilla Minecraft version using a verified Microsoft acc
 - [x] metadata logging argument `${path}` is bound to the verified downloaded logging configuration when present. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [x] legacy versions without metadata JVM arguments receive explicit natives path and classpath fallback arguments rather than a version-specific hardcoded launch recipe. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [ ] 🚧 IN PROGRESS — structured `LaunchPlan` now directly feeds `MinecraftProcessManager` through `MinecraftLaunchCoordinator`; compilation/full real-Minecraft launch acceptance remains pending.
-- [x] deterministic unit-test sources cover modern placeholder construction, memory/logging/classpath/offline identity, legacy JVM fallback, arguments containing spaces and rejection of unknown placeholders. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] deterministic unit-test sources cover modern placeholder construction, memory/logging/classpath/authenticated identity, legacy JVM fallback, arguments containing spaces and rejection of unknown placeholders. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 
 ## Process management
 
@@ -255,7 +257,7 @@ Goal: launch a selected vanilla Minecraft version using a verified Microsoft acc
 - [ ] 🚧 IN PROGRESS — Full local `./gradlew build` and Linux `createDistributable` pass (20 October 2026); remaining native platform release acceptance stays open.
 - [ ] Fresh launcher state can download prerequisites and start a supported vanilla Minecraft release.
 - [ ] Second launch reuses valid cached data instead of redownloading everything.
-- [x] Offline identity remains stable for the same username; deterministic UUID/account and persistence tests pass. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] Legacy identity decoding remains stable for the same stored username; deterministic UUID/account and persistence tests pass. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [x] Java is selected automatically without requiring a globally installed Java when managed runtime installation succeeds. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 - [x] No premium authentication/mod/loader feature has leaked into v0.1 scope unnecessarily. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
 

@@ -46,3 +46,18 @@ Code review, automated fixtures, and successful packaging are not substitutes fo
 - Review checklist and unresolved evidence: [APP_REVIEW_2026-10.md](APP_REVIEW_2026-10.md)
 
 **NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT.**
+
+## Continuation audit — 24 October 2026
+
+- Prerequisite settings CI: [40078116601](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/40078116601), exact source `5dfb7df12e29f8d09b613aa903d84652ed1b89ca`, completed **success**. Authenticated-only implementation is separate commit [06d292f](https://github.com/SyntaxDevTeam/SyntaxLauncher/commit/06d292fa302b80925e4e1690bf37062aea0f0d0e); subsequent test corrections remain in Git history.
+- Removed the XSTS user-hash fallback. Xbox/XSTS require successful HTTP status, nonempty/nonzero tokens and matching explicit user identities. OAuth rejects unsuccessful responses and empty/zero access tokens. Minecraft token lifetime is mandatory and must exceed the refresh safety margin before entitlement/profile lookup.
+- Launch credentials carry the verified expiry time. Coordinator rejects expired input, the plan builder rechecks after preparation, and coordinator checks once more immediately before process creation. No cached or synthetic lifetime is substituted.
+- Removed unused local-player translation keys and corrected live settings/sign-in/diagnostic guidance in EN/PL/DE to require Microsoft Java accounts. Translation and rendered player-manager regressions prevent advertising unauthenticated play.
+- Regressions stop at each rejected exchange, including denied Java profile, invalid profile data, absent ownership and rejected refresh despite an otherwise valid cached session. AccountManager writes only Microsoft identities; its historical local-row decoder remains read-only preservation compatibility.
+- Reviewed the official EULA and Usage Guidelines on this date: independent tool branding and no unauthorized distribution remain release-review concerns. This bounded repository audit is not a legal certification or a full repository security scan.
+- The AppID form redirected to Microsoft Forms and could not be read by the audit browser. The four linked public product/privacy/terms/support pages were also inaccessible through that browser; their content is **not verified**, and no update to them is claimed. Entra registration metadata and native OS vault behavior remain externally unverified.
+- Current architecture, UI design instructions, developer guide, milestones, roadmap and acceptance checklists now describe Microsoft-only gameplay. Versioned release notes are explicitly historical; application chronology and the append-only worklog remain intact. No history rewrite is performed.
+
+Local final verification: full tests/build/Linux distributable passed (282 cases: 277 passed, five opt-in network skips, zero failures/errors); 25 release-tool tests passed. Hosted verification remains commit-specific.
+
+Approval, live entitled-account sign-in/refresh/gameplay, public site/Entra consistency, native vault/consent and signing acceptance remain open. Passing this revision's automated CI cannot guarantee Mojang approval.

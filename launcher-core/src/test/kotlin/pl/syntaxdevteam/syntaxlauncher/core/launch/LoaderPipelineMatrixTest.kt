@@ -6,6 +6,7 @@ import io.ktor.client.engine.mock.respond
 import java.io.ByteArrayOutputStream
 import java.util.UUID
 import java.nio.file.Files
+import java.time.Instant
 import java.nio.file.Path
 import java.security.MessageDigest
 import java.util.jar.JarEntry
@@ -117,7 +118,7 @@ class LoaderPipelineMatrixTest {
                 Files.writeString(layout.gameDir.resolve("saves/world.txt"), id)
                 val result = coordinator.launch(base, pl.syntaxdevteam.syntaxlauncher.core.account.PremiumAccount("SyntaxTest", UUID.fromString("12345678-1234-1234-1234-123456789abc")),
                     LaunchOptions(maximumMemoryMiB = 2048), instanceLayout = layout, loader = selection,
-                    authentication = LaunchAuthentication("fixture-token", "fixture-session", "msa", clientId = "fixture-app"))
+                    authentication = LaunchAuthentication("fixture-token", "fixture-session", "msa", clientId = "fixture-app", expiresAt = Instant.MAX))
                 assertEquals(LaunchPhase.STARTED, result.phase, "$id: ${result.detail}")
                 val plan = plans.last()
                 assertEquals("fixture.$id.Main", plan.mainClass)

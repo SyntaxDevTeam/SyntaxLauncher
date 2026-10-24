@@ -32,7 +32,7 @@ class PremiumExchangeException(val stage: PremiumStage, message: String) : Illeg
 )
 @Serializable private data class MinecraftResult(
     @SerialName("access_token") val accessToken: String,
-    @SerialName("expires_in") val expiresIn: Long = 3600,
+    @SerialName("expires_in") val expiresIn: Long,
 )
 @Serializable private data class JavaProfileResult(val id: String, val name: String)
 @Serializable private data class Entitlement(val name: String)
@@ -46,6 +46,9 @@ class MinecraftPremiumAuthentication(
     private val json = Json { ignoreUnknownKeys = true }
 
     suspend fun authenticate(tokens: MicrosoftOAuthTokens): PremiumSession {
+        if (tokens.accessToken.isBlank() || tokens.accessToken == "0") {
+            throw PremiumExchangeException(PremiumStage.XBOX, "Microsoft did not return a valid access token.")
+        }
         val xbox = safe(PremiumStage.XBOX) {
             val response = http.post("https://user.auth.xboxlive.com/user/authenticate") {
                 contentType(ContentType.Application.Json)
@@ -59,7 +62,13 @@ class MinecraftPremiumAuthentication(
                     put("TokenType", "JWT")
                 }.toString())
             }
-            json.decodeFromString<XboxResult>(response.bodyAsText())
+            if (response.status.value !in 200..299) {
+                throw PremiumExchangeException(PremiumStage.XBOX, "Xbox rejected authentication.")
+            }
+            json.decodeFromString<XboxResult>(response.bodyAsText()).also {
+                if (it.token.isBlank() || it.token == "0")
+                    throw PremiumExchangeException(PremiumStage.XBOX, "Xbox returned an invalid token.")
+            }
         }
         val userHash = xbox.claims.xui.firstOrNull()?.uhs?.takeIf(String::isNotBlank)
             ?: throw PremiumExchangeException(PremiumStage.XBOX, "Xbox did not return a user identity.")
@@ -75,9 +84,19 @@ class MinecraftPremiumAuthentication(
                     put("TokenType", "JWT")
                 }.toString())
             }
-            json.decodeFromString<XboxResult>(response.bodyAsText())
+            if (response.status.value !in 200..299) {
+                throw PremiumExchangeException(PremiumStage.XSTS, "XSTS rejected authentication.")
+            }
+            json.decodeFromString<XboxResult>(response.bodyAsText()).also {
+                if (it.token.isBlank() || it.token == "0")
+                    throw PremiumExchangeException(PremiumStage.XSTS, "XSTS returned an invalid token.")
+            }
         }
-        val xstsHash = xsts.claims.xui.firstOrNull()?.uhs?.takeIf(String::isNotBlank) ?: userHash
+        val xstsHash = xsts.claims.xui.firstOrNull()?.uhs?.takeIf(String::isNotBlank)
+            ?: throw PremiumExchangeException(PremiumStage.XSTS, "XSTS did not return a user identity.")
+        if (xstsHash != userHash) {
+            throw PremiumExchangeException(PremiumStage.XSTS, "XSTS returned a different user identity.")
+        }
         val minecraft = safe(PremiumStage.MINECRAFT) {
             val response = http.post("https://api.minecraftservices.com/authentication/login_with_xbox") {
                 contentType(ContentType.Application.Json)
@@ -93,7 +112,11 @@ class MinecraftPremiumAuthentication(
                 throw PremiumExchangeException(PremiumStage.MINECRAFT,
                     "Minecraft Services rejected authentication (HTTP " + response.status.value + ").")
             }
-            json.decodeFromString<MinecraftResult>(response.bodyAsText())
+            json.decodeFromString<MinecraftResult>(response.bodyAsText()).also {
+                if (it.accessToken.isBlank() || it.accessToken == "0" || it.expiresIn <= 180) {
+                    throw PremiumExchangeException(PremiumStage.MINECRAFT, "Minecraft returned an invalid or expired session.")
+                }
+            }
         }
         safe(PremiumStage.OWNERSHIP) {
             val response = http.get("https://api.minecraftservices.com/entitlements/mcstore") {

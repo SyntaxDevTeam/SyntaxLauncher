@@ -86,7 +86,7 @@ class DesktopLauncherSessionAccountsTest {
             val world = f.session.instances.layoutFor(instance).gameDir.resolve("saves/world/level.dat")
             Files.createDirectories(world.parent); Files.writeString(world, "keep world")
             assertTrue(f.session.repair(f.version, instance))
-            assertFalse(f.session.play(f.version, "ChildOne", 2048, instance))
+            assertFalse(f.session.play(f.version, 2048, instance))
             f.awaitAccountPreparation()
             assertEquals("success", f.session.maintenanceResult.value)
             assertFalse(f.captured.isCompleted, "Repair must never launch a game")
@@ -141,7 +141,7 @@ class DesktopLauncherSessionAccountsTest {
             val refreshed = CompletableDeferred<String>()
             f.refresh = { token -> refreshed.complete(token); premium("PlayerNew") }
             f.session.loadAccounts()
-            assertTrue(f.session.play(f.version, "OfflineChild", 2048, premiumId = id.toString()))
+            assertTrue(f.session.play(f.version, 2048, premiumId = id.toString()))
             val plan = withTimeout(10000) { f.captured.await() }
             f.awaitAccountPreparation()
             assertEquals("fixture-refresh", refreshed.await())
@@ -160,13 +160,13 @@ class DesktopLauncherSessionAccountsTest {
         try {
             f.session.loadAccounts()
             f.refresh = { error("Sign in again.") }
-            assertTrue(f.session.play(f.version, "OfflineChild", 2048, premiumId = id.toString()))
+            assertTrue(f.session.play(f.version, 2048, premiumId = id.toString()))
             f.awaitAccountPreparation()
             assertEquals("Sign in again.", f.session.launchIssue.value)
             assertFalse(f.captured.isCompleted)
             assertEquals(MinecraftProcessState.IDLE, f.processes.status.value.state)
             f.refresh = { premium("PlayerNew") }
-            assertTrue(f.session.play(f.version, "OfflineChild", 2048, premiumId = id.toString()))
+            assertTrue(f.session.play(f.version, 2048, premiumId = id.toString()))
             withTimeout(10000) { f.captured.await() }
             f.awaitAccountPreparation()
             assertNull(f.session.launchIssue.value)
@@ -178,7 +178,7 @@ class DesktopLauncherSessionAccountsTest {
         try {
             f.session.addPremiumAccount()
             f.refresh = { error("Ownership check unavailable.") }
-            assertTrue(f.session.play(f.version, "ChildOne", 2048, premiumId = id.toString()))
+            assertTrue(f.session.play(f.version, 2048, premiumId = id.toString()))
             f.awaitAccountPreparation()
             assertEquals("Ownership check unavailable.", f.session.launchIssue.value)
             assertFalse(f.captured.isCompleted)
@@ -190,7 +190,7 @@ class DesktopLauncherSessionAccountsTest {
         val f = Fixture()
         try {
             f.vault.locked = true
-            assertFalse(f.session.play(f.version, "ChildOne", 2048))
+            assertFalse(f.session.play(f.version, 2048))
             assertFalse(f.captured.isCompleted)
             assertTrue(f.session.launchIssue.value.orEmpty().contains("Microsoft"))
         } finally { f.close() }
@@ -199,7 +199,7 @@ class DesktopLauncherSessionAccountsTest {
     @Test fun unknownMicrosoftIdentityNeverFallsBackToValidOfflineNickname() = runBlocking {
         val f = Fixture()
         try {
-            assertFalse(f.session.play(f.version, "ChildOne", 2048, premiumId = id.toString()))
+            assertFalse(f.session.play(f.version, 2048, premiumId = id.toString()))
             assertFalse(f.captured.isCompleted)
             assertTrue(f.session.launchIssue.value.orEmpty().contains("Microsoft"))
         } finally { f.close() }
@@ -221,7 +221,7 @@ class DesktopLauncherSessionAccountsTest {
             Files.writeString(world, "preserved")
             f.session.loadAccounts()
             assertTrue(f.session.savedAccounts.value.isEmpty())
-            assertFalse(f.session.play(f.version, legacy.username, 2048))
+            assertFalse(f.session.play(f.version, 2048))
             assertFalse(f.captured.isCompleted)
             assertEquals("preserved", Files.readString(world))
         } finally { f.close() }

@@ -105,4 +105,49 @@ class MinecraftPremiumAuthenticationTest {
         }
     }
 
+    @Test fun malformedOrRejectedExchangeStopsBeforeAnyLaterStage() = runBlocking {
+        val goodXbox = """{"Token":"fixture-xbox","DisplayClaims":{"xui":[{"uhs":"hash"}]}}"""
+        val goodMinecraft = """{"access_token":"fixture-minecraft","expires_in":3600}"""
+        val goodProfile = """{"id":"12345678123412341234123456789abc","name":"JavaPlayer"}"""
+        val paths = listOf("/user/authenticate", "/xsts/authorize", "/authentication/login_with_xbox",
+            "/entitlements/mcstore", "/minecraft/profile")
+        val cases = listOf(
+            Triple(0, goodXbox, HttpStatusCode.Unauthorized),
+            Triple(0, goodXbox.replace("fixture-xbox", ""), HttpStatusCode.OK),
+            Triple(1, goodXbox, HttpStatusCode.Forbidden),
+            Triple(1, goodXbox.replace("fixture-xbox", "0"), HttpStatusCode.OK),
+            Triple(1, """{"Token":"fixture-xsts","DisplayClaims":{"xui":[]}}""", HttpStatusCode.OK),
+            Triple(1, goodXbox.replace("hash", "other-user"), HttpStatusCode.OK),
+            Triple(2, goodMinecraft.replace("fixture-minecraft", "0"), HttpStatusCode.OK),
+            Triple(2, goodMinecraft.replace("3600", "0"), HttpStatusCode.OK),
+            Triple(2, """{"access_token":"fixture-minecraft"}""", HttpStatusCode.OK),
+            Triple(4, goodProfile, HttpStatusCode.Forbidden),
+            Triple(4, goodProfile.replace("12345678123412341234123456789abc", "invalid"), HttpStatusCode.OK),
+            Triple(4, goodProfile.replace("JavaPlayer", ""), HttpStatusCode.OK),
+        )
+        for ((failedIndex, body, status) in cases) {
+            val visited = mutableListOf<String>()
+            val http = HttpClient(MockEngine { request ->
+                val path = request.url.encodedPath
+                visited.add(path)
+                val index = paths.indexOf(path)
+                check(index in 0..failedIndex) { "Must not continue after failed exchange" }
+                if (index == failedIndex) respond(body, status) else respond(when (index) {
+                    0, 1 -> goodXbox
+                    2 -> goodMinecraft
+                    3 -> """{"items":[{"name":"game_minecraft"}]}"""
+                    else -> error("Unexpected stage")
+                })
+            })
+            try {
+                val failure = assertFailsWith<PremiumExchangeException> {
+                    MinecraftPremiumAuthentication(http).authenticate(MicrosoftOAuthTokens("fixture-ms", null))
+                }
+                assertEquals(PremiumStage.entries[failedIndex], failure.stage)
+                assertEquals(paths.take(failedIndex + 1), visited)
+                assertFalse(failure.message.orEmpty().contains("fixture-"))
+            } finally { http.close() }
+        }
+    }
+
 }

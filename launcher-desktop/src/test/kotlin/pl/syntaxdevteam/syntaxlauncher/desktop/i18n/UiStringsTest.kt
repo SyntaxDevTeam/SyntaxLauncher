@@ -34,4 +34,15 @@ class UiStringsTest {
         assertEquals(UiLanguage.EN, UiLanguage.from("fr-FR"))
         assertEquals(UiLanguage.EN, UiLanguage.from(null))
     }
+    @Test fun accountGuidanceNeverOffersUnauthenticatedGameplay() {
+        for ((language, bundle) in UiStrings.bundles) {
+            assertTrue(bundle.keys.none { it in setOf("players.add_offline", "players.offline", "ui.offline_nickname") })
+            for (key in listOf("account.sign_in_required", "players.intro", "settings.account_pending", "health.cause.auth")) {
+                val text = bundle.getValue(key)
+                assertTrue(text.contains("Microsoft"), "$language / $key")
+                assertTrue(!text.contains("offline", ignoreCase = true), "$language / $key")
+            }
+        }
+    }
+
 }

@@ -142,7 +142,7 @@ Version metadata is authoritative.
 
 ### 7.3 Accounts are polymorphic
 
-Launch code must consume a common account/session representation. Offline and Microsoft accounts must not require separate copies of the launch pipeline.
+Launch code consumes the shared verified Microsoft account/session representation. Legacy identity parsing exists solely for preservation and must never enable an unauthenticated launch pipeline.
 
 ### 7.4 Instances own mutable game state
 
@@ -199,7 +199,7 @@ At minimum, add or maintain tests for logic such as:
 - Mojang rule evaluation and argument resolution;
 - library classifier/native selection;
 - OS/architecture rule handling;
-- offline UUID generation;
+- legacy identity preservation and unauthenticated launch rejection;
 - Java compatibility selection;
 - launch argument construction;
 - instance serialization/migration;

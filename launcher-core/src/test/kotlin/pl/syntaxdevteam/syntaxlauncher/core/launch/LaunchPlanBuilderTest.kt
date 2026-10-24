@@ -24,7 +24,7 @@ import pl.syntaxdevteam.syntaxlauncher.core.minecraft.ResolvedMinecraftVersion
 
 class LaunchPlanBuilderTest {
     private val account = PremiumAccount("SyntaxUser", java.util.UUID.fromString("12345678-1234-1234-1234-123456789abc"))
-    private val verified = LaunchAuthentication("fixture-access", "fixture-session", "msa", clientId = "fixture-client")
+    private val verified = LaunchAuthentication("fixture-access", "fixture-session", "msa", clientId = "fixture-client", expiresAt = java.time.Instant.MAX)
     private val platform = MinecraftPlatform(
         os = MinecraftOperatingSystem.LINUX,
         architecture = MinecraftArchitecture.X86_64,
@@ -198,6 +198,23 @@ class LaunchPlanBuilderTest {
                     authentication = verified,
                 ),
             )
+        }
+    }
+
+    @Test fun tokenExpiringDuringPreparationCannotBuildAProcessPlan() {
+        val expires = java.time.Instant.parse("2026-10-24T12:00:00Z")
+        val root = Path.of("fixture")
+        val version = ResolvedMinecraftVersion(id = "fixture", type = MinecraftVersionType.RELEASE,
+            mainClass = "Main", assetsId = null, assetIndex = null, clientDownload = null,
+            libraries = emptyList(), arguments = MinecraftArguments(), javaRequirement = null, logging = null)
+        val request = LaunchRequest(account, prepared(version, root, listOf(root.resolve("client.jar")), null),
+            JavaRuntime(root, root.resolve("bin/java"), 21, "21"), platform, LaunchOptions(),
+            verified.copy(expiresAt = expires))
+        LaunchPlanBuilder(clock = java.time.Clock.fixed(expires.minusSeconds(1), java.time.ZoneOffset.UTC)).build(request)
+        for (now in listOf(expires, expires.plusSeconds(1))) {
+            assertFailsWith<IllegalArgumentException> {
+                LaunchPlanBuilder(clock = java.time.Clock.fixed(now, java.time.ZoneOffset.UTC)).build(request)
+            }
         }
     }
 

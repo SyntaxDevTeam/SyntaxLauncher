@@ -181,17 +181,13 @@ User-provided runtime override can be added later but should pass compatibility 
 
 ## 11. Account rules
 
-### Offline
+### Legacy identity files
 
-- validate username;
-- deterministic offline UUID;
-- explicitly presented as offline/non-premium mode;
-- no fake premium token;
-- intended for local/offline-mode server use.
+Local-only identity rows remain readable for preservation, but cannot be registered, selected or launched. Their UUID compatibility parser never grants credentials. Account changes must not delete game profiles, worlds or settings.
 
 ### Microsoft
 
-When added in v0.3:
+Required for every playable account:
 
 - browser-based OAuth;
 - PKCE where required/applicable;
@@ -353,7 +349,7 @@ remain separate roadmap items.
 
 ## Version catalog cache
 
-`MinecraftVersionCatalog` uses the shared HTTP client with a 15-second request deadline. Desktop supplies `cacheDir/minecraft/version_manifest_v2.json`; tests may omit the path. Each fetch requests fresh data, validates JSON and catalog consistency, then publishes the raw Mojang document through a unique sibling temporary file and atomic replacement where supported. This is disposable remote metadata, not a launcher settings schema. Invalid/missing caches are never silently treated as an empty catalog. Failed refreshes can use a re-parsed valid cache, cancellation propagates, and cache-write failures are logged without discarding a valid online result. Disk work runs on the IO dispatcher. Deterministic MockEngine tests cover restart reuse, replacement, malformed/HTTP failures, corruption, unavailable storage and cancellation. Full offline launching remains a separate concern.
+`MinecraftVersionCatalog` uses the shared HTTP client with a 15-second request deadline. Desktop supplies `cacheDir/minecraft/version_manifest_v2.json`; tests may omit the path. Each fetch requests fresh data, validates JSON and catalog consistency, then publishes the raw Mojang document through a unique sibling temporary file and atomic replacement where supported. This is disposable remote metadata, not a launcher settings schema. Invalid/missing caches are never silently treated as an empty catalog. Failed refreshes can use a re-parsed valid cache, cancellation propagates, and cache-write failures are logged without discarding a valid online result. Disk work runs on the IO dispatcher. Deterministic MockEngine tests cover restart reuse, replacement, malformed/HTTP failures, corruption, unavailable storage and cancellation. Cached catalog availability never bypasses fresh Microsoft authentication at Play.
 
 ## Desktop resource and dialog APIs
 

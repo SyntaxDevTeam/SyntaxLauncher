@@ -83,7 +83,9 @@ class MicrosoftOAuth(private val client: HttpClient, val applicationId: String) 
                 contentType(ContentType.Application.FormUrlEncoded)
                 setBody(values.entries.joinToString("&") { enc(it.key) + "=" + enc(it.value) })
             }
+            check(result.status.value in 200..299) { "Microsoft rejected authentication." }
             val parsed = json.decodeFromString<OAuthResponse>(result.bodyAsText())
+            check(parsed.access.isNotBlank() && parsed.access != "0") { "Microsoft returned an invalid token." }
             MicrosoftOAuthTokens(parsed.access, parsed.refresh)
         } catch (cancelled: CancellationException) {
             throw cancelled

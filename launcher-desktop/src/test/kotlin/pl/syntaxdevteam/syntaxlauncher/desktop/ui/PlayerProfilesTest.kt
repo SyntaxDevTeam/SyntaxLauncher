@@ -39,7 +39,8 @@ class PlayerProfilesTest {
                 assertTrue(texts.any { it.contains("JavaPlayer") })
                 assertTrue(texts.any { it.contains(strings.text("ui.add_microsoft")) })
                 assertFalse(texts.any { it.contains("OldPlayer") })
-                assertFalse(texts.any { it.contains(strings.text("players.add_offline")) })
+                assertFalse(texts.any { it.contains("offline", ignoreCase = true) ||
+                    it.contains("non-premium", ignoreCase = true) })
             } finally { scene.close() }
         }
     }

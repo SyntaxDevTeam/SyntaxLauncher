@@ -25,6 +25,7 @@ data class LaunchAuthentication(
     val userPropertiesJson: String = "{}",
     val clientId: String = "",
     val xuid: String = "",
+    val expiresAt: java.time.Instant,
 ) {
     override fun toString() = "LaunchAuthentication(type=" + userType + ", credentials=[REDACTED])"
 

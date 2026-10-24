@@ -146,4 +146,18 @@ class AccountManagerTest {
         assertTrue(service.accounts().isEmpty())
         assertTrue(vault.entries.isEmpty())
     }
+    @Test fun freshPlayNeverFallsBackToCachedSessionAfterRefreshFailure() = runBlocking {
+        val vault = Vault()
+        var calls = 0
+        val service = manager(vault) { calls++; error("Refresh rejected") }
+        service.savePremium(session())
+        assertEquals(profile, service.session(profile.uuid.toString()).account)
+        repeat(2) {
+            assertFailsWith<IllegalStateException> { service.session(profile.uuid.toString(), requireFresh = true) }
+        }
+        assertEquals(2, calls)
+        assertEquals("private-refresh", vault.entries.values.single())
+        assertEquals(listOf(profile), service.accounts().map { it.account })
+    }
+
 }

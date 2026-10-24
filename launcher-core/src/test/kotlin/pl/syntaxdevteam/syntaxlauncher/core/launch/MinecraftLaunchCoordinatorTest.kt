@@ -205,7 +205,8 @@ class MinecraftLaunchCoordinatorTest {
                 offline to fixtureAuthentication(),
                 premium to fixtureAuthentication().copy(accessToken = "0"),
                 premium to fixtureAuthentication().copy(userType = "legacy"),
-                premium to fixtureAuthentication().copy(clientId = ""))) {
+                premium to fixtureAuthentication().copy(clientId = ""),
+                premium to fixtureAuthentication().copy(expiresAt = java.time.Instant.EPOCH))) {
                 val result = coordinator.launch(version(byteArrayOf()), identity, LaunchOptions(), authentication = auth)
                 assertEquals(LaunchPhase.FAILED, result.phase)
                 assertTrue(result.detail.contains("invalid authentication"))
@@ -215,7 +216,7 @@ class MinecraftLaunchCoordinatorTest {
         } finally { http.close(); processes.shutdown() }
     }
 
-    private fun fixtureAuthentication() = LaunchAuthentication("fixture-token", "fixture-session", "msa", clientId = "fixture-app")
+    private fun fixtureAuthentication() = LaunchAuthentication("fixture-token", "fixture-session", "msa", clientId = "fixture-app", expiresAt = java.time.Instant.MAX)
 
     private fun runtimeManager(runtime: JavaRuntime): JavaRuntimeManager =
         object : JavaRuntimeManager {

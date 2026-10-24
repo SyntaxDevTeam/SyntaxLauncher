@@ -22,7 +22,7 @@ The native app directory is generated below `launcher-desktop/build/compose/bina
 ## Acceptance checklist
 
 - [ ] Start the extracted app and confirm the Minecraft version catalog loads.
-- [ ] Enter a valid offline nickname and select a supported release.
+- [ ] Select a freshly verified Microsoft Java account and a supported release.
 - [ ] Set RAM and press Play. Confirm downloads, native extraction and automatic managed Java installation succeed.
 - [ ] Verify a real Minecraft window appears, single-player launches and the game can close normally.
 - [ ] Start the same game again and confirm valid cached client/libraries/assets/runtime are reused.
@@ -44,7 +44,7 @@ Only report error messages or sanitized log excerpts; **never share credentials 
 
 ## Known preview limitations
 
-- Offline accounts are for local worlds and servers accepting offline-mode clients, not a substitute for Microsoft authentication.
+- Unauthenticated launch is prohibited, including local worlds and servers configured without authentication.
 - Windows/Linux/macOS packages are unsigned previews, with no native signed release installers yet.
 - Mojang's officially provided Java runtime platform matrix is incomplete (notably Linux ARM64).
 - Older Minecraft versions requiring virtual asset views, inherited metadata, or unavailable Java requirements can fail explicitly.

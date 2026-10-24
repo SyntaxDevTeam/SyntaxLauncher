@@ -72,7 +72,7 @@ The first release should remain close to:
 launcher-core
 ├── account/
 │   ├── Account
-│   └── OfflineAccount
+│   └── PremiumAccount
 ├── minecraft/
 │   ├── MinecraftManifest
 │   ├── MinecraftVersion
@@ -111,16 +111,16 @@ sealed interface Account {
 }
 ```
 
-Initial implementation:
+Current gameplay identity:
 
 ```kotlin
-data class OfflineAccount(
+data class PremiumAccount(
     override val username: String,
     override val uuid: UUID
 ) : Account
 ```
 
-Later Microsoft accounts add authentication/session fields without duplicating the launch pipeline.
+Microsoft sessions carry credentials from the verified OAuth/Xbox/XSTS/Java ownership/profile exchange into the shared launch pipeline.
 
 The launch layer should depend on a resolved launch/session representation rather than branch throughout the codebase on account type.
 
@@ -296,16 +296,9 @@ Do not reduce this to a static table embedded in UI code.
 
 ## 11. Authentication architecture
 
-### Offline accounts — v0.1
+### Legacy identity preservation
 
-Offline accounts require:
-
-- username validation;
-- deterministic offline UUID generation compatible with Minecraft's offline identity convention;
-- no fake premium token behavior;
-- clear UI distinction from Microsoft-authenticated accounts.
-
-They are intended for local play and servers configured to accept offline clients.
+Historical local identity rows remain readable solely to preserve user data. They cannot be selected, registered or launched. Compatibility UUID parsing never grants a session. Instances and worlds remain unchanged.
 
 ### Microsoft accounts — v0.3
 
@@ -541,7 +534,7 @@ High-value deterministic tests include:
 - Mojang rule evaluation;
 - classpath resolution;
 - native selection;
-- offline UUID generation;
+- legacy identity decoding and rejection at launch;
 - Java requirement selection;
 - launch argument placeholder substitution;
 - instance serialization and migration;

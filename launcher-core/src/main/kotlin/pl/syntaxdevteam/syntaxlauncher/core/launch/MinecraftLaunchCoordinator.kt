@@ -84,7 +84,8 @@ class MinecraftLaunchCoordinator(
             val validAuthentication = account is pl.syntaxdevteam.syntaxlauncher.core.account.PremiumAccount &&
                 authentication.userType == "msa" && authentication.accessToken.isNotBlank() &&
                 authentication.accessToken != "0" && authentication.clientId.isNotBlank() &&
-                authentication.sessionId.isNotBlank()
+                authentication.sessionId.isNotBlank() &&
+                authentication.expiresAt.isAfter(java.time.Instant.now())
             if (!validAuthentication) {
                 throw InvalidPlayerAuthenticationException()
             }
@@ -106,6 +107,9 @@ class MinecraftLaunchCoordinator(
                 classpathEntries = prepared.filePlan.classpath.size)
             preparedMetadata = prepared.version
             stage(LaunchPhase.STARTING_GAME, "Starting Minecraft")
+            if (!authentication.expiresAt.isAfter(java.time.Instant.now())) {
+                throw InvalidPlayerAuthenticationException()
+            }
             val running = processes.launch(plan)
             evidence = evidence?.copy(processStarted = true)
             stage(LaunchPhase.STARTED, "Minecraft started (PID ${running.pid ?: "unknown"})")

@@ -31,6 +31,7 @@ class PremiumSession(
             sessionId = "token:" + minecraftToken + ":" + account.uuid.toString().replace("-", ""),
             userType = "msa",
             clientId = clientId,
+            expiresAt = expiresAt,
         )
     override fun toString() = "PremiumSession([REDACTED])"
 }

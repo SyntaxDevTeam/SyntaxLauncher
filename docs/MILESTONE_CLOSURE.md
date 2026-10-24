@@ -18,7 +18,7 @@ v0.2 implementation: the UUID repository, explicit non-destructive legacy import
 
 ## C03
 
-v0.3 existing foundations only: Microsoft OAuth/PKCE, Xbox/XSTS/Minecraft session mapping, account inventory and player selection have deterministic coverage; registration and the actual submission record are documented in [MICROSOFT_APP.md](MICROSOFT_APP.md). Historical “register/submit” items are distinct from **approval**, which has not been obtained. Live Microsoft account work remains deferred by the maintainer. The dual offline/Microsoft product scope and original AppID submission differ; no compliance or authorization is inferred. Native vault, consent, refresh and premium game acceptance remain unchecked.
+v0.3 existing foundations only: Microsoft OAuth/PKCE, Xbox/XSTS/Minecraft session mapping, account inventory and player selection have deterministic coverage; registration and the actual submission record are documented in [MICROSOFT_APP.md](MICROSOFT_APP.md). Historical “register/submit” items are distinct from **approval**, which has not been obtained. Live Microsoft account work remains deferred by the maintainer. The current Microsoft-only product scope supersedes earlier scope; original application records remain historical evidence and confer no approval. Native vault, consent, refresh and premium game acceptance remain unchecked.
 
 ## C04
 

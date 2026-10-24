@@ -1,3 +1,5 @@
+> **Current build policy — 24 October 2026:** Microsoft Java Edition accounts only, with fresh ownership/profile checks on every Play. The versioned release record below describes Stable 0.9.2 historically and does not describe the current DEV account policy. AppID approval and live acceptance remain pending; see [AppID compliance](APPID_COMPLIANCE.md).
+
 # SyntaxLauncher 0.9.2
 
 The maintainer approved Stable publication on 23 October 2026. This is a pre-1.0 release within the existing documented support matrix.

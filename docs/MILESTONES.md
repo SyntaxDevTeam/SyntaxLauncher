@@ -14,13 +14,13 @@ This document describes the intent, scope, implementation boundaries and accepta
 
 ### Objective
 
-Deliver the smallest useful launcher: an offline user selects a Minecraft version, the launcher prepares the correct game files and Java runtime, then starts the game.
+Deliver the smallest useful launcher: a Microsoft-authenticated user selects a Minecraft version, the launcher prepares the correct game files and Java runtime, then starts the game.
 
 ### User-visible scope
 
 The user can:
 
-- enter an offline nickname;
+- select a verified Microsoft Java profile;
 - choose a Minecraft release;
 - optionally expose snapshots behind a filter/toggle;
 - select RAM allocation;
@@ -63,7 +63,7 @@ Do not implement in v0.1:
 
 ### Architectural requirement
 
-Even though only offline accounts exist, launch code must not be hardwired to a raw username string. A common account/session representation must exist so v0.3 can add Microsoft accounts without cloning launch logic.
+Launch code consumes a resolved Microsoft identity/session rather than a raw username. Legacy identity decoding exists only for data preservation.
 
 Java handling must be a service, not UI code. Minecraft version-specific behavior must be metadata-driven rather than a hardcoded table of launch commands.
 
@@ -122,14 +122,14 @@ Two instances using the same vanilla Minecraft version can have different saves/
 
 ### Objective
 
-Add official premium authentication while keeping offline mode available.
+Require official Microsoft authentication and freshly verified Java ownership/profile for every launch.
 
 ### User-visible scope
 
 The user can:
 
 - add a Microsoft account through the browser;
-- add/use offline accounts;
+- preserve historical local identities without exposing selection or gameplay;
 - switch between saved accounts;
 - see account identity/profile information;
 - remove/sign out an account;
@@ -148,6 +148,8 @@ XSTS
    ↓
 Minecraft Services
    ↓
+Minecraft Java entitlement
+   ↓
 Minecraft profile/session
 ```
 
@@ -163,7 +165,7 @@ The implementation must use the official authentication path appropriate to a de
 
 ### Definition of successful v0.3
 
-Offline and Microsoft accounts both feed the same core launch pipeline after account/session resolution. There is no duplicated `launchPremium()` versus `launchOffline()` engine.
+Verified Microsoft accounts feed the shared launch pipeline after fresh account/session resolution. Unauthenticated identities cannot reach gameplay.
 
 ---
 
@@ -485,7 +487,7 @@ Publish the first stable SyntaxLauncher release with a documented support matrix
 
 ### Expected feature set
 
-- offline accounts;
+- rejection of unauthenticated accounts;
 - Microsoft premium accounts;
 - vanilla versions within published support scope;
 - managed Java runtimes;
@@ -514,7 +516,7 @@ All v1.0 quality-gate items in `docs/ROADMAP.md` must be checked. Known critical
 
 ## Maintainer sequencing — 23 October 2026
 
-Defer Microsoft live-account work while awaiting Mojang approval; retain the existing implementation and explicit offline profiles. Proceed with v0.11 diagnostics/repair and v0.12 production implementation, then final corrections and documented native/release acceptance. This sequencing does not waive signatures, native tests or the final v1.0 premium criterion; their release scope must remain explicit. See TESTING_V0.11.md and TESTING_V0.12.md.
+Defer Microsoft live-account work while awaiting Mojang approval; retain the authenticated-only implementation and preserve legacy files without permitting their identities to play. Proceed with v0.11 diagnostics/repair and v0.12 production implementation, then final corrections and documented native/release acceptance. This sequencing does not waive signatures, native tests or the final v1.0 premium criterion; their release scope must remain explicit. See TESTING_V0.11.md and TESTING_V0.12.md.
 
 ## Main-window profile UX — 23 October 2026
 

@@ -43,7 +43,7 @@ class AccountManager(
         val token = session.microsoftRefreshToken
             ?: throw IllegalStateException("Microsoft did not grant offline access. Sign in again.")
         val id = session.account.uuid.toString()
-        put(properties, session.account, true)
+        put(properties, session.account)
         vault.write(key(id), token)
         save(properties)
         sessions[id] = session
@@ -64,7 +64,7 @@ class AccountManager(
         // Persist rotation before publishing the new session. Missing rotation retains the old token.
         vault.write(key(id), result.microsoftRefreshToken ?: credential)
         val properties = read()
-        put(properties, result.account, true)
+        put(properties, result.account)
         save(properties)
         sessions[id] = PremiumSession(result.account, result.minecraftToken, result.expiresAt,
             result.microsoftRefreshToken ?: credential)
@@ -115,11 +115,11 @@ class AccountManager(
         }
     }.also { check(it.map { entry -> entry.account.uuid }.distinct().size == it.size) }
 
-    private fun put(p: Properties, account: Account, microsoft: Boolean) {
+    private fun put(p: Properties, account: PremiumAccount) {
         decode(p)
         val id = account.uuid.toString()
         val existingType = p.getProperty("$id.type")
-        val type = if (microsoft) "microsoft" else "offline"
+        val type = "microsoft"
         check(existingType == null || existingType == type) { "Conflicting account identity." }
         p.setProperty("schema_version", "1")
         p.setProperty("accounts", (ids(p) + id).distinct().joinToString(","))

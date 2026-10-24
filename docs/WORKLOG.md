@@ -8,6 +8,40 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-24 — Complete Microsoft-only continuation and reject incomplete token exchanges
+
+**Milestone:** v0.3 / AppID compliance
+**Author/Agent:** Codex
+**Status:** Partial — implementation verified locally; commit-specific hosted CI and external acceptance pending
+
+### Completed
+- Confirmed prerequisite workflow 40078116601 succeeded for exact settings commit 5dfb7df; retained existing separate Microsoft-only implementation 06d292f and its subsequent test fixes.
+- Removed XSTS identity fallback, checked Xbox/XSTS/OAuth statuses and token presence, required consistent identities and an explicit usable Minecraft token lifetime before downstream calls.
+- Corrected EN/PL/DE sign-in, settings and diagnostics copy; removed stale local-player translation keys and added translation/render assertions.
+- Propagated verified session expiry into launch inputs; check it before preparation, during plan construction after preparation and immediately before process creation, with deterministic expiry regressions.
+- Removed the ignored nickname argument from DesktopLauncherSession Play and updated UI/session fixtures; only a saved Microsoft account ID can select the launch identity.
+- Restricted AccountManager writes to PremiumAccount; historical identity parsing and all user/world files remain preserved.
+- Added rejected-exchange/invalid-profile and fresh-refresh-with-cache regressions. Reconciled current UI/architecture/development/milestone/roadmap guidance with Microsoft-only gameplay.
+- Bounded AppID audit records official policy sources and unverified external sites/Entra/form, live/native gates and lack of any approval guarantee. Git and original submission records are preserved.
+
+### Changed files
+- Core account OAuth/exchange/manager and account tests — fail-closed validation and regression coverage.
+- Current account documentation, APPID_COMPLIANCE, ROADMAP and this worklog — present behavior, evidence and remaining gates; historical release notes explicitly labeled.
+
+### Verification
+- Final `./gradlew --offline test build :launcher-desktop:createDistributable` — PASS (1m37s); 282 cases, 277 passed, five opt-in network cases skipped, zero failures/errors. Includes expiry, session API and EN/PL/DE changes; Linux distributable created. A test-only `java` variable/import conflict found during the expiry addition was corrected before this passing full run.
+- `python3 -m unittest discover -s scripts -p 'test_*.py'` — PASS, 25 tests.
+- `git diff --check` — checked before publication.
+- Manual live login/gameplay — NOT RUN; AppID approval not confirmed. Website and form fetch failed; Entra/native credentials are not inferred from fixtures.
+
+### Roadmap updates
+- `[x]` Fail-closed exchange response/token/XSTS identity/lifetime validation with deterministic failure regressions.
+- `[ ]` Approved AppID/live eligible Java gameplay, native vault/UI and external site/Entra acceptance remain open.
+
+### Follow-ups / known issues
+- Check hosted CI for this commit after push. Passing automation does not guarantee allowlisting; no Stable release or version increment requested.
+
+
 
 
 
