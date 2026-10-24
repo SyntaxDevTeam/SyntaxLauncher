@@ -7,7 +7,10 @@ import unittest
 from unittest.mock import patch
 import xml.etree.ElementTree as ET
 
-from package_installers import (NS, UPGRADE_CODE, appdir, native_version, linux_release, desktop_template, validate_image, wix_source, windows)
+from package_installers import (NS, UPGRADE_CODE, APPSTREAM_ID, APPSTREAM_FILENAME,
+    APPIMAGE_DESKTOP_ID, PACKAGED_DESKTOP_ID, appdir, appstream_metadata, add_debian_metadata,
+    rpm_metainfo_template, native_version, linux_release, desktop_template, validate_image,
+    wix_source, windows)
 from verify_installers import NAMES, verify
 from publish_preview import PLATFORMS, publish
 
@@ -35,6 +38,58 @@ class InstallerTest(unittest.TestCase):
         for build, attempt in [('bad', '1'), ('42', '0')]:
             with self.assertRaises(ValueError):
                 linux_release('0.9.3-DEV', build, attempt)
+
+    def test_appstream_metadata_identifies_license_publisher_and_desktop_file(self):
+        for desktop_id in (PACKAGED_DESKTOP_ID, APPIMAGE_DESKTOP_ID):
+            root = ET.fromstring(appstream_metadata(desktop_id))
+            self.assertEqual('desktop-application', root.attrib['type'])
+            self.assertEqual(APPSTREAM_ID, root.findtext('id'))
+            self.assertEqual('MIT', root.findtext('project_license'))
+            self.assertEqual('CC0-1.0', root.findtext('metadata_license'))
+            self.assertEqual('SyntaxDevTeam', root.findtext('developer/name'))
+            self.assertEqual('Game', root.findtext('categories/category'))
+            self.assertEqual(desktop_id, root.findtext('launchable'))
+            self.assertEqual('desktop-id', root.find('launchable').attrib['type'])
+        with self.assertRaises(ValueError):
+            appstream_metadata('unrelated.desktop')
+
+    def test_rpm_metainfo_staging_is_before_file_list(self):
+        with tempfile.TemporaryDirectory() as directory:
+            meta = Path(directory) / APPSTREAM_FILENAME
+            meta.write_text(appstream_metadata(PACKAGED_DESKTOP_ID))
+            marker = '(cd %{buildroot} && find . -path ./lib/systemd'
+            spec = '%install\nrm -rf %{buildroot}\n' + marker + '\n%files -f %{package_filelist}\n'
+            result = rpm_metainfo_template(spec, meta)
+            self.assertIn(APPSTREAM_FILENAME, result)
+            self.assertLess(result.index('/usr/share/metainfo'), result.index(marker))
+            with self.assertRaises(ValueError):
+                rpm_metainfo_template('broken', meta)
+
+    @unittest.skipUnless(shutil.which('dpkg-deb'), 'dpkg-deb is unavailable')
+    def test_debian_payload_has_mit_metadata_and_copyright(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / 'source'
+            (source / 'DEBIAN').mkdir(parents=True)
+            (source / 'DEBIAN/control').write_text(
+                'Package: syntaxlauncher\nVersion: 0.9.3-1\nArchitecture: amd64\n'
+                'Maintainer: SyntaxDevTeam <support@example.invalid>\n'
+                'Description: Test package\n')
+            archive = root / 'test.deb'
+            subprocess.run(['dpkg-deb', '--build', '--root-owner-group', str(source), str(archive)],
+                           check=True, capture_output=True)
+            metadata = root / APPSTREAM_FILENAME
+            metadata.write_text(appstream_metadata(PACKAGED_DESKTOP_ID))
+            add_debian_metadata(archive, metadata)
+            extracted = root / 'extracted'
+            subprocess.run(['dpkg-deb', '--raw-extract', str(archive), str(extracted)],
+                           check=True, capture_output=True)
+            self.assertEqual('MIT', ET.parse(extracted / 'usr/share/metainfo' / APPSTREAM_FILENAME).findtext('project_license'))
+            notice = (extracted / 'usr/share/doc/syntaxlauncher/copyright').read_text()
+            self.assertIn('License: MIT', notice)
+            self.assertIn('Permission is hereby granted', notice)
+            self.assertEqual('syntaxlauncher', subprocess.check_output(
+                ['dpkg-deb', '-f', str(archive), 'Package'], text=True).strip())
 
     def test_msi_has_stable_identity_full_payload_user_scope_and_menu(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -101,6 +156,9 @@ class InstallerTest(unittest.TestCase):
             self.assertEqual('syntaxlauncher.png', os.readlink(target / '.DirIcon'))
             self.assertTrue((target / 'SyntaxLauncher/relative-link').is_symlink())
             self.assertIn('Categories=Game;', (target / 'syntaxlauncher.desktop').read_text())
+            metadata = ET.parse(target / 'usr/share/metainfo' / APPSTREAM_FILENAME)
+            self.assertEqual('MIT', metadata.findtext('project_license'))
+            self.assertEqual(APPIMAGE_DESKTOP_ID, metadata.findtext('launchable'))
             (image / 'escape').symlink_to(root)
             with self.assertRaises(ValueError):
                 validate_image(image, 'linux-x64')

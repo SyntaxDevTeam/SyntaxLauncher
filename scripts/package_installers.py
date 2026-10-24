@@ -21,6 +21,10 @@ from launcher_version import parse_launcher_version, read_launcher_version
 
 ROOT = Path(__file__).resolve().parent.parent
 BRANDING = ROOT / 'launcher-desktop/src/main/resources/branding'
+APPSTREAM_ID = 'pl.syntaxdevteam.syntaxlauncher'
+APPSTREAM_FILENAME = APPSTREAM_ID + '.metainfo.xml'
+PACKAGED_DESKTOP_ID = 'syntaxlauncher-SyntaxLauncher.desktop'
+APPIMAGE_DESKTOP_ID = 'syntaxlauncher.desktop'
 WIX_VERSION = '7.0.0'
 UPGRADE_CODE = 'D64AD1BC-4B59-4C1C-A45C-ABBC92E21739'
 INSTALLERS = {
@@ -36,6 +40,82 @@ APPIMAGE_TOOLS = {
 }
 NS = 'http://wixtoolset.org/schemas/v4/wxs'
 UI_NS = NS + '/ui'
+
+
+def appstream_metadata(desktop_id):
+    """Stable component ID, with a launchable desktop file matching the target format."""
+    if desktop_id not in (PACKAGED_DESKTOP_ID, APPIMAGE_DESKTOP_ID):
+        raise ValueError('Unsupported desktop file ID')
+    return f'''<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>{APPSTREAM_ID}</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>SyntaxLauncher</name>
+  <summary>Modern Minecraft Java Edition launcher</summary>
+  <description>
+    <p>SyntaxLauncher is an independent desktop launcher for Minecraft Java Edition.
+    It manages game versions, mod loaders, isolated game profiles and game files.
+    Microsoft sign-in and verification of Minecraft Java Edition ownership are
+    required before starting the game.</p>
+  </description>
+  <developer id="pl.syntaxdevteam">
+    <name>SyntaxDevTeam</name>
+  </developer>
+  <categories><category>Game</category></categories>
+  <launchable type="desktop-id">{desktop_id}</launchable>
+  <url type="homepage">https://syntaxdevteam.pl/p/syntaxlauncher</url>
+  <url type="bugtracker">https://github.com/SyntaxDevTeam/SyntaxLauncher/issues</url>
+  <url type="help">https://syntaxdevteam.pl/p/syntaxlauncher-zarzadzanie-usluga</url>
+  <url type="vcs-browser">https://github.com/SyntaxDevTeam/SyntaxLauncher</url>
+</component>
+'''
+
+
+def debian_copyright():
+    """Machine-readable Debian copyright: SPDX MIT plus its exact source text."""
+    lines = (ROOT / 'LICENSE').read_text(encoding='utf-8').splitlines()
+    return (
+        'Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/\n'
+        'Upstream-Name: SyntaxLauncher\n'
+        'Source: https://github.com/SyntaxDevTeam/SyntaxLauncher\n\n'
+        'Files: *\n'
+        'Copyright: 2026 SyntaxDevTeam\n'
+        'License: MIT\n'
+        + '\n'.join((' ' + line) if line else ' .' for line in lines) + '\n'
+    )
+
+
+def rpm_metainfo_template(spec, metadata_path):
+    """Stage metadata before jpackage's automatic RPM file-inventory generation."""
+    marker = '(cd %{buildroot} && find . -path ./lib/systemd'
+    if spec.count(marker) != 1:
+        raise ValueError('Unsupported jpackage RPM template; inventory marker missing')
+    source = str(metadata_path.resolve(strict=True))
+    if any(ch in source for ch in ('"', '\n', '%')):
+        raise ValueError('Unsafe RPM source path')
+    commands = (
+        'install -d -m 755 "%{buildroot}/usr/share/metainfo"\n'
+        f'install -m 644 "{source}" "%{{buildroot}}/usr/share/metainfo/{APPSTREAM_FILENAME}"\n'
+    )
+    return spec.replace(marker, commands + marker, 1)
+
+
+def add_debian_metadata(package, metadata_path):
+    """Place AppStream/copyright in the DEB payload instead of a postinst side effect."""
+    with tempfile.TemporaryDirectory(prefix='syntaxlauncher-deb-meta-') as temporary:
+        work = Path(temporary)
+        root = work / 'root'
+        run(['dpkg-deb', '--raw-extract', package, root])
+        metainfo = root / 'usr/share/metainfo' / APPSTREAM_FILENAME
+        metainfo.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(metadata_path, metainfo)
+        copyright_file = root / 'usr/share/doc/syntaxlauncher/copyright'
+        copyright_file.parent.mkdir(parents=True, exist_ok=True)
+        copyright_file.write_text(debian_copyright(), encoding='utf-8')
+        rebuilt = work / 'syntaxlauncher.deb'
+        run(['dpkg-deb', '--build', '--root-owner-group', root, rebuilt])
+        os.replace(rebuilt, package)
 
 
 def numeric_version(version):
@@ -194,6 +274,10 @@ def appdir(image, destination):
     shutil.copyfile(BRANDING / 'syntaxlauncher-icon.png', destination / 'syntaxlauncher.png')
     (destination / '.DirIcon').symlink_to('syntaxlauncher.png')
     shutil.copyfile(ROOT / 'LICENSE', destination / 'LICENSE')
+    metainfo_directory = destination / 'usr/share/metainfo'
+    metainfo_directory.mkdir(parents=True, exist_ok=True)
+    (metainfo_directory / APPSTREAM_FILENAME).write_text(
+        appstream_metadata(APPIMAGE_DESKTOP_ID), encoding='utf-8')
 
 
 def desktop_template(text, kind):
@@ -205,7 +289,7 @@ def desktop_template(text, kind):
     return text.replace(marker, marker + '\nmkdir -p /usr/share/applications /usr/share/desktop-directories /etc/xdg/menus/applications-merged\n', 1)
 
 
-def linux_resources(work):
+def linux_resources(work, metadata_path):
     executable = Path(shutil.which(jpackage_tool()) or jpackage_tool()).resolve()
     home = Path(os.environ.get('JAVA_HOME', str(executable.parent.parent)))
     module = home / 'jmods/jdk.jpackage.jmod'
@@ -224,12 +308,17 @@ def linux_resources(work):
         base = extracted / 'jdk.jpackage/jdk/jpackage/internal/resources'
         contents = {source: (base / source).read_text(encoding='utf-8') for _, source, _ in templates}
     for kind, source, target in templates:
-        (resources / target).write_text(desktop_template(contents[source], kind), encoding='utf-8')
+        template = desktop_template(contents[source], kind)
+        if kind == 'rpm':
+            template = rpm_metainfo_template(template, metadata_path)
+        (resources / target).write_text(template, encoding='utf-8')
     return resources
 
 
 def linux(image, version, output, work):
-    resources = linux_resources(work)
+    metadata_path = work / APPSTREAM_FILENAME
+    metadata_path.write_text(appstream_metadata(PACKAGED_DESKTOP_ID), encoding='utf-8')
+    resources = linux_resources(work, metadata_path)
     for kind in ('deb', 'rpm'):
         folder = work / kind
         folder.mkdir()
@@ -247,7 +336,10 @@ def linux(image, version, output, work):
         files = list(folder.glob('*.' + kind))
         if len(files) != 1:
             raise ValueError('Expected exactly one ' + kind + ' package')
-        shutil.copyfile(files[0], output / ('syntaxlauncher-linux-x64.' + kind))
+        destination = output / ('syntaxlauncher-linux-x64.' + kind)
+        shutil.copyfile(files[0], destination)
+        if kind == 'deb':
+            add_debian_metadata(destination, metadata_path)
     directory = work / 'SyntaxLauncher.AppDir'
     directory.mkdir()
     appdir(image, directory)
