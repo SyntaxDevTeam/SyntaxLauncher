@@ -272,7 +272,7 @@ fun SyntaxLauncherApp(
                         persisted == null -> CenterMessage(strings.text("ui.loading_profile"), strings.text("ui.restoring_your_settings"), true)
                         else -> LauncherPanel(state.manifest, session, persisted!!, instanceOpenRequest,
                             setupOpen, { setupOpen = false }, { setupOpen = true }, { instanceOpenRequest = minOf(instanceOpenRequest - 1, -1) },
-                            { navigationBusy = it })
+                            { navigationBusy = it }, { developerMode = it })
                     }
                 }
             }
@@ -294,6 +294,7 @@ private fun LauncherPanel(
     onOpenSettings: () -> Unit,
     onNavigateHome: () -> Unit,
     onNavigationBusy: (Boolean) -> Unit,
+    onDeveloperModeChanged: (Boolean) -> Unit,
 ) {
     val strings = LocalStrings.current
     var nickname by remember { mutableStateOf(saved.nickname) }
@@ -624,7 +625,7 @@ private fun LauncherPanel(
                             inventory = session.instances.list(); chooseInstance(updated.id)
                         }
                     } finally { mutationBusy = false }
-                }) },
+                }, onDeveloperModeChanged = onDeveloperModeChanged) },
             confirmButton = { TextButton(onClick = onCloseSettings, enabled = !savingMemory) { Text(strings.text("ui.close")) } })
     }
 
