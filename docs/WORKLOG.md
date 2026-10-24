@@ -9,6 +9,45 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 ---
 
 
+
+## 2026-10-24 — Continue loader metadata closure after DEV 192 acceptance
+
+**Milestone:** v0.7 / v0.8 compatibility diagnostics
+**Author/Agent:** Codex
+**Status:** Completed — bounded metadata implementation; full dependency solving and native gates remain open
+
+### Completed
+- Confirmed previous final commit `082d38d4d09963b1a5ae896422d8768507f34d3d`: CI 40067168228 passed verification, official NeoForge and four Forge reference installations, all native packages/lifecycles and publication. DEV 192.1 provides 12 public assets; downloaded five-entry installer inventory matches public GitHub SHA-256 digests. Stable remains 0.9.2.
+- Replaced the Forge/NeoForge line-regex reader with pinned TomlJ 2.2.0 full syntax parsing. Enforced 256 KiB input, nesting 32, 128 mod identities and 512 dependency records. Quoted keys, escaped/multiline strings and inline tables now work; fake headers inside descriptions cannot manufacture mod identities.
+- Retained all bundled mod IDs and client required/incompatible declarations from their owners, preserving combined constraints instead of silently choosing one. Server-only and optional/discouraged declarations are not treated as required. Dependency range solving remains separate.
+- Corrected Quilt advisory inventory: string requirements are recognized, optional absence does not become a missing required mod, conditional/group rules are not flattened into false required IDs, and complex expressions carry an explicit advisory notice. Version expression data is retained. Declared conflicts remain notices even when marked optional.
+- Added full syntax/depth/duplicate/multi-owner fixtures while preserving all existing parser tests, plus a filesystem-backed Quilt inventory regression.
+- Locked only the new parser coordinate in core/desktop resolved graphs. Added Apache 2.0 and bundled ANTLR 4.13.2 BSD license texts/notice to packaged resources; not a claim that the final whole-product license audit is complete.
+
+### Changed files
+- `launcher-core/build.gradle.kts`, core/desktop `gradle.lockfile` — pinned parser dependency.
+- `launcher-core/.../mods/ForgeTomlMetadataReader.kt`, `ForgeTomlSyntaxTest.kt` — full bounded syntax and bundled identities.
+- `launcher-core/.../mods/LocalModManager.kt`, `LocalModManagerTest.kt` — conservative Quilt requirements and advisory visibility.
+- `launcher-desktop/src/main/resources/third-party/` — distributed additional-component licenses.
+- README, architecture, milestone definitions, closure evidence, roadmap and TESTING_V0.8 — updated boundaries, preserving historical acceptance records.
+
+### Verification
+- Full local core/desktop tests, build and Linux distributable — PASS in 1m33s after the Quilt conflict regression correction: 271 cases, 267 passed and four opt-in network cases skipped, no failures/errors. Hosted CI is checked after push.
+- Existing parser regressions retained; new multiline/inline/quoted/escape/size/depth/duplicate and bundled constraints fixtures pass.
+- Packaged desktop JAR contains NOTICE, TomlJ Apache license and ANTLR BSD license; app image contains pinned `tomlj-2.2.0`.
+- Previous DEV 192 hosted packaged Mojang HTTPS passed on Windows/Linux/macOS; latest local packaged Linux probe also passed (`catalog=920 metadata=26.3`). Current revision receives its own CI after push.
+- `git diff --check` — PASS.
+
+### Roadmap updates
+- `[x] v0.7 / Compatibility / Full-syntax bounded Forge/NeoForge metadata inventory`.
+- `[x] v0.1 / Packaging / Packaged Mojang HTTPS` — all three hosted targets in CI 40067168228 plus the latest local Linux probe.
+- `[ ]` Full installed version-range reconciliation, Quilt conditional/group solving, historical Forge V1, native gameplay/update/trust and final security/license approval stay explicit.
+
+### Follow-ups / known issues
+- A complete TOML syntax parser is distinct from a dependency compatibility solver. Local diagnostics do not certify a mod set as compatible.
+- Mojang account acceptance and unavailable publisher credentials remain independent external gates; acquisition guidance is in SIGNING.md.
+
+
 ## 2026-10-24 — Sequential milestone reconciliation and compatibility gaps
 
 **Milestone:** v0.1–v0.12 / v1.0 readiness

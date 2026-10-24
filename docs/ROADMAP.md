@@ -247,7 +247,7 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 - [x] Identified and repaired initial CI blockers: missing Google Maven repositories, Kotlin Path classpath concatenation, desktop Ktor dependency, malformed test fixtures, and macOS app-version jpackage constraint.
 - [ ] 🚧 IN PROGRESS — portable artifacts have CI-proven packaging but await manual extraction, startup/operation and signed native installer packaging where appropriate.
 - [ ] Validate a clean-machine vanilla launch and documented OS/architecture matrix before declaring v0.1 usable as a public release.
-- [ ] Verify the packaged launcher can connect to Mojang over HTTPS using the explicitly included `jdk.crypto.ec` runtime module.
+- [x] Packaged Mojang HTTPS and checksum-verified metadata pass on Windows/Linux/macOS in CI 40067168228; fresh local Linux image reconfirmed after TOML changes. The shipped runtime supplies the crypto modules.
 
 ## v0.1 quality gate
 
@@ -585,7 +585,8 @@ Goal: add a second major loader and prove the loader architecture is genuinely r
 ## Compatibility
 
 - [ ] 🚧 IN PROGRESS — Generic Modrinth adapter already filters by the instance loader; NeoForge profile/UI integration added. Live install acceptance pending.
-- [ ] 🚧 IN PROGRESS — Identify NeoForge mods from META-INF/neoforge.mods.toml; richer TOML dependency/version semantics remain open.
+- [x] Read Forge/NeoForge full TOML syntax with bounded depth/size/counts, multi-mod identities and client required/incompatible declarations; multiline/escaped/quoted/inline and malformed/deep fixtures pass. See [C07](MILESTONE_CLOSURE.md#c07).
+- [ ] Full installed dependency version-range reconciliation remains open; TOML ranges are preserved as advisory metadata.
 - [x] Detect common incompatible loader combinations. Evidence: [C07](MILESTONE_CLOSURE.md#c07).
 
 ## v0.7 quality gate
@@ -608,7 +609,7 @@ Goal: broaden loader support while preserving historical-version compatibility d
 - [x] Download and SHA-1 verify Forge V2 installer; inspect client processors and execute official 1.21.1/52.1.20 installation smoke (GitHub Actions 39560642818; reconfirmed by 39634747655).
 - [x] Official V2 reference installations cover 1.21.1/52.1.20, 1.21.11/61.2.4, 26.2/65.1.5 and 26.3/66.1.0 with Mojang-declared managed Java. Historical V1 stays excluded and tested as rejected. Evidence: [C08](MILESTONE_CLOSURE.md#c08).
 - [x] Forge V2 uses common PreparedModLoaderProvider and ProcessorInstallerV2Engine; official installation smoke, synthetic full coordinator regression and maintainer-confirmed private startup pass.
-- [x] Read Forge/NeoForge mod identity and explicit required/incompatible dependencies from bounded TOML subsets, prefer instance-matching manifests and warn on wrong loader families; deterministic regressions pass. Full TOML/version-range solving is outside this bounded parser contract.
+- [x] Read Forge/NeoForge mod identity and explicit required/incompatible dependencies using a bounded full-syntax TOML parser, prefer instance-matching manifests and warn on wrong loader families; deterministic regressions pass. Dependency version-range solving remains outside inventory interpretation.
 - [x] Forge version and loader-filtered Modrinth browser available for the supported profile; private mod installation/startup confirmed by the maintainer on 21 October 2026.
 
 ## Quilt
@@ -635,7 +636,7 @@ Goal: broaden loader support while preserving historical-version compatibility d
 
 - [x] Expand modern V2 discovery and official processor acceptance to three additional current Minecraft versions; actual new-pair gameplay remains in the OS/game matrix. Evidence: [C08](MILESTONE_CLOSURE.md#c08).
 - [ ] Historical Forge V1 is outside the current supported matrix; implementation and real old-game acceptance remain future compatibility work.
-- [ ] Complete complex TOML/Quilt dependency and version-range semantics; current direct advisory warnings are not a full solver (see also v0.6 dependency reconciliation).
+- [ ] Complete Quilt conditional/group/version-range and installed dependency solving. TOML syntax is now parsed fully; Quilt optional absence no longer raises required-missing warnings and complex expressions are explicitly advisory (see v0.6 reconciliation).
 - [ ] Record an explicit OS/version/mod matrix for mixed-loader gameplay, native UI and interruption/recovery; existing cross-milestone/platform release gates remain open.
 
 ---
@@ -787,7 +788,7 @@ Goal: prepare the launcher for stable public release.
 - [x] Install app images beside the original, reuse verified images, repair into a fresh stage and atomically publish installation/state; a matching child startup receipt activates the image. Local Linux full-bundle extraction/revalidation passes.
 - [x] Preserve active/previous state and original executable, terminate failed/timed-out children and fall back to a verified cached application; tested with a real Java child plus failure/cancellation/offline fixtures.
 - [x] Generate consistent semantic build metadata, manifest-driven update ZIPs and an explicit full-bundle verification task; Python fixture tests pass.
-- [ ] 🚧 IN PROGRESS — CI now runs desktop tests and packages/verifies all three update bundles, then publishes complete six-asset releases for matching version tags or eligible stable version bumps on `main`. Hosted workflow/tag publication and native Windows/macOS acceptance are not yet executed for this change.
+- [ ] 🚧 IN PROGRESS — CI now runs desktop tests and packages/verifies all three update bundles, then publishes complete six-asset releases for matching version tags or eligible stable version bumps on `main`. Hosted DEV/Stable publication and all platform bundles are verified through CI 40067168228; actual native updater handoff/recovery on Windows/macOS remains open.
 - [ ] Live old→new GitHub-hosted update, original-shortcut relaunch, offline/cancel/failed-child recovery, native permissions/trust and user-data continuity on Windows/Linux/macOS.
 - [x] Define retention policy: keep original/active/previous/orphan update images and archives for recovery; document explicit offline cleanup. No automatic pruning.
 - [ ] Release signing/notarization before production distribution; maintainer confirms no certificates/Apple account yet. Obtain prerequisites through [SIGNING.md](SIGNING.md), then integrate and verify native trust.

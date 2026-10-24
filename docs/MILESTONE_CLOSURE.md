@@ -34,7 +34,7 @@ HTTP 408/425/429/500/502/503/504 receive at most three attempts, per-request dea
 
 ## C07
 
-v0.7: official installer, generated-artifact, loader identity and mixed-family metadata warnings have existing deterministic and hosted evidence. NeoForge 1.21 discovery now maps to the official `21.0.*` family (distinct from 1.21.1 → `21.1.*`); regression verifies that boundary. Rich TOML and interruption/recovery acceptance remain separate.
+v0.7: official installer, generated-artifact, loader identity and mixed-family metadata warnings have existing deterministic and hosted evidence. NeoForge 1.21 discovery now maps to the official `21.0.*` family (distinct from 1.21.1 → `21.1.*`); regression verifies that boundary. Full TOML syntax is now parsed with pinned TomlJ 2.2.0 (256 KiB, nesting 32, 128 identities, 512 dependency records), preserving quoted/escaped/multiline values, inline tables and bundled mod identities. Client dependencies from all declared owners are retained; server/optional/discouraged entries are not required. Fake headers inside descriptions do not become mods. Existing and new syntax/size/depth/duplicate tests pass. Full installed version solving and interruption/recovery acceptance remain separate.
 
 ## C08
 
@@ -61,7 +61,7 @@ Certificates and Apple Developer membership are unavailable, per maintainer conf
 
 1. v0.1–v0.2: exact Vanilla fresh/cached runs, native lifecycle/focus and real A/B worlds/import/recovery.
 2. v0.3: external Mojang approval and subsequent real premium/vault/security acceptance; deferred rather than waived.
-3. v0.4–v0.8: native mod selection/update/rollback/gameplay matrix; full installed dependency version reconciliation and complex TOML/Quilt semantics; historical Forge V1 is excluded from current support.
+3. v0.4–v0.8: native mod selection/update/rollback/gameplay matrix; full installed dependency version reconciliation and complex Quilt semantics; historical Forge V1 is excluded from current support.
 4. v0.9–v0.11: preserve accepted bounded implementation; finish wider native graphics/game/repair acceptance under v1.0.
 5. v0.12: signed/notarized native trust, actual old→new updates, interruption and clean-machine/extra-distribution acceptance.
 6. v1.0: final security/dependency/license review, final candidate documentation and all independent release gates. A version bump cannot substitute for evidence.

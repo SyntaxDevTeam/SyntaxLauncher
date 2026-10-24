@@ -42,13 +42,14 @@ Legacy `minecraftArguments` tokenization, quoted values, classpath/native JVM fa
 
 ## Advisory metadata boundaries
 
-The mod inventory reads bounded TOML scalar fields and array-of-tables sections. Forge `mandatory=true` and NeoForge `type=required` produce missing-dependency warnings; NeoForge `type=incompatible` produces enabled-ID conflicts. Optional, discouraged and server-only requirements do not produce client missing-dependency errors. Matching manifests take priority; wrong loader families produce warnings. Quilt IDs, versions and direct requirements are read without claiming complete nested/version-range semantics. These are advisory diagnostics, not a complete TOML parser or dependency solver.
+The mod inventory now uses the full TOML syntax parser TomlJ 2.2.0 with explicit input/depth/identity/dependency limits. Quoted keys, escaped/multiline strings, inline tables and multiple mod records are supported. Dependencies from all declared owners are retained and bundled identities satisfy local presence checks. Forge `mandatory=true` and NeoForge `type=required` produce missing-dependency warnings; NeoForge `type=incompatible` produces enabled-ID conflicts. Optional, discouraged and server-only requirements do not produce client missing-dependency errors. Matching manifests take priority; wrong loader families produce warnings. Quilt IDs, versions and direct requirements are read without claiming complete nested/version-range semantics. Quilt optional dependencies are not misreported as missing required mods; conditional/group and complex version expressions are flagged as advisory rather than flattened. These are inventory diagnostics, not a complete dependency solver.
 
 ## Optional expansion and remaining platform gates
 
 - [x] Additional Forge V2 official installations: 1.21.11/61.2.4 (Java 21), 26.2/65.1.5 and 26.3/66.1.0 (Java 25), locally verified 24 October; CI smoke includes all four pairs. No new graphical Forge boot is inferred.
 - [ ] Historical V1/Java compatibility and actual old-game startup.
-- [ ] Complex TOML/Quilt expressions and version-range reconciliation.
+- [x] Full TOML syntax with bounded interpretation and bundled identities; regression fixtures include fake headers in multiline descriptions, invalid syntax and excessive nesting.
+- [ ] Complex Quilt expressions and installed version-range reconciliation.
 - [ ] Explicit Windows/Linux/macOS game/mod/loader-switching matrix with exact versions and logs.
 - [ ] Native window/DPI/keyboard interaction, interruption/concurrency/recovery matrix and earlier clean-machine release acceptance.
 

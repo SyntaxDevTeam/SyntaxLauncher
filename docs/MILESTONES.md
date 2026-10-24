@@ -295,6 +295,8 @@ If adding NeoForge requires rewriting Fabric-specific assumptions in core, those
 
 **Accepted scope, 21 October 2026:** [TESTING_V0.8.md](TESTING_V0.8.md) records private maintainer Forge/Quilt mod/startup acceptance, hosted official-installer/three-platform build evidence and the shared five-adapter coordinator regression. Forge support remains limited to Minecraft 1.21.1 / 52.1.20; V1 and other V2 pairs are intentionally rejected. Additional historical/platform/version-range work stays explicitly open rather than being claimed complete. No product-version or release publication change accompanies this milestone transition.
 
+**24 October update:** Forge discovery now matches exact official Minecraft coordinates for modern V2, with four official reference installations in [C08](MILESTONE_CLOSURE.md#c08). Full TOML syntax and bundled identities are parsed with bounded interpretation; full dependency version solving and historical V1 remain outside current acceptance. Metadata inheritance and legacy asset views now have deterministic preparation tests, without asserting historical gameplay.
+
 ### Objective
 
 Broaden loader support and handle historical compatibility explicitly.

@@ -1,101 +1,56 @@
 package pl.syntaxdevteam.syntaxlauncher.core.mods
 
-/**
- * Conservative, bounded subset of Forge/NeoForge TOML metadata for mod inventory.
- *
- * A complete TOML implementation is deliberately NOT claimed: only simple
- * quoted scalar fields, booleans and array-of-tables headers are read. Unknown
- * constructs are ignored instead of guessed, so a dependency is reported only
- * when its type and client applicability are explicit.
- */
+import org.tomlj.Toml
+import org.tomlj.TomlArray
+import org.tomlj.TomlParseOptions
+import org.tomlj.TomlTable
+
+/** Full TOML syntax, bounded inventory interpretation; dependency ranges remain advisory. */
 internal object ForgeTomlMetadataReader {
     private val safeId = Regex("[a-z][a-z0-9_-]{0,63}")
-    private val arraySection = Regex("""^\s*\[\[([a-zA-Z0-9_.-]{1,160})]]\s*(?:#.*)?$""")
-    private val property = Regex("""^\s*([a-zA-Z][a-zA-Z0-9_]*)\s*=\s*(.*?)\s*$""")
-    private val quotedValue = Regex("""^["']([^"'\r\n]{0,180})["'](?:\s*#.*)?$""")
-    private val boolValue = Regex("""^(true|false)(?:\s*#.*)?$""")
-    private const val maxLength = 256 * 1024
-
-    private class Requirement {
-        var modId: String? = null
-        var mandatory: Boolean? = null
-        var type: String? = null
-        var range: String = "*"
-        var side: String = "BOTH"
-    }
+    private val options = TomlParseOptions.sourceless().withMaxNestingDepth(32)
 
     fun parse(source: String): LocalModMetadata? {
-        require(source.length <= maxLength) { "Forge mod metadata is too large." }
-        var inFirstMod = false
-        var modAlreadySeen = false
-        var id: String? = null
-        var name: String? = null
-        var version: String? = null
-        var current: Requirement? = null
-        val requirements = mutableListOf<Pair<String, Requirement>>()
-
-        for (rawLine in source.lineSequence()) {
-            val line = rawLine.trim()
-            if (line.startsWith("[")) {
-                val header = arraySection.matchEntire(line)?.groupValues?.get(1)
-                inFirstMod = header == "mods" && !modAlreadySeen
-                if (header == "mods") modAlreadySeen = true
-                current = null
-                if (header != null && header.startsWith("dependencies.")) {
-                    val owner = header.removePrefix("dependencies.")
-                    if (owner.matches(safeId)) {
-                        current = Requirement().also { requirements += owner to it }
-                    }
-                }
-                continue
-            }
-            val match = property.matchEntire(line) ?: continue
-            val key = match.groupValues[1]
-            val value = match.groupValues[2]
-            val string = quotedValue.matchEntire(value)?.groupValues?.get(1)
-            if (inFirstMod) {
-                when (key) {
-                    "modId" -> if (string != null) id = string
-                    "displayName" -> if (string != null) name = string
-                    "version" -> if (string != null) version = string
-                }
-            } else {
-                val dependency = current ?: continue
-                when (key) {
-                    "modId" -> if (string != null) dependency.modId = string
-                    "mandatory" -> boolValue.matchEntire(value)?.let {
-                        dependency.mandatory = it.groupValues[1] == "true"
-                    }
-                    "type" -> if (string != null) dependency.type = string.lowercase()
-                    "versionRange" -> if (string != null) dependency.range = string
-                    "side" -> if (string != null) dependency.side = string.uppercase()
-                }
-            }
+        require(source.length <= 256 * 1024) { "Forge mod metadata is too large." }
+        val document = Toml.parse(source, options)
+        require(!document.hasErrors()) { "Invalid Forge TOML metadata." }
+        val mods = (document.get("mods") as? TomlArray) ?: return null
+        require(mods.size() <= 128) { "Too many mod identities." }
+        val declared = (0 until mods.size()).mapNotNull { index ->
+            val mod = mods.get(index) as? TomlTable ?: return@mapNotNull null
+            mod.string("modId")?.takeIf { it.matches(safeId) }?.let { it to mod }
         }
-
-        val modId = id?.takeIf { it.matches(safeId) } ?: return null
+        val (id, primary) = declared.firstOrNull() ?: return null
+        require(declared.map { it.first }.distinct().size == declared.size) { "Duplicate mod identity." }
+        val dependencies = document.get("dependencies") as? TomlTable
         val depends = linkedMapOf<String, String>()
         val breaks = linkedMapOf<String, String>()
-        requirements.asSequence().filter { (owner, _) -> owner == modId }
-            .map { it.second }.forEach { dependency ->
-                val requiredId = dependency.modId?.takeIf { it.matches(safeId) } ?: return@forEach
-                // Server-only requirements do not apply to this client launcher.
-                if (dependency.side == "SERVER") return@forEach
-                when {
-                    dependency.type == "required" || (dependency.type == null &&
-                        dependency.mandatory == true) ->
-                        depends[requiredId] = dependency.range.take(180)
-                    dependency.type == "incompatible" ->
-                        breaks[requiredId] = dependency.range.take(180)
+        var count = 0
+        for ((owner, _) in declared) {
+            val requirements = dependencies?.get(listOf(owner)) as? TomlArray ?: continue
+            require(requirements.size() <= 512 - count) { "Too many mod dependencies." }
+            count += requirements.size()
+            for (index in 0 until requirements.size()) {
+                val requirement = requirements.get(index) as? TomlTable ?: continue
+                val target = requirement.string("modId")?.takeIf { it.matches(safeId) } ?: continue
+                val side = requirement.string("side")?.uppercase() ?: "BOTH"
+                if (side !in setOf("BOTH", "CLIENT")) continue
+                val type = requirement.string("type")?.lowercase()
+                val range = requirement.string("versionRange")?.take(180) ?: "*"
+                val destination = when {
+                    type == "required" || (type == null && requirement.get("mandatory") == true) -> depends
+                    type == "incompatible" -> breaks
+                    else -> continue
                 }
+                // Keep both constraints from bundled mods; never silently choose one.
+                val previous = destination[target]
+                destination[target] = if (previous == null || previous == range) range else "($previous) && ($range)"
             }
-        return LocalModMetadata(
-            id = modId,
-            name = name?.takeIf { it.isNotBlank() }?.take(120) ?: modId,
-            version = version?.takeIf { it.isNotBlank() }?.take(120) ?: "unknown",
-            environment = null,
-            depends = depends,
-            breaks = breaks,
-        )
+        }
+        return LocalModMetadata(id, primary.string("displayName")?.takeIf { it.isNotBlank() }?.take(120) ?: id,
+            primary.string("version")?.takeIf { it.isNotBlank() }?.take(120) ?: "unknown", null,
+            depends, breaks, providedIds = declared.drop(1).map { it.first }.toSet())
     }
+
+    private fun TomlTable.string(key: String): String? = get(key) as? String
 }

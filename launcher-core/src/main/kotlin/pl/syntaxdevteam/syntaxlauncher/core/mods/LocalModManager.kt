@@ -29,6 +29,7 @@ data class LocalModMetadata(
     /** Metadata descriptor that was actually read, not a guarantee of runtime compatibility. */
     val sourceLoader: String? = null,
     val providedIds: Set<String> = emptySet(),
+    val dependencyNotices: List<String> = emptyList(),
 )
 
 data class LocalMod(
@@ -484,6 +485,7 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
         val builtin = setOf("minecraft", "java", "fabricloader", "fabric", "quilt_loader", "quilted_fabric_api", "forge", "neoforge", "fml")
         active.forEach { mod ->
             val data = mod.metadata ?: return@forEach
+            warnings += data.dependencyNotices.map { "${mod.fileName}: $it" }
             data.depends.keys.filter { it !in builtin && it !in availableIds }
                 .forEach { missing ->
                     warnings += "${mod.fileName} requires '$missing' (not enabled locally)."
@@ -572,8 +574,13 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
             return LocalModMetadata(
                 id, metadata?.string("name") ?: id, root.string("version") ?: "unknown",
                 null, quiltRequirements(root["depends"] as? JsonArray),
-                quiltRequirements(root["breaks"] as? JsonArray),
+                quiltRequirements(root["breaks"] as? JsonArray, conflicts = true),
                 sourceLoader = "quilt",
+                dependencyNotices = if (listOf("depends", "breaks").any { key ->
+                    (root[key] as? JsonArray).orEmpty().any { entry -> entry is JsonArray ||
+                        (entry is JsonObject && (entry.containsKey("unless") ||
+                            entry["versions"] is JsonObject || entry["versions"] is JsonArray)) }
+                }) listOf("Complex Quilt dependency expressions require loader verification; local checks are advisory.") else emptyList(),
             )
         }
     }
@@ -621,12 +628,16 @@ class LocalModManager(private val instances: MinecraftInstanceRepository) {
         }
     }
 
-    private fun quiltRequirements(entries: JsonArray?): Map<String, String> =
+    private fun quiltRequirements(entries: JsonArray?, conflicts: Boolean = false): Map<String, String> =
         entries?.mapNotNull { entry ->
-            val item = entry as? JsonObject ?: return@mapNotNull null
-            val id = item.string("id") ?: return@mapNotNull null
+            val item = entry as? JsonObject
+            // Optional absence is not a missing required dependency. Conditional/group rules
+            // cannot be flattened into unconditional required IDs without false warnings.
+            if ((!conflicts && item?.get("optional") == JsonPrimitive(true)) || item?.containsKey("unless") == true) return@mapNotNull null
+            val id = item?.string("id") ?: (entry as? JsonPrimitive)?.takeIf { it.isString }?.contentOrNull ?: return@mapNotNull null
             if (!id.matches(Regex("[a-z][a-z0-9_-]{0,63}"))) return@mapNotNull null
-            id to ((item["versions"] as? JsonPrimitive)?.contentOrNull ?: "*")
+            val versions = item?.get("versions")
+            id to ((versions as? JsonPrimitive)?.contentOrNull ?: versions?.toString()?.take(180) ?: "*")
         }?.toMap().orEmpty()
 
     private fun JsonObject.string(key: String): String? =

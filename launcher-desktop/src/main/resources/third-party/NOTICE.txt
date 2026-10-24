@@ -1,0 +1,12 @@
+SyntaxLauncher additional component notices
+
+TomlJ 2.2.0, Apache License 2.0
+Source: https://github.com/tomlj/tomlj
+License: tomlj-LICENSE.txt
+
+Bundled relocated ANTLR runtime 4.13.2, BSD 3-Clause License
+Copyright (c) 2012-2022 The ANTLR Project. All rights reserved.
+Source: https://github.com/antlr/antlr4/tree/4.13.2
+License: antlr4-LICENSE.txt
+
+These notices accompany these additional components; they are not a complete dependency license audit.

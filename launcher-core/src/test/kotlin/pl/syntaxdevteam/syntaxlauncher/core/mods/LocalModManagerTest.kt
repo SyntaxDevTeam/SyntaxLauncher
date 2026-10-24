@@ -5,6 +5,7 @@ import java.nio.file.Path
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import kotlin.test.Test
+import kotlin.test.assertNotNull
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
@@ -172,6 +173,31 @@ class LocalModManagerTest {
         assertEquals("Quilt Example", inventory.mods.single().metadata?.name)
         assertEquals("2.0", inventory.mods.single().metadata?.version)
         assertEquals(">=0.26", inventory.mods.single().metadata?.depends?.get("quilt_loader"))
+    }
+
+    @Test fun quiltOptionalAndConditionalRequirementsDoNotBecomeFalseMissingMods() = runBlocking {
+        val (repo, manager) = setup()
+        val profile = repo.create("Quilt requirements", "1.21.1", loader = ModLoaderSelection("quilt", "0.28.0"))
+        val file = Files.createTempDirectory("quilt-rules").resolve("quilt-rules.jar")
+        ZipOutputStream(Files.newOutputStream(file)).use { archive ->
+            archive.putNextEntry(ZipEntry("quilt.mod.json"))
+            archive.write("""{"schema_version":1,"quilt_loader":{
+              "id":"rules","version":"1.0","group":"example",
+              "depends":[true,"required_string",{"id":"optional_mod","optional":true},
+                {"id":"conditional","unless":{"id":"alternative"}},
+                [{"id":"choice_a"},{"id":"choice_b"}],
+                {"id":"ranged","versions":{"any":[">=1","<2"]}}],
+              "breaks":[{"id":"rules","optional":true}]}}""".toByteArray())
+            archive.closeEntry()
+        }
+        val inventory = manager.importJar(profile.id, file)
+        val metadata = assertNotNull(inventory.mods.single().metadata)
+        assertEquals(setOf("required_string", "ranged"), metadata.depends.keys)
+        assertTrue(metadata.depends.getValue("ranged").contains("any"))
+        assertTrue(inventory.warnings.any { "requires 'required_string'" in it })
+        assertFalse(inventory.warnings.any { "requires 'optional_mod'" in it || "requires 'conditional'" in it || "requires 'choice_" in it })
+        assertTrue(inventory.warnings.any { "Complex Quilt dependency expressions" in it })
+        assertTrue(inventory.warnings.any { "conflict with enabled 'rules'" in it })
     }
 
     @Test fun disabledModDoesNotSatisfyRequiredDependency() = runBlocking {
