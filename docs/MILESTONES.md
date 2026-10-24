@@ -1,6 +1,6 @@
 # SyntaxLauncher Milestones
 
-> **Player profiles — 22 October 2026:** SyntaxLauncher supports both explicit offline/non-premium players and Microsoft accounts. The player manager saves, selects, renames offline nicknames and removes profiles independently of game instances, worlds and add-ons; the active player survives restart. Microsoft Play still requires fresh official authentication, Java entitlement and profile verification, with no automatic offline fallback. The maintainer explicitly restored dual-mode product scope after the authenticated-only AppID-review change. The renewed request described immutable commit b915ad2, not this dual-mode revision; no allowlist approval is claimed.
+> **Current account policy — 24 October 2026:** Only authenticated Microsoft Java Edition identities are playable; every Play requires fresh Java ownership/profile validation. Historical planning sections below are archival, not a declaration of current login capabilities. Refer to [AppID compliance](APPID_COMPLIANCE.md) for current gates.
 
 This document describes the intent, scope, implementation boundaries and acceptance expectations for every planned pre-1.0 release.
 

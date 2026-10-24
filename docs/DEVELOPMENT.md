@@ -1,6 +1,6 @@
 # SyntaxLauncher Development Guide
 
-> **Player profiles — 22 October 2026:** SyntaxLauncher supports both explicit offline/non-premium players and Microsoft accounts. The player manager saves, selects, renames offline nicknames and removes profiles independently of game instances, worlds and add-ons; the active player survives restart. Microsoft Play still requires fresh official authentication, Java entitlement and profile verification, with no automatic offline fallback. The maintainer explicitly restored dual-mode product scope after the authenticated-only AppID-review change. The renewed request described immutable commit b915ad2, not this dual-mode revision; no allowlist approval is claimed.
+> **Current policy — 24 October 2026:** Only Microsoft-authenticated Java Edition players may launch; ownership and profile are verified before each Play. Legacy account files remain readable only for preservation. AppID approval is pending. See [AppID compliance](APPID_COMPLIANCE.md).
 
 ## 1. Scope
 
@@ -11,7 +11,7 @@ This document defines the expected engineering workflow and implementation conve
 1. **Metadata-driven Minecraft support.** Do not hardcode launch recipes that Mojang metadata already describes.
 2. **Core independent from UI.** Compose Desktop is a presentation layer, not the launcher engine.
 3. **Instances before mods.** Mutable game state becomes instance-scoped in v0.2 before loaders/mods arrive.
-4. **Official premium auth only.** Premium support uses Microsoft/Xbox/Minecraft authentication; offline accounts never become an authentication bypass.
+4. **Official premium auth only.** Premium support uses Microsoft/Xbox/Minecraft authentication; local-only identities cannot be selected, registered or launched.
 5. **Managed Java.** The launcher resolves a compatible Java runtime instead of assuming the user's PATH is correct.
 6. **Incremental milestones.** Implement only the current release scope plus narrow extensibility seams required for future work.
 7. **Recoverable operations.** Downloads/installations should avoid leaving partial files/state presented as complete.
@@ -58,7 +58,7 @@ If a single Gradle module is simpler for the first implementation, package bound
 
 ### `account`
 
-Account identity/session models and account providers. v0.1 contains offline account support. Microsoft-specific authentication belongs to v0.3.
+Account identity/session models and account providers. legacy data parsers remain only for migration; game launch requires verified Microsoft credentials. Microsoft-specific authentication belongs to v0.3.
 
 ### `minecraft`
 

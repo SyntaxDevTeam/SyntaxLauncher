@@ -106,7 +106,7 @@ fun main(args: Array<String>) {
     val accounts = pl.syntaxdevteam.syntaxlauncher.core.account.AccountManager(
         paths.configDir.resolve("accounts.properties"),
         pl.syntaxdevteam.syntaxlauncher.core.account.OsRefreshTokenVault(paths.configDir.resolve("credentials")),
-        applicationId = microsoftSignIn?.clientId ?: "syntaxlauncher-offline",
+        applicationId = microsoftSignIn?.clientId ?: "syntaxlauncher-unconfigured",
         refresh = { credential ->
             checkNotNull(microsoftSignIn) { "Microsoft sign-in is not configured." }.refresh(credential)
         },

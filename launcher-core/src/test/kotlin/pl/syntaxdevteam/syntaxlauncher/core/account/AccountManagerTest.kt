@@ -30,38 +30,37 @@ class AccountManagerTest {
     @Test fun multipleAccountsSurviveRestartWithoutPlaintextCredentials() = runBlocking {
         val vault = Vault()
         val first = manager(vault)
-        first.saveOffline("OfflineSteve")
-        first.saveOffline("OfflineAlex")
         first.savePremium(session())
         first.savePremium(session())
         val restarted = manager(vault)
-        assertEquals(3, restarted.accounts().size)
+        assertEquals(1, restarted.accounts().size)
         assertEquals(profile, restarted.session(profile.uuid.toString()).account)
         assertFalse(Files.readString(root.resolve("accounts.properties")).contains("private-"))
         restarted.remove(profile.uuid.toString())
         assertTrue(vault.entries.isEmpty())
-        assertEquals(2, manager(vault).accounts().size)
+        assertTrue(manager(vault).accounts().isEmpty())
     }
 
-    @Test fun offlineRenameIsAtomicRejectsCollisionsAndPreservesOtherPlayers() = runBlocking {
+    @Test fun legacyOfflineDataRemainsRecoverableButIsNotExposed() = runBlocking {
         val vault = Vault()
         val service = manager(vault)
-        val first = service.saveOffline("ChildOne")
-        val second = service.saveOffline("ChildTwo")
-        service.savePremium(session())
+        val old = OfflineAccount.create("ChildOne")
         val file = root.resolve("accounts.properties")
-        Files.writeString(file, Files.readString(file) + "\nfuture_option=keep\n")
-        val before = Files.readString(file)
-        assertFailsWith<IllegalStateException> { service.renameOffline(first.uuid.toString(), "ChildTwo") }
-        assertFailsWith<IllegalStateException> { service.renameOffline(profile.uuid.toString(), "OtherName") }
-        assertFailsWith<IllegalArgumentException> { service.renameOffline(first.uuid.toString(), "!") }
-        assertEquals(before, Files.readString(file))
-        vault.locked = true
-        val renamed = service.renameOffline(first.uuid.toString(), "ChildNew")
-        assertEquals(OfflineAccount.create("ChildNew"), renamed)
-        assertEquals(listOf(renamed, second, profile), manager(vault).accounts().map { it.account })
+        val props = Properties().apply {
+            setProperty("schema_version", "1")
+            setProperty("accounts", old.uuid.toString())
+            setProperty("${old.uuid}.name", old.username)
+            setProperty("${old.uuid}.type", "offline")
+            setProperty("future_option", "keep")
+        }
+        Files.newOutputStream(file).use { props.store(it, "legacy fixture") }
+        assertTrue(service.accounts().isEmpty())
+        service.savePremium(session())
+        assertEquals(listOf(profile), service.accounts().map { it.account })
+        assertTrue(Files.readString(file).contains("${old.uuid}.type=offline"))
         assertTrue(Files.readString(file).contains("future_option=keep"))
-        assertEquals(renamed, service.renameOffline(renamed.uuid.toString(), "ChildNew"))
+        service.remove(old.uuid.toString())
+        assertTrue(Files.readString(file).contains("${old.uuid}.type=offline"))
     }
 
     @Test fun rotationIsSavedAndMissingRotationRetainsOldCredential() = runBlocking {
@@ -121,17 +120,16 @@ class AccountManagerTest {
         val vault = Vault()
         val service = manager(vault)
         val file = root.resolve("accounts.properties")
-        service.saveOffline("OfflineSteve")
+        service.savePremium(session())
         val props = Properties().apply { Files.newInputStream(file).use { load(it) } }
         props.setProperty("future.field", "keep")
         Files.newOutputStream(file).use { props.store(it, "fixture") }
-        service.saveOffline("OfflineAlex")
+        service.savePremium(session())
         assertTrue(Files.readString(file).contains("future.field=keep"))
-        Files.writeString(file, "schema_version=99\nfuture.field=keep\n")
+        Files.writeString(file, "schema_version=99\\nfuture.field=keep\\n".replace("\\\\n", "\\n"))
         val before = Files.readString(file)
         assertFailsWith<IllegalStateException> { service.savePremium(session()) }
         assertEquals(before, Files.readString(file))
-        assertTrue(vault.entries.isEmpty())
     }
 
     @Test fun concurrentRefreshAndRemovalNeverResurrectSignedOutAccount() = runBlocking {

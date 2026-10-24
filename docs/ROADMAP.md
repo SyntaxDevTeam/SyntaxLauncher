@@ -1,6 +1,6 @@
 # SyntaxLauncher Roadmap
 
-> **Player profiles — 22 October 2026:** SyntaxLauncher supports both explicit offline/non-premium players and Microsoft accounts. The player manager saves, selects, renames offline nicknames and removes profiles independently of game instances, worlds and add-ons; the active player survives restart. Microsoft Play still requires fresh official authentication, Java entitlement and profile verification, with no automatic offline fallback. The maintainer explicitly restored dual-mode product scope after the authenticated-only AppID-review change. The renewed request described immutable commit b915ad2, not this dual-mode revision; no allowlist approval is claimed.
+> **Current policy — 24 October 2026:** Microsoft-authenticated Java Edition players only; gameplay requires fresh entitlement/profile verification on every Play. Legacy identity rows remain recoverable, not selectable or playable. AppID approval and real-account acceptance are pending. See [AppID compliance](APPID_COMPLIANCE.md).
 
 This file is the canonical project progress tracker.
 
@@ -28,17 +28,17 @@ Agents and contributors MUST keep this file synchronized with actual repository 
 
 Microsoft live-account work is **deferred pending Mojang AppID approval**, per maintainer instruction. It does not block implementation of v0.11/v0.12; the final v1.0 premium criterion is not waived. v0.11 implementation and v0.12 production implementation are tracked below, with final native/signing/hosted-update acceptance kept explicitly open. See [TESTING_V0.11.md](TESTING_V0.11.md), [TESTING_V0.12.md](TESTING_V0.12.md) and [INSTALLATION.md](INSTALLATION.md).
 
-## Player manager and dual-mode restoration — 22 October 2026
+## Microsoft-only player management and AppID readiness — 24 October 2026
 
-- [x] Restore explicit Offline / non-premium launch using the common coordinator; retain independent Microsoft authentication, Java entitlement/profile checks and fail-without-fallback behavior.
-- [x] Dedicated player manager: add offline/Microsoft players, choose saved profiles, rename offline players and confirm removal; worlds/add-ons stay separate. Persist active player ID and migrate the previous nickname selection.
+- [x] Enforce authenticated-only launches in the UI, session, coordinator and launch-plan builder; no unauthenticated fallback.
+- [x] Dedicated Microsoft player manager: add, select and remove saved verified identities; worlds/add-ons remain isolated and unaffected.
 - [x] Cover offline launch with a locked credential vault, unknown/failed Microsoft sessions, atomic rename/collision protection, persisted selection and translated/compact UI interactions.
-- [ ] Real Minecraft offline launch and add-on acceptance; approved-AppID Microsoft sign-in/gameplay, native Windows/macOS vault and UX acceptance remain open.
-- [ ] Resolve the published AppID authentication/ownership criterion versus the maintainer's dual-mode product scope; the pending b915ad2 review does not describe this revision.
+- [ ] Real authenticated Minecraft Java gameplay and add-on acceptance; approved-AppID sign-in/gameplay, native Windows/macOS vault and UX acceptance remain open.
+- [ ] Synchronize public website policies and Entra metadata to the current Microsoft-only build; the previous review described immutable commit b915ad2, not future changes.
 
 ## Historical authenticated-only AppID review change — 22 October 2026
 
-This section records b915ad2 and its submission. The maintainer subsequently restored the dual-mode scope above.
+This section records the implementation identified by b915ad2 and its submission; live acceptance remains unverified.
 
 - [x] Require an authenticated Microsoft Java identity and fresh ownership/profile verification before every desktop Play; reject anonymous/legacy sessions in the common coordinator before preparation. Preserve old records/worlds. Negative HTTP, cached-session, core and EN/PL/DE UI tests plus full build/Linux package pass.
 - [x] Preserve original branding, add in-app independence/contact and public privacy/terms links; record current approval limitations and supersede historic offline-play requirements.
@@ -70,7 +70,7 @@ This section records b915ad2 and its submission. The maintainer subsequently res
 
 Goal: launch a selected vanilla Minecraft version using an offline account and an automatically resolved Java runtime.
 
-**Current status:** implementation and automated verification reconciled on 24 October 2026; live/native release gates remain open. Historical details below are superseded where a linked closure record is present. The offline identity, Mojang catalog/metadata resolver, verified game preparation, Java manager, launch planner and process manager are now composed into a desktop launch pipeline. Compose exposes a real Play action, per-stage and per-file progress, cancellation, process status/exit code/log paths and a stop action. Window close cancels ongoing preparation and detaches from an already running Minecraft process. The version-list cache and local Gradle test/build verification passed on 20 October 2026; live Minecraft, native platform and other release acceptance gates remain open.
+**Current status:** implementation and automated verification reconciled on 24 October 2026; live/native release gates remain open. Historical details below are superseded where a linked closure record is present. The account identity boundary, Mojang catalog/metadata resolver, verified game preparation, Java manager, launch planner and process manager are now composed into a desktop launch pipeline. Compose exposes a real Play action, per-stage and per-file progress, cancellation, process status/exit code/log paths and a stop action. Window close cancels ongoing preparation and detaches from an already running Minecraft process. The version-list cache and local Gradle test/build verification passed on 20 October 2026; live Minecraft, native platform and other release acceptance gates remain open.
 
 ## Interface languages — explicitly requested 20 October 2026
 
@@ -101,7 +101,7 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 - [x] Minecraft-style offline username validation passes deterministic unit and rendered UI tests.
 - [x] Deterministic Minecraft offline UUID generation passes the existing compatibility regressions.
 - [x] Persist offline identity/preferences atomically with schema and unknown-key retention; preference, account-manager and real Compose save/restart tests pass. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
-- [x] Provide the persistent explicit offline player manager and explanation; empty/saved-player creation/selection tests pass without accessing the credential vault. Evidence: [C01](MILESTONE_CLOSURE.md#c01).
+- [x] Preserve old account records on disk only; current player manager exposes authenticated Microsoft identities. Earlier milestone test evidence is historical and does not authorize unauthenticated play.
 
 ## Minecraft version discovery
 
@@ -223,7 +223,7 @@ Goal: launch a selected vanilla Minecraft version using an offline account and a
 - [ ] 🚧 IN PROGRESS — v0.1 Compose home redesigned around a high-contrast atmospheric hero, prominent contextual Play CTA, compact profile/version/RAM settings, branded header, semantic status and progressive error details; full platform CI and manual UX/accessibility review pending.
 - [ ] 🚧 IN PROGRESS — shared ink-blue/cyan roles, 18 dp panels, 9 dp controls, typography and vector components implemented; deterministic resizing/150% rendering passes. Native focus/accessibility and platform DPI evaluation still pending.
 
-- [ ] 🚧 IN PROGRESS — offline nickname field validates username and feeds `OfflineAccount.create()` for the real Play pipeline; persistence/full UI verification remains pending.
+- [x] The old nickname property remains readable for non-destructive compatibility but does not provide a playable identity.
 - [ ] 🚧 IN PROGRESS — Minecraft version selector and release/snapshot filters are driven by the official Mojang catalog, with selected metadata verified asynchronously; fixture-based Compose rendering passes, native live-catalog acceptance remains pending.
 - [ ] 🚧 IN PROGRESS — RAM slider feeds `LaunchOptions(maximumMemoryMiB)` on Play; persistence/full UI verification remains pending.
 - [ ] 🚧 IN PROGRESS — real `Play Minecraft` action now runs prepared metadata → verified game downloads/assets/natives → managed Java → `LaunchPlanBuilder` → `MinecraftProcessManager`; live vanilla launch acceptance is pending.
@@ -348,11 +348,11 @@ Goal: add official premium authentication without changing the fundamental Minec
 - [ ] 🚧 IN PROGRESS — AccountManager schema-1 identity inventory, native refresh-token vault adapters and bounded browser callback helper are present with deterministic tests; desktop integration now reloads/saves identities, refreshes on Play and removes local vault credentials on sign-out; native/live premium acceptance remains open. Registration/submission records are in [MICROSOFT_APP.md](MICROSOFT_APP.md); approval is not claimed.
 
 - [x] Introduce account manager/service and connect desktop persistence; deterministic tests pass.
-- [x] Preserve offline account support; saving/selecting an offline player does not access the credential vault.
+- [x] Preserve old identity records without deleting associated game data; never expose them as selectable profiles.
 - [x] Add a verified premium account type and token-safe session class; tested.
 - [x] Support multiple saved offline/Microsoft identities; restart coverage uses an isolated test vault.
 - [x] Allow saved account selection as the persistent launcher default; account-manager and translated desktop player tests pass. Evidence: [C03](MILESTONE_CLOSURE.md#c03).
-- [x] Display explicit Offline / non-premium or Microsoft identity type in the player selector and manager; translated UI tests pass. Evidence: [C03](MILESTONE_CLOSURE.md#c03).
+- [x] Display only authenticated Microsoft identities in the player selector and manager; translation and rendering tests remain acceptance gates.
 
 ## Delivery phases
 
@@ -360,7 +360,7 @@ Goal: add official premium authentication without changing the fundamental Minec
 - [ ] **P0 — Desktop sign-in:** system browser with loopback callback and CSRF validation, loading/cancel/error states, configurable registered client ID.
 - [ ] **P0 — Session security:** token redaction, secure OS-backed refresh credential persistence, refresh and sign-out.
 - [x] Pass the selected authenticated account through the common coordinator; DesktopLauncherSessionAccountsTest and premium coordinator regressions pass. Evidence: [C03](MILESTONE_CLOSURE.md#c03).
-- [x] Implement multiple saved offline/Microsoft identities and persistent active selection; AccountManagerTest and PlayerProfilesTest pass. Evidence: [C03](MILESTONE_CLOSURE.md#c03).
+- [x] Implement multiple saved Microsoft identities and persistent selection, with read-only recognition of historical local entries; regression verification is commit-specific.
 - [ ] **Release acceptance:** approved Microsoft app registration, live sign-in/refresh and premium Minecraft game launch.
 
 ## Microsoft authentication
@@ -856,7 +856,7 @@ Goal: declare the architecture and primary feature set stable for end users.
 
 ## Supported feature set
 
-- [x] Offline accounts. Implementation verified within [published scope](SUPPORT_MATRIX.md); final native/gameplay gates below remain independent.
+- [x] Microsoft identity selection and fresh verification enforcement in source; final AppID/live/native gameplay gates remain independent.
 - [ ] Microsoft premium accounts.
 - [ ] Vanilla Minecraft versions within documented support matrix.
 - [x] Automatic Java runtime management. Implementation verified within [published scope](SUPPORT_MATRIX.md); final native/gameplay gates below remain independent.
@@ -895,7 +895,7 @@ Goal: declare the architecture and primary feature set stable for end users.
 - [ ] Full automated test suite passes.
 - [ ] Release builds pass on supported target platforms.
 - [ ] Representative vanilla and each supported loader launch successfully.
-- [ ] Premium and offline account flows are verified.
+- [ ] Microsoft account flows, Java entitlement and verified-profile gameplay are confirmed on real eligible accounts.
 - [ ] Modrinth install/update flow is verified.
 - [ ] Modpack installation is verified.
 - [ ] Repair workflow is verified on representative failures.

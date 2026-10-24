@@ -18,8 +18,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.swing.Swing
 import kotlinx.coroutines.withContext
 import pl.syntaxdevteam.syntaxlauncher.core.account.PremiumAccount
-import pl.syntaxdevteam.syntaxlauncher.core.account.OfflineAccount
-import pl.syntaxdevteam.syntaxlauncher.core.launch.LaunchAuthentication
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -121,7 +119,7 @@ class DesktopLauncherSession(
     val microsoftEnabled: Boolean get() = microsoftSignIn != null && accounts != null
 
     private suspend fun publishAccounts() {
-        val saved = accounts?.accounts().orEmpty()
+        val saved = accounts?.accounts().orEmpty().filter { it.microsoft }
         mutableSavedAccounts.value = saved
         mutablePremiumAccounts.value = saved.filter { it.microsoft }.map { it.account as PremiumAccount }
     }
@@ -142,20 +140,6 @@ class DesktopLauncherSession(
             publishAccounts()
         }
         return session.account
-    }
-
-    suspend fun addOfflineAccount(nickname: String): OfflineAccount = accountMutex.withLock {
-        check(!closing.get()) { "SyntaxLauncher is closing." }
-        val result = accounts?.saveOffline(nickname) ?: error("Account storage is unavailable.")
-        publishAccounts()
-        result
-    }
-
-    suspend fun renameOfflineAccount(uuid: String, nickname: String): OfflineAccount = accountMutex.withLock {
-        check(!closing.get()) { "SyntaxLauncher is closing." }
-        val result = accounts?.renameOffline(uuid, nickname) ?: error("Account storage is unavailable.")
-        publishAccounts()
-        result
     }
 
     suspend fun removePlayerAccount(uuid: String) = accountMutex.withLock {
@@ -201,12 +185,8 @@ class DesktopLauncherSession(
                     MinecraftProcessState.RUNNING, MinecraftProcessState.STARTING,
                 )
             ) return false
-            if (premiumId != null && mutablePremiumAccounts.value.none { it.uuid.toString() == premiumId }) {
-                mutableLaunchIssue.value = "The selected Microsoft profile is unavailable. Sign in again."
-                return false
-            }
-            if (premiumId == null && !OfflineAccount.isValidUsername(nickname)) {
-                mutableLaunchIssue.value = "Choose an offline player with a valid nickname."
+            if (premiumId == null || mutablePremiumAccounts.value.none { it.uuid.toString() == premiumId }) {
+                mutableLaunchIssue.value = "A verified Microsoft Java Edition account is required. Sign in first."
                 return false
             }
             lastGameAttempt = LastGameAttempt(
@@ -218,17 +198,11 @@ class DesktopLauncherSession(
                 var leased = false
                 try {
                     val (account, authentication) = accountMutex.withLock {
-                        if (premiumId == null) {
-                            val offline = accounts?.saveOffline(nickname) ?: OfflineAccount.create(nickname)
-                            publishAccounts()
-                            offline to LaunchAuthentication.offline(offline)
-                        } else {
-                            check(microsoftSignIn != null) { "Microsoft sign-in is not configured." }
-                            val current = accounts?.session(premiumId, requireFresh = true)
-                                ?: error("Account storage is unavailable.")
-                            publishAccounts()
-                            current.account to current.launchAuthentication(microsoftSignIn.clientId)
-                        }
+                        check(microsoftSignIn != null) { "Microsoft sign-in is not configured." }
+                        val current = accounts?.session(checkNotNull(premiumId), requireFresh = true)
+                            ?: error("Account storage is unavailable.")
+                        publishAccounts()
+                        current.account to current.launchAuthentication(microsoftSignIn.clientId)
                     }
                     instances.beginLaunch(instance?.id)
                     leased = true

@@ -10,7 +10,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import pl.syntaxdevteam.syntaxlauncher.core.account.OfflineAccount
 import pl.syntaxdevteam.syntaxlauncher.core.update.LauncherUpdateChannel
 
 data class LauncherPreferences(
@@ -22,8 +21,8 @@ data class LauncherPreferences(
     val selectedPlayerId: String = "",
 ) {
     init {
-        require(nickname.isBlank() || OfflineAccount.isValidUsername(nickname)) {
-            "Invalid saved offline nickname."
+        require(nickname.length <= 16 && nickname.all { it.isLetterOrDigit() || it == '_' }) {
+            "Invalid legacy nickname property."
         }
         require(selectedVersionId.length <= 100 &&
             selectedVersionId.none { it.code in 0..31 || it.code == 127 }) {
@@ -47,7 +46,7 @@ data class LauncherPreferences(
  * Small, schema-versioned and atomic settings file.
  * Unknown property keys are preserved when saving; malformed/newer settings
  * are rejected, never reset or automatically overwritten.
- * Only non-sensitive offline profile choices are stored.
+ * Only non-sensitive launcher choices are stored; old nicknames are inert.
  */
 class LauncherPreferencesStore(private val file: Path) {
     private val mutex = Mutex()
