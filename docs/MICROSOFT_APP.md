@@ -40,3 +40,7 @@ Check live pages and Entra application metadata for consistency with the current
 See the actionable [AppID compliance checklist](APPID_COMPLIANCE.md) and [review evidence](APP_REVIEW_2026-10.md).
 
 **NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT.**
+
+## Preparation update — 25 October 2026
+
+The live AppID form, all four public pages and selected Entra settings were inspected in the desktop browser. The product page/summary now match Microsoft-only main; Entra internal status notes now record two unsuccessful requests and preparation without submission. Personal-account audience, desktop callback and public policy URLs were observed. Verified publisher badge and live service acceptance are not established. Exact evidence, limits and remaining maintainer checks: [third-request preparation](APPID_PREPARATION_2026-10-25.md).

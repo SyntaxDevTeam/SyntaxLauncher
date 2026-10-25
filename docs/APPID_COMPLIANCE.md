@@ -61,3 +61,7 @@ Code review, automated fixtures, and successful packaging are not substitutes fo
 Local final verification: full tests/build/Linux distributable passed (282 cases: 277 passed, five opt-in network skips, zero failures/errors); 25 release-tool tests passed. Hosted verification remains commit-specific.
 
 Approval, live entitled-account sign-in/refresh/gameplay, public site/Entra consistency, native vault/consent and signing acceptance remain open. Passing this revision's automated CI cannot guarantee Mojang approval.
+
+## Third-request preparation — 25 October 2026
+
+See [current review preparation](APPID_PREPARATION_2026-10-25.md) for the live form requirements, repaired Linux #201 smoke, bounded code/asset review and actual browser verification of all four application pages and Entra. The product page's stale dual-mode description has now been corrected publicly. Prior fetch failures remain historical observations, not today's final website result. Entra notes were synchronized without changing security/permissions. Hosted verification is bound to the subsequent exact commit/artifacts; live accounts, approval, signing and native acceptance remain open. No third submission was sent.

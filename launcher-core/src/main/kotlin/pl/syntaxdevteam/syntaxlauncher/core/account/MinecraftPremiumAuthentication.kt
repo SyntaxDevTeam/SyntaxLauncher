@@ -97,6 +97,8 @@ class MinecraftPremiumAuthentication(
         if (xstsHash != userHash) {
             throw PremiumExchangeException(PremiumStage.XSTS, "XSTS returned a different user identity.")
         }
+        // Anchor before the token request: later network checks must not extend its lifetime.
+        val tokenRequestedAt = Instant.now(clock)
         val minecraft = safe(PremiumStage.MINECRAFT) {
             val response = http.post("https://api.minecraftservices.com/authentication/login_with_xbox") {
                 contentType(ContentType.Application.Json)
@@ -152,9 +154,15 @@ class MinecraftPremiumAuthentication(
             throw PremiumExchangeException(PremiumStage.JAVA_PROFILE,
                 "Minecraft returned an invalid Java profile.")
         }
-        return PremiumSession(account, minecraft.accessToken,
-            Instant.now(clock).plusSeconds(minecraft.expiresIn.coerceAtLeast(0)),
-            tokens.refreshToken)
+        val expiresAt = safe(PremiumStage.MINECRAFT) {
+            tokenRequestedAt.plusSeconds(minecraft.expiresIn).also {
+                if (!it.isAfter(Instant.now(clock).plusSeconds(180))) {
+                    throw PremiumExchangeException(PremiumStage.MINECRAFT,
+                        "Minecraft session expired during ownership/profile verification. Sign in again.")
+                }
+            }
+        }
+        return PremiumSession(account, minecraft.accessToken, expiresAt, tokens.refreshToken)
     }
 
     private suspend fun <T> safe(stage: PremiumStage, action: suspend () -> T): T = try {

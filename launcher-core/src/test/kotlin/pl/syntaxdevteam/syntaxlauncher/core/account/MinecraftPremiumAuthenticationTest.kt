@@ -150,4 +150,44 @@ class MinecraftPremiumAuthenticationTest {
         }
     }
 
+    @Test fun ownershipAndProfileLatencyNeverExtendTokenLifetime() = runBlocking {
+        val start = Instant.parse("2026-10-25T08:00:00Z")
+        for (elapsedSeconds in listOf(60L, 3420L, 3601L)) {
+            var now = start
+            val clock = object : Clock() {
+                override fun getZone() = ZoneOffset.UTC
+                override fun withZone(zone: java.time.ZoneId): Clock = this
+                override fun instant() = now
+            }
+            val http = HttpClient(MockEngine { request ->
+                when (request.url.encodedPath) {
+                    "/user/authenticate", "/xsts/authorize" ->
+                        respond("""{"Token":"fixture-token","DisplayClaims":{"xui":[{"uhs":"hash"}]}}""")
+                    "/authentication/login_with_xbox" ->
+                        respond("""{"access_token":"fixture-minecraft","expires_in":3600}""")
+                    "/entitlements/mcstore" -> {
+                        now = start.plusSeconds(elapsedSeconds)
+                        respond("""{"items":[{"name":"game_minecraft"}]}""")
+                    }
+                    "/minecraft/profile" ->
+                        respond("""{"id":"12345678123412341234123456789abc","name":"JavaPlayer"}""")
+                    else -> error("Unexpected route")
+                }
+            })
+            try {
+                val authentication = MinecraftPremiumAuthentication(http, clock)
+                if (elapsedSeconds < 3420) {
+                    val session = authentication.authenticate(MicrosoftOAuthTokens("fixture-ms", null))
+                    assertEquals(start.plusSeconds(3600), session.expiresAt)
+                } else {
+                    val failure = assertFailsWith<PremiumExchangeException> {
+                        authentication.authenticate(MicrosoftOAuthTokens("fixture-ms", null))
+                    }
+                    assertEquals(PremiumStage.MINECRAFT, failure.stage)
+                    assertFalse(failure.message.orEmpty().contains("fixture-"))
+                }
+            } finally { http.close() }
+        }
+    }
+
 }

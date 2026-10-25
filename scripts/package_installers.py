@@ -58,6 +58,9 @@ def appstream_metadata(desktop_id):
     It manages game versions, mod loaders, isolated game profiles and game files.
     Microsoft sign-in and verification of Minecraft Java Edition ownership are
     required before starting the game.</p>
+    <p>NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH
+    MOJANG OR MICROSOFT. Publisher and support: SyntaxDevTeam,
+    wieszczy85@gmail.com.</p>
   </description>
   <developer id="pl.syntaxdevteam">
     <name>SyntaxDevTeam</name>

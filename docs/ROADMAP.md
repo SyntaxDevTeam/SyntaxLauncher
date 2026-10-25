@@ -38,6 +38,16 @@ Microsoft live-account work is **deferred pending Mojang AppID approval**, per m
 - [ ] Real authenticated Minecraft Java gameplay and add-on acceptance; approved-AppID sign-in/gameplay, native Windows/macOS vault and UX acceptance remain open.
 - [ ] Synchronize public website policies and Entra metadata to the current Microsoft-only build; the previous review described immutable commit b915ad2, not future changes.
 
+## Third AppID request preparation — 25 October 2026
+
+- [x] Repair Linux #201 malformed MIT grep and duplicated package lifecycle; add early shell syntax validation.
+- [x] Anchor Minecraft token lifetime before its request and reject verification that exhausts the safety margin; advancing-clock regression.
+- [x] Read the live AppID form and public privacy/terms/support; correct the product page/summary from dual-mode to Microsoft-only and update saved Entra status notes.
+- [x] Prepare bounded source/asset/branding evidence and maintainer review instructions without submitting the form.
+- [ ] Confirm commit-specific hosted native lifecycle/publication and pin exact SHA/artifact in the review packet (checked after push).
+- [ ] Maintainer confirmation of submission contact/terms acknowledgement, submission contact and asset rights; publisher verification/signing/native/live-account acceptance remain separate open gates.
+- [ ] Submit a third request only after separate explicit maintainer approval; obtain allowlisting and real entitlement/gameplay evidence.
+
 ## Historical authenticated-only AppID review change — 22 October 2026
 
 This section records the implementation identified by b915ad2 and its submission; live acceptance remains unverified.

@@ -86,6 +86,10 @@ jobs:
           fi
           echo "preview_channel=$preview_channel" >> "$GITHUB_OUTPUT"
           echo "build_channel=$build_channel" >> "$GITHUB_OUTPUT"
+      - name: Validate packaging shell scripts before building
+        run: |
+          bash -n packaging/smoke-linux.sh
+          bash -n packaging/smoke-macos.sh
       - name: Compile and run tests
         run: gradle --no-daemon --stacktrace "-PlauncherBuildNumber=$GITHUB_RUN_NUMBER" "-PlauncherCommit=$GITHUB_SHA" "-PlauncherUpdateChannel=${{ steps.channel.outputs.build_channel }}" test build
       - name: Verify official NeoForge installer processors

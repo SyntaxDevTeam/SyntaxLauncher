@@ -8,6 +8,44 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-25 — Prepare third AppID review and repair Linux #201
+
+**Milestone:** v0.3 / v0.12 AppID and packaging
+**Author/Agent:** Codex
+**Status:** Partial — local verification complete, hosted final SHA checked after push; no submission/approval/live account tests
+
+### Completed
+- Fetched current main without history rewrite; confirmed #201 failed only Linux installer lifecycle while verify/Windows/macOS passed.
+- Repaired malformed MIT grep, orphan path and duplicate DEB/RPM/AppImage lifecycle. Added early CI shell syntax checks, retaining world/settings markers and metadata evidence.
+- Bounded review of Microsoft-only UI/session/core gates, ownership/profile, OAuth/vault/log handling, upstream content, assets and independent publisher metadata. Fixed token lifetime being extended by ownership/profile latency; added advancing-clock regression.
+- Corrected outdated README logo/testing/current-status claims. Added independent publisher/disclaimer to AppStream description.
+- Read live AppID form; authenticated browser read all four public application pages. Corrected live product page/summary's stale non-premium claims; privacy/terms/support already match Microsoft-only behavior. Read back corrected public page.
+- Inspected Entra name/audience/redirect/domain, full manifest informational URLs and credential counts without secret values; confirmed gateway icon visually and no verified-publisher badge. Synchronized stale status notes, saved and reloaded successfully. No permission/security/credential changes.
+- Retained maintainer's pre-existing opt-in UpdateOfficialSmokeTest per standing publication instruction; default run skips it. No player data, game files, real sessions or credentials touched.
+
+### Changed files
+- `packaging/smoke-linux.sh`, `.github/workflows/build.yml` — repaired lifecycle and fast syntax gate.
+- `MinecraftPremiumAuthentication.kt` and its test — conservative expiry origin and latency/expiry fixture.
+- `scripts/package_installers.py` — independent publisher notice in package metadata.
+- `README.md`, `docs/APPID_PREPARATION_2026-10-25.md`, `docs/APPID_COMPLIANCE.md`, `docs/MICROSOFT_APP.md`, `docs/ROADMAP.md` — actual policy, source/website/Entra evidence and outstanding gates.
+- `UpdateOfficialSmokeTest.kt` — include existing maintainer test unchanged.
+
+### Verification
+- `./gradlew --no-daemon test build :launcher-desktop:createDistributable --rerun-tasks` — PASS, 2m16s, 284 cases (278 passed, six opt-in skips), zero failures/errors; all 20 tasks executed.
+- `python3 -m unittest discover -s scripts -p 'test_*.py'` — PASS, 28 cases, including package metadata/installer behavior.
+- `python3 -m unittest discover -s tests -p 'test_*.py'` — PASS, six cases.
+- `bash -n` Linux/macOS smoke scripts — PASS. `release_readiness.py` — generated remaining gates. `git diff --check` — PASS before publication.
+- Hosted native lifecycle/publication — exact post-push run recorded separately in the immutable review packet; no result inferred from older CI. Local full installer lifecycle NOT RUN (would mutate installed application/system packages).
+- Real Microsoft/entitlement/native vault/gameplay — NOT RUN. No third form submission.
+
+### Roadmap updates
+- `[x]` Linux repair/syntax validation, conservative token expiry and deterministic regression, live public policy/Entra evidence and preparation documents.
+- `[ ]` Hosted final SHA verification until checked after push, maintainer contact/acknowledgement/asset review, native/signing/live entitlement acceptance and separately authorized third submission/approval.
+
+### Follow-ups / known issues
+- Formal publisher verification is not confirmed and is not asserted as a published mandatory AppID criterion. One registered Entra password credential exists but is unused by launcher code; assess other integration use before removal.
+- Contact must be verifiably associated with the app for Mojang cross-reference. Passing CI is not legal clearance or approval. Source/build pinning in the review packet prevents accidentally reviewing an older dual-mode binary.
+
 ## 2026-10-24 — Complete Microsoft-only continuation and reject incomplete token exchanges
 
 **Milestone:** v0.3 / AppID compliance
