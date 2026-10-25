@@ -44,6 +44,7 @@ Microsoft live-account work is **deferred pending Mojang AppID approval**, per m
 - [x] Anchor Minecraft token lifetime before its request and reject verification that exhausts the safety margin; advancing-clock regression.
 - [x] Read the live AppID form and public privacy/terms/support; correct the product page/summary from dual-mode to Microsoft-only and update saved Entra status notes.
 - [x] Prepare bounded source/asset/branding evidence and maintainer review instructions without submitting the form.
+- [x] Route production browser sign-in through the same bounded callback listener as the regression tests; reject malformed/duplicate/absolute/oversized callback requests without consuming a valid login. Full sequential local tests/build/Linux distribution pass; native/live account acceptance remains open.
 - [x] Confirm hosted verification, three-platform native lifecycle and publication for `be0846a465bdea95299d895f48d01e54bdb5338b`: [CI #209](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/40183003795) success, [DEV 209.1](https://github.com/SyntaxDevTeam/SyntaxLauncher/releases/tag/dev-209.1-v0.9.3-DEV), exact tag SHA and asset digests verified.
 - [ ] Maintainer terms acknowledgement and asset rights review; publisher verification/signing/native/live-account acceptance remain separate open gates. Submission contact wieszczy85@gmail.com was explicitly confirmed on 25 October.
 - [ ] Submit a third request only after separate explicit maintainer approval; obtain allowlisting and real entitlement/gameplay evidence.

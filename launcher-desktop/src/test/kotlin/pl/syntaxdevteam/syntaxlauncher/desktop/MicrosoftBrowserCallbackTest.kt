@@ -39,6 +39,9 @@ class MicrosoftBrowserCallbackTest {
                     send(port, "/callback?state=wrong&code=wrong")
                     send(port, "/callback?state=$state&state=other&code=wrong")
                     send(port, "/callback?state=$state&code=%zz")
+                    send(port, "http://localhost:$port/callback?state=$state&code=wrong")
+                    // A bounded listener may reset an oversized connection; login must survive it.
+                    runCatching { send(port, "/callback?padding=" + "x".repeat(9000)) }
                     send(port, "/callback?state=$state&code=valid-code")
                 }
             }

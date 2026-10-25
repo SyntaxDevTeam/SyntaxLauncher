@@ -69,3 +69,7 @@ Live site reads initially returned HTTP 403 to the fetch tools; the desktop brow
 The maintainer explicitly confirmed `wieszczy85@gmail.com` is associated with the Entra registration and should be used in the third request. No EULA acknowledgement or permission to submit has been inferred from that contact confirmation. The accompanying pinned form draft uses this address.
 
 This evidence update changes documentation only. The final main documentation commit is checked independently in CI and reported with its exact SHA in the packet; it does not invalidate or relabel the tested #209 code build. The live-account/approval, signing, broader native acceptance and artwork-rights gates above remain open.
+
+## Final OAuth callback integration correction
+
+A final source-to-test comparison found that `DesktopMicrosoftSignIn.signIn` still contained a separate older listener, while `MicrosoftBrowserCallbackTest` exercised the bounded shared `receiveMicrosoftCode` helper. Production now calls that same helper directly. Its local socket regressions cover unrelated paths, wrong/duplicate state, malformed encoding, absolute request targets, oversized requests, valid single-use callback, denial, timeout, browser failure and cancellation. The wrapper retains the system-browser availability check and official token exchange. No identity, ownership or launch gate was weakened. This correction supersedes #209 as the proposed submission build; the final SHA and hosted artifacts are pinned in the final review packet after push. No third request is sent.

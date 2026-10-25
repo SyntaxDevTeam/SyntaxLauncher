@@ -8,6 +8,36 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-25 — Connect production OAuth to its tested bounded callback
+
+**Milestone:** v0.3 / AppID preparation
+**Author/Agent:** Codex
+**Status:** Completed — production integration and deterministic verification; hosted final revision checked after push
+
+### Completed
+- Final comparison revealed DesktopMicrosoftSignIn retained a separate older loopback listener while callback regressions exercised receiveMicrosoftCode. Production now delegates to that tested helper, retaining system-browser availability checks, PKCE/state and the same official token exchange.
+- Removed duplicated listener/imports. Expanded local socket regression with an absolute callback target and a request over 8192 characters before the valid callback. Existing wrong/duplicate state, malformed encoding, denial, timeout, cancellation and browser-error tests now cover the listener actually used by production.
+- Recorded the correction in AppID evidence and roadmap; #209 remains verified historical packaging evidence but the final request packet will select the new exact source/build.
+
+### Changed files
+- `DesktopMicrosoftSignIn.kt` — use shared receiveMicrosoftCode instead of the older duplicate implementation.
+- `MicrosoftBrowserCallbackTest.kt` — malformed/oversized request integration cases.
+- AppID preparation, roadmap and worklog — truthful scope and verification.
+
+### Verification
+- First two overlapping local Gradle invocations — FAIL with test-result EOF/missing binary file errors after concurrent access. Neither is reported as a successful run.
+- Subsequent single `./gradlew --no-daemon test build :launcher-desktop:createDistributable --rerun-tasks` — PASS, 2m14s, all 20 tasks executed, 284 cases (278 passed, six opt-in skips), zero failures/errors.
+- `git diff --check` — PASS. Prior 28 Python tooling and six Build Explorer tests remain applicable; no changes to their implementation since their passing run.
+- Hosted final code CI/artifacts — verified after push and bound to final SHA in the review packet, not inferred from #209/#210.
+- Live Microsoft/ownership/native vault/gameplay — NOT RUN. No submission or approval claimed.
+
+### Roadmap updates
+- `[x]` Production/shared bounded callback integration and malformed/oversized socket regressions.
+- `[ ]` Existing approved-AppID, live/native/signing and maintainer acknowledgement/rights gates remain open.
+
+### Follow-ups / known issues
+- Use the final packet's exact build for review; older #209 did not contain this callback integration correction. No user data or credentials were touched.
+
 ## 2026-10-25 — Record exact AppID preparation build and hosted closure
 
 **Milestone:** v0.3 / v0.12
