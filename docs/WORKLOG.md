@@ -8,6 +8,35 @@ Every code/build/documentation/CI task must add an entry according to `AGENTS.md
 
 ---
 
+## 2026-10-25 — Record exact AppID preparation build and hosted closure
+
+**Milestone:** v0.3 / v0.12
+**Author/Agent:** Codex
+**Status:** Completed — evidence update; external approval and acceptance remain open
+
+### Completed
+- Verified complete CI #209 success for be0846a465bdea95299d895f48d01e54bdb5338b, including all three native package/lifecycle jobs, official Java/loader tests and both publication jobs.
+- Resolved immutable DEV 209.1 tag to that exact SHA; saved 12 release asset IDs/digests and 16 hosted artifact identities to the local review packet. No new Stable release or version increment.
+- Recorded actual website/Entra synchronization and explicit maintainer confirmation that the public contact email is associated with the registration. Kept EULA acknowledgement, asset review, separate submission authorization and live/native/signing approval gates open.
+- Prepared the complete local form draft, exact source archive, selected metadata, current fixture renders and acceptance matrix; no form submitted. Private Entra readback screenshot remains local and is not for public attachment.
+
+### Changed files
+- `docs/ROADMAP.md`, `docs/APPID_PREPARATION_2026-10-25.md`, `docs/APPID_COMPLIANCE.md`, `docs/WORKLOG.md` — hosted results, immutable source/build and remaining external gates.
+
+### Verification
+- Tests/build — NOT RUN again locally for this documentation-only update; exact implementation passed full local tests/build and CI #209.
+- GitHub API — PASS: workflow success, all native/publication jobs success, tag resolves to full source SHA, asset set/digests present.
+- `git diff --check` — PASS before publication.
+- Latest documentation commit CI — checked after push and recorded in final review packet; no future result asserted here.
+- Live entitlement/gameplay, native vault/signing acceptance — NOT RUN; no allowlist approval or third submission claimed.
+
+### Roadmap updates
+- `[x]` Public site/Entra synchronization and #209 code-specific native lifecycle/publication evidence.
+- `[ ]` EULA acknowledgement/asset rights, publisher/signing/native/live acceptance and separately authorized third submission/approval.
+
+### Follow-ups / known issues
+- The primary reviewed code build remains pinned independently of this documentation-only follow-up. Final packet reports both revisions and the latest main CI without replacing historical artifacts.
+
 ## 2026-10-25 — Prepare third AppID review and repair Linux #201
 
 **Milestone:** v0.3 / v0.12 AppID and packaging

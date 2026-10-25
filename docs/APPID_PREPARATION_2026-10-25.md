@@ -61,3 +61,11 @@ Live site reads initially returned HTTP 403 to the fetch tools; the desktop brow
 - `python3 -m unittest discover -s tests -p 'test_*.py'`: PASS, six Build Explorer cases.
 - `bash -n packaging/smoke-linux.sh` and macOS equivalent: PASS. Native install/uninstall lifecycle is reserved for commit-specific hosted jobs; local system packages were not installed/removed.
 - Final source SHA, hosted result, immutable build URLs/checksums and the fully pinned form draft are assembled after publication in the local review packet. This avoids making a document claim its own not-yet-created commit hash.
+
+## Hosted closure — code revision be0846a
+
+[CI #209](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/40183003795) completed **success** for exact code commit `be0846a465bdea95299d895f48d01e54bdb5338b`. Verify, Windows x64 MSI install/repair/remove, Linux DEB/Fedora RPM/AppImage checks, macOS ARM64 DMG mount/copy, native managed-Java tests and both publication jobs passed. The Stable job was correctly skipped; no Stable release/version bump was requested. [DEV 209.1](https://github.com/SyntaxDevTeam/SyntaxLauncher/releases/tag/dev-209.1-v0.9.3-DEV) has all 12 assets (five installers, three portables, three updates and installer checksums). The tag was resolved through the GitHub API to that same full commit; release target_commitish=main alone was not treated as sufficient proof. Asset IDs, sizes, SHA-256 API digests and 16 hosted artifact IDs were saved to the accompanying review packet.
+
+The maintainer explicitly confirmed `wieszczy85@gmail.com` is associated with the Entra registration and should be used in the third request. No EULA acknowledgement or permission to submit has been inferred from that contact confirmation. The accompanying pinned form draft uses this address.
+
+This evidence update changes documentation only. The final main documentation commit is checked independently in CI and reported with its exact SHA in the packet; it does not invalidate or relabel the tested #209 code build. The live-account/approval, signing, broader native acceptance and artwork-rights gates above remain open.

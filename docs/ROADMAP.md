@@ -36,7 +36,7 @@ Microsoft live-account work is **deferred pending Mojang AppID approval**, per m
 - [x] Dedicated Microsoft player manager: add, select and remove saved verified identities; worlds/add-ons remain isolated and unaffected.
 - [x] Cover rejected unauthenticated launch with a locked credential vault, unknown/failed Microsoft sessions, atomic rename/collision protection, persisted selection and translated/compact UI interactions.
 - [ ] Real authenticated Minecraft Java gameplay and add-on acceptance; approved-AppID sign-in/gameplay, native Windows/macOS vault and UX acceptance remain open.
-- [ ] Synchronize public website policies and Entra metadata to the current Microsoft-only build; the previous review described immutable commit b915ad2, not future changes.
+- [x] Synchronize public product page/summary and Entra status notes with Microsoft-only main; read back all four application policies and full relevant Entra metadata on 25 October. The previous review still refers to immutable b915ad2; approval/live acceptance remain open.
 
 ## Third AppID request preparation — 25 October 2026
 
@@ -44,8 +44,8 @@ Microsoft live-account work is **deferred pending Mojang AppID approval**, per m
 - [x] Anchor Minecraft token lifetime before its request and reject verification that exhausts the safety margin; advancing-clock regression.
 - [x] Read the live AppID form and public privacy/terms/support; correct the product page/summary from dual-mode to Microsoft-only and update saved Entra status notes.
 - [x] Prepare bounded source/asset/branding evidence and maintainer review instructions without submitting the form.
-- [ ] Confirm commit-specific hosted native lifecycle/publication and pin exact SHA/artifact in the review packet (checked after push).
-- [ ] Maintainer confirmation of submission contact/terms acknowledgement, submission contact and asset rights; publisher verification/signing/native/live-account acceptance remain separate open gates.
+- [x] Confirm hosted verification, three-platform native lifecycle and publication for `be0846a465bdea95299d895f48d01e54bdb5338b`: [CI #209](https://github.com/SyntaxDevTeam/SyntaxLauncher/actions/runs/40183003795) success, [DEV 209.1](https://github.com/SyntaxDevTeam/SyntaxLauncher/releases/tag/dev-209.1-v0.9.3-DEV), exact tag SHA and asset digests verified.
+- [ ] Maintainer terms acknowledgement and asset rights review; publisher verification/signing/native/live-account acceptance remain separate open gates. Submission contact wieszczy85@gmail.com was explicitly confirmed on 25 October.
 - [ ] Submit a third request only after separate explicit maintainer approval; obtain allowlisting and real entitlement/gameplay evidence.
 
 ## Historical authenticated-only AppID review change — 22 October 2026
