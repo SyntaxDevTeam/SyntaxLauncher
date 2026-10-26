@@ -153,7 +153,7 @@ jobs:
           gradle-version: "9.8.1"
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version: "3.15"
       - name: Verify official managed Java on this platform
         shell: bash
         timeout-minutes: 15
