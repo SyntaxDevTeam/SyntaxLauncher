@@ -40,7 +40,7 @@ jobs:
           java-version: "25"
       - uses: gradle/actions/setup-gradle@v6
         with:
-          gradle-version: "9.8.1"
+          gradle-version: "9.8.2"
       - name: Verify canonical product version and release tag
         run: python3 scripts/launcher_version.py --github-ref "$GITHUB_REF"
       - name: Detect eligible stable version increment
@@ -150,7 +150,7 @@ jobs:
           java-version: "25"
       - uses: gradle/actions/setup-gradle@v6
         with:
-          gradle-version: "9.8.1"
+          gradle-version: "9.8.2"
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
