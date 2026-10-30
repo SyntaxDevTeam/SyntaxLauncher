@@ -187,7 +187,7 @@ jobs:
       - name: Install Linux packaging tools
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y rpm fakeroot desktop-file-utils xvfb appstream
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/setup-dotnet@v6
         if: runner.os == 'Windows'
         with:
           dotnet-version: '8.0.x'
