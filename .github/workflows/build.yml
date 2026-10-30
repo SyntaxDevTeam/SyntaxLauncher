@@ -276,7 +276,7 @@ jobs:
     name: Publish complete verified stable version
     if: (startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')) || needs.verify.outputs.publish_release == 'true'
     needs: [verify, distributables]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: write
     steps:
@@ -362,7 +362,7 @@ jobs:
     name: Publish verified DEV or SNAPSHOT channel
     needs: [verify, distributables]
     if: needs.verify.outputs.preview_channel != ''
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: write
     steps:
@@ -401,7 +401,7 @@ jobs:
     name: Publish all platforms to Build Explorer
     needs: [verify, distributables]
     if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v7
