@@ -17,7 +17,7 @@ concurrency:
 jobs:
   recover-release:
     name: Publish verified historic v0.7.0 binaries
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     env:
       SOURCE_RUN: "39558146467"
