@@ -1,0 +1,367 @@
+name: Build and package SyntaxLauncher
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      preview_channel:
+        description: Preview channel to publish from main
+        type: choice
+        options: [snapshot, dev]
+        default: snapshot
+
+permissions:
+  contents: read
+
+concurrency:
+  group: syntaxlauncher-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  verify:
+    name: Test core and desktop
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    outputs:
+      launcher_version: ${{ steps.channel.outputs.launcher_version }}
+      preview_channel: ${{ steps.channel.outputs.preview_channel }}
+      build_channel: ${{ steps.channel.outputs.build_channel }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: |
+            21
+            25
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Validate the version and select the update channel
+        id: channel
+        shell: bash
+        env:
+          REQUESTED_PREVIEW: ${{ inputs.preview_channel }}
+        run: |
+          set -euo pipefail
+          version="$(python3 scripts/launcher_version.py --github-ref "$GITHUB_REF")"
+          preview_channel=""
+          build_channel=dev
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            if [[ "${version%%+*}" == *-* ]]; then
+              build_channel=snapshot
+              preview_channel=snapshot
+            else
+              if [[ "${version%%.*}" != 0 ]]; then
+                echo "::error::Stable 1.x and later require maintainer approval of the outstanding release acceptance checks."
+                exit 1
+              fi
+              build_channel=stable
+            fi
+          elif [[ "$GITHUB_REF" == refs/heads/main && "$GITHUB_EVENT_NAME" == push ]]; then
+            preview_channel=dev
+          elif [[ "$GITHUB_REF" == refs/heads/main && "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
+            preview_channel="$REQUESTED_PREVIEW"
+            [[ "$preview_channel" == snapshot || "$preview_channel" == dev ]]
+            build_channel="$preview_channel"
+          fi
+          echo "launcher_version=$version" >> "$GITHUB_OUTPUT"
+          echo "preview_channel=$preview_channel" >> "$GITHUB_OUTPUT"
+          echo "build_channel=$build_channel" >> "$GITHUB_OUTPUT"
+      - name: Validate packaging shell scripts before building
+        run: |
+          bash -n packaging/smoke-linux.sh
+          bash -n packaging/smoke-macos.sh
+      - name: Compile and run tests
+        run: ./gradlew --no-daemon --stacktrace "-PlauncherBuildNumber=$GITHUB_RUN_NUMBER" "-PlauncherCommit=$GITHUB_SHA" "-PlauncherUpdateChannel=${{ steps.channel.outputs.build_channel }}" test build
+      - name: Verify official NeoForge installer processors
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        timeout-minutes: 22
+        env:
+          SYNTAXLAUNCHER_NEOFORGE_LIVE_SMOKE: "1"
+        run: ./gradlew --no-daemon --stacktrace :launcher-core:test --tests 'pl.syntaxdevteam.syntaxlauncher.core.loader.NeoForgeOfficialSmokeTest' --rerun-tasks
+      - name: Smoke-test official Forge V2 processor installation
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        timeout-minutes: 22
+        env:
+          SYNTAXLAUNCHER_FORGE_LIVE_SMOKE: "1"
+        run: ./gradlew --no-daemon --stacktrace :launcher-core:test --tests 'pl.syntaxdevteam.syntaxlauncher.core.loader.ForgeOfficialSmokeTest' --rerun-tasks
+      - name: Upload test evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: syntaxlauncher-test-results
+          path: |
+            launcher-core/build/test-results/**
+            launcher-core/build/reports/tests/**
+            launcher-desktop/build/reports/**
+            launcher-desktop/build/test-results/**
+          if-no-files-found: ignore
+          retention-days: 14
+
+  distributables:
+    name: Application and installers (${{ matrix.os }})
+    needs: verify
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            artifact: linux-x64
+          - os: windows-2022
+            artifact: windows-x64
+          - os: macos-15
+            artifact: macos-arm64
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: |
+            21
+            25
+      - uses: gradle/actions/setup-gradle@v6
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Verify official managed Java on this platform
+        shell: bash
+        timeout-minutes: 15
+        env:
+          SYNTAXLAUNCHER_JAVA_LIVE_SMOKE: "1"
+        run: ./gradlew --no-daemon --stacktrace :launcher-core:test --tests '*ManagedJavaOfficialSmokeTest' --rerun-tasks
+      - name: Upload managed Java acceptance
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: managed-java-${{ matrix.artifact }}
+          path: launcher-core/build/test-results/test
+          if-no-files-found: warn
+      - name: Build runnable native app directory
+        shell: bash
+        run: |
+          version="$(python3 scripts/launcher_version.py --github-ref "$GITHUB_REF")"
+          ./gradlew --no-daemon --stacktrace "-PlauncherBuildNumber=$GITHUB_RUN_NUMBER" "-PlauncherCommit=$GITHUB_SHA" "-PlauncherUpdateChannel=${{ needs.verify.outputs.build_channel }}" :launcher-desktop:createDistributable
+          python scripts/package_update.py --source launcher-desktop/build/compose/binaries/main/app --platform "${{ matrix.artifact }}" --version "$version" --output "launcher-desktop/build/updates/syntaxlauncher-update-${{ matrix.artifact }}.zip"
+          ./gradlew --no-daemon --stacktrace "-PlauncherBuildNumber=$GITHUB_RUN_NUMBER" "-PlauncherCommit=$GITHUB_SHA" "-PlauncherUpdateChannel=${{ needs.verify.outputs.build_channel }}" "-PupdateBundle=build/updates/syntaxlauncher-update-${{ matrix.artifact }}.zip" :launcher-desktop:verifyUpdateBundle
+      - name: Verify portable Windows executable branding
+        if: runner.os == 'Windows'
+        shell: bash
+        run: python scripts/verify_windows_icon.py --exe launcher-desktop/build/compose/binaries/main/app/SyntaxLauncher/SyntaxLauncher.exe
+      - name: Verify Mojang HTTPS with the packaged runtime
+        shell: bash
+        run: |
+          image=launcher-desktop/build/compose/binaries/main/app/SyntaxLauncher
+          if [[ "$RUNNER_OS" == macOS ]]; then image="$image.app"; fi
+          python scripts/verify_native_network.py --image "$image" --platform "${{ matrix.artifact }}"
+      - name: Install Linux packaging tools
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y rpm fakeroot desktop-file-utils xvfb appstream
+      - uses: actions/setup-dotnet@v5
+        if: runner.os == 'Windows'
+        with:
+          dotnet-version: '8.0.x'
+      - name: Install pinned WiX v7
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          dotnet tool install --tool-path "$env:RUNNER_TEMP/wix7" wix --version 7.0.0
+          if ($LASTEXITCODE -ne 0) { throw 'WiX v7 installation failed' }
+          "$env:RUNNER_TEMP/wix7" | Out-File -FilePath $env:GITHUB_PATH -Append
+          # Maintainer explicitly accepted the WiX v7 OSMF EULA and confirmed eligibility on 2026-10-23.
+          & "$env:RUNNER_TEMP/wix7/wix.exe" eula accept wix7
+          if ($LASTEXITCODE -ne 0) { throw 'WiX v7 EULA acceptance failed' }
+          & "$env:RUNNER_TEMP/wix7/wix.exe" extension add --global WixToolset.UI.wixext/7.0.0
+          if ($LASTEXITCODE -ne 0) { throw 'WiX v7 UI extension installation failed' }
+      - name: Build native installers from the verified application image
+        shell: bash
+        run: |
+          image=launcher-desktop/build/compose/binaries/main/app/SyntaxLauncher
+          if [[ "$RUNNER_OS" == macOS ]]; then image="$image.app"; fi
+          python scripts/package_installers.py --image "$image" --platform "${{ matrix.artifact }}" --output launcher-desktop/build/installers
+      - name: Test Debian, Fedora RPM and AppImage lifecycle
+        if: runner.os == 'Linux'
+        run: bash packaging/smoke-linux.sh
+      - name: Test WiX v7 install, payload, repair and uninstall
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./packaging/smoke-windows.ps1
+      - name: Test DMG mount and application copy
+        if: runner.os == 'macOS'
+        run: bash packaging/smoke-macos.sh
+      - name: Upload tested installers
+        uses: actions/upload-artifact@v7
+        with:
+          name: native-installers-${{ matrix.artifact }}-${{ github.sha }}
+          path: launcher-desktop/build/installers/*
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload installer evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: native-installer-evidence-${{ matrix.artifact }}-${{ github.sha }}
+          path: launcher-desktop/build/installer-evidence/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Show jpackage diagnostics on failure
+        if: failure()
+        shell: bash
+        run: |
+          if [ -d launcher-desktop/build/compose/logs ]; then
+            find launcher-desktop/build/compose/logs -type f -name "*.txt" -print -exec tail -n 100 {} \;
+          else
+            echo "No Compose packaging logs found"
+          fi
+      - name: Upload jpackage diagnostic logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: syntaxlauncher-packaging-logs-${{ matrix.artifact }}-${{ github.sha }}
+          path: launcher-desktop/build/compose/logs/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Archive portable application preserving POSIX permissions
+        shell: bash
+        run: |
+          test -d launcher-desktop/build/compose/binaries/main/app
+          tar -czf syntaxlauncher-${{ matrix.artifact }}.tar.gz -C launcher-desktop/build/compose/binaries/main/app .
+      - name: Upload portable app
+        uses: actions/upload-artifact@v7
+        with:
+          name: syntaxlauncher-portable-${{ matrix.artifact }}
+          path: syntaxlauncher-${{ matrix.artifact }}.tar.gz
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload verified update bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: syntaxlauncher-update-${{ matrix.artifact }}
+          path: launcher-desktop/build/updates/*.zip
+          if-no-files-found: error
+          retention-days: 14
+
+  publish-release:
+    name: Publish complete verified stable version
+    if: startsWith(github.ref, 'refs/tags/v') && needs.verify.outputs.build_channel == 'stable'
+    needs: [verify, distributables]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: syntaxlauncher-update-*
+          path: release-assets
+          merge-multiple: true
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: syntaxlauncher-portable-*
+          path: release-assets
+          merge-multiple: true
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: native-installers-*-${{ github.sha }}
+          path: release-assets
+          merge-multiple: true
+      - name: Verify complete installer set and write checksums
+        run: python3 scripts/verify_installers.py --directory release-assets --write
+      - name: Publish all platform updates together
+        env:
+          # A fine-grained PAT with repository Contents: write can be used
+          # when the workflow GITHUB_TOKEN is denied by repository policy.
+          GH_TOKEN: ${{ secrets.SYNTAXLAUNCHER_RELEASE_TOKEN || github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: v${{ needs.verify.outputs.launcher_version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s release-assets/syntaxlauncher-update-linux-x64.zip
+          test -s release-assets/syntaxlauncher-update-windows-x64.zip
+          test -s release-assets/syntaxlauncher-update-macos-arm64.zip
+          test -s release-assets/syntaxlauncher-linux-x64.tar.gz
+          test -s release-assets/syntaxlauncher-windows-x64.tar.gz
+          test -s release-assets/syntaxlauncher-macos-arm64.tar.gz
+
+          tag_sha="$(gh api "repos/$GH_REPO/commits/$RELEASE_TAG" --jq '.sha')"
+          test "$tag_sha" = "$GITHUB_SHA"
+
+          if gh release view "$RELEASE_TAG" --json isDraft --jq '.isDraft' > existing-release.txt 2>/dev/null; then
+            test "$(cat existing-release.txt)" = true
+          else
+            gh release create "$RELEASE_TAG" --verify-tag --draft --generate-notes \
+              --title "SyntaxLauncher $RELEASE_TAG"
+          fi
+          gh release upload "$RELEASE_TAG" release-assets/*.zip release-assets/*.tar.gz release-assets/*.msi release-assets/*.dmg release-assets/*.deb release-assets/*.rpm release-assets/*.AppImage release-assets/SHA256SUMS-installers.txt --clobber
+          # Preview releases are published separately and never become latest stable.
+          gh release edit "$RELEASE_TAG" --draft=false --latest
+
+
+  publish-preview:
+    name: Publish verified DEV or SNAPSHOT channel
+    needs: [verify, distributables]
+    if: needs.verify.outputs.preview_channel != ''
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: syntaxlauncher-update-*
+          path: release-assets
+          merge-multiple: true
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: syntaxlauncher-portable-*
+          path: release-assets
+          merge-multiple: true
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: native-installers-*-${{ github.sha }}
+          path: release-assets
+          merge-multiple: true
+      - name: Verify complete installer set and write checksums
+        run: python3 scripts/verify_installers.py --directory release-assets --write
+      - name: Publish complete applications and installers as an immutable preview
+        env:
+          GH_TOKEN: ${{ secrets.SYNTAXLAUNCHER_RELEASE_TOKEN || github.token }}
+          GH_REPO: ${{ github.repository }}
+          PREVIEW_CHANNEL: ${{ needs.verify.outputs.preview_channel }}
+        run: >-
+          python3 scripts/publish_preview.py --channel "$PREVIEW_CHANNEL"
+          --run "$GITHUB_RUN_NUMBER" --attempt "$GITHUB_RUN_ATTEMPT"
+          --commit "$GITHUB_SHA" --assets release-assets --installers
+
+
+  publish-build-explorer:
+    name: Publish all platforms to Build Explorer
+    needs: [verify, distributables]
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: syntaxlauncher-portable-*
+          path: dist
+          merge-multiple: true
+      - name: Publish complete portable build set
+        env:
+          BUILD_EXPLORER_CHANNEL: ${{ needs.verify.outputs.build_channel }}
+          BUILD_EXPLORER_TOKEN: ${{ secrets.BUILD_EXPLORER_TOKEN || secrets.BUILD_CI_TOKEN }}
+        run: python3 scripts/publish_build_explorer.py
