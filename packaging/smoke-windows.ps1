@@ -2,6 +2,40 @@ $ErrorActionPreference = 'Stop'
 $evidence = Join-Path $PWD 'launcher-desktop/build/installer-evidence'
 New-Item -ItemType Directory -Force $evidence | Out-Null
 $msi = (Resolve-Path 'launcher-desktop/build/installers/syntaxlauncher-windows-x64.msi').Path
+# The silent lifecycle below bypasses the wizard. Check the linked MSI's button events too.
+$installer = New-Object -ComObject WindowsInstaller.Installer
+$database = $installer.OpenDatabase($msi, 0)
+foreach ($mode in @('Repair', 'Remove')) {
+    $query = @"
+SELECT * FROM ControlEvent WHERE Dialog_ = 'MaintenanceTypeDlg' AND Control_ = '${mode}Button'
+    AND ((Event = '[WixUI_InstallMode]' AND Argument = '$mode' AND Ordering = 1)
+      OR (Event = 'NewDialog' AND Argument = 'VerifyReadyDlg' AND Condition = 'Installed' AND Ordering = 2))
+"@
+    $view = $database.OpenView($query)
+    $view.Execute()
+    if ($null -eq $view.Fetch() -or $null -eq $view.Fetch()) {
+        throw "Maintenance wizard must set $mode before showing its confirmation dialog"
+    }
+    $view.Close()
+}
+$query = @'
+SELECT * FROM ControlEvent WHERE Dialog_ = 'VerifyReadyDlg' AND (Control_ = 'Remove' OR Control_ = 'RemoveNoShield')
+    AND (Event = 'Remove' OR Event = '[REMOVE]') AND Argument = 'ALL'
+'@
+$view = $database.OpenView($query)
+$view.Execute()
+$removeEvents = 0
+while ($null -ne ($event = $view.Fetch())) {
+    # MSI SQL can match All as well as ALL. Check the event argument case-sensitively.
+    $argument = $event.GetType().InvokeMember('StringData', 'GetProperty', $null, $event, @(4))
+    if ($argument -ceq 'ALL') { $removeEvents++ }
+}
+if ($removeEvents -ne 4) {
+    throw 'Maintenance wizard must request full removal from both confirmation buttons'
+}
+$view.Close()
+$database = $null
+$installer = $null
 $app = Join-Path $env:LOCALAPPDATA 'Programs/SyntaxLauncher'
 $data = Join-Path $env:LOCALAPPDATA 'SyntaxLauncher/installer-smoke-world-marker.txt'
 New-Item -ItemType Directory -Force (Split-Path $data) | Out-Null

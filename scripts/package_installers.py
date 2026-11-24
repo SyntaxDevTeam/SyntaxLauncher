@@ -232,6 +232,18 @@ def wix_source(image, version, output):
         Name='StartMenu', Type='integer', Value='1', KeyPath='yes')
     add(feature, 'ComponentRef', Id='StartMenu')
     ET.SubElement(package, '{' + UI_NS + '}WixUI', {'Id': 'WixUI_InstallDir', 'InstallDirectory': 'INSTALLFOLDER'})
+    ui = add(package, 'UI')
+    # WixUI gives both events order 1. Set the mode before opening the confirmation dialog.
+    for control in ('RepairButton', 'RemoveButton'):
+        add(ui, 'Publish', Dialog='MaintenanceTypeDlg', Control=control, Event='NewDialog',
+            Value='VerifyReadyDlg', Condition='Installed', Order='2')
+    # Windows Installer documents the all-features argument as uppercase ALL.
+    for control in ('Remove', 'RemoveNoShield'):
+        add(ui, 'Publish', Dialog='VerifyReadyDlg', Control=control, Event='Remove', Value='ALL',
+            Condition='OutOfDiskSpace <> 1', Order='1')
+        # Keep the feature selection and the property used by the execute sequence in sync.
+        add(ui, 'Publish', Dialog='VerifyReadyDlg', Control=control, Property='REMOVE', Value='ALL',
+            Condition='OutOfDiskSpace <> 1', Order='1')
     license_rtf = output.parent / 'license.rtf'
     text = (ROOT / 'LICENSE').read_text().replace('\\', '\\\\').replace('{', '\\{').replace('}', '\\}')
     license_rtf.write_text('{\\rtf1\\ansi ' + text.replace('\n', '\\par\n') + '}')
