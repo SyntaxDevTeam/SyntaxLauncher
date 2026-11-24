@@ -28,13 +28,16 @@ internal fun ProfileWizard(preferredVersion: String, releases: List<String>,
     create: suspend (String, String, ModLoaderSelection?) -> MinecraftInstance,
     installPack: suspend (ModrinthProject, String, String) -> MinecraftInstance,
     loadIcon: suspend (String) -> ByteArray? = { null },
-    onCreated: (MinecraftInstance, Boolean) -> Unit, onBusyChange: (Boolean) -> Unit, onCancel: () -> Unit) {
+    onCreated: (MinecraftInstance, Boolean) -> Unit, onBusyChange: (Boolean) -> Unit, onCancel: () -> Unit,
+    vanillaOnly: Boolean = false,
+) {
     val strings = LocalStrings.current
     val scope = rememberCoroutineScope()
-    var step by remember { mutableStateOf(ProfileStep.STYLE) }
+    val firstStep = if (vanillaOnly) ProfileStep.DETAILS else ProfileStep.STYLE
+    var step by remember { mutableStateOf(firstStep) }
     var modded by remember { mutableStateOf(false) }
     var loader by remember { mutableStateOf("fabric") }
-    var content by remember { mutableStateOf(ProfileContent.EMPTY) }
+    var moddedContent by remember { mutableStateOf(ProfileContent.EMPTY) }
     var name by remember { mutableStateOf("") }
     var version by remember { mutableStateOf(preferredVersion) }
     var versionMenu by remember { mutableStateOf(false) }
@@ -49,7 +52,7 @@ internal fun ProfileWizard(preferredVersion: String, releases: List<String>,
     var submitted by remember { mutableStateOf("") }
     var packs by remember { mutableStateOf<List<ModrinthProject>>(emptyList()) }
     var pack by remember { mutableStateOf<ModrinthProject?>(null) }
-    val family = if (modded) loader else "minecraft"
+    val content = if (modded) moddedContent else ProfileContent.EMPTY
     val needsCompatibility = content != ProfileContent.PACK && modded && step in setOf(ProfileStep.DETAILS, ProfileStep.REVIEW)
     LaunchedEffect(needsCompatibility, loader, version, retry) {
         setup = null; error = false
@@ -61,10 +64,10 @@ internal fun ProfileWizard(preferredVersion: String, releases: List<String>,
             finally { loading = false }
         }
     }
-    LaunchedEffect(step == ProfileStep.PACK, family, submitted, retry) {
+    LaunchedEffect(step == ProfileStep.PACK, loader, submitted, retry) {
         if (step == ProfileStep.PACK) {
             loading = true; error = false; packs = emptyList()
-            try { packs = withTimeout(20_000) { searchPacks(submitted, family) } }
+            try { packs = withTimeout(20_000) { searchPacks(submitted, loader) } }
             catch (cancelled: CancellationException) { if (cancelled is TimeoutCancellationException) error = true else throw cancelled }
             catch (_: Exception) { error = true }
             finally { loading = false }
@@ -82,9 +85,13 @@ internal fun ProfileWizard(preferredVersion: String, releases: List<String>,
         step = when (step) {
             ProfileStep.STYLE -> ProfileStep.STYLE
             ProfileStep.LOADER -> ProfileStep.STYLE
-            ProfileStep.CONTENT -> if (modded) ProfileStep.LOADER else ProfileStep.STYLE
+            ProfileStep.CONTENT -> ProfileStep.LOADER
             ProfileStep.PACK -> ProfileStep.CONTENT
-            ProfileStep.DETAILS -> if (content == ProfileContent.PACK) ProfileStep.PACK else ProfileStep.CONTENT
+            ProfileStep.DETAILS -> when {
+                !modded -> ProfileStep.STYLE
+                content == ProfileContent.PACK -> ProfileStep.PACK
+                else -> ProfileStep.CONTENT
+            }
             ProfileStep.REVIEW -> ProfileStep.DETAILS
         }
     }
@@ -114,11 +121,11 @@ internal fun ProfileWizard(preferredVersion: String, releases: List<String>,
                     ProfileStep.CONTENT -> {
                         Text(strings.text("wizard.content_help"))
                         ProfileContent.entries.forEach { route ->
-                            WizardChoice(strings.text("wizard.content.${route.name.lowercase()}"), content == route, !busy) { content = route; pack = null }
+                            WizardChoice(strings.text("wizard.content.${route.name.lowercase()}"), content == route, !busy) { moddedContent = route; pack = null }
                         }
                     }
                     ProfileStep.PACK -> {
-                        Text(strings.text("wizard.pack_help", family))
+                        Text(strings.text("wizard.pack_help", loader))
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             OutlinedTextField(query, { if (it.length <= 100) query = it }, label = { Text(strings.text("catalog.search")) },
                                 singleLine = true, modifier = Modifier.weight(1f))
@@ -162,7 +169,7 @@ internal fun ProfileWizard(preferredVersion: String, releases: List<String>,
                     ProfileStep.REVIEW -> {
                         Text(name.trim(), style = MaterialTheme.typography.headlineSmall)
                         Text(if (!modded) "Vanilla" else if (loader == "neoforge") "NeoForge" else loader.replaceFirstChar { it.uppercase() })
-                        Text(strings.text("wizard.content.${content.name.lowercase()}"))
+                        if (modded) Text(strings.text("wizard.content.${content.name.lowercase()}"))
                         if (content == ProfileContent.PACK) { Text(pack?.title.orEmpty()); Text(strings.text("wizard.pack_versions")) }
                         else { Text("Minecraft ${setup?.minecraftVersion ?: version}"); Text(strings.text("wizard.first_play")) }
                         Text(strings.text("wizard.separate"))
@@ -174,14 +181,14 @@ internal fun ProfileWizard(preferredVersion: String, releases: List<String>,
             if (loading || busy) LinearProgressIndicator(Modifier.fillMaxWidth())
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 if (busy) TextButton(onClick = { creationJob?.cancel() }) { Text(strings.text("ui.cancel")) }
-                else TextButton(onClick = { if (step == ProfileStep.STYLE) onCancel() else previous() }) { Text(strings.text(if (step == ProfileStep.STYLE) "ui.cancel" else "wizard.back")) }
+                else TextButton(onClick = { if (step == firstStep) onCancel() else previous() }) { Text(strings.text(if (step == firstStep) "ui.cancel" else "wizard.back")) }
                 Button(enabled = canNext, modifier = Modifier.testTag("wizard-next"), onClick = {
                     if (busy || !canNext) return@Button
                     if (step == ProfileStep.REVIEW) {
                         busy = true; error = false; wasCancelled = false; onBusyChange(true)
                         creationJob = scope.launch {
                             try {
-                                val result = if (content == ProfileContent.PACK) installPack(requireNotNull(pack), family, name.trim())
+                                val result = if (content == ProfileContent.PACK) installPack(requireNotNull(pack), loader, name.trim())
                                 else {
                                     val game = setup?.minecraftVersion ?: version
                                     val selectedLoader = if (!modded) null else ModLoaderSelection(loader,
@@ -194,7 +201,7 @@ internal fun ProfileWizard(preferredVersion: String, releases: List<String>,
                             finally { busy = false; onBusyChange(false) }
                         }
                     } else step = when (step) {
-                        ProfileStep.STYLE -> if (modded) ProfileStep.LOADER else ProfileStep.CONTENT
+                        ProfileStep.STYLE -> if (modded) ProfileStep.LOADER else ProfileStep.DETAILS
                         ProfileStep.LOADER -> ProfileStep.CONTENT
                         ProfileStep.CONTENT -> if (content == ProfileContent.PACK) ProfileStep.PACK else ProfileStep.DETAILS
                         ProfileStep.PACK -> ProfileStep.DETAILS

@@ -35,9 +35,13 @@ def prepare(directory, env, version_file=None):
     else:
         raise ValueError('Publication is restricted to main and version tags')
     timestamp = datetime.now(timezone.utc).isoformat()
+    filename_version = version.replace('+', '_')
     result = []
     for platform in PLATFORMS:
         path = directory / f'syntaxlauncher-{platform}.tar.gz'
+        filename = f'SyntaxLauncher-{filename_version}-{platform}.tar.gz'
+        if len(filename) > 255:
+            raise ValueError(f'Build Explorer filename is too long for {platform}.')
         if not path.is_file() or path.is_symlink():
             raise ValueError(f'Missing portable application: {path.name}')
         size = path.stat().st_size
@@ -55,7 +59,7 @@ def prepare(directory, env, version_file=None):
             'platform': platform, 'platform_family': 'other', 'game_versions': [],
             'version': version, 'build_number': run_number,
             'branch': env.get('GITHUB_REF_NAME', ''), 'commit_sha': sha,
-            'filename': f'SyntaxLauncher-{version}-{platform}.tar.gz',
+            'filename': filename,
             'sha256': digest.hexdigest(), 'size': size, 'commits': [],
         }))
     return result
@@ -72,7 +76,7 @@ def main():
         return
     token = os.environ.get('BUILD_EXPLORER_TOKEN', '')
     if not token.strip():
-        raise SystemExit('Configure BUILD_EXPLORER_TOKEN or grant this repository access to BUILD_CI_TOKEN.')
+        raise SystemExit('Set BUILD_EXPLORER_TOKEN to the project-scoped token for syntaxlauncher with .tar.gz enabled.')
     if not token.isascii() or not token.isprintable() or token != token.strip():
         raise SystemExit('Build Explorer token contains characters unsuitable for an HTTP header.')
     with tempfile.TemporaryDirectory(prefix='build-explorer-') as temporary:
@@ -104,6 +108,8 @@ def main():
                             detail = detail.replace(token, '[REDACTED]')
                             detail = ' '.join(''.join(c if c.isprintable() else ' ' for c in detail).split())
                             message += f' Server response: {detail[:400]}'
+                            if status == '422' and detail == 'Artifact filename or format is not permitted.':
+                                message += ' Check that BUILD_EXPLORER_TOKEN has a syntaxlauncher project policy allowing tar.gz.'
                             break
                 raise SystemExit(message)
             if not isinstance(result, dict) or result.get('status') != 'ok' or result.get('platform') != platform:

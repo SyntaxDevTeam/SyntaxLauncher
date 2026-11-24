@@ -33,7 +33,12 @@ class ProfileWizardTest {
             try {
                 scene.frames()
                 scene.click(strings.text("wizard.next"))
-                assertNotNull(scene.text("✓ " + strings.text("wizard.content.empty")))
+                assertNotNull(scene.text(strings.text("wizard.step.details")))
+                assertTrue(scene.nodes().none {
+                    it.label() in listOf(strings.text("wizard.content.pack"), strings.text("wizard.content.extras"))
+                })
+                scene.click(strings.text("wizard.back"))
+                assertNotNull(scene.text(strings.text("wizard.step.style")))
                 scene.click(strings.text("wizard.next"))
                 scene.typeName("My world")
                 scene.click(strings.text("wizard.next"))
@@ -108,7 +113,7 @@ class ProfileWizardTest {
                 onCreated = { _, _ -> completed++ }, onBusyChange = { states += it }, onCancel = {}) }
         }
         try {
-            scene.frames(); scene.click("Next"); scene.click("Next"); scene.typeName("Cancel me"); scene.click("Next")
+            scene.frames(); scene.click("Next"); scene.typeName("Cancel me"); scene.click("Next")
             val confirm = scene.nodes().first { it.config.getOrNull(SemanticsProperties.TestTag) == "wizard-next" }.config[SemanticsActions.OnClick].action!!
             confirm.invoke(); confirm.invoke(); scene.frames()
             assertEquals(1, attempts)

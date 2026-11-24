@@ -115,7 +115,9 @@ class LauncherHomeRenderTest {
             assertTrue(scene.nodes().none { it.label().startsWith("Quilt world · ") })
             scene.text("Add a new profile").click()
             scene.frames()
-            assertTrue(scene.nodes().any { it.config.getOrNull(SemanticsProperties.TestTag) == "profile-wizard" })
+            assertTrue(scene.nodes().any { it.config.getOrNull(SemanticsProperties.TestTag) == "wizard-name" })
+            assertTrue(scene.nodes().none { it.label() in listOf("With mods", "A complete modpack") &&
+                it.config.contains(SemanticsActions.OnClick) })
             scene.text("Cancel").click()
             scene.frames()
             scene.text("My Vanilla game").click()
@@ -481,8 +483,6 @@ class LauncherHomeRenderTest {
             scene.nodes().first { it.config.getOrNull(SemanticsProperties.TestTag) == "create-profile" }.click(); scene.frames()
             fun next() = scene.nodes().first { it.config.getOrNull(SemanticsProperties.TestTag) == "wizard-next" }
             next().assertFullyVisible(400, "Wizard footer")
-            next().click(); scene.frames()
-            assertNotNull(scene.text("✓ Empty — I will add extras later"))
             next().click(); scene.frames()
             val name = scene.nodes().first { it.config.getOrNull(SemanticsProperties.TestTag) == "wizard-name" }
             name.assertFullyVisible(400, "Wizard name")

@@ -737,6 +737,7 @@ private fun LauncherPanel(
 
     if (managerOpen) {
         if (wizardOpen) ProfileWizard(
+            vanillaOnly = vanillaWizardFromHome,
             preferredVersion = selected?.id ?: manifest.latestRelease,
             releases = manifest.versions.filter { it.type == MinecraftVersionType.RELEASE }.map { it.id },
             findCompatible = { id, game -> session.loaders?.compatibleGame(id, game,
