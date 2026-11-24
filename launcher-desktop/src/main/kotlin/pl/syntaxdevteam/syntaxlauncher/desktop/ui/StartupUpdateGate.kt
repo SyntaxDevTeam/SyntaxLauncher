@@ -123,7 +123,7 @@ internal fun StartupUpdateScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(18.dp)) {
                 Image(rememberBrandingPainter("branding/hero-mark.png"), strings.text("ui.syntaxlauncher_logo"), Modifier.size(112.dp))
-                Text("SyntaxLauncher", style = MaterialTheme.typography.headlineMedium)
+                Text("Syntax Launcher", style = MaterialTheme.typography.headlineMedium)
                 Text("v" + LauncherBuildInfo.version + (if (developerMode)
                     "   /   " + LauncherBuildInfo.buildLabel + "   /   " + LauncherBuildInfo.shortCommit else ""),
                     color = SyntaxBrand.cyan, style = MaterialTheme.typography.labelSmall)

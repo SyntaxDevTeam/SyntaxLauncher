@@ -145,7 +145,7 @@ fun main(args: Array<String>) {
         val closeLauncher = { session.close { exitApplication() } }
         Window(
             onCloseRequest = closeLauncher,
-            title = "SyntaxLauncher · v" + LauncherBuildInfo.version +
+            title = "Syntax Launcher · v" + LauncherBuildInfo.version +
                 (if (developerModeAtStartup) " · " + LauncherBuildInfo.buildLabel else ""),
             icon = rememberBrandingPainter("branding/syntaxlauncher-icon.png"),
             state = windowState,

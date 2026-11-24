@@ -5,6 +5,7 @@ import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.LocalStrings
 import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.UiStrings
 import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.UiLanguage
 import androidx.compose.ui.ImageComposeScene
+import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -59,6 +60,12 @@ class LauncherHomeRenderTest {
         try {
             scene.awaitReady()
             assertNotNull(scene.text("SyntaxPlayer · Microsoft"))
+            assertNotNull(scene.text("Syntax Launcher"))
+            val playButton = scene.nodes().first { it.config.getOrNull(SemanticsProperties.TestTag) == "launch-play" }
+            scene.screenshot("play-idle")
+            scene.sendPointerEvent(PointerEventType.Move, playButton.boundsInRoot.center)
+            scene.frames()
+            scene.screenshot("play-hover")
             assertFalse(scene.text("PLAY MINECRAFT").config.contains(SemanticsProperties.Disabled))
             assertTrue(scene.nodes().none { it.label().contains("Offline / non-premium") })
         } finally { scene.close(); session.shutdown() }
@@ -73,7 +80,7 @@ class LauncherHomeRenderTest {
             scene.text("Manage players").click()
             scene.frames()
             assertTrue(scene.nodes().none { it.label() == "Add offline player" })
-            assertNotNull(scene.text("Add Microsoft"))
+            assertNotNull(scene.text("Add Mojang/Microsoft account"))
             assertTrue(scene.text("PLAY MINECRAFT").config.contains(SemanticsProperties.Disabled))
         } finally { scene.close(); session.shutdown() }
     }
@@ -82,9 +89,19 @@ class LauncherHomeRenderTest {
     fun instanceDropdownSwitchesProfileWithoutOpeningManager() = runBlocking(Dispatchers.Swing) {
         val session = session()
         session.instances.create("Survival", "26.3", maximumMemoryMiB = 4096)
+        session.instances.create("Quilt world", "26.3", loader = ModLoaderSelection("quilt", "0.28.0"))
         val scene = ImageComposeScene(1440, 810, coroutineContext = Dispatchers.Swing) { SyntaxLauncherApp(session) }
         try {
             scene.awaitReady()
+            scene.text("My Vanilla game").click()
+            scene.frames()
+            assertNotNull(scene.text("Add a new profile"))
+            assertTrue(scene.nodes().none { it.label().startsWith("Quilt world · ") })
+            scene.text("Add a new profile").click()
+            scene.frames()
+            assertTrue(scene.nodes().any { it.config.getOrNull(SemanticsProperties.TestTag) == "profile-wizard" })
+            scene.text("Cancel").click()
+            scene.frames()
             scene.text("My Vanilla game").click()
             scene.frames()
             scene.nodes().first { it.label().startsWith("Survival · ") }.click()
@@ -92,6 +109,13 @@ class LauncherHomeRenderTest {
             assertNotNull(scene.text("SURVIVAL"))
             assertTrue(scene.nodes().none { it.label() == "MEMORY ALLOCATION" })
             assertTrue(scene.text("PLAY MINECRAFT").boundsInRoot.bottom < 810)
+            scene.text("With mods").click()
+            scene.frames()
+            scene.text("Quilt world").click()
+            scene.frames()
+            assertNotNull(scene.text("Add a new profile"))
+            assertTrue(scene.nodes().any { it.label().startsWith("Quilt world · ") })
+            assertTrue(scene.nodes().none { it.label().startsWith("Survival · ") || it.label() == "My Vanilla game" })
         } finally { scene.close(); session.shutdown() }
     }
 
@@ -225,16 +249,23 @@ class LauncherHomeRenderTest {
     }
 
     @Test
-    fun withModsOffersSetupAndCancelKeepsOriginalVanillaSelection() = runBlocking(Dispatchers.Swing) {
+    fun emptyModdedListOffersCreationWithoutChangingVanillaSelection() = runBlocking(Dispatchers.Swing) {
         val session = session()
         val scene = ImageComposeScene(1440, 810, coroutineContext = Dispatchers.Swing) { SyntaxLauncherApp(session) }
         try {
             scene.awaitReady()
             scene.text("With mods").click()
             scene.frames()
+            assertTrue(scene.text("PLAY MINECRAFT").config.contains(SemanticsProperties.Disabled))
+            scene.nodes().first { it.config.getOrNull(SemanticsProperties.TestTag) == "home-profile-selector" }.click()
+            scene.frames()
+            assertTrue(scene.nodes().none { it.label() == "My Vanilla game" })
+            scene.text("Add a new profile").click()
+            scene.frames()
             assertNotNull(scene.text("Let’s play with mods"))
-            assertTrue(session.instances.list().instances.isEmpty())
             scene.text("Cancel").click()
+            scene.frames()
+            scene.text("Vanilla").click()
             scene.frames()
             assertNotNull(scene.text("My Vanilla game"))
             assertTrue(session.instances.list().instances.isEmpty())

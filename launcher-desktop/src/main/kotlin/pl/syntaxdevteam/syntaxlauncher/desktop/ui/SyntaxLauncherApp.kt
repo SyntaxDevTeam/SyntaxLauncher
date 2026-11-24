@@ -59,6 +59,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -85,6 +88,8 @@ import pl.syntaxdevteam.syntaxlauncher.core.minecraft.ResolvedMinecraftVersion
 import pl.syntaxdevteam.syntaxlauncher.desktop.DesktopLauncherSession
 import pl.syntaxdevteam.syntaxlauncher.desktop.LauncherBuildInfo
 import pl.syntaxdevteam.syntaxlauncher.core.storage.LauncherPreferences
+
+private val supportedModLoaders = setOf("fabric", "quilt", "neoforge", "forge")
 
 private sealed interface ManifestState {
     data object Loading : ManifestState
@@ -166,21 +171,17 @@ fun SyntaxLauncherApp(
                 ) {
                     Image(
                         painter = rememberBrandingPainter("branding/syntaxlauncher-icon.png"),
-                        contentDescription = "SyntaxLauncher",
+                        contentDescription = if (tinyShell) "Syntax Launcher" else null,
                         modifier = Modifier.size(if (compactShell) 44.dp else 64.dp),
                     )
-                    if (!tinyShell) Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            "SYNTAX", color = MaterialTheme.colorScheme.onBackground,
-                            fontWeight = FontWeight.Black,
-                            style = MaterialTheme.typography.titleLarge,
-                            letterSpacing = 0.5.sp,
-                        )
-                        Text(
-                            "L A U N C H E R", color = MaterialTheme.colorScheme.primary,
-                            style = MaterialTheme.typography.labelSmall,
-                        )
-                    }
+                    if (!tinyShell) Text(
+                        "Syntax Launcher",
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontWeight = FontWeight.Black,
+                        style = if (compactShell) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleLarge,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
                 if (!compactShell) Spacer(Modifier.weight(1f))
                 if (!compactShell) Row(
@@ -350,6 +351,7 @@ private fun LauncherPanel(
     var instanceId by remember { mutableStateOf(saved.selectedInstanceId) }
     var managerOpen by remember { mutableStateOf(false) }
     var wizardOpen by remember { mutableStateOf(false) }
+    var vanillaWizardFromHome by remember { mutableStateOf(false) }
     var profileContents by remember { mutableStateOf<pl.syntaxdevteam.syntaxlauncher.desktop.ProfileContents?>(null) }
     var contentsLoading by remember { mutableStateOf(false) }
     var contentsRevision by remember { mutableIntStateOf(0) }
@@ -360,6 +362,7 @@ private fun LauncherPanel(
     var browsingModpacks by remember { mutableStateOf(false) }
     var browseModsFirst by remember { mutableStateOf(false) }
     var quickSetupOpen by remember { mutableStateOf(false) }
+    var emptyModdedMode by remember { mutableStateOf(false) }
     var lastVanillaId by remember { mutableStateOf("") }
     var lastModdedId by remember { mutableStateOf(saved.selectedInstanceId) }
     var modsBusy by remember { mutableStateOf(false) }
@@ -368,17 +371,20 @@ private fun LauncherPanel(
     var copyJob by remember { mutableStateOf<Job?>(null) }
     LaunchedEffect(instanceOpenRequest) {
         managerOpen = instanceOpenRequest > 0
-        if (instanceOpenRequest < 0) { editingInstance = null; copyPreview = null; wizardOpen = false; managingMods = null }
+        if (instanceOpenRequest < 0) { vanillaWizardFromHome = false; editingInstance = null; copyPreview = null; wizardOpen = false; managingMods = null }
     }
     var mutationBusy by remember { mutableStateOf(false) }
     var instanceError by remember { mutableStateOf<String?>(null) }
     val activeInstance = inventory?.instances?.firstOrNull { it.id == instanceId }
-    val withMods = activeInstance?.loader?.id in setOf("fabric", "quilt", "neoforge", "forge")
+    val withMods = emptyModdedMode || activeInstance?.loader?.id in supportedModLoaders
+    val profilesForGameType = inventory?.instances.orEmpty().filter {
+        if (withMods) it.loader?.id in supportedModLoaders else it.loader == null
+    }
     var localModWarnings by remember { mutableStateOf<List<String>>(emptyList()) }
     LaunchedEffect(activeInstance?.id, modsBusy) {
         localModWarnings = emptyList()
         val current = activeInstance
-        if (current != null && current.loader?.id in setOf("fabric", "quilt", "neoforge", "forge") && !modsBusy) {
+        if (current != null && current.loader?.id in supportedModLoaders && !modsBusy) {
             localModWarnings = try {
                 session.modManager.list(current.id).warnings
             } catch (cancelled: CancellationException) {
@@ -406,7 +412,7 @@ private fun LauncherPanel(
             activeInstance.maximumMemoryMiB != ramMiB.toInt())
     val missingInstance = inventory != null && instanceId.isNotBlank() && activeInstance == null
     val canPlay = !locked && validName && resolved != null &&
-        !unsavedInstanceSettings && !missingInstance
+        !unsavedInstanceSettings && !missingInstance && !emptyModdedMode
 
     LaunchedEffect(session) {
         try {
@@ -430,6 +436,7 @@ private fun LauncherPanel(
     if (lastHealthOpen) MinecraftDiagnosticsDialog(session) { lastHealthOpen = false }
 
     fun chooseInstance(id: String) {
+        emptyModdedMode = false
         if (instanceId.isBlank()) {
             legacyVersionId = selected?.id.orEmpty()
             legacyRamMiB = ramMiB
@@ -438,7 +445,7 @@ private fun LauncherPanel(
         instanceId = id
         val target = inventory?.instances?.firstOrNull { it.id == id }
         if (id.isBlank() || target?.loader == null) lastVanillaId = id
-        else if (target.loader?.id in setOf("fabric", "quilt", "neoforge", "forge")) lastModdedId = id
+        else if (target.loader?.id in supportedModLoaders) lastModdedId = id
         if (id.isBlank()) {
             selected = manifest.versions.firstOrNull { it.id == legacyVersionId }
                 ?: manifest.versions.firstOrNull {
@@ -457,7 +464,7 @@ private fun LauncherPanel(
 
     fun selectVanillaMode() {
         if (locked || inventory == null || !withMods) return
-        lastModdedId = instanceId
+        if (!emptyModdedMode) lastModdedId = instanceId
         val previous = inventory?.instances?.firstOrNull { it.id == lastVanillaId && it.loader == null }
         chooseInstance(previous?.id.orEmpty())
     }
@@ -465,11 +472,12 @@ private fun LauncherPanel(
     fun selectModdedMode() {
         if (locked || inventory == null || withMods) return
         lastVanillaId = instanceId
-        val profiles = inventory?.instances.orEmpty().filter { it.loader?.id in setOf("fabric", "quilt", "neoforge", "forge") }
+        val profiles = inventory?.instances.orEmpty().filter { it.loader?.id in supportedModLoaders }
         val existing = profiles.firstOrNull { it.id == lastModdedId }
             ?: profiles.firstOrNull { it.minecraftVersionId == selected?.id }
             ?: profiles.firstOrNull()
-        if (existing != null) chooseInstance(existing.id) else quickSetupOpen = true
+        if (existing != null) chooseInstance(existing.id)
+        else emptyModdedMode = true
     }
 
     fun modifyInstance(action: suspend () -> MinecraftInstance?): Job? {
@@ -743,9 +751,19 @@ private fun LauncherPanel(
                 val previous = inventory ?: InstanceInventory(emptyList(), emptyList())
                 inventory = previous.copy(instances = (previous.instances + created).sortedBy { it.name.lowercase() })
                 chooseInstance(created.id); wizardOpen = false; contentsRevision++
+                if (vanillaWizardFromHome) {
+                    vanillaWizardFromHome = false
+                    managerOpen = false
+                }
                 if (extras) { browseModsFirst = true; managingMods = created }
             },
-            onBusyChange = { mutationBusy = it }, onCancel = { wizardOpen = false })
+            onBusyChange = { mutationBusy = it }, onCancel = {
+                wizardOpen = false
+                if (vanillaWizardFromHome) {
+                    vanillaWizardFromHome = false
+                    managerOpen = false
+                }
+            })
         else if (managingMods != null && browseModsFirst) ContentCatalogPanel(requireNotNull(managingMods), session,
             canModify = !isRunning && !launch.isPreparing && !mutationBusy,
             onBusyChange = { modsBusy = it }, onManage = { browseModsFirst = false },
@@ -822,7 +840,7 @@ private fun LauncherPanel(
             modifier = columnModifier,
             verticalArrangement = Arrangement.spacedBy(SyntaxBrand.panelGap),
         ) {
-            LauncherHero(selected?.id, activeInstance?.name, showSnapshots,
+            LauncherHero(selected?.id, activeInstance?.name?.takeUnless { emptyModdedMode }, showSnapshots,
                 Modifier.weight(1f).fillMaxWidth(), modded = withMods)
             Column(
                 modifier = Modifier.fillMaxWidth()
@@ -844,6 +862,7 @@ private fun LauncherPanel(
                                 launch.isPreparing -> strings.text("ui.getting_everything_ready")
                                 launch.phase == LaunchPhase.FAILED -> strings.text("ui.preparation_needs_attention")
                                 process.state == MinecraftProcessState.CRASHED -> strings.text("ui.minecraft_closed_unexpectedly")
+                                emptyModdedMode -> strings.text("profiles.empty_modded")
                                 selectedPlayer == null -> strings.text("players.choose")
                                 else -> strings.text("ui.ready_when_you_are")
                             },
@@ -901,43 +920,46 @@ private fun LauncherPanel(
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-                Button(
+                val playShape = RoundedCornerShape(14.dp)
+                val playContentColor = if (canPlay) MaterialTheme.colorScheme.onPrimary
+                    else SyntaxBrand.heroMuted.copy(alpha = 0.55f)
+                Surface(
                     onClick = { resolved?.let {
                         session.play(it, ramMiB.toInt(), activeInstance,
                             premiumId = selectedPremium?.uuid?.toString())
                     } },
                     enabled = canPlay,
                     modifier = Modifier.fillMaxWidth().height(62.dp).testTag("launch-play")
+                        .semantics { role = Role.Button }
+                        .clip(playShape)
                         .background(Brush.horizontalGradient(
                             if (canPlay) listOf(SyntaxBrand.playStart, SyntaxBrand.blue)
                             else listOf(SyntaxBrand.field, SyntaxBrand.field),
-                        ), RoundedCornerShape(14.dp))
-                        .border(1.dp, if (canPlay) SyntaxBrand.playBorder else SyntaxBrand.fieldBorder,
-                            RoundedCornerShape(14.dp)),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Transparent,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                        disabledContainerColor = Color.Transparent,
-                        disabledContentColor = SyntaxBrand.heroMuted.copy(alpha = 0.55f),
-                    ),
-                    shape = RoundedCornerShape(14.dp),
+                        )),
+                    color = Color.Transparent,
+                    contentColor = playContentColor,
+                    border = BorderStroke(1.dp, if (canPlay) SyntaxBrand.playBorder else SyntaxBrand.fieldBorder),
+                    shape = playShape,
                 ) {
-                    if (canPlay) {
-                        BrandIcon(SyntaxSymbol.Play, tint = MaterialTheme.colorScheme.onPrimary, size = 22.dp)
-                        Spacer(Modifier.width(24.dp))
+                    Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
+                        if (canPlay) {
+                            BrandIcon(SyntaxSymbol.Play, tint = MaterialTheme.colorScheme.onPrimary, size = 22.dp)
+                            Spacer(Modifier.width(12.dp))
+                        }
+                        Text(
+                            when {
+                                launch.isPreparing || preparingAccount -> strings.text("ui.preparing_minecraft")
+                                isRunning -> strings.text("ui.minecraft_is_running")
+                                else -> strings.text("ui.play_minecraft")
+                            },
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 2.8.sp,
+                            fontSize = 16.sp,
+                        )
                     }
-                    Text(
-                        when {
-                            launch.isPreparing || preparingAccount -> strings.text("ui.preparing_minecraft")
-                            isRunning -> strings.text("ui.minecraft_is_running")
-                            else -> strings.text("ui.play_minecraft")
-                        },
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 2.8.sp,
-                        fontSize = 16.sp,
-                    )
                 }
-                TextButton(onClick = { healthOpen = true }, enabled = resolved != null && !missingInstance,
+                TextButton(onClick = { healthOpen = true }, enabled = resolved != null && !missingInstance && !emptyModdedMode,
                     modifier = Modifier.fillMaxWidth().testTag("game-health")) {
                     Text(strings.text("health.title"))
                 }
@@ -1009,7 +1031,9 @@ private fun LauncherPanel(
             }
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 SectionLabel(strings.text("ui.game_version"), SyntaxSymbol.Cube)
-                if (activeInstance != null) {
+                if (emptyModdedMode) {
+                    selected?.let { Text("Minecraft " + it.id) }
+                } else if (activeInstance != null) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("Minecraft " + activeInstance.minecraftVersionId)
                     }
@@ -1084,28 +1108,43 @@ private fun LauncherPanel(
                         ::selectModdedMode, Modifier.weight(1f).testTag("game-style-modded"))
                 }
                 Box {
-                    SelectorButton(activeInstance?.name ?: if (missingInstance) strings.text("ui.unavailable_instance") else strings.text("game.vanilla_game"),
-                        onClick = { instanceMenuOpen = true }, enabled = !locked,
-                        symbol = SyntaxSymbol.Cube)
+                    val profileLabel = when {
+                        emptyModdedMode -> strings.text("profiles.empty_modded")
+                        activeInstance != null -> activeInstance.name
+                        missingInstance -> strings.text("ui.unavailable_instance")
+                        else -> strings.text("game.vanilla_game")
+                    }
+                    SelectorButton(profileLabel, onClick = { instanceMenuOpen = true },
+                        modifier = Modifier.testTag("home-profile-selector"),
+                        enabled = !locked && inventory != null, symbol = SyntaxSymbol.Cube)
                     DropdownMenu(expanded = instanceMenuOpen && !locked,
                         onDismissRequest = { instanceMenuOpen = false }) {
-                        DropdownMenuItem(text = { Text(strings.text("game.vanilla_game")) },
+                        if (!withMods) DropdownMenuItem(text = { Text(strings.text("game.vanilla_game")) },
                             onClick = { chooseInstance(""); instanceMenuOpen = false })
-                        inventory?.instances.orEmpty().forEach { profile ->
+                        profilesForGameType.forEach { profile ->
                             DropdownMenuItem(text = { Text(profile.name + " · " + profile.id.take(8)) },
                                 onClick = { chooseInstance(profile.id); instanceMenuOpen = false })
                         }
+                        DropdownMenuItem(text = { Text(strings.text("profiles.add_new")) }, onClick = {
+                            instanceMenuOpen = false
+                            if (withMods) quickSetupOpen = true
+                            else {
+                                vanillaWizardFromHome = true
+                                managerOpen = true
+                                wizardOpen = true
+                            }
+                        })
                     }
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically) {
-                    if (activeInstance != null) TextButton(onClick = {
+                    if (!emptyModdedMode && activeInstance != null) TextButton(onClick = {
                         browseModsFirst = true
                         managingMods = activeInstance
                     }, enabled = !locked, modifier = Modifier.weight(1f)) { Text(strings.text("catalog.open")) }
-                    else if (session.modpackCatalog == null) Text(strings.text("game.vanilla_hint"), style = MaterialTheme.typography.bodySmall,
+                    else if (!withMods && session.modpackCatalog == null) Text(strings.text("game.vanilla_hint"), style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-                    if (withMods && session.modpackCatalog != null) TextButton(onClick = { browsingModpacks = true },
+                    if (withMods && !emptyModdedMode && session.modpackCatalog != null) TextButton(onClick = { browsingModpacks = true },
                         enabled = !locked, modifier = Modifier.weight(1f).testTag("browse-modpacks")) { Text(strings.text("catalog.modpacks")) }
 
                 }
@@ -1114,14 +1153,14 @@ private fun LauncherPanel(
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall)
                 }
-                if (unsavedInstanceSettings) {
+                if (!emptyModdedMode && unsavedInstanceSettings) {
                     Text(strings.text("ui.instance_settings_differ_from_the_saved_profile_re_select_it_o"),
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall)
                 }
                 (processProtectionError ?: instanceError)?.let { Text(it, color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall) }
-                if (localModWarnings.isNotEmpty()) {
+                if (!emptyModdedMode && localModWarnings.isNotEmpty()) {
                     Text(strings.text("mods.attention", localModWarnings.size),
                         color = SyntaxBrand.warning, style = MaterialTheme.typography.bodySmall)
                     TextButton(onClick = {

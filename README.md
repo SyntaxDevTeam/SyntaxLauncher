@@ -1,11 +1,11 @@
 <div align="center">
-  <img src="launcher-desktop/src/main/resources/branding/syntaxlauncher-icon.png" alt="SyntaxLauncher" width="120">
-  <h1>SyntaxLauncher</h1>
+  <img src="launcher-desktop/src/main/resources/branding/syntaxlauncher-icon.png" alt="Syntax Launcher" width="120">
+  <h1>Syntax Launcher</h1>
   <p><strong>Pick your next Minecraft adventure and get straight to playing.</strong></p>
   <p><a href="#download">Download</a> · <a href="#quick-start">Quick start</a> · <a href="https://syntaxdevteam.pl/p/syntaxlauncher">Project website</a></p>
 </div>
 
-SyntaxLauncher brings Minecraft: Java Edition and its add-ons together in one desktop app. Start a classic survival world, try a Modrinth modpack, or give your game a new look with shaders and resource packs.
+**Syntax Launcher** brings Minecraft: Java Edition and its add-ons together in one desktop app. Start a classic survival world, try a Modrinth modpack, or give your game a new look with shaders and resource packs.
 
 - **Find something new to play.** Browse mods, modpacks, shaders and resource packs in the built-in catalog.
 - **Keep your worlds organized.** Create separate installations with their own saves, mods and settings.
@@ -24,7 +24,7 @@ Find portable builds in [Build Explorer](https://syntaxdevteam.pl/builds) and na
 
 ## Quick start
 
-1. Download the build for your system and open SyntaxLauncher.
+1. Download the build for your system and open Syntax Launcher.
 2. Pick a Minecraft version for a classic game, or open the catalog to find an add-on or modpack.
 3. Select **Play** to start your game once it's ready.
 

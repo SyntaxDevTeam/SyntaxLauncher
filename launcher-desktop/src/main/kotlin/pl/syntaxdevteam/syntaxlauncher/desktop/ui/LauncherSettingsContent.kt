@@ -32,7 +32,7 @@ internal fun LauncherSettingsContent(session: DesktopLauncherSession, memoryMiB:
     }
     Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("SyntaxLauncher " + LauncherBuildInfo.version +
+        Text("Syntax Launcher " + LauncherBuildInfo.version +
             (if (developerMode) " · " + LauncherBuildInfo.buildLabel + " / " + LauncherBuildInfo.shortCommit else ""),
             style = MaterialTheme.typography.labelSmall)
         memoryMiB?.let { memory ->
@@ -54,7 +54,6 @@ internal fun LauncherSettingsContent(session: DesktopLauncherSession, memoryMiB:
             save = { session.preferences.saveDeveloperMode(it) },
             onSaved = { developerMode = it; onDeveloperModeChanged(it) },
         )
-        Text(strings.text("settings.account_pending"), style = MaterialTheme.typography.bodySmall)
         TextButton(onClick = {
             scope.launch {
                 loading = true; failed = false
