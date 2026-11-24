@@ -364,6 +364,5 @@ jobs:
           merge-multiple: true
       - name: Publish complete portable build set
         env:
-          BUILD_EXPLORER_CHANNEL: ${{ needs.verify.outputs.build_channel }}
           BUILD_EXPLORER_TOKEN: ${{ secrets.BUILD_EXPLORER_TOKEN || secrets.BUILD_CI_TOKEN }}
         run: python3 scripts/publish_build_explorer.py

@@ -18,6 +18,7 @@ internal fun PlayerProfilesDialog(
     players: List<SavedAccount>, selectedId: String, microsoftEnabled: Boolean,
     onSelect: (SavedAccount) -> Unit,
     onAddMicrosoft: suspend () -> PremiumAccount,
+    onAddOffline: suspend (String) -> OfflineAccount,
     onRemove: suspend (String) -> Unit,
     onBusyChange: (Boolean) -> Unit,
     onDismiss: () -> Unit,
@@ -28,7 +29,7 @@ internal fun PlayerProfilesDialog(
         onDismissRequest = { if (!busy) onDismiss() },
         title = { Text(strings.text("players.manage")) },
         text = { PlayerProfilesContent(players, selectedId, microsoftEnabled, onSelect,
-            onAddMicrosoft, onRemove, { busy = it; onBusyChange(it) }) },
+            onAddMicrosoft, onAddOffline, onRemove, { busy = it; onBusyChange(it) }) },
         confirmButton = { TextButton(onClick = onDismiss, enabled = !busy) { Text(strings.text("players.done")) } },
     )
 }
@@ -38,6 +39,7 @@ internal fun PlayerProfilesContent(
     players: List<SavedAccount>, selectedId: String, microsoftEnabled: Boolean,
     onSelect: (SavedAccount) -> Unit,
     onAddMicrosoft: suspend () -> PremiumAccount,
+    onAddOffline: suspend (String) -> OfflineAccount,
     onRemove: suspend (String) -> Unit,
     onBusyChange: (Boolean) -> Unit = {},
 ) {
@@ -46,6 +48,8 @@ internal fun PlayerProfilesContent(
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var removingId by remember { mutableStateOf<String?>(null) }
+    var addingOffline by remember { mutableStateOf(false) }
+    var nickname by remember { mutableStateOf("") }
     fun perform(action: suspend () -> Unit) {
         busy = true
         error = null
@@ -59,15 +63,13 @@ internal fun PlayerProfilesContent(
     }
     Column(Modifier.fillMaxWidth().heightIn(max = 480.dp).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(strings.text("players.microsoft_hint"), style = MaterialTheme.typography.bodySmall)
-        if (players.none { it.microsoft }) Text(strings.text("players.empty"))
-        players.filter { it.microsoft }.forEach { player ->
+        if (players.isEmpty()) Text(strings.text("players.empty"))
+        players.forEach { player ->
             val id = player.account.uuid.toString()
             Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 OutlinedButton(onClick = { onSelect(player) }, enabled = !busy,
                     modifier = Modifier.fillMaxWidth().testTag("select-player-$id")) {
-                    Text(player.account.username + " · Microsoft" +
-                        if (selectedId == id) " ✓" else "")
+                    Text(player.displayName() + if (selectedId == id) " ✓" else "")
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     TextButton(onClick = { removingId = id }, enabled = !busy,
@@ -88,7 +90,39 @@ internal fun PlayerProfilesContent(
         if (microsoftEnabled) OutlinedButton(onClick = { perform {
             onSelect(SavedAccount(onAddMicrosoft(), true))
         } }, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text(strings.text("ui.add_microsoft")) }
+        if (addingOffline) {
+            OutlinedTextField(
+                value = nickname,
+                onValueChange = { nickname = it },
+                label = { Text(strings.text("players.nickname")) },
+                supportingText = { Text(strings.text("players.name_hint")) },
+                singleLine = true,
+                enabled = !busy,
+                modifier = Modifier.fillMaxWidth().testTag("offline-player-nickname"),
+            )
+            Row {
+                TextButton(
+                    onClick = { perform {
+                        onSelect(SavedAccount(onAddOffline(nickname.trim()), false))
+                        addingOffline = false
+                        nickname = ""
+                    } },
+                    enabled = !busy && OfflineAccount.isValidUsername(nickname.trim()),
+                ) { Text(strings.text("players.save")) }
+                TextButton(onClick = { addingOffline = false; nickname = ""; error = null }, enabled = !busy) {
+                    Text(strings.text("players.cancel"))
+                }
+            }
+        } else {
+            TextButton(
+                onClick = { addingOffline = true; error = null },
+                enabled = !busy,
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text(strings.text("players.add_offline")) }
+        }
         if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
         error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
     }
 }
+
+internal fun SavedAccount.displayName(): String = account.username + if (microsoft) " · Microsoft" else ""

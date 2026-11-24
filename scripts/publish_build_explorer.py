@@ -31,9 +31,7 @@ def prepare(directory, env, version_file=None):
         validate_git_ref(version, ref)
         channel = 'snapshot' if '-' in version.partition('+')[0] else 'release'
     elif ref == 'refs/heads/main':
-        channel = env.get('BUILD_EXPLORER_CHANNEL', 'dev')
-        if channel not in ('dev', 'snapshot'):
-            raise ValueError('Main branch publication requires a preview channel')
+        channel = 'snapshot'
     else:
         raise ValueError('Publication is restricted to main and version tags')
     timestamp = datetime.now(timezone.utc).isoformat()
@@ -93,12 +91,21 @@ def main():
             body, _, status = response.stdout.rpartition('\n')
             if status in ('401', '403'):
                 raise SystemExit(f'Build Explorer rejected the token for {platform} (HTTP {status}).')
-            if response.returncode != 0 or not status.startswith('2'):
-                raise SystemExit(f'Build Explorer upload failed for {platform} (HTTP {status or "unknown"}, curl {response.returncode}).')
             try:
                 result = json.loads(body)
             except json.JSONDecodeError:
-                raise SystemExit(f'Build Explorer returned invalid JSON for {platform}.') from None
+                result = None
+            if response.returncode != 0 or not status.startswith('2'):
+                message = f'Build Explorer upload failed for {platform} (HTTP {status or "unknown"}, curl {response.returncode}).'
+                if isinstance(result, dict):
+                    for field in ('error', 'message', 'detail'):
+                        detail = result.get(field)
+                        if isinstance(detail, str) and detail.strip():
+                            detail = detail.replace(token, '[REDACTED]')
+                            detail = ' '.join(''.join(c if c.isprintable() else ' ' for c in detail).split())
+                            message += f' Server response: {detail[:400]}'
+                            break
+                raise SystemExit(message)
             if not isinstance(result, dict) or result.get('status') != 'ok' or result.get('platform') != platform:
                 raise SystemExit(f'Build Explorer did not confirm publication for {platform}.')
             print(f"Published {platform}: release {result['release_id']}, artifact {result['artifact_id']}")

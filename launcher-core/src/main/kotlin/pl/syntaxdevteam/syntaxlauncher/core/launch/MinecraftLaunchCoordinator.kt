@@ -81,12 +81,7 @@ class MinecraftLaunchCoordinator(
             evidence = pl.syntaxdevteam.syntaxlauncher.core.diagnostics.LaunchEvidence(
                 version.id, loader?.let { "${it.id}/${it.version}" }, version.javaRequirement?.majorVersion)
             preparedMetadata = null
-            val validAuthentication = account is pl.syntaxdevteam.syntaxlauncher.core.account.PremiumAccount &&
-                authentication.userType == "msa" && authentication.accessToken.isNotBlank() &&
-                authentication.accessToken != "0" && authentication.clientId.isNotBlank() &&
-                authentication.sessionId.isNotBlank() &&
-                authentication.expiresAt.isAfter(java.time.Instant.now())
-            if (!validAuthentication) {
+            if (!authentication.isValidFor(account, java.time.Instant.now())) {
                 throw InvalidPlayerAuthenticationException()
             }
             val (prepared, runtime) = prepareShared(version, instanceLayout, loader)

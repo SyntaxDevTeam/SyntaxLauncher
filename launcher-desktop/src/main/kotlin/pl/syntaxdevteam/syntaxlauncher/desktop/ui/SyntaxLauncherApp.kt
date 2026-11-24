@@ -301,7 +301,7 @@ private fun LauncherPanel(
     var selectedPlayerId by remember { mutableStateOf(saved.selectedPlayerId) }
     var playerManagerOpen by remember { mutableStateOf(false) }
     var playerMenuOpen by remember { mutableStateOf(false) }
-    var signingInPremium by remember { mutableStateOf(false) }
+    var managingPlayers by remember { mutableStateOf(false) }
     var loadingAccounts by remember { mutableStateOf(true) }
     var accountReload by remember { mutableIntStateOf(0) }
     var premiumError by remember { mutableStateOf<String?>(null) }
@@ -324,7 +324,6 @@ private fun LauncherPanel(
         }
     }
     val selectedPlayer = savedPlayers.firstOrNull { it.account.uuid.toString() == selectedPlayerId }
-    val selectedPremium = selectedPlayer?.takeIf { it.microsoft }?.account
     fun selectPlayer(player: pl.syntaxdevteam.syntaxlauncher.core.account.SavedAccount) {
         selectedPlayerId = player.account.uuid.toString()
     }
@@ -403,15 +402,14 @@ private fun LauncherPanel(
 
     val isRunning = process.state == MinecraftProcessState.RUNNING ||
         process.state == MinecraftProcessState.STARTING
-    val locked = isRunning || launch.isPreparing || mutationBusy || modsBusy || signingInPremium || loadingAccounts || preparingAccount
-    val validName = selectedPremium != null
+    val locked = isRunning || launch.isPreparing || mutationBusy || modsBusy || managingPlayers || loadingAccounts || preparingAccount
     val resolved = (metadata as? VersionMetadataState.Ready)?.metadata
         ?.takeIf { it.id == selected?.id }
     val unsavedInstanceSettings = activeInstance != null &&
         (activeInstance.minecraftVersionId != selected?.id ||
             activeInstance.maximumMemoryMiB != ramMiB.toInt())
     val missingInstance = inventory != null && instanceId.isNotBlank() && activeInstance == null
-    val canPlay = !locked && validName && resolved != null &&
+    val canPlay = !locked && selectedPlayer != null && resolved != null &&
         !unsavedInstanceSettings && !missingInstance && !emptyModdedMode
 
     LaunchedEffect(session) {
@@ -707,11 +705,12 @@ private fun LauncherPanel(
             players = savedPlayers, selectedId = selectedPlayerId, microsoftEnabled = session.microsoftEnabled,
             onSelect = ::selectPlayer,
             onAddMicrosoft = { session.addPremiumAccount() },
+            onAddOffline = { session.addOfflineAccount(it) },
             onRemove = { id ->
                 session.removePlayerAccount(id)
                 if (selectedPlayerId == id) { selectedPlayerId = ""; nickname = "" }
             },
-            onBusyChange = { signingInPremium = it },
+            onBusyChange = { managingPlayers = it },
             onDismiss = { playerManagerOpen = false },
         )
     }
@@ -891,8 +890,8 @@ private fun LauncherPanel(
                             launch.isPreparing -> strings.text("state.preparing")
                             launch.phase == LaunchPhase.FAILED ||
                                 process.state == MinecraftProcessState.CRASHED -> strings.text("state.error")
-                            selectedPremium != null -> "MICROSOFT"
-                            selectedPlayer != null -> "MICROSOFT"
+                            selectedPlayer?.microsoft == true -> "MICROSOFT"
+                            selectedPlayer != null -> selectedPlayer.account.username
                             else -> strings.text("players.choose")
                         },
                         when {
@@ -926,7 +925,7 @@ private fun LauncherPanel(
                 Surface(
                     onClick = { resolved?.let {
                         session.play(it, ramMiB.toInt(), activeInstance,
-                            premiumId = selectedPremium?.uuid?.toString())
+                            premiumId = selectedPlayer?.account?.uuid?.toString())
                     } },
                     enabled = canPlay,
                     modifier = Modifier.fillMaxWidth().height(62.dp).testTag("launch-play")
@@ -1000,15 +999,12 @@ private fun LauncherPanel(
                     }
                 }
                 Box {
-                    SelectorButton(selectedPlayer?.let {
-                        it.account.username + " · Microsoft"
-                    } ?: strings.text("players.choose"), onClick = { playerMenuOpen = true }, enabled = !locked,
+                    SelectorButton(selectedPlayer?.displayName() ?: strings.text("players.choose"), onClick = { playerMenuOpen = true }, enabled = !locked,
                         symbol = SyntaxSymbol.Player)
                     DropdownMenu(expanded = playerMenuOpen && !locked,
                         onDismissRequest = { playerMenuOpen = false }) {
-                        savedPlayers.filter { it.microsoft }.forEach { player ->
-                            DropdownMenuItem(text = { Text(player.account.username + " · " +
-                                "Microsoft") },
+                        savedPlayers.forEach { player ->
+                            DropdownMenuItem(text = { Text(player.displayName()) },
                                 onClick = { selectPlayer(player); playerMenuOpen = false })
                         }
                         DropdownMenuItem(text = { Text(strings.text("players.manage")) },
@@ -1019,8 +1015,6 @@ private fun LauncherPanel(
                     modifier = Modifier.fillMaxWidth().testTag("manage-players")) {
                     Text(strings.text("players.manage"))
                 }
-                Text(strings.text("players.microsoft_hint"),
-                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 premiumError?.let {
                     Text(it, style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error)
@@ -1175,8 +1169,11 @@ private fun LauncherPanel(
                     MinecraftProcessState.RUNNING -> strings.text("ui.running_pid_0", process.pid ?: "?")
                     MinecraftProcessState.STOPPED -> strings.text("ui.last_exit_code_0", process.exitCode ?: "?")
                     MinecraftProcessState.CRASHED -> process.errorMessage ?: strings.text("ui.minecraft_crashed")
-                    else -> if (selectedPremium != null) strings.text("ui.microsoft_account") + selectedPremium.username
-                        else strings.text("players.choose")
+                    else -> when {
+                        selectedPlayer?.microsoft == true -> strings.text("ui.microsoft_account") + selectedPlayer.account.username
+                        selectedPlayer != null -> selectedPlayer.account.username
+                        else -> strings.text("players.choose")
+                    }
                 },
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall,

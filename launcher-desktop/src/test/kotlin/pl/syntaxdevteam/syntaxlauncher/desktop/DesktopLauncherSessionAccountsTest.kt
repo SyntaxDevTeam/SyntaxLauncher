@@ -31,7 +31,11 @@ class DesktopLauncherSessionAccountsTest {
         override fun remove(key: String) { check(!locked) { "Unlock credential store." }; tokens.remove(key) }
     }
 
-    private inner class Fixture(val root: Path = Files.createTempDirectory("desktop-accounts-"), val vault: Vault = Vault()) {
+    private inner class Fixture(
+        val root: Path = Files.createTempDirectory("desktop-accounts-"),
+        val vault: Vault = Vault(),
+        microsoftEnabled: Boolean = true,
+    ) {
         val file = root.resolve("accounts.properties")
         var refresh: suspend (String) -> PremiumSession = { premium("PlayerNew") }
         val provider = object : MicrosoftSignInService {
@@ -61,7 +65,7 @@ class DesktopLauncherSessionAccountsTest {
         val session = DesktopLauncherSession(MinecraftVersionCatalog(http), MinecraftVersionResolver(http), coordinator,
             processes, LauncherPreferencesStore(root.resolve("settings.properties")),
             MinecraftInstanceRepository(root.resolve("instances"), root.resolve("trash"), layout), layout, http,
-            microsoftSignIn = provider, accounts = store)
+            microsoftSignIn = provider.takeIf { microsoftEnabled }, accounts = store)
         val version = ResolvedMinecraftVersion("fixture", MinecraftVersionType.RELEASE, "test.Main", null, null,
             MinecraftArtifact(sha1 = MessageDigest.getInstance("SHA-1").digest(bytes).joinToString("") { "%02x".format(it) },
                 size = bytes.size.toLong(), url = "https://fixture.invalid/client.jar"), emptyList(),
@@ -186,13 +190,13 @@ class DesktopLauncherSessionAccountsTest {
         } finally { f.close() }
     }
 
-    @Test fun playWithoutMicrosoftAccountIsBlocked() = runBlocking {
+    @Test fun playWithoutSelectedAccountIsBlocked() = runBlocking {
         val f = Fixture()
         try {
             f.vault.locked = true
             assertFalse(f.session.play(f.version, 2048))
             assertFalse(f.captured.isCompleted)
-            assertTrue(f.session.launchIssue.value.orEmpty().contains("Microsoft"))
+            assertEquals("Select a saved player profile first.", f.session.launchIssue.value)
         } finally { f.close() }
     }
 
@@ -201,30 +205,28 @@ class DesktopLauncherSessionAccountsTest {
         try {
             assertFalse(f.session.play(f.version, 2048, premiumId = id.toString()))
             assertFalse(f.captured.isCompleted)
-            assertTrue(f.session.launchIssue.value.orEmpty().contains("Microsoft"))
+            assertEquals("Select a saved player profile first.", f.session.launchIssue.value)
         } finally { f.close() }
     }
 
-    @Test fun historicalLocalProfilesStayOnDiskButCannotBeLaunched() = runBlocking {
-        val f = Fixture()
+    @Test fun offlinePlayerSurvivesRestartAndLaunchesWithoutMicrosoft() = runBlocking {
+        val first = Fixture()
+        val player = try {
+            first.vault.locked = true
+            first.session.addOfflineAccount(" ChildOne ")
+        } finally { first.close() }
+        val restarted = Fixture(first.root, first.vault, microsoftEnabled = false)
         try {
-            val legacy = OfflineAccount.create("ChildOne")
-            val p = java.util.Properties().apply {
-                setProperty("schema_version", "1")
-                setProperty("accounts", legacy.uuid.toString())
-                setProperty("${legacy.uuid}.name", legacy.username)
-                setProperty("${legacy.uuid}.type", "offline")
-            }
-            Files.newOutputStream(f.file).use { p.store(it, "fixture") }
-            val world = f.layout.gameDir.resolve("saves/world/level.dat")
-            Files.createDirectories(world.parent)
-            Files.writeString(world, "preserved")
-            f.session.loadAccounts()
-            assertTrue(f.session.savedAccounts.value.isEmpty())
-            assertFalse(f.session.play(f.version, 2048))
-            assertFalse(f.captured.isCompleted)
-            assertEquals("preserved", Files.readString(world))
-        } finally { f.close() }
+            assertEquals(OfflineAccount.create("ChildOne"), player)
+            restarted.session.loadAccounts()
+            assertEquals(listOf(SavedAccount(player, false)), restarted.session.savedAccounts.value)
+            assertTrue(restarted.session.premiumAccounts.value.isEmpty())
+            assertTrue(restarted.session.play(restarted.version, 2048, premiumId = player.uuid.toString()))
+            val plan = withTimeout(10000) { restarted.captured.await() }
+            restarted.awaitAccountPreparation()
+            assertEquals(listOf("--username", "ChildOne", "--userType", "legacy"), plan.gameArguments)
+            assertNull(restarted.session.launchIssue.value)
+        } finally { restarted.close() }
     }
 
 }

@@ -41,7 +41,7 @@ class AccountManagerTest {
         assertTrue(manager(vault).accounts().isEmpty())
     }
 
-    @Test fun legacyOfflineDataRemainsRecoverableButIsNotExposed() = runBlocking {
+    @Test fun legacyOfflineProfilesCanBeListedAndRemovedWithoutVaultAccess() = runBlocking {
         val vault = Vault()
         val service = manager(vault)
         val old = OfflineAccount.create("ChildOne")
@@ -54,13 +54,15 @@ class AccountManagerTest {
             setProperty("future_option", "keep")
         }
         Files.newOutputStream(file).use { props.store(it, "legacy fixture") }
-        assertTrue(service.accounts().isEmpty())
+        assertEquals(listOf(SavedAccount(old, false)), service.accounts())
         service.savePremium(session())
-        assertEquals(listOf(profile), service.accounts().map { it.account })
+        assertEquals(listOf(old, profile), service.accounts().map { it.account })
         assertTrue(Files.readString(file).contains("${old.uuid}.type=offline"))
         assertTrue(Files.readString(file).contains("future_option=keep"))
+        vault.locked = true
         service.remove(old.uuid.toString())
-        assertTrue(Files.readString(file).contains("${old.uuid}.type=offline"))
+        assertEquals(listOf(profile), service.accounts().map { it.account })
+        assertFalse(Files.readString(file).contains("${old.uuid}.type=offline"))
     }
 
     @Test fun rotationIsSavedAndMissingRotationRetainsOldCredential() = runBlocking {

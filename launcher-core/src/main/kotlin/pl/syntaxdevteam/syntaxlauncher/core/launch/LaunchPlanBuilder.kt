@@ -1,6 +1,5 @@
 package pl.syntaxdevteam.syntaxlauncher.core.launch
 
-import pl.syntaxdevteam.syntaxlauncher.core.account.PremiumAccount
 import pl.syntaxdevteam.syntaxlauncher.core.minecraft.MinecraftOperatingSystem
 import pl.syntaxdevteam.syntaxlauncher.core.minecraft.MinecraftVersionType
 
@@ -11,11 +10,8 @@ class LaunchPlanBuilder(
     private val clock: java.time.Clock = java.time.Clock.systemUTC(),
 ) {
     fun build(request: LaunchRequest): LaunchPlan {
-        require(request.account is PremiumAccount && request.authentication.userType == "msa" &&
-            request.authentication.accessToken.isNotBlank() && request.authentication.accessToken != "0" &&
-            request.authentication.clientId.isNotBlank() && request.authentication.sessionId.isNotBlank() &&
-            request.authentication.expiresAt.isAfter(java.time.Instant.now(clock))) {
-            "A verified Microsoft / Minecraft Java session is required."
+        require(request.authentication.isValidFor(request.account, clock.instant())) {
+            "The selected player profile has invalid authentication."
         }
         val prepared = request.prepared
         val version = prepared.version

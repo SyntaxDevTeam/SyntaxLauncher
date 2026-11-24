@@ -1,6 +1,9 @@
 package pl.syntaxdevteam.syntaxlauncher.core.launch
 
+import java.time.Instant
 import pl.syntaxdevteam.syntaxlauncher.core.account.Account
+import pl.syntaxdevteam.syntaxlauncher.core.account.OfflineAccount
+import pl.syntaxdevteam.syntaxlauncher.core.account.PremiumAccount
 import pl.syntaxdevteam.syntaxlauncher.core.java.JavaRuntime
 import pl.syntaxdevteam.syntaxlauncher.core.minecraft.MinecraftPlatform
 import pl.syntaxdevteam.syntaxlauncher.core.minecraft.PreparedMinecraftVersion
@@ -25,8 +28,24 @@ data class LaunchAuthentication(
     val userPropertiesJson: String = "{}",
     val clientId: String = "",
     val xuid: String = "",
-    val expiresAt: java.time.Instant,
+    val expiresAt: Instant,
 ) {
+    companion object {
+        fun offline(): LaunchAuthentication = LaunchAuthentication(
+            accessToken = "0",
+            sessionId = "0",
+            userType = "legacy",
+            expiresAt = Instant.MAX,
+        )
+    }
+
+    internal fun isValidFor(account: Account, now: Instant): Boolean = when (account) {
+        is OfflineAccount -> this == offline()
+        is PremiumAccount -> userType == "msa" && accessToken.isNotBlank() && accessToken != "0" &&
+            clientId.isNotBlank() && sessionId.isNotBlank() && expiresAt.isAfter(now)
+        else -> false
+    }
+
     override fun toString() = "LaunchAuthentication(type=" + userType + ", credentials=[REDACTED])"
 
 }

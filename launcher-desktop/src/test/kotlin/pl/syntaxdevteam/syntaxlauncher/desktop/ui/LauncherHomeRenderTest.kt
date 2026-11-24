@@ -71,7 +71,7 @@ class LauncherHomeRenderTest {
         } finally { scene.close(); session.shutdown() }
     }
 
-    @Test fun emptyPlayerManagerRequiresMicrosoftSignIn() = runBlocking(Dispatchers.Swing) {
+    @Test fun emptyPlayerManagerCanAddAndSelectOfflinePlayer() = runBlocking(Dispatchers.Swing) {
         val session = session(emptyPlayers = true)
         val scene = ImageComposeScene(1440, 810, coroutineContext = Dispatchers.Swing) { SyntaxLauncherApp(session) }
         try {
@@ -79,9 +79,25 @@ class LauncherHomeRenderTest {
             assertTrue(scene.text("PLAY MINECRAFT").config.contains(SemanticsProperties.Disabled))
             scene.text("Manage players").click()
             scene.frames()
-            assertTrue(scene.nodes().none { it.label() == "Add offline player" })
             assertNotNull(scene.text("Add Mojang/Microsoft account"))
-            assertTrue(scene.text("PLAY MINECRAFT").config.contains(SemanticsProperties.Disabled))
+            scene.text("Add offline account").click()
+            scene.frames()
+            assertTrue(scene.text("Save player").config.contains(SemanticsProperties.Disabled))
+            val nickname = scene.nodes().first {
+                it.config.getOrNull(SemanticsProperties.TestTag) == "offline-player-nickname"
+            }
+            assertTrue(nickname.config[SemanticsActions.SetText].action!!.invoke(AnnotatedString("LocalPlayer")))
+            scene.frames()
+            val savePlayer = scene.text("Save player")
+            assertFalse(savePlayer.config.contains(SemanticsProperties.Disabled))
+            savePlayer.click()
+            withTimeout(5000.milliseconds) {
+                while (scene.nodes().none { it.label() == "LocalPlayer ✓" }) scene.frames()
+            }
+            assertEquals("LocalPlayer", session.savedAccounts.value.single().account.username)
+            scene.text("Done").click()
+            scene.frames()
+            assertFalse(scene.text("PLAY MINECRAFT").config.contains(SemanticsProperties.Disabled))
         } finally { scene.close(); session.shutdown() }
     }
 

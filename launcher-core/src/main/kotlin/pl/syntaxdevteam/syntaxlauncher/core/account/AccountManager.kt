@@ -34,8 +34,13 @@ class AccountManager(
     private val sessions = mutableMapOf<String, PremiumSession>()
     private fun key(id: String) = "$applicationId/$id"
 
-    /** Legacy local-only identities stay on disk but are never selectable. */
-    suspend fun accounts(): List<SavedAccount> = io { decode(read()).filter { it.microsoft } }
+    suspend fun accounts(): List<SavedAccount> = io { decode(read()) }
+
+    suspend fun saveOffline(account: OfflineAccount) = io {
+        val properties = read()
+        put(properties, account, "offline")
+        save(properties)
+    }
 
     suspend fun savePremium(session: PremiumSession) = io {
         val properties = read()
@@ -43,7 +48,7 @@ class AccountManager(
         val token = session.microsoftRefreshToken
             ?: throw IllegalStateException("Microsoft did not grant offline access. Sign in again.")
         val id = session.account.uuid.toString()
-        put(properties, session.account)
+        put(properties, session.account, "microsoft")
         vault.write(key(id), token)
         save(properties)
         sessions[id] = session
@@ -64,7 +69,7 @@ class AccountManager(
         // Persist rotation before publishing the new session. Missing rotation retains the old token.
         vault.write(key(id), result.microsoftRefreshToken ?: credential)
         val properties = read()
-        put(properties, result.account)
+        put(properties, result.account, "microsoft")
         save(properties)
         sessions[id] = PremiumSession(result.account, result.minecraftToken, result.expiresAt,
             result.microsoftRefreshToken ?: credential)
@@ -73,7 +78,7 @@ class AccountManager(
 
     suspend fun remove(id: String) = io {
         val properties = read()
-        val account = decode(properties).firstOrNull { it.microsoft && it.account.uuid.toString() == id } ?: return@io
+        val account = decode(properties).firstOrNull { it.account.uuid.toString() == id } ?: return@io
         if (account.microsoft) vault.remove(key(id)) // Failure must not masquerade as successful sign-out.
         sessions.remove(id)
         val ids = ids(properties).filterNot { it == id }
@@ -115,11 +120,10 @@ class AccountManager(
         }
     }.also { check(it.map { entry -> entry.account.uuid }.distinct().size == it.size) }
 
-    private fun put(p: Properties, account: PremiumAccount) {
+    private fun put(p: Properties, account: Account, type: String) {
         decode(p)
         val id = account.uuid.toString()
         val existingType = p.getProperty("$id.type")
-        val type = "microsoft"
         check(existingType == null || existingType == type) { "Conflicting account identity." }
         p.setProperty("schema_version", "1")
         p.setProperty("accounts", (ids(p) + id).distinct().joinToString(","))

@@ -4,7 +4,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.semantics.*
 import java.util.UUID
-import java.time.Instant
 import kotlin.test.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -13,7 +12,7 @@ import pl.syntaxdevteam.syntaxlauncher.core.account.*
 import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.*
 
 class PlayerProfilesTest {
-    @Test fun managerOffersOnlyMicrosoftAccountsInAllLanguages() = runBlocking(Dispatchers.Swing) {
+    @Test fun managerListsBothPlayerTypesInAllLanguages() = runBlocking(Dispatchers.Swing) {
         val premium = PremiumAccount("JavaPlayer", UUID.fromString("12345678-1234-1234-1234-123456789abc"))
         val saved = listOf(SavedAccount(premium, true),
             SavedAccount(OfflineAccount.create("OldPlayer"), false))
@@ -26,6 +25,7 @@ class PlayerProfilesTest {
                             microsoftEnabled = true,
                             onSelect = {},
                             onAddMicrosoft = { PremiumAccount("NewPlayer", UUID.randomUUID()) },
+                            onAddOffline = OfflineAccount::create,
                             onRemove = {})
                     }
                 }
@@ -38,9 +38,8 @@ class PlayerProfilesTest {
                     .map { it.text }
                 assertTrue(texts.any { it.contains("JavaPlayer") })
                 assertTrue(texts.any { it.contains(strings.text("ui.add_microsoft")) })
-                assertFalse(texts.any { it.contains("OldPlayer") })
-                assertFalse(texts.any { it.contains("offline", ignoreCase = true) ||
-                    it.contains("non-premium", ignoreCase = true) })
+                assertTrue(texts.any { it == "OldPlayer" })
+                assertTrue(texts.any { it == strings.text("players.add_offline") })
             } finally { scene.close() }
         }
     }
