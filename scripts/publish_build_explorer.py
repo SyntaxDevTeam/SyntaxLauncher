@@ -73,23 +73,35 @@ def main():
         print(json.dumps([metadata for _, metadata in releases], indent=2))
         return
     token = os.environ.get('BUILD_EXPLORER_TOKEN', '')
-    if not re.fullmatch('[a-f0-9]{64}', token):
-        raise ValueError('BUILD_EXPLORER_TOKEN secret is missing or malformed')
+    if not token.strip():
+        raise SystemExit('Configure BUILD_EXPLORER_TOKEN or grant this repository access to BUILD_CI_TOKEN.')
+    if not token.isascii() or not token.isprintable() or token != token.strip():
+        raise SystemExit('Build Explorer token contains characters unsuitable for an HTTP header.')
     with tempfile.TemporaryDirectory(prefix='build-explorer-') as temporary:
         for path, metadata in releases:
+            platform = metadata['platform']
             metadata_file = Path(temporary) / 'metadata.json'
             metadata_file.write_text(json.dumps(metadata))
             response = subprocess.run([
-                'curl', '--config', '-', '--silent', '--show-error', '--fail-with-body',
+                'curl', '--header', '@-', '--silent', '--show-error', '--fail-with-body',
+                '--write-out', '\n%{http_code}',
                 '--proto', '=https', '--connect-timeout', '30', '--max-time', '600',
                 '--retry', '3', '--retry-delay', '5',
                 '--form', f'metadata=@{metadata_file};type=application/json',
                 '--form', f'artifact=@{path};type=application/gzip', ENDPOINT,
-            ], input=f'header = "X-Build-Token: {token}"\n', text=True, capture_output=True, check=True)
-            result = json.loads(response.stdout)
-            if result.get('status') != 'ok' or result.get('platform') != metadata['platform']:
-                raise ValueError('Build Explorer did not confirm publication')
-            print(f"Published {metadata['platform']}: release {result['release_id']}, artifact {result['artifact_id']}")
+            ], input=f'X-Build-Token: {token}\n', text=True, capture_output=True)
+            body, _, status = response.stdout.rpartition('\n')
+            if status in ('401', '403'):
+                raise SystemExit(f'Build Explorer rejected the token for {platform} (HTTP {status}).')
+            if response.returncode != 0 or not status.startswith('2'):
+                raise SystemExit(f'Build Explorer upload failed for {platform} (HTTP {status or "unknown"}, curl {response.returncode}).')
+            try:
+                result = json.loads(body)
+            except json.JSONDecodeError:
+                raise SystemExit(f'Build Explorer returned invalid JSON for {platform}.') from None
+            if not isinstance(result, dict) or result.get('status') != 'ok' or result.get('platform') != platform:
+                raise SystemExit(f'Build Explorer did not confirm publication for {platform}.')
+            print(f"Published {platform}: release {result['release_id']}, artifact {result['artifact_id']}")
 
 
 if __name__ == '__main__':
