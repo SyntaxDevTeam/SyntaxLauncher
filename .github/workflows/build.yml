@@ -75,8 +75,9 @@ jobs:
         run: |
           bash -n packaging/smoke-linux.sh
           bash -n packaging/smoke-macos.sh
+      # The updater uses run IDs because workflow run numbers restart in a recreated repository.
       - name: Compile and run tests
-        run: ./gradlew --no-daemon --stacktrace "-PlauncherBuildNumber=$GITHUB_RUN_NUMBER" "-PlauncherCommit=$GITHUB_SHA" "-PlauncherUpdateChannel=${{ steps.channel.outputs.build_channel }}" test build
+        run: ./gradlew --no-daemon --stacktrace "-PlauncherBuildNumber=$GITHUB_RUN_ID" "-PlauncherCommit=$GITHUB_SHA" "-PlauncherUpdateChannel=${{ steps.channel.outputs.build_channel }}" test build
       - name: Verify official NeoForge installer processors
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         timeout-minutes: 22
@@ -146,9 +147,9 @@ jobs:
         shell: bash
         run: |
           version="$(python3 scripts/launcher_version.py --github-ref "$GITHUB_REF")"
-          ./gradlew --no-daemon --stacktrace "-PlauncherBuildNumber=$GITHUB_RUN_NUMBER" "-PlauncherCommit=$GITHUB_SHA" "-PlauncherUpdateChannel=${{ needs.verify.outputs.build_channel }}" :launcher-desktop:createDistributable
+          ./gradlew --no-daemon --stacktrace "-PlauncherBuildNumber=$GITHUB_RUN_ID" "-PlauncherCommit=$GITHUB_SHA" "-PlauncherUpdateChannel=${{ needs.verify.outputs.build_channel }}" :launcher-desktop:createDistributable
           python scripts/package_update.py --source launcher-desktop/build/compose/binaries/main/app --platform "${{ matrix.artifact }}" --version "$version" --output "launcher-desktop/build/updates/syntaxlauncher-update-${{ matrix.artifact }}.zip"
-          ./gradlew --no-daemon --stacktrace "-PlauncherBuildNumber=$GITHUB_RUN_NUMBER" "-PlauncherCommit=$GITHUB_SHA" "-PlauncherUpdateChannel=${{ needs.verify.outputs.build_channel }}" "-PupdateBundle=build/updates/syntaxlauncher-update-${{ matrix.artifact }}.zip" :launcher-desktop:verifyUpdateBundle
+          ./gradlew --no-daemon --stacktrace "-PlauncherBuildNumber=$GITHUB_RUN_ID" "-PlauncherCommit=$GITHUB_SHA" "-PlauncherUpdateChannel=${{ needs.verify.outputs.build_channel }}" "-PupdateBundle=build/updates/syntaxlauncher-update-${{ matrix.artifact }}.zip" :launcher-desktop:verifyUpdateBundle
       - name: Verify portable Windows executable branding
         if: runner.os == 'Windows'
         shell: bash
@@ -299,6 +300,7 @@ jobs:
             test "$(cat existing-release.txt)" = true
           else
             gh release create "$RELEASE_TAG" --verify-tag --draft --generate-notes \
+              --notes "<!-- syntaxlauncher-build:$GITHUB_RUN_ID.$GITHUB_RUN_ATTEMPT -->" \
               --title "SyntaxLauncher $RELEASE_TAG"
           fi
           gh release upload "$RELEASE_TAG" release-assets/*.zip release-assets/*.tar.gz release-assets/*.msi release-assets/*.dmg release-assets/*.deb release-assets/*.rpm release-assets/*.AppImage release-assets/SHA256SUMS-installers.txt --clobber
@@ -341,7 +343,7 @@ jobs:
           PREVIEW_CHANNEL: ${{ needs.verify.outputs.preview_channel }}
         run: >-
           python3 scripts/publish_preview.py --channel "$PREVIEW_CHANNEL"
-          --run "$GITHUB_RUN_NUMBER" --attempt "$GITHUB_RUN_ATTEMPT"
+          --run "$GITHUB_RUN_ID" --attempt "$GITHUB_RUN_ATTEMPT"
           --commit "$GITHUB_SHA" --assets release-assets --installers
 
 
