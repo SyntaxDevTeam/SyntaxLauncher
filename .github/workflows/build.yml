@@ -21,25 +21,15 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
-  verify:
-    name: Test core and desktop
+  metadata:
+    name: Select version and update channel
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
     outputs:
       launcher_version: ${{ steps.channel.outputs.launcher_version }}
       preview_channel: ${{ steps.channel.outputs.preview_channel }}
       build_channel: ${{ steps.channel.outputs.build_channel }}
     steps:
       - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: |
-            21
-            25
-      - uses: gradle/actions/setup-gradle@v6
       - name: Validate the version and select the update channel
         id: channel
         shell: bash
@@ -75,37 +65,10 @@ jobs:
         run: |
           bash -n packaging/smoke-linux.sh
           bash -n packaging/smoke-macos.sh
-      # The updater uses run IDs because workflow run numbers restart in a recreated repository.
-      - name: Compile and run tests
-        run: ./gradlew --no-daemon --stacktrace "-PlauncherBuildNumber=$GITHUB_RUN_ID" "-PlauncherCommit=$GITHUB_SHA" "-PlauncherUpdateChannel=${{ steps.channel.outputs.build_channel }}" test build
-      - name: Verify official NeoForge installer processors
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        timeout-minutes: 22
-        env:
-          SYNTAXLAUNCHER_NEOFORGE_LIVE_SMOKE: "1"
-        run: ./gradlew --no-daemon --stacktrace :launcher-core:test --tests 'pl.syntaxdevteam.syntaxlauncher.core.loader.NeoForgeOfficialSmokeTest' --rerun-tasks
-      - name: Smoke-test official Forge V2 processor installation
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        timeout-minutes: 22
-        env:
-          SYNTAXLAUNCHER_FORGE_LIVE_SMOKE: "1"
-        run: ./gradlew --no-daemon --stacktrace :launcher-core:test --tests 'pl.syntaxdevteam.syntaxlauncher.core.loader.ForgeOfficialSmokeTest' --rerun-tasks
-      - name: Upload test evidence
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: syntaxlauncher-test-results
-          path: |
-            launcher-core/build/test-results/**
-            launcher-core/build/reports/tests/**
-            launcher-desktop/build/reports/**
-            launcher-desktop/build/test-results/**
-          if-no-files-found: ignore
-          retention-days: 14
 
   distributables:
     name: Application and installers (${{ matrix.os }})
-    needs: verify
+    needs: metadata
     runs-on: ${{ matrix.os }}
     timeout-minutes: 50
     strategy:
@@ -130,26 +93,51 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - name: Verify official managed Java on this platform
+      - name: Run tests and build the native app image
         shell: bash
-        timeout-minutes: 15
         env:
+          BUILD_CHANNEL: ${{ needs.metadata.outputs.build_channel }}
           SYNTAXLAUNCHER_JAVA_LIVE_SMOKE: "1"
-        run: ./gradlew --no-daemon --stacktrace :launcher-core:test --tests '*ManagedJavaOfficialSmokeTest' --rerun-tasks
+        run: |
+          if [[ "$RUNNER_OS" == Linux ]]; then
+            if [[ "$GITHUB_REF" == refs/heads/main && "$GITHUB_EVENT_NAME" == push ]]; then
+              export SYNTAXLAUNCHER_NEOFORGE_LIVE_SMOKE=1 SYNTAXLAUNCHER_FORGE_LIVE_SMOKE=1
+            fi
+            test_tasks=(build)
+          else
+            test_tasks=(:launcher-core:test --tests '*ManagedJavaOfficialSmokeTest')
+          fi
+          # The updater uses run IDs because run numbers restart in a recreated repository.
+          ./gradlew --no-daemon --stacktrace "-PlauncherBuildNumber=$GITHUB_RUN_ID" "-PlauncherCommit=$GITHUB_SHA" "-PlauncherUpdateChannel=$BUILD_CHANNEL" "${test_tasks[@]}" :launcher-desktop:createDistributable
+      - name: Upload test evidence
+        if: always() && runner.os == 'Linux'
+        uses: actions/upload-artifact@v7
+        with:
+          name: syntaxlauncher-test-results
+          overwrite: true
+          path: |
+            launcher-core/build/test-results/**
+            launcher-core/build/reports/tests/**
+            launcher-desktop/build/reports/**
+            launcher-desktop/build/test-results/**
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Upload managed Java acceptance
-        if: always()
+        if: always() && runner.os != 'Linux'
         uses: actions/upload-artifact@v7
         with:
           name: managed-java-${{ matrix.artifact }}
+          overwrite: true
           path: launcher-core/build/test-results/test
           if-no-files-found: warn
-      - name: Build runnable native app directory
+      - name: Package and verify the update bundle
         shell: bash
+        env:
+          LAUNCHER_VERSION: ${{ needs.metadata.outputs.launcher_version }}
+          BUILD_CHANNEL: ${{ needs.metadata.outputs.build_channel }}
         run: |
-          version="$(python3 scripts/launcher_version.py --github-ref "$GITHUB_REF")"
-          ./gradlew --no-daemon --stacktrace "-PlauncherBuildNumber=$GITHUB_RUN_ID" "-PlauncherCommit=$GITHUB_SHA" "-PlauncherUpdateChannel=${{ needs.verify.outputs.build_channel }}" :launcher-desktop:createDistributable
-          python scripts/package_update.py --source launcher-desktop/build/compose/binaries/main/app --platform "${{ matrix.artifact }}" --version "$version" --output "launcher-desktop/build/updates/syntaxlauncher-update-${{ matrix.artifact }}.zip"
-          ./gradlew --no-daemon --stacktrace "-PlauncherBuildNumber=$GITHUB_RUN_ID" "-PlauncherCommit=$GITHUB_SHA" "-PlauncherUpdateChannel=${{ needs.verify.outputs.build_channel }}" "-PupdateBundle=build/updates/syntaxlauncher-update-${{ matrix.artifact }}.zip" :launcher-desktop:verifyUpdateBundle
+          python scripts/package_update.py --source launcher-desktop/build/compose/binaries/main/app --platform "${{ matrix.artifact }}" --version "$LAUNCHER_VERSION" --output "launcher-desktop/build/updates/syntaxlauncher-update-${{ matrix.artifact }}.zip"
+          ./gradlew --no-daemon --stacktrace "-PlauncherBuildNumber=$GITHUB_RUN_ID" "-PlauncherCommit=$GITHUB_SHA" "-PlauncherUpdateChannel=$BUILD_CHANNEL" "-PupdateBundle=build/updates/syntaxlauncher-update-${{ matrix.artifact }}.zip" :launcher-desktop:verifyUpdateBundle
       - name: Verify portable Windows executable branding
         if: runner.os == 'Windows'
         shell: bash
@@ -200,6 +188,8 @@ jobs:
         with:
           name: native-installers-${{ matrix.artifact }}-${{ github.sha }}
           path: launcher-desktop/build/installers/*
+          compression-level: 0
+          overwrite: true
           if-no-files-found: error
           retention-days: 14
       - name: Upload installer evidence
@@ -207,6 +197,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: native-installer-evidence-${{ matrix.artifact }}-${{ github.sha }}
+          overwrite: true
           path: launcher-desktop/build/installer-evidence/
           if-no-files-found: ignore
           retention-days: 14
@@ -224,6 +215,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: syntaxlauncher-packaging-logs-${{ matrix.artifact }}-${{ github.sha }}
+          overwrite: true
           path: launcher-desktop/build/compose/logs/
           if-no-files-found: warn
           retention-days: 14
@@ -237,6 +229,8 @@ jobs:
         with:
           name: syntaxlauncher-portable-${{ matrix.artifact }}
           path: syntaxlauncher-${{ matrix.artifact }}.tar.gz
+          compression-level: 0
+          overwrite: true
           if-no-files-found: error
           retention-days: 14
 
@@ -245,13 +239,15 @@ jobs:
         with:
           name: syntaxlauncher-update-${{ matrix.artifact }}
           path: launcher-desktop/build/updates/*.zip
+          compression-level: 0
+          overwrite: true
           if-no-files-found: error
           retention-days: 14
 
   publish-release:
     name: Publish complete verified stable version
-    if: startsWith(github.ref, 'refs/tags/v') && needs.verify.outputs.build_channel == 'stable'
-    needs: [verify, distributables]
+    if: startsWith(github.ref, 'refs/tags/v') && needs.metadata.outputs.build_channel == 'stable'
+    needs: [metadata, distributables]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -282,7 +278,7 @@ jobs:
           # when the workflow GITHUB_TOKEN is denied by repository policy.
           GH_TOKEN: ${{ secrets.SYNTAXLAUNCHER_RELEASE_TOKEN || github.token }}
           GH_REPO: ${{ github.repository }}
-          RELEASE_TAG: v${{ needs.verify.outputs.launcher_version }}
+          RELEASE_TAG: v${{ needs.metadata.outputs.launcher_version }}
         shell: bash
         run: |
           set -euo pipefail
@@ -310,8 +306,8 @@ jobs:
 
   publish-preview:
     name: Publish verified DEV or SNAPSHOT channel
-    needs: [verify, distributables]
-    if: needs.verify.outputs.preview_channel != ''
+    needs: [metadata, distributables]
+    if: needs.metadata.outputs.preview_channel != ''
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -340,7 +336,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.SYNTAXLAUNCHER_RELEASE_TOKEN || github.token }}
           GH_REPO: ${{ github.repository }}
-          PREVIEW_CHANNEL: ${{ needs.verify.outputs.preview_channel }}
+          PREVIEW_CHANNEL: ${{ needs.metadata.outputs.preview_channel }}
         run: >-
           python3 scripts/publish_preview.py --channel "$PREVIEW_CHANNEL"
           --run "$GITHUB_RUN_ID" --attempt "$GITHUB_RUN_ATTEMPT"
@@ -349,20 +345,35 @@ jobs:
 
   publish-build-explorer:
     name: Publish all platforms to Build Explorer
-    needs: [verify, distributables]
+    needs: distributables
     if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     steps:
-      - uses: actions/checkout@v7
+      - name: Check whether Build Explorer is configured
+        id: build-explorer
+        shell: bash
+        env:
+          BUILD_EXPLORER_TOKEN: ${{ secrets.BUILD_CI_TOKEN }}
+        run: |
+          if [[ "$BUILD_EXPLORER_TOKEN" =~ [^[:space:]] ]]; then
+            echo 'enabled=true' >> "$GITHUB_OUTPUT"
+          else
+            echo '::warning::Build Explorer publication skipped because the BUILD_CI_TOKEN organization secret is unavailable.'
+            echo 'Build Explorer publication skipped. Check access to the BUILD_CI_TOKEN organization secret.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - if: steps.build-explorer.outputs.enabled == 'true'
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: actions/download-artifact@v8
+      - if: steps.build-explorer.outputs.enabled == 'true'
+        uses: actions/download-artifact@v8
         with:
           pattern: syntaxlauncher-portable-*
           path: dist
           merge-multiple: true
       - name: Publish complete portable build set
+        if: steps.build-explorer.outputs.enabled == 'true'
         env:
-          BUILD_EXPLORER_TOKEN: ${{ secrets.BUILD_EXPLORER_TOKEN }}
+          BUILD_EXPLORER_TOKEN: ${{ secrets.BUILD_CI_TOKEN }}
         run: python3 scripts/publish_build_explorer.py

@@ -23,12 +23,22 @@ Get-ChildItem $source -File -Recurse -Force | ForEach-Object {
     }
 }
 # A second build with the same numeric MSI version must not register a second product.
-python scripts/package_installers.py --image "$source" --platform windows-x64 --output launcher-desktop/build/installer-duplicate
-if ($LASTEXITCODE -ne 0) { throw 'Duplicate-version fixture build failed' }
-$duplicate = (Resolve-Path 'launcher-desktop/build/installer-duplicate/syntaxlauncher-windows-x64.msi').Path
-$p = Start-Process msiexec.exe -ArgumentList "/i `"$duplicate`" /qn /norestart /l*v `"$evidence/same-version.log`"" -Wait -PassThru
-if ($p.ExitCode -ne 1603 -or !(Select-String -Path "$evidence/same-version.log" -SimpleMatch 'Uninstall the previous preview of this version')) {
-    throw "Same-version duplicate was not blocked by the expected launch condition: $($p.ExitCode)"
+# The launch condition only needs a distinct MSI with the same product version.
+$fixture = Join-Path ([System.IO.Path]::GetTempPath()) ("syntaxlauncher-duplicate-" + [Guid]::NewGuid())
+try {
+    $image = Join-Path $fixture 'image'
+    $output = Join-Path $fixture 'installer'
+    New-Item -ItemType Directory -Force $image | Out-Null
+    Copy-Item "$source/SyntaxLauncher.exe" $image
+    python scripts/package_installers.py --image "$image" --platform windows-x64 --output "$output"
+    if ($LASTEXITCODE -ne 0) { throw 'Duplicate-version fixture build failed' }
+    $duplicate = Join-Path $output 'syntaxlauncher-windows-x64.msi'
+    $p = Start-Process msiexec.exe -ArgumentList "/i `"$duplicate`" /qn /norestart /l*v `"$evidence/same-version.log`"" -Wait -PassThru
+    if ($p.ExitCode -ne 1603 -or !(Select-String -Path "$evidence/same-version.log" -SimpleMatch 'Uninstall the previous preview of this version')) {
+        throw "Same-version duplicate was not blocked by the expected launch condition: $($p.ExitCode)"
+    }
+} finally {
+    Remove-Item $fixture -Recurse -Force -ErrorAction SilentlyContinue
 }
 Remove-Item "$app/SyntaxLauncher.exe"
 Invoke-Msi "/fa `"$msi`" /qn /norestart /l*v `"$evidence/repair.log`""

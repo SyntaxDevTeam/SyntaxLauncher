@@ -26,4 +26,15 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+    val liveSmoke = listOf(
+        "SYNTAXLAUNCHER_JAVA_LIVE_SMOKE",
+        "SYNTAXLAUNCHER_NEOFORGE_LIVE_SMOKE",
+        "SYNTAXLAUNCHER_FORGE_LIVE_SMOKE",
+        "SYNTAXLAUNCHER_MODPACK_LIVE_SMOKE",
+        "SYNTAXLAUNCHER_OPTIFINE_LIVE_SMOKE",
+        "SYNTAXLAUNCHER_UPDATE_LIVE_SMOKE",
+    ).any { providers.environmentVariable(it).orNull == "1" }
+    inputs.property("liveSmoke", liveSmoke)
+    outputs.upToDateWhen { !liveSmoke }
+    outputs.doNotCacheIf("Live smoke tests check external services") { liveSmoke }
 }
