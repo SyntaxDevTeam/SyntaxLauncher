@@ -186,14 +186,9 @@ def wix_source(image, version, output):
     package = add(root, 'Package', Name='SyntaxLauncher', Manufacturer='SyntaxDevTeam',
                   Version=native_version(version, 'windows-x64'), UpgradeCode=UPGRADE_CODE,
                   Scope='perUser', Language='1033', InstallerVersion='500')
+    # Several preview builds can share a three-part MSI version.
     add(package, 'MajorUpgrade', DowngradeErrorMessage='A newer SyntaxLauncher is already installed.',
-        Schedule='afterInstallInitialize')
-    upgrade = add(package, 'Upgrade', Id=UPGRADE_CODE)
-    add(upgrade, 'UpgradeVersion', Minimum=native_version(version, 'windows-x64'),
-        Maximum=native_version(version, 'windows-x64'), IncludeMinimum='yes', IncludeMaximum='yes',
-        OnlyDetect='yes', Property='SAMEVERSIONINSTALLED')
-    add(package, 'Launch', Condition='NOT SAMEVERSIONINSTALLED OR Installed',
-        Message='Uninstall the previous preview of this version before installing this build. Your games and settings will remain.')
+        AllowSameVersionUpgrades='yes', Schedule='afterInstallInitialize')
     # Native WiX supports LZX. Wine's MSZIP encoder can emit blocks larger than Windows accepts.
     add(package, 'MediaTemplate', EmbedCab='yes', CompressionLevel='medium' if os.name == 'nt' else 'none')
     add(package, 'Icon', Id='LauncherIcon', SourceFile=str(BRANDING / 'syntaxlauncher-icon.ico'))
