@@ -66,6 +66,8 @@ internal fun LauncherUpdateChannelPicker(store: LauncherPreferencesStore, enable
                 })
             }
         }
+        Text(strings.text("updates.build_channel", LauncherBuildInfo.updateChannel.label),
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(strings.text(if (changed) "updates.restart" else "updates.help"),
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         if (failed) {

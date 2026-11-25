@@ -26,6 +26,14 @@ class UiStrings(val language: UiLanguage) {
         }
     }
 
+    internal fun releaseNotes(version: String): List<String> {
+        val prefix = "launcher.changelog.notes.${version.substringBefore('+')}."
+        return bundles.getValue(UiLanguage.EN).keys
+            .mapNotNull { key -> key.removePrefix(prefix).toIntOrNull() }
+            .sorted()
+            .map { index -> text(prefix + index) }
+    }
+
     companion object {
         private val placeholder = Regex("\\{([0-9]+)}")
         internal val bundles: Map<UiLanguage, Map<String, String>> = UiLanguage.entries.associateWith { language ->

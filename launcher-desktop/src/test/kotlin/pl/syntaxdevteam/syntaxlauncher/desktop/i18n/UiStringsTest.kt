@@ -34,6 +34,19 @@ class UiStringsTest {
         assertEquals(UiLanguage.EN, UiLanguage.from("fr-FR"))
         assertEquals(UiLanguage.EN, UiLanguage.from(null))
     }
+    @Test fun releaseNotesFollowTheRunningVersionAndNeverReuseAnOlderVersionsNotes() {
+        for (language in UiLanguage.entries) {
+            val strings = UiStrings(language)
+            val first = strings.releaseNotes("0.11.0-R0.1-SNAPSHOT")
+            val next = strings.releaseNotes("0.11.1-R0.1-SNAPSHOT")
+            assertEquals(4, first.size)
+            assertEquals(2, next.size)
+            assertTrue(first.intersect(next.toSet()).isEmpty())
+            assertEquals(next, strings.releaseNotes("0.11.1-R0.1-SNAPSHOT+build.1"))
+            assertTrue(strings.releaseNotes("99.0.0").isEmpty())
+        }
+    }
+
     @Test fun microsoftAccountGuidanceNamesMicrosoft() {
         for ((language, bundle) in UiStrings.bundles) {
             for (key in listOf("account.sign_in_required", "health.cause.auth")) {

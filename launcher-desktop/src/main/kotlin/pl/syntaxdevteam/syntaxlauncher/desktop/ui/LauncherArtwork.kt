@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -46,14 +47,16 @@ internal fun LauncherHero(version: String?, profile: String?, snapshots: Boolean
     val strings = LocalStrings.current
     var changelogOpen by remember { mutableStateOf(false) }
     if (changelogOpen) {
+        val launcherVersion = LauncherBuildInfo.version
+        val notes = remember(strings, launcherVersion) { strings.releaseNotes(launcherVersion) }
         AlertDialog(
             onDismissRequest = { changelogOpen = false },
-            title = { Text(strings.text("launcher.changelog") + " · " + LauncherBuildInfo.version) },
+            title = { Text(strings.text("launcher.changelog") + " · " + launcherVersion) },
             text = {
-                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    for (entry in listOf("starter", "accounts", "versions", "update")) {
-                        Text("• " + strings.text("launcher.changelog." + entry))
-                    }
+                Column(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    if (notes.isEmpty()) Text(strings.text("launcher.changelog.empty"))
+                    else notes.forEach { Text("• " + it) }
                 }
             },
             confirmButton = { TextButton(onClick = { changelogOpen = false }) { Text(strings.text("ui.got_it")) } },
