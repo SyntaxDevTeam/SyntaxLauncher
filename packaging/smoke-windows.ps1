@@ -11,8 +11,7 @@ $installer = $null
 $events = Get-Content -LiteralPath (Join-Path $evidence 'ControlEvent.idt') | Select-Object -Skip 3
 $expectedEvents = @(
     foreach ($mode in @('Repair', 'Remove')) {
-        'MaintenanceTypeDlg', "${mode}Button", '[WixUI_InstallMode]', $mode, '1', '1' -join "`t"
-        'MaintenanceTypeDlg', "${mode}Button", 'NewDialog', 'VerifyReadyDlg', 'Installed', '2' -join "`t"
+        'MaintenanceTypeDlg', "${mode}Button", '[WixUI_InstallMode]', $mode, 'Installed', '0' -join "`t"
     }
     foreach ($button in @('Remove', 'RemoveNoShield')) {
         'VerifyReadyDlg', $button, 'Remove', 'ALL', 'OutOfDiskSpace <> 1', '1' -join "`t"
@@ -22,6 +21,14 @@ $expectedEvents = @(
 foreach ($expectedEvent in $expectedEvents) {
     if ($events -cnotcontains $expectedEvent) {
         throw "Missing maintenance wizard event: $expectedEvent"
+    }
+}
+foreach ($mode in @('Repair', 'Remove')) {
+    $prefix = 'MaintenanceTypeDlg', "${mode}Button", 'NewDialog', '' -join "`t"
+    $navigation = @($events | Where-Object { $_.StartsWith($prefix, [StringComparison]::Ordinal) })
+    $expectedNavigation = "${prefix}VerifyReadyDlg`t1`t1"
+    if ($navigation.Count -ne 1 -or $navigation[0] -cne $expectedNavigation) {
+        throw "Expected one confirmation dialog event after setting the mode for $mode"
     }
 }
 $app = Join-Path $env:LOCALAPPDATA 'Programs/SyntaxLauncher'

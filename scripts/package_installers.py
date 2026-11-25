@@ -228,10 +228,11 @@ def wix_source(image, version, output):
     add(feature, 'ComponentRef', Id='StartMenu')
     ET.SubElement(package, '{' + UI_NS + '}WixUI', {'Id': 'WixUI_InstallDir', 'InstallDirectory': 'INSTALLFOLDER'})
     ui = add(package, 'UI')
-    # WixUI gives both events order 1. Set the mode before opening the confirmation dialog.
-    for control in ('RepairButton', 'RemoveButton'):
-        add(ui, 'Publish', Dialog='MaintenanceTypeDlg', Control=control, Event='NewDialog',
-            Value='VerifyReadyDlg', Condition='Installed', Order='2')
+    # WixUI opens VerifyReadyDlg at order 1. Set the mode first so its controls
+    # can be enabled when it opens, and leave navigation to the stock event.
+    for mode in ('Repair', 'Remove'):
+        add(ui, 'Publish', Dialog='MaintenanceTypeDlg', Control=mode + 'Button',
+            Property='WixUI_InstallMode', Value=mode, Condition='Installed', Order='0')
     # Windows Installer documents the all-features argument as uppercase ALL.
     for control in ('Remove', 'RemoveNoShield'):
         add(ui, 'Publish', Dialog='VerifyReadyDlg', Control=control, Event='Remove', Value='ALL',
