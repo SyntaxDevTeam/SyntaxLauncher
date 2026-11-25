@@ -92,7 +92,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version: "3.15"
       - name: Run tests and build the native app image
         shell: bash
         env:
