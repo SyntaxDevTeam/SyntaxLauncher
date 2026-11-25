@@ -96,6 +96,10 @@ class DesktopLauncherSession(
     val modpackCatalog = modpackInstaller?.let { pl.syntaxdevteam.syntaxlauncher.core.modpack.ModpackCatalog(httpClient,
         DownloadManager(httpClient), it) }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    internal val systemUpdate = launcherPaths?.let {
+        DebianSystemUpdate(pl.syntaxdevteam.syntaxlauncher.core.update.GitHubLauncherReleases(httpClient),
+            DownloadManager(httpClient), preferences, it.cacheDir.resolve("system-updates"), scope)
+    }
     private val lock = Any()
     private val closing = AtomicBoolean(false)
     private var launchJob: Job? = null

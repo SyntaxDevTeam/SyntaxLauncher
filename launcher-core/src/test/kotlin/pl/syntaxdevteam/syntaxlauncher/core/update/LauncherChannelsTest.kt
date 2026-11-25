@@ -59,6 +59,26 @@ class LauncherChannelsTest {
         finally { client.close() }
     }
 
+    @Test fun debianPackageUsesOnlyTheSelectedChannelsVerifiedDebAsset() = runBlocking<Unit> {
+        val deb = "syntaxlauncher-linux-x64.deb"
+        val good = dto("dev-10.1-v1.0.0").replace(platform.assetName, deb)
+        val other = dto("snapshot-11.1-v2.0.0").replace(platform.assetName, deb)
+        val newerZip = dto("dev-12.1-v2.0.0")
+        val client = HttpClient(MockEngine { respond("[$good,$other,$newerZip]") })
+        try {
+            val release = GitHubLauncherReleases(client).latestDebianPackage(LauncherUpdateChannel.DEV)
+            assertNotNull(release)
+            assertEquals(LauncherBuildRevision(10, 1), release.build)
+            assertTrue(release.url.endsWith("/dev-10.1-v1.0.0/$deb"))
+        } finally { client.close() }
+        val invalid = HttpClient(MockEngine { respond("[${good.replace("sha256:", "sha1:")}]") })
+        try {
+            assertFailsWith<IllegalArgumentException> {
+                GitHubLauncherReleases(invalid).latestDebianPackage(LauncherUpdateChannel.DEV)
+            }
+        } finally { invalid.close() }
+    }
+
     @Test fun repeatedDevBuildUpdatesSameProductVersionAndDoesNotLoopOrFallBackToOlderCache() = runBlocking {
         var run = 10L
         var offline = false

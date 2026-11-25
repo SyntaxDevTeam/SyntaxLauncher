@@ -120,10 +120,16 @@ data class LauncherRelease(val version: LauncherVersion, val url: String, val si
 class GitHubLauncherReleases(private val client: HttpClient) {
     private val json = Json { ignoreUnknownKeys = true }
     suspend fun latest(platform: UpdatePlatform,
-        channel: LauncherUpdateChannel = LauncherUpdateChannel.STABLE): LauncherRelease? {
+        channel: LauncherUpdateChannel = LauncherUpdateChannel.STABLE): LauncherRelease? =
+        latestAsset(platform.assetName, channel)
+
+    suspend fun latestDebianPackage(channel: LauncherUpdateChannel): LauncherRelease? =
+        latestAsset("syntaxlauncher-linux-x64.deb", channel)
+
+    private suspend fun latestAsset(assetName: String, channel: LauncherUpdateChannel): LauncherRelease? {
         if (channel == LauncherUpdateChannel.STABLE) {
             val body = fetch("latest") ?: return null
-            return resolve(json.decodeFromString<ReleaseDto>(body), platform, channel)
+            return resolve(json.decodeFromString<ReleaseDto>(body), assetName, channel)
         }
         var best: LauncherRelease? = null
         // Search every page, including when many DEV releases separate SNAPSHOT publications.
@@ -131,7 +137,7 @@ class GitHubLauncherReleases(private val client: HttpClient) {
             val body = fetch("?per_page=100&page=$page") ?: return best
             val releases = json.decodeFromString<List<ReleaseDto>>(body)
             for (dto in releases) {
-                val candidate = resolve(dto, platform, channel) ?: continue
+                val candidate = resolve(dto, assetName, channel) ?: continue
                 if (best == null || candidate.build!! > best.build!!) best = candidate
             }
             if (releases.size < 100) return best
@@ -154,7 +160,7 @@ class GitHubLauncherReleases(private val client: HttpClient) {
         return body
     }
 
-    private fun resolve(release: ReleaseDto, platform: UpdatePlatform, channel: LauncherUpdateChannel): LauncherRelease? {
+    private fun resolve(release: ReleaseDto, assetName: String, channel: LauncherUpdateChannel): LauncherRelease? {
         if (release.draft) return null
         val version: LauncherVersion
         val build: LauncherBuildRevision?
@@ -171,7 +177,7 @@ class GitHubLauncherReleases(private val client: HttpClient) {
             build = LauncherBuildRevision.parse(match.groupValues[1])
             version = LauncherVersion.parse(match.groupValues[2])
         }
-        val asset = release.assets.singleOrNull { it.name == platform.assetName && it.state == "uploaded" }
+        val asset = release.assets.singleOrNull { it.name == assetName && it.state == "uploaded" }
             ?: return null // A release without the complete update protocol is not auto-installable.
         val digest = asset.digest?.removePrefix("sha256:")
         require(asset.digest?.startsWith("sha256:") == true && digest!!.matches(Regex("[a-fA-F0-9]{64}"))) {
@@ -181,7 +187,7 @@ class GitHubLauncherReleases(private val client: HttpClient) {
         val uri = URI(asset.url)
         require(uri.scheme == "https" && uri.host == "github.com" && uri.userInfo == null &&
             uri.rawQuery == null && uri.fragment == null &&
-            uri.path == "/SyntaxDevTeam/SyntaxLauncher/releases/download/${release.tag}/${platform.assetName}") {
+            uri.path == "/SyntaxDevTeam/SyntaxLauncher/releases/download/${release.tag}/$assetName") {
             "Update download is outside the project's release channel."
         }
         return LauncherRelease(version, asset.url, asset.size, digest.lowercase(), channel, build)

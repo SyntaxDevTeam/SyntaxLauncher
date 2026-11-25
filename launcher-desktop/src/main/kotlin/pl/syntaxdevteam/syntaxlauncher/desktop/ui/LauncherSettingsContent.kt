@@ -11,6 +11,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import pl.syntaxdevteam.syntaxlauncher.desktop.DebianSystemUpdate
 import pl.syntaxdevteam.syntaxlauncher.desktop.DesktopLauncherSession
 import pl.syntaxdevteam.syntaxlauncher.desktop.LauncherBuildInfo
 import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.LocalStrings
@@ -46,6 +47,7 @@ internal fun LauncherSettingsContent(session: DesktopLauncherSession, memoryMiB:
             save = { session.preferences.saveAutomaticUpdatesEnabled(it) },
         )
         LauncherUpdateChannelPicker(session.preferences)
+        session.systemUpdate?.let { DebianSystemUpdateOption(it) }
         HorizontalDivider()
         LauncherSettingsBooleanOption(
             label = strings.text("settings.developer_mode"),
@@ -75,6 +77,36 @@ internal fun LauncherSettingsContent(session: DesktopLauncherSession, memoryMiB:
             SelectionContainer { Text("Data: ${it.dataDir}\nSettings: ${it.configDir}\nCache: ${it.cacheDir}\nLogs: ${it.logsDir}",
                 style = MaterialTheme.typography.bodySmall) }
             Text(strings.text("settings.retention"), style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
+@Composable
+private fun DebianSystemUpdateOption(update: DebianSystemUpdate) {
+    val strings = LocalStrings.current
+    val status by update.status.collectAsState()
+    var available by remember(update) { mutableStateOf(false) }
+    LaunchedEffect(update) {
+        available = try {
+            update.available()
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            false
+        }
+    }
+    if (available) {
+        OutlinedButton(onClick = update::install, enabled = status?.busy != true,
+            modifier = Modifier.testTag("install-system-update")) {
+            Text(strings.text("system_update.install"))
+        }
+        status?.let {
+            Text(strings.text(it.key), style = MaterialTheme.typography.bodySmall)
+            if (it.busy) {
+                val fraction = it.fraction
+                if (fraction == null) LinearProgressIndicator(Modifier.fillMaxWidth())
+                else LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
+            }
         }
     }
 }
