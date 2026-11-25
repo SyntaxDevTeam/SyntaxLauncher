@@ -2,6 +2,7 @@ package pl.syntaxdevteam.syntaxlauncher.core.content
 
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
+import io.ktor.client.request.parameter
 import io.ktor.client.statement.bodyAsText
 import java.net.URI
 import java.nio.file.Files
@@ -10,6 +11,7 @@ import java.nio.file.Path
 import java.util.Comparator
 import java.util.UUID
 import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.serialization.json.*
 import pl.syntaxdevteam.syntaxlauncher.core.instance.MinecraftInstance
 import pl.syntaxdevteam.syntaxlauncher.core.instance.MinecraftInstanceRepository
@@ -23,15 +25,40 @@ import pl.syntaxdevteam.syntaxlauncher.core.network.DownloadRequest
 class OptiFineCatalog(private val http: HttpClient, private val downloads: DownloadManager,
     private val instances: MinecraftInstanceRepository, private val catalog: MinecraftVersionCatalog,
     private val runtimes: JavaRuntimeManager, private val platform: MinecraftPlatform) {
-    // Deliberate initial acceptance matrix; this is not a hardcoded Minecraft launch recipe.
-    private val supported = mapOf("1.21.1" to "OptiFine_1.21.1_HD_U_J1.jar")
     suspend fun projects(instance: MinecraftInstance): List<ModrinthProject> {
-        if (instance.loader != null) return emptyList()
-        val filename = supported[instance.minecraftVersionId] ?: return emptyList()
-        val html = http.get("https://optifine.net/downloads").bodyAsText()
+        if (instance.loader != null || instance.minecraftVersionId !in standaloneVersions) return emptyList()
+        val html = http.get("$site/downloads").bodyAsText()
         if (html.length > 2_000_000) throw GraphicsEnhancementException("OptiFine download listing is too large.")
-        return if (filename in html) listOf(ModrinthProject(filename, "OptiFine", "", "sp614x", 0, null)) else emptyList()
+        return mirrorLink.findAll(html).mapNotNull { release(it.groupValues[1], instance.minecraftVersionId) }
+            .distinctBy { it.filename }
+            .sortedWith(compareBy<OptiFineRelease> { it.preview != null }
+                .thenByDescending { it.edition.first() }.thenByDescending { it.edition.drop(1).toInt() }
+                .thenByDescending { it.preview })
+            .map {
+                val suffix = it.preview?.let { number -> " pre$number" }.orEmpty()
+                ModrinthProject(it.filename, "OptiFine HD U ${it.edition}$suffix", "", "sp614x", 0, null)
+            }.toList()
     }
+
+    suspend fun availableForShaders(instance: MinecraftInstance): Boolean =
+        activeRelease(instance) != null || projects(instance).isNotEmpty()
+
+    suspend fun ensureForShaders(instance: MinecraftInstance): String {
+        activeRelease(instance)?.let { return it.filename }
+        val project = projects(instance).firstOrNull()
+            ?: throw GraphicsEnhancementException("This Minecraft version has no supported OptiFine release.")
+        install(instance.id, project)
+        return project.id
+    }
+
+    private suspend fun activeRelease(instance: MinecraftInstance): OptiFineRelease? = withContext(IO) {
+        if (instance.loader != null || instance.minecraftVersionId !in standaloneVersions) return@withContext null
+        val state = readGraphicsState(instances.gameDirectory(instance))
+        if (state["enabled"]?.jsonPrimitive?.booleanOrNull != true ||
+            state["minecraft"]?.jsonPrimitive?.content != instance.minecraftVersionId) return@withContext null
+        state["optifine"]?.jsonPrimitive?.content?.let { release(it, instance.minecraftVersionId) }
+    }
+
     suspend fun enabled(instanceId: String): Boolean = withContext(Dispatchers.IO) {
         readGraphicsState(instances.gameDirectory(instances.get(instanceId)))["enabled"]?.jsonPrimitive?.booleanOrNull == true
     }
@@ -44,10 +71,11 @@ class OptiFineCatalog(private val http: HttpClient, private val downloads: Downl
     }
     suspend fun install(instanceId: String, selected: ModrinthProject) = withContext(Dispatchers.IO) {
         instances.withInactiveInstance(instanceId) { instance ->
-            val filename = supported[instance.minecraftVersionId]
-            if (instance.loader != null || filename == null || selected.id != filename) {
-                throw GraphicsEnhancementException("OptiFine is supported only for the offered Vanilla game. Use the shader catalog for modded games.")
+            val selectedRelease = release(selected.id, instance.minecraftVersionId)
+            if (instance.loader != null || instance.minecraftVersionId !in standaloneVersions || selectedRelease == null) {
+                throw GraphicsEnhancementException("Choose an OptiFine release for this Vanilla game.")
             }
+            val filename = selectedRelease.filename
             val layout = instances.layoutFor(instance)
             val old = readGraphicsState(layout.gameDir) // Refuse future schemas before any network or child process.
             requireUnredirected(layout.versionsDir)
@@ -56,15 +84,13 @@ class OptiFineCatalog(private val http: HttpClient, private val downloads: Downl
             try {
                 val listed = projects(instance).any { it.id == selected.id }
                 if (!listed) throw GraphicsEnhancementException("This OptiFine version is no longer offered by the official source.")
-                val mirror = http.get("https://optifine.net/adloadx?f=$filename").bodyAsText()
+                val mirror = http.get("$site/adloadx") { parameter("f", filename) }.bodyAsText()
                 if (mirror.length > 2_000_000) throw GraphicsEnhancementException("OptiFine download response is too large.")
-                val link = Regex("""href=["'](downloadx\?[^"']+)["']""").find(mirror)?.groupValues?.get(1)?.replace("&amp;", "&")
+                val link = downloadLink.findAll(mirror).map { it.groupValues[1].replace("&amp;", "&") }
+                    .firstOrNull { it.substringBefore('&') == "downloadx?f=$filename" &&
+                        it.substringAfter("&x=", "").matches(downloadToken) }
                     ?: throw GraphicsEnhancementException("The official OptiFine download is unavailable. Try again later.")
-                val url = URI("https://optifine.net/").resolve(link)
-                if (url.host != "optifine.net" || url.scheme != "https" || url.path != "/downloadx" || url.userInfo != null ||
-                    url.fragment != null || url.port != -1 || !url.rawQuery.startsWith("f=$filename&")) {
-                    throw GraphicsEnhancementException("Unexpected OptiFine download source.")
-                }
+                val url = URI("$site/").resolve(link)
                 val installer = stage.resolve(filename)
                 downloads.download(DownloadRequest("optifine-source", url.toString(), installer, maximumBytes = 64L * 1024 * 1024))
                 val game = catalog.fetchManifest().versions.singleOrNull { it.id == instance.minecraftVersionId }
@@ -90,7 +116,7 @@ class OptiFineCatalog(private val http: HttpClient, private val downloads: Downl
                 val workerRoot = Path.of(OptiFineInstallWorker::class.java.protectionDomain.codeSource.location.toURI())
                 val process = ProcessBuilder(runtime.executable.toString(), "-Djava.awt.headless=true",
                     "-Duser.home=" + stage.resolve("home"), "-cp", workerRoot.toString(), OptiFineInstallWorker::class.java.name,
-                    installer.toString(), minecraft.toString(), filename.removeSuffix(".jar"))
+                    installer.toString(), minecraft.toString(), selectedRelease.installerVersion)
                     .directory(stage.toFile()).redirectOutput(logRoot.resolve("$logId.stdout.log").toFile())
                     .redirectError(logRoot.resolve("$logId.stderr.log").toFile()).start()
                 try {
@@ -145,6 +171,27 @@ class OptiFineCatalog(private val http: HttpClient, private val downloads: Downl
             }
         }
     }
+    private data class OptiFineRelease(val filename: String, val edition: String, val preview: Int?) {
+        // The publishing filename carries a prefix that the installer version string omits.
+        val installerVersion get() = filename.removePrefix("preview_").removeSuffix(".jar")
+    }
+
+    private fun release(filename: String, game: String): OptiFineRelease? {
+        val match = releaseName.matchEntire(filename) ?: return null
+        val (prefix, gameVersion, edition, pre) = match.destructured
+        if (gameVersion != game || prefix.isEmpty() != pre.isEmpty()) return null
+        return OptiFineRelease(filename, edition, pre.toIntOrNull())
+    }
+
+    private companion object {
+        const val site = "https://optifine.net"
+        val standaloneVersions = setOf("1.21.1", "26.1.2", "26.2")
+        val releaseName = Regex("""(preview_)?OptiFine_([0-9]+(?:\.[0-9]+)+)_HD_U_([A-Z][0-9]{1,3})(?:_pre([1-9][0-9]{0,3}))?\.jar""")
+        val mirrorLink = Regex("""href\s*=\s*["'](?:https?://optifine\.net/|/)?adloadx\?f=([^"'&]+)["']""", RegexOption.IGNORE_CASE)
+        val downloadLink = Regex("""href\s*=\s*["'](downloadx\?[^"']+)["']""", RegexOption.IGNORE_CASE)
+        val downloadToken = Regex("[a-fA-F0-9]{32}")
+    }
+
     private fun requireUnredirected(path: Path) {
         var ancestor: Path? = path.toAbsolutePath().normalize()
         while (ancestor != null) {

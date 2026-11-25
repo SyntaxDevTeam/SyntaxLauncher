@@ -35,7 +35,7 @@ class ModrinthPackCatalog(
     private val projectType get() = if (kind == LocalPackKind.SHADER_PACK) "shader" else "resourcepack"
     private val packLoader get() = if (kind == LocalPackKind.SHADER_PACK) "iris" else "minecraft"
     suspend fun available(instance: MinecraftInstance): Boolean =
-        kind != LocalPackKind.SHADER_PACK || if (instance.loader == null) optiFine?.projects(instance)?.isNotEmpty() == true else renderer?.available(instance) == true
+        kind != LocalPackKind.SHADER_PACK || if (instance.loader == null) optiFine?.availableForShaders(instance) == true else renderer?.available(instance) == true
 
     suspend fun search(instance: MinecraftInstance, text: String = "", offset: Int = 0): List<ModrinthProject> {
         require(text.length <= 100 && offset in 0..1000 &&
@@ -177,10 +177,7 @@ class ModrinthPackCatalog(
         }
         if (optiFineTarget) {
             val service = optiFine ?: throw LocalPackException("OptiFine setup is unavailable.")
-            val project = service.projects(instance).singleOrNull()
-                ?: throw LocalPackException("This Minecraft version has no supported OptiFine release.")
-            if (!service.enabled(instance.id)) service.install(instance.id, project)
-            return ShaderActivation(fileName, null, project.id)
+            return ShaderActivation(fileName, null, service.ensureForShaders(instance))
         }
         val proof = (renderer ?: throw LocalPackException("Shader renderer setup is unavailable.")).ensure(instance)
         return ShaderActivation(fileName, proof)

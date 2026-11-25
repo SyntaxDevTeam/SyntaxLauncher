@@ -337,6 +337,10 @@ internal fun ContentCatalog(instance: MinecraftInstance?, canModify: Boolean,
                                                     if (tags.isNotEmpty()) Text(tags.take(7).joinToString("  ·  "),
                                                         style = MaterialTheme.typography.labelSmall)
                                                 }
+                                                if (section == CatalogSection.OPTIFINE && project.id.startsWith("preview_")) {
+                                                    Text(strings.text("catalog.optifine_preview"), color = MaterialTheme.colorScheme.tertiary,
+                                                        style = MaterialTheme.typography.labelMedium)
+                                                }
                                                 if (!compact || browser != null) {
                                                     val summaryKey = catalogSummaryKey(project.title)
                                                     if (section == CatalogSection.OPTIFINE) Text(strings.text("catalog.optifine_hint"), style = MaterialTheme.typography.bodySmall)

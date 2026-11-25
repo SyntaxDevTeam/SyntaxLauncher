@@ -45,9 +45,9 @@ class ShaderCatalogTest {
     private fun mod(id: String) = archive(mapOf("fabric.mod.json" to
         """{"schemaVersion":1,"id":"$id","name":"$id","version":"1.0"}"""))
     private fun version(id: String, projectId: String, name: String, loader: String, bytes: ByteArray,
-        dependencies: String = "[]") = """{"id":"$id","project_id":"$projectId","name":"Fixture",
+        dependencies: String = "[]", game: String = "1.21.1") = """{"id":"$id","project_id":"$projectId","name":"Fixture",
         "version_number":"1.0","version_type":"release","date_published":"2026-10-21",
-        "game_versions":["1.21.1"],"loaders":["$loader"],"dependencies":$dependencies,
+        "game_versions":["$game"],"loaders":["$loader"],"dependencies":$dependencies,
         "files":[{"filename":"$name","primary":true,"url":"https://cdn.modrinth.com/data/$projectId/$name",
             "size":${bytes.size},"hashes":{"sha1":"${sha1(bytes)}"}}]}"""
 
@@ -152,22 +152,23 @@ class ShaderCatalogTest {
 
     @Test fun vanillaShaderUsesOptiFineSettingsForInstallDisableAndSelect() = runBlocking {
         val repo = repo()
-        val instance = repo.create("Vanilla shaders", "1.21.1")
+        val instance = repo.create("Vanilla shaders", "26.2")
         val game = repo.gameDirectory(instance)
-        val optiFineFile = "OptiFine_1.21.1_HD_U_J1.jar"
+        val optiFineFile = "preview_OptiFine_26.2_HD_U_K2_pre3.jar"
         val shader = archive(mapOf("shaders/fixture.fsh" to "shader source"))
-        val release = version("OPTIVER1", project.id, "light.zip", "optifine", shader)
+        val release = version("OPTIVER1", project.id, "light.zip", "optifine", shader, game = "26.2")
         // Use an already prepared renderer to exercise the catalog and settings without running an external installer.
         Files.writeString(game.resolve(".syntaxlauncher-graphics.json"),
-            """{"schemaVersion":1,"enabled":true,"minecraft":"1.21.1","optifine":"$optiFineFile"}""")
+            """{"schemaVersion":1,"enabled":true,"minecraft":"26.2","optifine":"$optiFineFile"}""")
         val settings = game.resolve("optionsshaders.txt")
         Files.writeString(settings, "shaderPack=OFF\nunknown=keep\n")
         val http = HttpClient(MockEngine { request ->
             when {
-                request.url.host == "optifine.net" && request.url.encodedPath == "/downloads" -> respond(optiFineFile)
+                request.url.host == "optifine.net" -> error("An active Preview must be reused without checking the download page")
                 request.url.host == "cdn.modrinth.com" -> respond(shader)
                 request.url.encodedPath.endsWith("/search") -> {
                     assertContains(request.url.parameters["facets"].orEmpty(), "categories:optifine")
+                    assertContains(request.url.parameters["facets"].orEmpty(), "versions:26.2")
                     respond("""{"hits":[{"project_id":"${project.id}","title":"Fixture light"}]}""")
                 }
                 request.url.encodedPath.endsWith("/version/OPTIVER1") -> respond(release)
