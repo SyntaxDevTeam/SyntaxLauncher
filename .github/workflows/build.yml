@@ -155,7 +155,7 @@ jobs:
         if: runner.os == 'Windows'
         with:
           # WiX 7 needs the .NET 8 runtime included with this SDK.
-          dotnet-version: '8.0.x'
+          dotnet-version: '11.0.x'
       - name: Install pinned WiX v7
         if: runner.os == 'Windows'
         shell: pwsh
