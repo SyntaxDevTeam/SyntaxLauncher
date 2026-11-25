@@ -18,6 +18,7 @@ EXECUTABLES = {
     "macos-arm64": "SyntaxLauncher.app/Contents/MacOS/SyntaxLauncher",
 }
 MANIFEST = "syntaxlauncher-update.json"
+STARTUP_CHECK_MARKER = "syntaxlauncher-startup-check-v1"
 
 
 def package(source: Path, output: Path, version: str, platform: str):
@@ -35,6 +36,8 @@ def package(source: Path, output: Path, version: str, platform: str):
             # rglob does not follow symlink directories; links are separate manifest entries.
             for path in sorted(source.rglob("*")):
                 name = path.relative_to(source).as_posix()
+                if name in {MANIFEST, STARTUP_CHECK_MARKER}:
+                    raise ValueError(f"Reserved update bundle entry: {name}")
                 if path.is_symlink():
                     target = os.readlink(path)
                     if Path(target).is_absolute() or not path.resolve(strict=True).is_relative_to(source):
@@ -53,6 +56,10 @@ def package(source: Path, output: Path, version: str, platform: str):
                     archive.write(path, name)
                 else:
                     raise ValueError(f"Unsupported app image entry: {name}")
+            marker = b"1\n"
+            entries.append(dict(path=STARTUP_CHECK_MARKER, kind="file", size=len(marker),
+                                sha256=hashlib.sha256(marker).hexdigest(), executable=False))
+            archive.writestr(STARTUP_CHECK_MARKER, marker)
             archive.writestr(MANIFEST, json.dumps(dict(schemaVersion=1, version=version,
                               platform=platform, executable=executable, entries=entries), separators=(",", ":")))
         partial.replace(output)

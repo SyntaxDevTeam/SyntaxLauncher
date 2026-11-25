@@ -8,12 +8,20 @@ import java.nio.file.attribute.PosixFilePermissions
 internal object ProcessUpdatedLauncherStarter : UpdatedLauncherStarter {
     fun logFile(receipt: Path): Path = receipt.resolveSibling("${receipt.fileName}.log")
 
-    override fun start(executable: Path, receipt: Path, nonce: String): Process {
+    override fun start(executable: Path, receipt: Path, nonce: String): Process =
+        launch(executable, receipt, nonce, checkAfterHandoff = false)
+
+    override fun startForUpdateCheck(executable: Path, receipt: Path, nonce: String): Process =
+        launch(executable, receipt, nonce, checkAfterHandoff = true)
+
+    private fun launch(executable: Path, receipt: Path, nonce: String, checkAfterHandoff: Boolean): Process {
         val log = logFile(receipt)
         if ("posix" in log.fileSystem.supportedFileAttributeViews()) {
             Files.createFile(log, PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------")))
         } else Files.createFile(log)
-        return processBuilder(executable, receipt, nonce)
+        return processBuilder(executable, receipt, nonce).apply {
+            if (checkAfterHandoff) environment()[StartupUpdater.CHECK_AFTER_HANDOFF_ENV] = nonce
+        }
             .directory(executable.parent.toFile())
             .redirectErrorStream(true)
             .redirectOutput(log.toFile())
@@ -28,5 +36,6 @@ internal object ProcessUpdatedLauncherStarter : UpdatedLauncherStarter {
             // Linux jpackage sets this marker for its own relaunch, with already-expanded JVM args.
             // A different app image needs to read its own .cfg instead of treating handoff args as JVM options.
             environment().remove("_JPACKAGE_LAUNCHER")
+            environment().remove(StartupUpdater.CHECK_AFTER_HANDOFF_ENV)
         }
 }

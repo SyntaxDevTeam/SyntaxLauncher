@@ -8,6 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.*
@@ -15,6 +16,7 @@ import pl.syntaxdevteam.syntaxlauncher.core.instance.MinecraftInstance
 import pl.syntaxdevteam.syntaxlauncher.core.loader.*
 import pl.syntaxdevteam.syntaxlauncher.core.mods.ModrinthProject
 import pl.syntaxdevteam.syntaxlauncher.core.mods.CatalogRelease
+import pl.syntaxdevteam.syntaxlauncher.core.mods.CurseForgeDownloadUnavailable
 import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.LocalStrings
 
 internal enum class ProfileStep { STYLE, LOADER, CONTENT, PACK, DETAILS, REVIEW }
@@ -33,6 +35,7 @@ internal fun ProfileWizard(preferredVersion: String, releases: List<String>,
     packBrowser: ((String) -> CatalogBrowser)? = null,
 ) {
     val strings = LocalStrings.current
+    val uriHandler = LocalUriHandler.current
     val scope = rememberCoroutineScope()
     val firstStep = if (vanillaOnly) ProfileStep.DETAILS else ProfileStep.STYLE
     var step by remember { mutableStateOf(firstStep) }
@@ -48,6 +51,7 @@ internal fun ProfileWizard(preferredVersion: String, releases: List<String>,
     var creationJob by remember { mutableStateOf<Job?>(null) }
     var wasCancelled by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf(false) }
+    var installFailure by remember { mutableStateOf<Exception?>(null) }
     var retry by remember { mutableIntStateOf(0) }
     var packSource by remember { mutableStateOf(CatalogSource.MODRINTH) }
     var packVersion by remember { mutableStateOf<CatalogRelease?>(null) }
@@ -73,6 +77,7 @@ internal fun ProfileWizard(preferredVersion: String, releases: List<String>,
     }
     fun previous() {
         error = false
+        installFailure = null
         step = when (step) {
             ProfileStep.STYLE -> ProfileStep.STYLE
             ProfileStep.LOADER -> ProfileStep.STYLE
@@ -170,7 +175,14 @@ internal fun ProfileWizard(preferredVersion: String, releases: List<String>,
                     }
                 }
                 if (wasCancelled) Text(strings.text("catalog.cancelled"))
-                if (error) { Text(strings.text("wizard.error"), color = MaterialTheme.colorScheme.error); TextButton(onClick = { retry++ }) { Text(strings.text("ui.retry")) } }
+                if (error) {
+                    Text(installFailure?.let(strings::curseForgeInstallError) ?: strings.text("wizard.error"),
+                        color = MaterialTheme.colorScheme.error)
+                    (installFailure as? CurseForgeDownloadUnavailable)?.projectUrl?.let { url ->
+                        TextButton(onClick = { uriHandler.openUri(url) }) { Text(CatalogSource.CURSEFORGE.label) }
+                    }
+                    TextButton(onClick = { installFailure = null; retry++ }) { Text(strings.text("ui.retry")) }
+                }
             }
             if (loading || busy) LinearProgressIndicator(Modifier.fillMaxWidth())
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -179,6 +191,7 @@ internal fun ProfileWizard(preferredVersion: String, releases: List<String>,
                 Button(enabled = canNext, modifier = Modifier.testTag("wizard-next"), onClick = {
                     if (busy || !canNext) return@Button
                     if (step == ProfileStep.REVIEW) {
+                        installFailure = null
                         busy = true; error = false; wasCancelled = false; onBusyChange(true)
                         creationJob = scope.launch {
                             try {
@@ -198,7 +211,7 @@ internal fun ProfileWizard(preferredVersion: String, releases: List<String>,
                                 }
                                 onCreated(result, content == ProfileContent.EXTRAS)
                             } catch (cancelled: CancellationException) { wasCancelled = true; throw cancelled }
-                            catch (_: Exception) { error = true }
+                            catch (failure: Exception) { installFailure = failure; error = true }
                             finally { busy = false; onBusyChange(false) }
                         }
                     } else step = when (step) {

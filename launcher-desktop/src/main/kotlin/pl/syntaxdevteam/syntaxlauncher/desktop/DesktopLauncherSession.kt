@@ -77,6 +77,7 @@ class DesktopLauncherSession(
         httpClient, instances, packManager, DownloadManager(httpClient))
     val modManager = LocalModManager(instances)
     val catalogIcons = pl.syntaxdevteam.syntaxlauncher.core.mods.CatalogIcons(httpClient)
+    internal val playerSkins = pl.syntaxdevteam.syntaxlauncher.core.account.PlayerSkinCatalog(httpClient)
     val modrinthCatalog = ModrinthCatalog(httpClient)
     val modrinthInstaller = ModrinthInstaller(instances, modManager, DownloadManager(httpClient))
     val shaderRenderer = pl.syntaxdevteam.syntaxlauncher.core.content.IrisRendererSetup(

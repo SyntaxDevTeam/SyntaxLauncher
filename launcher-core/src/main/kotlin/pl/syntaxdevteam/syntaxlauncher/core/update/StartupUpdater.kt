@@ -21,13 +21,17 @@ import pl.syntaxdevteam.syntaxlauncher.core.network.DownloadManager
 import pl.syntaxdevteam.syntaxlauncher.core.network.DownloadRequest
 
 /** UI-independent startup state. Only a successful child-start receipt publishes an active version. */
-enum class StartupUpdateStage { CHECKING, VERIFYING, DOWNLOADING, INSTALLING, STARTING, PREVIOUS }
+enum class StartupUpdateStage { CHECKING, VERIFYING, DOWNLOADING, INSTALLING, STARTING, STARTING_INSTALLED, PREVIOUS }
 
 data class StartupUpdateProgress(val message: String, val fraction: Float? = null,
-    val canContinue: Boolean = true, val stage: StartupUpdateStage = StartupUpdateStage.CHECKING)
+    val canContinue: Boolean = true, val stage: StartupUpdateStage = StartupUpdateStage.CHECKING,
+    val installedVersion: String? = null)
 enum class StartupUpdateResult { CONTINUE, HANDED_OFF }
 fun interface UpdatedLauncherStarter {
     fun start(executable: Path, receipt: Path, nonce: String): Process
+
+    fun startForUpdateCheck(executable: Path, receipt: Path, nonce: String): Process =
+        start(executable, receipt, nonce)
 }
 
 class StartupUpdater(
@@ -47,13 +51,14 @@ class StartupUpdater(
     private val root = root.toAbsolutePath().normalize()
     private val archives = archives.toAbsolutePath().normalize()
 
-    suspend fun run(onProgress: suspend (StartupUpdateProgress) -> Unit): StartupUpdateResult =
+    suspend fun run(waitForParent: Boolean = false,
+        onProgress: suspend (StartupUpdateProgress) -> Unit): StartupUpdateResult =
         withContext(Dispatchers.IO) {
             Files.createDirectories(root)
             require(!Files.isSymbolicLink(root)) { "Launcher update storage must not be a symlink." }
             FileChannel.open(root.resolve("startup.lock"), CREATE, WRITE).use { channel ->
-                val lock = try { channel.tryLock() } catch (_: java.nio.channels.OverlappingFileLockException) { null }
-                check(lock != null) { "Another launcher is checking for updates. Try again in a moment." }
+                val deadline = System.nanoTime() + if (waitForParent) 5_000_000_000L else 0L
+                val lock = acquireLock(channel, deadline)
                 lock.use {
                     val installer = UpdateBundleInstaller(root.resolve("installations"))
                     val state = loadState()
@@ -83,7 +88,20 @@ class StartupUpdater(
                         }
                     }
                     val active = installed(activeKey) ?: installed(previousKey)
-                    onProgress(StartupUpdateProgress("Checking for launcher updates…"))
+                    if (active?.checksUpdatesAfterHandoff == true && !waitForParent) {
+                        onProgress(StartupUpdateProgress("Starting the installed launcher…", canContinue = false,
+                            stage = StartupUpdateStage.STARTING_INSTALLED, installedVersion = active.version.value))
+                        try {
+                            startAndActivate(active, state, activeKey, previousKey, activeBuild?.toString(), checkAfterHandoff = true)
+                            return@withContext StartupUpdateResult.HANDED_OFF
+                        } catch (cancelled: CancellationException) { throw cancelled }
+                        catch (failure: Exception) {
+                            org.slf4j.LoggerFactory.getLogger(StartupUpdater::class.java)
+                                .warn("Could not start active launcher before checking updates", failure)
+                        }
+                    }
+                    onProgress(StartupUpdateProgress("Checking for launcher updates…",
+                        installedVersion = active?.version?.value))
                     val release = try { releases.latest(platform, selected) }
                     catch (cancelled: CancellationException) { throw cancelled }
                     catch (failure: Exception) {
@@ -113,7 +131,10 @@ class StartupUpdater(
                         active
                     }
                     if (target == null) return@withContext StartupUpdateResult.CONTINUE
-                    onProgress(StartupUpdateProgress("Starting SyntaxLauncher ${target.version.value}…", canContinue = false, stage = StartupUpdateStage.STARTING))
+                    val reusingInstalled = target.directory == active?.directory
+                    onProgress(StartupUpdateProgress("Starting SyntaxLauncher ${target.version.value}…", canContinue = false,
+                        stage = if (reusingInstalled) StartupUpdateStage.STARTING_INSTALLED else StartupUpdateStage.STARTING,
+                        installedVersion = target.version.value))
                     val targetBuild = if (target.directory == active?.directory)
                         activeBuild?.toString() else release?.build?.toString()
                     try { startAndActivate(target, state, activeKey, previousKey, targetBuild) }
@@ -122,7 +143,7 @@ class StartupUpdater(
                         if (active == null || active.directory == target.directory) throw failure
                         org.slf4j.LoggerFactory.getLogger(StartupUpdater::class.java)
                             .warn("Updated launcher failed startup; starting verified previous version", failure)
-                        onProgress(StartupUpdateProgress("Starting your previous launcher version…", canContinue = false, stage = StartupUpdateStage.PREVIOUS))
+                        onProgress(StartupUpdateProgress("Starting your previous launcher version…", canContinue = false, stage = StartupUpdateStage.PREVIOUS, installedVersion = active.version.value))
                         startAndActivate(active, state, activeKey, previousKey, activeBuild?.toString())
                     }
                     StartupUpdateResult.HANDED_OFF
@@ -130,17 +151,27 @@ class StartupUpdater(
             }
         }
 
+    private suspend fun acquireLock(channel: FileChannel, deadline: Long): java.nio.channels.FileLock {
+        while (true) {
+            val lock = try { channel.tryLock() } catch (_: java.nio.channels.OverlappingFileLockException) { null }
+            if (lock != null) return lock
+            check(System.nanoTime() < deadline) { "Another launcher is checking for updates. Try again in a moment." }
+            delay(100)
+        }
+    }
+
     private fun shouldUse(version: LauncherVersion, build: LauncherBuildRevision?): Boolean =
         isNewerLauncher(version, build, current, currentBuild)
 
     private suspend fun startAndActivate(target: InstalledLauncher, state: Properties,
-        activeKey: String, previousKey: String, build: String?) {
+        activeKey: String, previousKey: String, build: String?, checkAfterHandoff: Boolean = false) {
         val receipt = root.resolve("startup-${UUID.randomUUID()}.ready")
         val nonce = UUID.randomUUID().toString()
         var child: Process? = null
         var handedOff = false
         try {
-            child = starter.start(target.executable, receipt, nonce)
+            child = if (checkAfterHandoff) starter.startForUpdateCheck(target.executable, receipt, nonce)
+                else starter.start(target.executable, receipt, nonce)
             val deadline = System.nanoTime() + startupTimeoutMillis * 1_000_000
             while (true) {
                 currentCoroutineContext().ensureActive()
@@ -203,6 +234,7 @@ class StartupUpdater(
     }
 
     companion object {
+        const val CHECK_AFTER_HANDOFF_ENV = "SYNTAXLAUNCHER_CHECK_AFTER_HANDOFF"
         const val HANDOFF_FLAG = "--syntaxlauncher-update-handoff"
     }
 }

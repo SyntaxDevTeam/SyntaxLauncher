@@ -12,7 +12,7 @@ import kotlinx.coroutines.withTimeout
 import java.io.ByteArrayOutputStream
 import java.net.URI
 
-/** Optional artwork uses the application's HTTP client and a bounded in-memory cache. */
+/** Optional artwork uses the application's HTTP client. Modrinth icons use a bounded in-memory cache. */
 class CatalogIcons(private val http: HttpClient) {
     private val cache = object : LinkedHashMap<String, ByteArray>(64, .75f, true) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, ByteArray>?) = size > 64
@@ -23,7 +23,8 @@ class CatalogIcons(private val http: HttpClient) {
         val uri = runCatching { URI(url) }.getOrNull() ?: return@withContext null
         if (uri.scheme != "https" || uri.host !in setOf("cdn.modrinth.com", "media.forgecdn.net", "mediafilez.forgecdn.net", "mediafiles.forgecdn.net") || uri.userInfo != null ||
             uri.port !in listOf(-1, 443)) return@withContext null
-        synchronized(cache) { cache[url] }?.let { return@withContext it }
+        val cacheable = uri.host == "cdn.modrinth.com"
+        if (cacheable) synchronized(cache) { cache[url] }?.let { return@withContext it }
         requests.withPermit {
             withTimeout(8000) {
                 http.prepareGet(url).execute { response ->
@@ -37,7 +38,7 @@ class CatalogIcons(private val http: HttpClient) {
                         if (output.size() + count > 512 * 1024) return@execute null
                         output.write(buffer, 0, count)
                     }
-                    output.toByteArray().also { bytes -> synchronized(cache) { cache[url] = bytes } }
+                    output.toByteArray().also { bytes -> if (cacheable) synchronized(cache) { cache[url] = bytes } }
                 }
             }
         }

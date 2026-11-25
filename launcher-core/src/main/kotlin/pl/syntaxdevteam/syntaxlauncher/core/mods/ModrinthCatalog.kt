@@ -20,9 +20,10 @@ import pl.syntaxdevteam.syntaxlauncher.core.instance.MinecraftInstance
 
 data class ModrinthProject(val id: String, val title: String, val summary: String,
     val author: String, val downloads: Long, val iconUrl: String?,
-    val categories: List<String> = emptyList(), val updated: String? = null, val loaders: List<String> = emptyList())
+    val categories: List<String> = emptyList(), val updated: String? = null, val loaders: List<String> = emptyList(),
+    val projectUrl: String? = null)
 data class ModrinthProjectDetail(val project: ModrinthProject, val description: String,
-    val license: String?, val projectUrl: String)
+    val license: String?, val projectUrl: String, val distributionBlocked: Boolean = false)
 data class ModrinthFile(val filename: String, val url: String, val sha1: String, val bytes: Long)
 data class ModrinthDependency(val projectId: String?, val versionId: String?, val type: String)
 data class ModrinthVersion(val id: String, val projectId: String, val name: String,

@@ -7,7 +7,7 @@ import java.util.Locale
 import kotlinx.serialization.json.*
 import pl.syntaxdevteam.syntaxlauncher.core.loader.ModLoaderSelection
 
-class ModpackFormatException(message: String, cause: Throwable? = null) : IllegalArgumentException(message, cause)
+open class ModpackFormatException(message: String, cause: Throwable? = null) : IllegalArgumentException(message, cause)
 
 data class ModpackDownload(val path: String, val bytes: Long, val sha1: String, val sha512: String?,
     val mirrors: List<String>)

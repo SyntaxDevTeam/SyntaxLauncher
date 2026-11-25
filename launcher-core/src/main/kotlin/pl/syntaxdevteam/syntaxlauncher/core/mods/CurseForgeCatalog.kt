@@ -29,13 +29,15 @@ import pl.syntaxdevteam.syntaxlauncher.core.modpack.ModpackProgress
 import pl.syntaxdevteam.syntaxlauncher.core.modpack.ModrinthModpackPlanner
 import pl.syntaxdevteam.syntaxlauncher.core.network.DownloadManager
 import pl.syntaxdevteam.syntaxlauncher.core.network.DownloadRequest
+import pl.syntaxdevteam.syntaxlauncher.core.network.curseForgeCdnUri
 
 class CurseForgeCatalog(http: HttpClient, private val apiKey: String,
     private val instances: MinecraftInstanceRepository, private val mods: LocalModManager,
     private val resourcePacks: ModrinthPackCatalog, private val shaders: ModrinthPackCatalog,
-    private val downloads: DownloadManager,
+    downloads: DownloadManager,
 ) : Closeable {
     private val api = http.config { followRedirects = false }
+    private val downloads = downloads.forCurseForge(api, apiKey)
 
     suspend fun search(type: String, query: String, offset: Int, game: String?, loader: String?,
         category: String?): List<ModrinthProject> {
@@ -52,13 +54,13 @@ class CurseForgeCatalog(http: HttpClient, private val apiKey: String,
             val obj = entry.jsonObject
             val id = numeric(obj.getValue("id").jsonPrimitive.content)
             ModrinthProject(id, obj.string("name") ?: id, obj.string("summary").orEmpty(),
-                obj.objects("authors").joinToString(", ") { it.string("name").orEmpty() },
+                obj.objects("authors").mapNotNull { it.string("name")?.takeIf(String::isNotBlank) }.joinToString(", "),
                 obj.getValue("downloadCount").jsonPrimitive.longOrNull ?: 0,
                 (obj["logo"] as? JsonObject)?.string("thumbnailUrl"),
                 obj.objects("categories").mapNotNull { it.string("name") }, obj.string("dateModified"),
                 obj.objects("latestFilesIndexes").mapNotNull { file ->
                     loaderTypes.entries.firstOrNull { it.value.toString() == file.string("modLoader") }?.key
-                }.distinct())
+                }.distinct(), obj.projectUrl())
         }
     }
 
@@ -73,21 +75,32 @@ class CurseForgeCatalog(http: HttpClient, private val apiKey: String,
     suspend fun detail(project: ModrinthProject): ModrinthProjectDetail {
         val id = numeric(project.id)
         val info = request("/mods/$id").jsonObject
-        return ModrinthProjectDetail(project, plainText(request("/mods/$id/description").jsonPrimitive.content),
-            null, (info["links"] as? JsonObject)?.string("websiteUrl")
-                .orEmpty().takeIf { it.startsWith("https://www.curseforge.com/") }.orEmpty())
+        val description = try {
+            plainText(request("/mods/$id/description").jsonPrimitive.content)
+        } catch (failure: CurseForgeApiException) {
+            if (failure.statusCode !in setOf(403, 404)) throw failure
+            project.summary
+        }
+        return ModrinthProjectDetail(project, description, null, info.projectUrl() ?: project.projectUrl.orEmpty(),
+            distributionBlocked = info.distributionBlocked())
     }
 
-    suspend fun releases(type: String, project: ModrinthProject, game: String?, loader: String?): List<CatalogRelease> =
-        files(numeric(project.id), game, loader.takeIf { type == "mod" || type == "modpack" })
+    suspend fun releases(type: String, project: ModrinthProject, game: String?, loader: String?): List<CatalogRelease> {
+        val id = numeric(project.id)
+        val info = request("/mods/$id").jsonObject
+        val blocked = info.distributionBlocked()
+        return files(id, game, loader.takeIf { type == "mod" || type == "modpack" })
             .filter { type != "shader" || compatibleShader(it, loader) }.map { file ->
-            CatalogRelease(numeric(file.getValue("id").jsonPrimitive.content),
-                file.string("displayName") ?: file.string("fileName").orEmpty(),
-                when (file.string("releaseType")) { "1" -> "release"; "2" -> "beta"; else -> "alpha" },
-                file.versions().filterNot { it.lowercase() in compatibilityTags },
-                file.versions().map { it.lowercase() }.filter { it in compatibilityTags },
-                file.string("fileDate").orEmpty(), artifact(file, type) != null)
-        }.sortedWith(compareBy<CatalogRelease> { it.channel != "release" }.thenByDescending { it.published })
+                CatalogRelease(numeric(file.getValue("id").jsonPrimitive.content),
+                    file.string("displayName") ?: file.string("fileName").orEmpty(),
+                    when (file.string("releaseType")) { "1" -> "release"; "2" -> "beta"; else -> "alpha" },
+                    file.versions().filterNot { it.lowercase() in compatibilityTags },
+                    file.versions().map { it.lowercase() }.filter { it in compatibilityTags },
+                    file.string("fileDate").orEmpty(),
+                    downloadable = !blocked && artifact(file, type) != null,
+                    distributionBlocked = blocked)
+            }.sortedWith(compareBy<CatalogRelease> { it.channel != "release" }.thenByDescending { it.published })
+    }
 
     suspend fun changelog(project: ModrinthProject, versionId: String): String =
         plainText(request("/mods/${numeric(project.id)}/files/${numeric(versionId)}/changelog").jsonPrimitive.content)
@@ -103,13 +116,15 @@ class CurseForgeCatalog(http: HttpClient, private val apiKey: String,
                 if (projectId in planned) return
                 check(planned.size + visiting.size < 32 && visiting.add(projectId)) { "Invalid CurseForge dependency tree." }
                 val info = request("/mods/$projectId").jsonObject
+                requireDistribution(info, projectId, project.takeIf { it.id == projectId })
                 require(info.string("classId") == classId(type).toString()) { "A required CurseForge project has a different content type." }
                 val candidates = files(projectId, instance.minecraftVersionId, loader)
                     .filter { type != "shader" || compatibleShader(it, shaders.rendererLoader(instance)) }
                 val selected = if (preferred == null) candidates.firstOrNull { it.string("releaseType") == "1" }
                     ?: candidates.firstOrNull() else candidates.singleOrNull { it.string("id") == preferred }
-                val file = requireNotNull(selected) { "No compatible CurseForge file." }
-                val artifact = artifact(file, type) ?: throw CurseForgeDownloadUnavailable()
+                val artifact = selected?.let { artifact(it, type) } ?:
+                    throw unavailable(info, projectId, project = project.takeIf { it.id == projectId })
+                val file = checkNotNull(selected)
                 file.objects("dependencies").filter { it.string("relationType") == "3" }.forEach {
                     visit(numeric(it.getValue("modId").jsonPrimitive.content))
                 }
@@ -157,14 +172,16 @@ class CurseForgeCatalog(http: HttpClient, private val apiKey: String,
         progress: (ModpackProgress) -> Unit = {}): MinecraftInstance = withContext(Dispatchers.IO) {
         val id = numeric(project.id)
         val version = numeric(versionId)
-        require(request("/mods/$id").jsonObject.string("classId") == classId("modpack").toString())
-        val archiveFile = getFile(id, version)
-        val archive = artifact(archiveFile, "modpack") ?: throw CurseForgeDownloadUnavailable()
+        val info = request("/mods/$id").jsonObject
+        requireDistribution(info, id, project)
+        require(info.string("classId") == classId("modpack").toString())
+        val archiveFile = getFile(id, version, info, project)
+        val archive = artifact(archiveFile, "modpack") ?: throw unavailable(info, id, project = project)
         val staging = Files.createTempDirectory("syntaxlauncher-curseforge-pack-")
         try {
             val source = staging.resolve(archive.target)
             downloads.download(archive.copy(target = source))
-            installer.installCurseForge(source, name, progress) { bytes ->
+            installer.installCurseForge(source, name, downloads, progress) { bytes ->
                 planModpack(bytes, archiveFile, requiredLoader)
             }
         } finally {
@@ -205,14 +222,15 @@ class CurseForgeCatalog(http: HttpClient, private val apiKey: String,
             val file = numeric(item.getValue("fileID").jsonPrimitive.content)
             require(projectIds.add(project)) { "Duplicate CurseForge modpack project." }
             val info = request("/mods/$project").jsonObject
+            requireDistribution(info, project)
             val (type, folder) = when (info.string("classId")?.toIntOrNull()) {
                 classId("mod") -> "mod" to "mods"
                 classId("resourcepack") -> "resourcepack" to "resourcepacks"
                 classId("shader") -> "shader" to "shaderpacks"
                 else -> throw ModpackFormatException("Unsupported CurseForge modpack component.")
             }
-            val metadata = getFile(project, file)
-            val download = artifact(metadata, type) ?: throw CurseForgeDownloadUnavailable()
+            val metadata = getFile(project, file, info)
+            val download = artifact(metadata, type) ?: throw unavailable(info, project)
             if (type == "mod" && metadata.versions().let { versions ->
                 versions.any { it.lowercase() in loaderTypes } && versions.none { it.equals(family, true) }
             }) throw ModpackCompatibilityException("A CurseForge component declares another loader.")
@@ -228,10 +246,38 @@ class CurseForgeCatalog(http: HttpClient, private val apiKey: String,
             ModLoaderSelection(family, loaderVersion), files, emptyList(), manifest)
     }
 
-    private suspend fun getFile(projectId: String, fileId: String): JsonObject =
-        request("/mods/$projectId/files/$fileId").jsonObject.also {
-            require(it.string("id") == fileId && it.string("modId") == projectId &&
-                it.string("isAvailable") == "true" && it.string("isServerPack") != "true")
+    private suspend fun getFile(projectId: String, fileId: String, info: JsonObject,
+        project: ModrinthProject? = null): JsonObject {
+        val file = try {
+            request("/mods/$projectId/files/$fileId").jsonObject
+        } catch (failure: CurseForgeApiException) {
+            if (failure.statusCode != 404) throw failure
+            throw unavailable(info, projectId, project = project)
+        }
+        if (file.string("id") != fileId || file.string("modId") != projectId ||
+            file.string("isAvailable") != "true" || file.string("isServerPack") == "true") {
+            throw unavailable(info, projectId, project = project)
+        }
+        return file
+    }
+
+    // The REST field is nullable. Only an explicit refusal vetoes a file supplied by the API.
+    private fun JsonObject.distributionBlocked() = string("allowModDistribution") == "false"
+
+    private fun requireDistribution(info: JsonObject, id: String, project: ModrinthProject? = null) {
+        if (info.distributionBlocked()) throw unavailable(info, id, blocked = true, project = project)
+    }
+
+    private fun unavailable(info: JsonObject, id: String, blocked: Boolean = false, project: ModrinthProject? = null) =
+        CurseForgeDownloadUnavailable(info.string("name") ?: project?.title ?: id,
+            info.projectUrl() ?: project?.projectUrl, blocked)
+
+    private fun JsonObject.projectUrl(): String? =
+        (get("links") as? JsonObject)?.string("websiteUrl")?.takeIf { url ->
+            runCatching { URI(url) }.getOrNull()?.let {
+                it.scheme == "https" && it.host in setOf("www.curseforge.com", "curseforge.com") &&
+                    it.userInfo == null && it.port in setOf(-1, 443)
+            } == true
         }
 
     private suspend fun files(id: String, game: String?, loader: String?): List<JsonObject> = buildList {
@@ -261,15 +307,12 @@ class CurseForgeCatalog(http: HttpClient, private val apiKey: String,
         if (file.string("isServerPack") == "true") return null
         val name = file.string("fileName") ?: return null
         val url = file.string("downloadUrl") ?: return null
-        val uri = runCatching { URI(url) }.getOrNull() ?: return null
+        if (curseForgeCdnUri(url) == null) return null
         val hash = file.objects("hashes").firstOrNull { it.string("algo") == "1" }?.string("value") ?: return null
         val bytes = file.string("fileLength")?.toLongOrNull() ?: return null
         val extension = if (type == "mod") ".jar" else ".zip"
         if (!name.endsWith(extension, true) || name.length !in 5..160 || name.startsWith('.') ||
             name.any { it in "<>:\"/\\|?*" || it.code < 32 || it.code == 127 } ||
-            uri.scheme != "https" || uri.host !in setOf("edge.forgecdn.net", "media.forgecdn.net",
-                "mediafilez.forgecdn.net", "mediafiles.forgecdn.net") || uri.userInfo != null || uri.port != -1 ||
-            uri.rawFragment != null || uri.rawQuery != null ||
             !hash.matches(Regex("[a-fA-F0-9]{40}")) || bytes !in 1..(512L * 1024 * 1024)) return null
         return DownloadRequest("curseforge:${file.string("id")}", url, java.nio.file.Path.of(name),
             expectedSha1 = hash, expectedSize = bytes, maximumBytes = bytes)
@@ -328,4 +371,6 @@ class CurseForgeCatalog(http: HttpClient, private val apiKey: String,
 }
 
 class CurseForgeApiException(val statusCode: Int) : IllegalStateException("CurseForge API returned HTTP $statusCode.")
-class CurseForgeDownloadUnavailable : IllegalStateException("CurseForge does not provide a verified download for this file.")
+class CurseForgeDownloadUnavailable(val projectName: String, val projectUrl: String?, val distributionBlocked: Boolean) :
+    IllegalStateException(if (distributionBlocked) "The author of $projectName disabled third-party distribution."
+        else "CurseForge does not provide a verified download for $projectName.")

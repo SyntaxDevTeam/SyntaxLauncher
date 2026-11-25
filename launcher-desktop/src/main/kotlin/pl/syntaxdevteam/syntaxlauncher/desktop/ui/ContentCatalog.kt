@@ -39,17 +39,23 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import pl.syntaxdevteam.syntaxlauncher.core.instance.MinecraftInstance
+import pl.syntaxdevteam.syntaxlauncher.core.mods.CurseForgeDownloadUnavailable
 import pl.syntaxdevteam.syntaxlauncher.core.mods.ModrinthProject
+import pl.syntaxdevteam.syntaxlauncher.core.modpack.CurseForgeOverrideUnverified
+import pl.syntaxdevteam.syntaxlauncher.core.network.CurseForgeCdnAuthenticationException
+import pl.syntaxdevteam.syntaxlauncher.core.network.CurseForgeCdnRedirectException
 import pl.syntaxdevteam.syntaxlauncher.core.mods.CatalogCategory
 import pl.syntaxdevteam.syntaxlauncher.core.mods.CatalogRelease
 import pl.syntaxdevteam.syntaxlauncher.desktop.DesktopLauncherSession
 import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.LocalStrings
+import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.UiStrings
 import org.slf4j.LoggerFactory
 
 enum class CatalogSection(val label: String) { MODS("catalog.mods"), TEXTURES("catalog.textures"), SHADERS("catalog.shaders"), OPTIFINE("catalog.optifine"), MODPACKS("catalog.modpacks") }
@@ -146,6 +152,8 @@ internal fun ContentCatalog(instance: MinecraftInstance?, canModify: Boolean,
     var installed by remember(instance?.id) { mutableStateOf(setOf<String>()) }
     var installing by remember { mutableStateOf<String?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
+    var errorProjectUrl by remember { mutableStateOf<String?>(null) }
+    val uriHandler = LocalUriHandler.current
     var success by remember { mutableStateOf(false) }
     var cancelled by remember { mutableStateOf(false) }
     var installationJob by remember { mutableStateOf<Job?>(null) }
@@ -173,6 +181,7 @@ internal fun ContentCatalog(instance: MinecraftInstance?, canModify: Boolean,
     LaunchedEffect(instance?.id, criteria, submitted, offset, refresh) {
         loading = true
         error = null
+        errorProjectUrl = null
         success = false
         page = CatalogPage(emptyList(), false)
         try {
@@ -193,12 +202,14 @@ internal fun ContentCatalog(instance: MinecraftInstance?, canModify: Boolean,
     fun beginInstall(id: String, key: String, action: suspend () -> Unit) {
         if (installing != null || !canModify || key in installed) return
         installing = id; onBusyChange(true); error = null; success = false; cancelled = false
+        errorProjectUrl = null
         installationJob = scope.launch {
             try { action(); installed = installed + key; success = true }
             catch (cancellation: CancellationException) { cancelled = true; throw cancellation }
             catch (failure: Exception) {
                 LoggerFactory.getLogger("ContentCatalog").warn("Catalog installation failed", failure)
-                error = strings.text(when (failure) {
+                errorProjectUrl = (failure as? CurseForgeDownloadUnavailable)?.projectUrl
+                error = strings.curseForgeInstallError(failure) ?: strings.text(when (failure) {
                     is pl.syntaxdevteam.syntaxlauncher.core.modpack.ModpackCompatibilityException,
                     is pl.syntaxdevteam.syntaxlauncher.core.loader.ModLoaderException -> "catalog.modpack_compatibility_error"
                     is pl.syntaxdevteam.syntaxlauncher.core.modpack.ModpackFormatException -> "catalog.modpack_format_error"
@@ -206,7 +217,6 @@ internal fun ContentCatalog(instance: MinecraftInstance?, canModify: Boolean,
                     is pl.syntaxdevteam.syntaxlauncher.core.network.DownloadIntegrityException,
                     is pl.syntaxdevteam.syntaxlauncher.core.network.DownloadSizeMismatchException -> "catalog.integrity_error"
                     is pl.syntaxdevteam.syntaxlauncher.core.mods.ModrinthConflictException -> "mods.conflict_error"
-                    is pl.syntaxdevteam.syntaxlauncher.core.mods.CurseForgeDownloadUnavailable -> "catalog.download_unavailable"
                     is pl.syntaxdevteam.syntaxlauncher.core.mods.CurseForgeApiException -> "catalog.connection_error"
                     is pl.syntaxdevteam.syntaxlauncher.core.mods.ModrinthApiException -> "catalog.connection_error"
                     is pl.syntaxdevteam.syntaxlauncher.core.java.JavaRuntimeException -> "catalog.runtime_error"
@@ -290,12 +300,15 @@ internal fun ContentCatalog(instance: MinecraftInstance?, canModify: Boolean,
             if (success && !compact) Text(strings.text("catalog.success"), color = MaterialTheme.colorScheme.primary)
             error?.let {
                 Text(it, color = MaterialTheme.colorScheme.error)
+                errorProjectUrl?.let { url ->
+                    TextButton(onClick = { uriHandler.openUri(url) }) { Text(CatalogSource.CURSEFORGE.label) }
+                }
                 TextButton(enabled = !busy, onClick = { refresh++ }) { Text(strings.text("ui.retry")) }
             }
             val openProject = selection
             if (openProject != null && browser != null) {
                 CatalogDetails(openProject, criteria, browser, Modifier.weight(1f), busy, canModify,
-                    loadIcon, picking = onPick != null, onBack = { selection = null; error = null },
+                    loadIcon, picking = onPick != null, onBack = { selection = null; error = null; errorProjectUrl = null },
                     installed = { id -> "${activeSource.name}:${section.name}:${openProject.id}:$id" in installed },
                     onChoose = { release, optional ->
                         if (onPick != null) onPick(openProject, release, activeSource)
@@ -481,4 +494,15 @@ internal fun CatalogProjectIcon(project: ModrinthProject, section: CatalogSectio
             CatalogSection.SHADERS, CatalogSection.OPTIFINE -> SyntaxSymbol.Sun
         }, tint = accent, size = if (compact) 26.dp else 36.dp)
     }
+}
+
+
+internal fun UiStrings.curseForgeInstallError(failure: Exception): String? = when (failure) {
+    is CurseForgeDownloadUnavailable -> text(
+        if (failure.distributionBlocked) "catalog.curseforge_distribution_blocked" else "catalog.curseforge_file_unavailable",
+        failure.projectName)
+    is CurseForgeOverrideUnverified -> text("catalog.curseforge_override_unverified", failure.path)
+    is CurseForgeCdnAuthenticationException -> text("catalog.curseforge_auth")
+    is CurseForgeCdnRedirectException -> text("catalog.curseforge_redirect")
+    else -> null
 }

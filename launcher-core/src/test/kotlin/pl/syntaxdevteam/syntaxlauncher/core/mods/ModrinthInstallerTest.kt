@@ -48,6 +48,30 @@ class ModrinthInstallerTest {
         } finally { client.close() }
     }
 
+    @Test fun starterProfileIsPublishedOnlyAfterVerifiedModsAreInstalled() = runBlocking {
+        val (instances, game) = setup()
+        val loader = ModLoaderSelection("fabric", "0.18.0")
+        val bytes = jar("starter")
+        val client = HttpClient(MockEngine { respond(bytes) })
+        try {
+            val local = LocalModManager(instances)
+            val installer = ModrinthInstaller(instances, local,
+                DownloadManager(client, retryPolicy = DownloadRetryPolicy(maxAttempts = 1)))
+            val file = ModrinthFile("starter.jar", "https://cdn.modrinth.com/data/starter.jar", sha1(bytes), bytes.size.toLong())
+            val entry = ModrinthInstallEntry("ABCDEFGH", "RELEASEA", "Starter", "1", file, false)
+            val plan = ModrinthInstallPlan(game, "fabric", entry.projectId, listOf(entry), emptyList())
+            assertFailsWith<pl.syntaxdevteam.syntaxlauncher.core.network.DownloadIntegrityException> {
+                installer.createProfile("Starter", loader, plan.copy(entries = listOf(
+                    entry.copy(file = file.copy(sha1 = "0".repeat(40))),
+                )))
+            }
+            assertTrue(instances.list().instances.isEmpty())
+            val installed = installer.createProfile("Starter", loader, plan)
+            assertEquals(installed, instances.list().instances.single())
+            assertEquals("ABCDEFGH", local.list(installed.id).mods.single().modrinth?.projectId)
+        } finally { client.close() }
+    }
+
     private fun jar(modId: String): ByteArray {
         val bytes = ByteArrayOutputStream()
         ZipOutputStream(bytes).use { zip ->

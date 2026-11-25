@@ -27,17 +27,17 @@ class ModpackInstaller(private val instances: MinecraftInstanceRepository, priva
 
     suspend fun install(source: Path, optionalPaths: Set<String> = emptySet(), name: String? = null,
         downloadProgress: DownloadEventListener = {}, onProgress: (ModpackProgress) -> Unit = {}): MinecraftInstance =
-        installArchive(source, optionalPaths, name, downloadProgress, onProgress, "modrinth.index.json") {
+        installArchive(source, optionalPaths, name, downloadProgress, onProgress, "modrinth.index.json", downloads) {
             ModrinthModpackPlanner().plan(it)
         }
 
-    internal suspend fun installCurseForge(source: Path, name: String?, onProgress: (ModpackProgress) -> Unit,
+    internal suspend fun installCurseForge(source: Path, name: String?, fileDownloads: DownloadManager, onProgress: (ModpackProgress) -> Unit,
         parse: suspend (ByteArray) -> ModpackInstallPlan): MinecraftInstance =
-        installArchive(source, emptySet(), name, {}, onProgress, "manifest.json", parse)
+        installArchive(source, emptySet(), name, {}, onProgress, "manifest.json", fileDownloads, parse)
 
     private suspend fun installArchive(source: Path, optionalPaths: Set<String>, name: String?,
         downloadProgress: DownloadEventListener, onProgress: (ModpackProgress) -> Unit, indexName: String,
-        parse: suspend (ByteArray) -> ModpackInstallPlan): MinecraftInstance = withContext(Dispatchers.IO) {
+        fileDownloads: DownloadManager, parse: suspend (ByteArray) -> ModpackInstallPlan): MinecraftInstance = withContext(Dispatchers.IO) {
         onProgress(ModpackProgress(ModpackPhase.VALIDATING))
         if (!Files.isRegularFile(source, NOFOLLOW_LINKS)) throw ModpackFormatException("Modpack source is missing or redirected.")
         val working = Files.createTempDirectory("syntaxlauncher-modpack-")
@@ -72,7 +72,7 @@ class ModpackInstaller(private val instances: MinecraftInstanceRepository, priva
                     var last: Exception? = null
                     for (url in file.mirrors) {
                         try {
-                            downloads.download(DownloadRequest("modpack-file-$index", url, target,
+                            fileDownloads.download(DownloadRequest("modpack-file-$index", url, target,
                                 expectedSha1 = file.sha1, expectedSize = file.bytes, maximumBytes = file.bytes), downloadProgress)
                             if (file.sha512 != null && fileHash(target, "SHA-512") != file.sha512) {
                                 Files.deleteIfExists(target)

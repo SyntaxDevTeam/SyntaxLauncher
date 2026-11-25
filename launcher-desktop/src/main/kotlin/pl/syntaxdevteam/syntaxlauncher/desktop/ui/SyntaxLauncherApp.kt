@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -71,6 +73,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.style.TextOverflow
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
+import pl.syntaxdevteam.syntaxlauncher.desktop.createStarterGame
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.swing.Swing
@@ -300,9 +304,12 @@ private fun LauncherPanel(
     var nickname by remember { mutableStateOf(saved.nickname) }
     var selectedPlayerId by remember { mutableStateOf(saved.selectedPlayerId) }
     var playerManagerOpen by remember { mutableStateOf(false) }
-    var playerMenuOpen by remember { mutableStateOf(false) }
     var managingPlayers by remember { mutableStateOf(false) }
     var loadingAccounts by remember { mutableStateOf(true) }
+    var starterPending by remember { mutableStateOf<Boolean?>(null) }
+    var starterAttempt by remember { mutableIntStateOf(0) }
+    var starterBusy by remember { mutableStateOf(false) }
+    var starterError by remember { mutableStateOf(false) }
     var accountReload by remember { mutableIntStateOf(0) }
     var premiumError by remember { mutableStateOf<String?>(null) }
     val savedPlayers by session.savedAccounts.collectAsState()
@@ -312,6 +319,7 @@ private fun LauncherPanel(
         premiumError = null
         try {
             session.loadAccounts()
+            starterPending = session.preferences.loadStarterPending()
             if (session.savedAccounts.value.none { it.account.uuid.toString() == selectedPlayerId }) {
                 selectedPlayerId = ""
             }
@@ -336,7 +344,6 @@ private fun LauncherPanel(
     }
     var menuOpen by remember { mutableStateOf(false) }
     var instanceMenuOpen by remember { mutableStateOf(false) }
-    var accountInfoOpen by remember { mutableStateOf(false) }
     var ramMiB by remember { mutableStateOf(saved.maximumMemoryMiB.toFloat()) }
     // Preserve Legacy Vanilla's own settings when switching to UUID-scoped profiles.
     var legacyVersionId by remember { mutableStateOf(saved.selectedVersionId) }
@@ -409,7 +416,7 @@ private fun LauncherPanel(
 
     val isRunning = process.state == MinecraftProcessState.RUNNING ||
         process.state == MinecraftProcessState.STARTING
-    val locked = isRunning || launch.isPreparing || mutationBusy || modsBusy || managingPlayers || loadingAccounts || preparingAccount
+    val locked = isRunning || launch.isPreparing || mutationBusy || modsBusy || managingPlayers || starterBusy || loadingAccounts || preparingAccount
     val resolved = (metadata as? VersionMetadataState.Ready)?.metadata
         ?.takeIf { it.id == selected?.id }
     val unsavedInstanceSettings = activeInstance != null &&
@@ -464,6 +471,51 @@ private fun LauncherPanel(
                 ramMiB = instance.maximumMemoryMiB.toFloat()
                 showSnapshots = selected?.type == MinecraftVersionType.SNAPSHOT
             }
+        }
+    }
+
+    val canPrepareStarter = starterPending == true && inventory != null &&
+        selectedPlayer != null && !loadingAccounts && !playerManagerOpen && !managingPlayers &&
+        !isRunning && !launch.isPreparing && !mutationBusy && !modsBusy
+    LaunchedEffect(canPrepareStarter, starterAttempt) {
+        if (!canPrepareStarter) return@LaunchedEffect
+        starterBusy = true
+        starterError = false
+        try {
+            val existing = session.instances.list()
+            check(existing.problems.isEmpty())
+            if (existing.instances.isEmpty() && instanceId.isBlank() && !session.instances.legacyGameAvailable()) {
+                val releases = manifest.versions.filter { it.type == MinecraftVersionType.RELEASE }.map { it.id }
+                val created = withTimeoutOrNull(120_000) {
+                    session.createStarterGame(strings.text("game.starter_name"), listOf(manifest.latestRelease) + releases)
+                } ?: error("Starter profile installation timed out.")
+                inventory = session.instances.list()
+                chooseInstance(created.id)
+                session.savePreferencesNow(LauncherPreferences(
+                    nickname.trim(), legacyVersionId, legacySnapshots, legacyRamMiB.toInt(), created.id, selectedPlayerId,
+                ))
+            }
+            session.preferences.saveStarterPending(false)
+            starterPending = false
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (failure: Exception) {
+            org.slf4j.LoggerFactory.getLogger("StarterGame").warn("Could not create the starter profile", failure)
+            starterError = true
+        } finally {
+            starterBusy = false
+        }
+    }
+
+    suspend fun requestStarterForFirstAccount(hadAccounts: Boolean) {
+        if (session.loaders == null || hadAccounts || starterPending != null || session.savedAccounts.value.size != 1) return
+        starterPending = true
+        try {
+            session.preferences.saveStarterPending(true)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (failure: Exception) {
+            org.slf4j.LoggerFactory.getLogger("StarterGame").warn("Could not save the starter profile request", failure)
         }
     }
 
@@ -701,9 +753,15 @@ private fun LauncherPanel(
     if (playerManagerOpen) {
         PlayerProfilesDialog(
             players = savedPlayers, selectedId = selectedPlayerId, microsoftEnabled = session.microsoftEnabled,
-            onSelect = ::selectPlayer,
-            onAddMicrosoft = { session.addPremiumAccount() },
-            onAddOffline = { session.addOfflineAccount(it) },
+            onSelect = { selectPlayer(it); playerManagerOpen = false },
+            onAddMicrosoft = {
+                val hadAccounts = session.savedAccounts.value.isNotEmpty()
+                session.addPremiumAccount().also { requestStarterForFirstAccount(hadAccounts) }
+            },
+            onAddOffline = { name ->
+                val hadAccounts = session.savedAccounts.value.isNotEmpty()
+                session.addOfflineAccount(name).also { requestStarterForFirstAccount(hadAccounts) }
+            },
             onRemove = { id ->
                 session.removePlayerAccount(id)
                 if (selectedPlayerId == id) { selectedPlayerId = ""; nickname = "" }
@@ -712,14 +770,6 @@ private fun LauncherPanel(
             onDismiss = { playerManagerOpen = false },
         )
     }
-    if (accountInfoOpen) {
-        AlertDialog(onDismissRequest = { accountInfoOpen = false },
-            title = { Text(strings.text("ui.player_accounts")) },
-            text = { Text(strings.text("account.sign_in_required") + "\n\n" +
-                strings.text("account.privacy_summary")) },
-            confirmButton = { TextButton(onClick = { accountInfoOpen = false }) { Text(strings.text("ui.got_it")) } })
-    }
-
     LaunchedEffect(managerOpen, instanceId, contentsRevision, mutationBusy, modsBusy) {
         if (managerOpen && !mutationBusy && !modsBusy) {
             contentsLoading = true; contentsError = false; profileContents = null
@@ -850,7 +900,7 @@ private fun LauncherPanel(
             modifier = columnModifier,
             verticalArrangement = Arrangement.spacedBy(SyntaxBrand.panelGap),
         ) {
-            LauncherHero(selected?.id, activeInstance?.name?.takeUnless { emptyModdedMode }, showSnapshots,
+            LauncherHero(selected?.id, activeInstance?.name?.takeUnless { emptyModdedMode }, selected?.type == MinecraftVersionType.SNAPSHOT,
                 Modifier.weight(1f).fillMaxWidth(), modded = withMods)
             Column(
                 modifier = Modifier.fillMaxWidth()
@@ -999,32 +1049,20 @@ private fun LauncherPanel(
                 .padding(start = 20.dp, top = 16.dp, end = 20.dp, bottom = 18.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f))
-            Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween) {
-                    SectionLabel(strings.text("ui.player"), SyntaxSymbol.Player)
-                    IconButton(onClick = { accountInfoOpen = true }, modifier = Modifier.size(24.dp)) {
-                        BrandIcon(SyntaxSymbol.Info, size = 17.dp, tint = SyntaxBrand.heroMuted,
-                            description = strings.text("ui.account_information"))
-                    }
-                }
-                Box {
-                    SelectorButton(selectedPlayer?.displayName() ?: strings.text("players.choose"), onClick = { playerMenuOpen = true }, enabled = !locked,
-                        symbol = SyntaxSymbol.Player)
-                    DropdownMenu(expanded = playerMenuOpen && !locked,
-                        onDismissRequest = { playerMenuOpen = false }) {
-                        savedPlayers.forEach { player ->
-                            DropdownMenuItem(text = { Text(player.displayName()) },
-                                onClick = { selectPlayer(player); playerMenuOpen = false })
-                        }
-                        DropdownMenuItem(text = { Text(strings.text("players.manage")) },
-                            onClick = { playerMenuOpen = false; playerManagerOpen = true })
-                    }
+            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (selectedPlayer != null) {
+                    Text(strings.text("players.welcome", selectedPlayer.account.username),
+                        style = MaterialTheme.typography.titleMedium)
+                    PlayerPortrait(selectedPlayer, session.playerSkins)
                 }
                 OutlinedButton(onClick = { playerManagerOpen = true }, enabled = !locked,
                     modifier = Modifier.fillMaxWidth().testTag("manage-players")) {
-                    Text(strings.text("players.manage"))
+                    Text(strings.text(when {
+                        selectedPlayer != null -> "players.switch_or_sign_out"
+                        savedPlayers.isNotEmpty() -> "players.manage"
+                        else -> "players.add_account"
+                    }))
                 }
                 premiumError?.let {
                     Text(it, style = MaterialTheme.typography.bodySmall,
@@ -1034,7 +1072,19 @@ private fun LauncherPanel(
                     }
                 }
             }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f))
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (starterBusy) {
+                    Text(strings.text("game.starter_preparing"), style = MaterialTheme.typography.bodySmall)
+                    LinearProgressIndicator(Modifier.fillMaxWidth())
+                }
+                if (starterError && starterPending == true && selectedPlayer != null) {
+                    Text(strings.text("game.starter_failed"), style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error)
+                    TextButton(onClick = { starterAttempt++ }, enabled = !locked) {
+                        Text(strings.text("ui.retry"))
+                    }
+                }
                 SectionLabel(strings.text("ui.game_version"), SyntaxSymbol.Cube)
                 if (emptyModdedMode) {
                     selected?.let { Text("Minecraft " + it.id) }
@@ -1046,39 +1096,37 @@ private fun LauncherPanel(
                         Text(strings.text("game.settings"))
                     }
                 } else {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        ChannelButton(strings.text("ui.releases"), modifier = Modifier.weight(1f),
-                            selected = !showSnapshots, enabled = !locked,
-                            onClick = {
-                                showSnapshots = false
-                                selected = manifest.versions.firstOrNull { it.id == manifest.latestRelease }
-                            },
-                        )
-                        ChannelButton(strings.text("ui.snapshots"), modifier = Modifier.weight(1f),
-                            selected = showSnapshots, enabled = !locked,
-                            onClick = {
-                                showSnapshots = true
-                                selected = manifest.versions.firstOrNull { it.id == manifest.latestSnapshot }
-                            },
-                        )
-                    }
-                    Box {
-                        SelectorButton(selected?.id ?: strings.text("ui.select_version"),
-                            onClick = { menuOpen = true }, enabled = !locked)
-                        DropdownMenu(
-                            expanded = menuOpen && !locked,
-                            onDismissRequest = { menuOpen = false },
-                        ) {
-                            manifest.versions.asSequence()
-                                .filter { it.type == if (showSnapshots)
-                                    MinecraftVersionType.SNAPSHOT else MinecraftVersionType.RELEASE }
-                                .take(80)
-                                .forEach { version ->
-                                    DropdownMenuItem(
-                                        text = { VersionLabel(version, manifest) },
-                                        onClick = { selected = version; menuOpen = false },
-                                    )
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Box(Modifier.weight(1f)) {
+                            SelectorButton(selected?.id ?: strings.text("ui.select_version"),
+                                onClick = { menuOpen = true }, enabled = !locked)
+                            DropdownMenu(
+                                expanded = menuOpen && !locked,
+                                onDismissRequest = { menuOpen = false },
+                            ) {
+                                manifest.versions.asSequence()
+                                    .filter { it.type == MinecraftVersionType.RELEASE ||
+                                        (showSnapshots && it.type == MinecraftVersionType.SNAPSHOT) }
+                                    .groupBy { it.type }.values.flatMap { it.take(80) }
+                                    .sortedByDescending { it.releaseTime }
+                                    .forEach { version ->
+                                        DropdownMenuItem(
+                                            text = { VersionLabel(version, manifest) },
+                                            onClick = { selected = version; menuOpen = false },
+                                        )
+                                    }
+                            }
+                        }
+                        Row(Modifier.toggleable(value = showSnapshots, enabled = !locked, role = Role.Checkbox,
+                            onValueChange = { checked ->
+                                showSnapshots = checked
+                                if (!checked && selected?.type == MinecraftVersionType.SNAPSHOT) {
+                                    selected = manifest.versions.firstOrNull { it.id == manifest.latestRelease }
                                 }
+                            }).padding(vertical = 9.dp, horizontal = 4.dp).testTag("show-snapshots"),
+                            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Checkbox(checked = showSnapshots, onCheckedChange = null, enabled = !locked)
+                            Text(strings.text("ui.snapshots"), style = MaterialTheme.typography.labelSmall)
                         }
                     }
                 }
@@ -1174,21 +1222,17 @@ private fun LauncherPanel(
                     }, enabled = !locked) { Text(strings.text("mods.review")) }
                 }
             }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f))
-            Text(
-                when (process.state) {
-                    MinecraftProcessState.RUNNING -> strings.text("ui.running_pid_0", process.pid ?: "?")
-                    MinecraftProcessState.STOPPED -> strings.text("ui.last_exit_code_0", process.exitCode ?: "?")
-                    MinecraftProcessState.CRASHED -> process.errorMessage ?: strings.text("ui.minecraft_crashed")
-                    else -> when {
-                        selectedPlayer?.microsoft == true -> strings.text("ui.microsoft_account") + selectedPlayer.account.username
-                        selectedPlayer != null -> selectedPlayer.account.username
-                        else -> strings.text("players.choose")
-                    }
-                },
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodySmall,
-            )
+            val processLabel = when (process.state) {
+                MinecraftProcessState.RUNNING -> strings.text("ui.running_pid_0", process.pid ?: "?")
+                MinecraftProcessState.STOPPED -> strings.text("ui.last_exit_code_0", process.exitCode ?: "?")
+                MinecraftProcessState.CRASHED -> process.errorMessage ?: strings.text("ui.minecraft_crashed")
+                else -> null
+            }
+            if (processLabel != null) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f))
+                Text(processLabel, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall)
+            }
             if (process.state == MinecraftProcessState.CRASHED ||
                 launch.phase == LaunchPhase.FAILED) {
                 TextButton(onClick = { lastHealthOpen = true }, enabled = !locked) {

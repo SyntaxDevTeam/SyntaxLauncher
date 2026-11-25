@@ -60,15 +60,25 @@ internal fun StartupUpdateGate(
     content: @Composable () -> Unit,
 ) {
     val strings = LocalStrings.current
-    var continued by remember { mutableStateOf(updater == null || handoff != null) }
+    val delegatedCheck = handoff?.checkForUpdates == true
+    var continued by remember { mutableStateOf(updater == null || (handoff != null && !delegatedCheck)) }
+    var receiptSent by remember { mutableStateOf(handoff == null) }
     var attempt by remember { mutableIntStateOf(0) }
     var progress by remember { mutableStateOf(StartupUpdateProgress(strings.text("ui.checking_for_launcher_updates"))) }
     var error by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(updater, continued, attempt) {
-        if (continued || updater == null) return@LaunchedEffect
+    LaunchedEffect(handoff) {
+        if (handoff != null) {
+            withFrameNanos { }
+            withFrameNanos { }
+            handoff.ready()
+            receiptSent = true
+        }
+    }
+    LaunchedEffect(updater, continued, attempt, receiptSent) {
+        if (continued || updater == null || !receiptSent) return@LaunchedEffect
         error = null
         try {
-            when (updater.run { update -> withContext(Dispatchers.Main) { progress = update } }) {
+            when (updater.run(waitForParent = delegatedCheck) { update -> withContext(Dispatchers.Main) { progress = update } }) {
                 StartupUpdateResult.CONTINUE -> continued = true
                 StartupUpdateResult.HANDED_OFF -> onTransferred()
             }
@@ -92,14 +102,6 @@ internal fun StartupUpdateGate(
     }
     if (continued) {
         content()
-        LaunchedEffect(handoff) {
-            if (handoff != null) {
-                // A receipt is emitted only after the new window/content can render.
-                withFrameNanos { }
-                withFrameNanos { }
-                handoff.ready()
-            }
-        }
     } else SyntaxTheme {
         StartupUpdateScreen(progress, error, onRetry = { attempt++ },
             onContinue = { if (error != null || progress.canContinue) continued = true },
@@ -124,7 +126,7 @@ internal fun StartupUpdateScreen(
                 verticalArrangement = Arrangement.spacedBy(18.dp)) {
                 Image(rememberBrandingPainter("branding/hero-mark.png"), strings.text("ui.syntaxlauncher_logo"), Modifier.size(112.dp))
                 Text("Syntax Launcher", style = MaterialTheme.typography.headlineMedium)
-                Text("v" + LauncherBuildInfo.version + (if (developerMode)
+                Text("v" + (progress.installedVersion ?: LauncherBuildInfo.version) + (if (developerMode && progress.installedVersion == null)
                     "   /   " + LauncherBuildInfo.buildLabel + "   /   " + LauncherBuildInfo.shortCommit else ""),
                     color = SyntaxBrand.cyan, style = MaterialTheme.typography.labelSmall)
                 Text(if (error == null) strings.text(when (progress.stage) {
@@ -133,6 +135,7 @@ internal fun StartupUpdateScreen(
                     StartupUpdateStage.DOWNLOADING -> "update.download"
                     StartupUpdateStage.INSTALLING -> "update.install"
                     StartupUpdateStage.STARTING -> "update.start"
+                    StartupUpdateStage.STARTING_INSTALLED -> "update.start_installed"
                     StartupUpdateStage.PREVIOUS -> "update.previous"
                 }) else strings.text("ui.update_needs_attention"),
                     style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)

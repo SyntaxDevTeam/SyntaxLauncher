@@ -71,9 +71,9 @@ internal fun PlayerProfilesContent(
                     modifier = Modifier.fillMaxWidth().testTag("select-player-$id")) {
                     Text(player.displayName() + if (selectedId == id) " ✓" else "")
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(onClick = { removingId = id }, enabled = !busy,
-                        modifier = Modifier.testTag("remove-player-$id")) { Text(strings.text("players.remove")) }
+                TextButton(onClick = { removingId = id }, enabled = !busy,
+                    modifier = Modifier.testTag("remove-player-$id")) {
+                    Text(strings.text(if (player.microsoft) "players.sign_out" else "players.remove"))
                 }
                 if (removingId == id) {
                     Text(strings.text("players.remove_hint"), style = MaterialTheme.typography.bodySmall)
@@ -86,7 +86,7 @@ internal fun PlayerProfilesContent(
                 }
             }
         }
-        HorizontalDivider()
+        if (players.isNotEmpty()) HorizontalDivider()
         if (microsoftEnabled) OutlinedButton(onClick = { perform {
             onSelect(SavedAccount(onAddMicrosoft(), true))
         } }, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text(strings.text("ui.add_microsoft")) }
@@ -120,6 +120,8 @@ internal fun PlayerProfilesContent(
                 modifier = Modifier.fillMaxWidth(),
             ) { Text(strings.text("players.add_offline")) }
         }
+        if (microsoftEnabled) Text(strings.text("account.privacy_summary"),
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
         error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
     }

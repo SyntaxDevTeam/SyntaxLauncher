@@ -195,6 +195,38 @@ class LauncherUpdateTest {
         } finally { children.forEach { it.destroyForcibly().waitFor() }; client.close() }
     }
 
+    @Test fun compatibleActiveLauncherStartsBeforeAnyReleaseRequest() = runBlocking {
+        val marker = UpdateBundleEntry("syntaxlauncher-startup-check-v1", size = content.size.toLong(), sha256 = hash(content))
+        val bytes = bundle(entries + marker)
+        val root = temp.resolve("updates")
+        val installer = UpdateBundleInstaller(root.resolve("installations"))
+        val installed = installer.install(archive(bytes), release(bytes), platform)
+        assertTrue(installed.checksUpdatesAfterHandoff)
+        Files.writeString(root.resolve("state.properties"), "schemaVersion=1\nactive=${installed.directory.fileName}\n")
+        var requests = 0
+        val client = HttpClient(MockEngine { requests++; respond("{}", HttpStatusCode.NotFound) })
+        var delegated = false
+        val starter = object : UpdatedLauncherStarter {
+            override fun start(executable: Path, receipt: Path, nonce: String): Process =
+                error("Unexpected ordinary handoff")
+
+            override fun startForUpdateCheck(executable: Path, receipt: Path, nonce: String): Process {
+                assertEquals(installed.executable, executable)
+                delegated = true
+                Files.writeString(receipt, "$nonce\n1.0.0")
+                return ChildStub(true)
+            }
+        }
+        try {
+            assertEquals(StartupUpdateResult.HANDED_OFF, updater(client, starter).run {})
+            assertTrue(delegated)
+            assertEquals(0, requests)
+
+            assertEquals(StartupUpdateResult.CONTINUE, updater(client, starter, "1.0.0").run(waitForParent = true) {})
+            assertEquals(1, requests)
+        } finally { client.close() }
+    }
+
     @Test fun failedStartupNeverReplacesThePreviousActiveVersion() = runBlocking {
         val previous = bundle()
         val installer = UpdateBundleInstaller(temp.resolve("updates/installations"))

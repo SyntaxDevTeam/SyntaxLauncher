@@ -137,6 +137,16 @@ class LauncherPreferencesStore(private val file: Path) {
     suspend fun loadDeveloperMode(): Boolean = loadFlag("developer_mode", false)
     suspend fun saveDeveloperMode(enabled: Boolean) = saveFlag("developer_mode", enabled)
 
+    suspend fun loadStarterPending(): Boolean? = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            val properties = readProperties()
+            if (!properties.isEmpty()) validateSchema(properties)
+            properties.getProperty("starter_profile_pending")?.toBooleanStrict()
+        }
+    }
+
+    suspend fun saveStarterPending(pending: Boolean) = saveFlag("starter_profile_pending", pending)
+
     private suspend fun loadFlag(key: String, default: Boolean): Boolean = withContext(Dispatchers.IO) {
         mutex.withLock {
             val properties = readProperties()

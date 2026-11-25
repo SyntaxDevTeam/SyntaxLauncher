@@ -6,7 +6,9 @@ import java.nio.file.Path
 import java.security.MessageDigest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import pl.syntaxdevteam.syntaxlauncher.core.content.fileHash
 import pl.syntaxdevteam.syntaxlauncher.core.instance.MinecraftInstanceRepository
+import pl.syntaxdevteam.syntaxlauncher.core.loader.ModLoaderSelection
 import pl.syntaxdevteam.syntaxlauncher.core.network.DownloadManager
 import pl.syntaxdevteam.syntaxlauncher.core.network.DownloadRequest
 
@@ -72,6 +74,34 @@ class ModrinthInstaller(
                 }
                 Files.deleteIfExists(staging)
             }
+        }
+
+    /** Publish a ready-to-launch profile only after every verified JAR is in place. */
+    suspend fun createProfile(name: String, loader: ModLoaderSelection, plan: ModrinthInstallPlan) =
+        instances.createPrepared(name, plan.minecraftVersionId, loader) { _, layout ->
+            require(loader.id == plan.loaderId && plan.entries.size in 1..32 &&
+                plan.entries.distinctBy { it.projectId }.size == plan.entries.size &&
+                plan.entries.distinctBy { it.file.filename }.size == plan.entries.size) {
+                "Invalid Modrinth profile plan."
+            }
+            val modsDirectory = Files.createDirectory(layout.gameDir.resolve("mods"))
+            val requests = plan.entries.map { entry ->
+                val target = modsDirectory.resolve(entry.file.filename)
+                require(target.parent == modsDirectory && target.fileName.toString().endsWith(".jar", true))
+                DownloadRequest(
+                    id = "modrinth:" + entry.versionId,
+                    url = entry.file.url,
+                    target = target,
+                    expectedSha1 = entry.file.sha1,
+                    expectedSize = entry.file.bytes,
+                    maximumBytes = entry.file.bytes,
+                )
+            }
+            downloads.downloadAll(requests)
+            ModrinthManagedModStore().save(layout.gameDir, plan.entries.zip(requests) { entry, request ->
+                ModrinthManagedMod(entry.file.filename, entry.projectId, entry.versionId,
+                    fileHash(request.target, "SHA-256"))
+            })
         }
 
     private fun validateConflicts(plan: ModrinthInstallPlan, installed: List<LocalMod>) {

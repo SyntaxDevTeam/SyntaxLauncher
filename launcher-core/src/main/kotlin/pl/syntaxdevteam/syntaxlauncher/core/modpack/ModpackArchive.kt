@@ -40,13 +40,21 @@ internal object ModpackArchive {
                     if (seen.size >= 100_000 || !seen.add(key)) throw ModpackFormatException("Duplicate or excessive modpack ZIP entries.")
                     if (entry.isDirectory) continue
                     files += key
+                    val curseForgeOverride = indexName == "manifest.json" && name.startsWith("overrides/")
+                    if (curseForgeOverride) validateCurseForgeOverride(name.substringAfter('/'))
                     val crc = CRC32()
                     var count = 0L
                     zip.getInputStream(entry).use { input ->
                         while (true) {
                             currentCoroutineContext().ensureActive()
-                            val read = input.read(buffer)
-                            if (read < 0) break
+                            val read = if (curseForgeOverride && count == 0L) input.readNBytes(buffer, 0, buffer.size)
+                            else input.read(buffer)
+                            if (read <= 0) break
+                            if (curseForgeOverride && count == 0L && read >= 4 &&
+                                buffer[0] == 0x50.toByte() && buffer[1] == 0x4b.toByte() &&
+                                buffer[2].toInt() in setOf(3, 5, 7)) {
+                                throw CurseForgeOverrideUnverified(name.substringAfter('/'))
+                            }
                             count += read; expanded += read
                             if (expanded > 2L * 1024 * 1024 * 1024) throw ModpackFormatException("Expanded modpack exceeds 2 GiB.")
                             crc.update(buffer, 0, read)
@@ -104,6 +112,24 @@ internal object ModpackArchive {
         return InspectedModpack(plan, layout.overrides, layout.expandedBytes)
     }
 
+    private fun validateCurseForgeOverride(path: String) {
+        val key = path.lowercase(Locale.ROOT)
+        val folder = key.substringBefore('/', "")
+        val extension = key.substringAfterLast('/').substringAfterLast('.', "")
+        if (key !in curseForgeRootOverrides &&
+            (folder !in curseForgeOverrideFolders || extension !in curseForgeOverrideExtensions)) {
+            throw CurseForgeOverrideUnverified(path)
+        }
+    }
+
+    private val curseForgeRootOverrides = setOf("options.txt", "optionsof.txt", "servers.dat", "icon.png")
+    private val curseForgeOverrideFolders = setOf("config", "defaultconfigs", "scripts", "kubejs", "resourcepacks",
+        "shaderpacks", "resources", "saves", "maps", "datapacks", "global_packs", "patchouli_books")
+    private val curseForgeOverrideExtensions = setOf("cfg", "conf", "config", "ini", "json", "json5", "jsonc",
+        "toml", "yaml", "yml", "properties", "txt", "xml", "snbt", "nbt", "dat", "mcmeta", "mcfunction",
+        "mca", "mcr", "png", "jpg", "jpeg", "webp", "tga", "ogg", "wav", "lang", "ttf", "otf", "fsh",
+        "vsh", "gsh", "csh", "glsl", "vshinc", "fshinc", "js", "zs", "md", "csv")
+
     suspend fun copyBounded(source: Path, target: Path, limit: Long) {
         var count = 0L
         Files.newInputStream(source, NOFOLLOW_LINKS).use { input ->
@@ -121,3 +147,7 @@ internal object ModpackArchive {
         }
     }
 }
+
+
+class CurseForgeOverrideUnverified(val path: String) :
+    ModpackFormatException("Cannot verify distribution of the embedded CurseForge modpack file: $path")

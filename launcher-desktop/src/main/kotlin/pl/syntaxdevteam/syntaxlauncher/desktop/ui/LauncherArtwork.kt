@@ -11,11 +11,21 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import pl.syntaxdevteam.syntaxlauncher.desktop.LauncherBuildInfo
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
@@ -34,6 +44,21 @@ import kotlin.math.roundToInt
 @Composable
 internal fun LauncherHero(version: String?, profile: String?, snapshots: Boolean, modifier: Modifier = Modifier, modded: Boolean = false) {
     val strings = LocalStrings.current
+    var changelogOpen by remember { mutableStateOf(false) }
+    if (changelogOpen) {
+        AlertDialog(
+            onDismissRequest = { changelogOpen = false },
+            title = { Text(strings.text("launcher.changelog") + " · " + LauncherBuildInfo.version) },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    for (entry in listOf("starter", "accounts", "versions", "update")) {
+                        Text("• " + strings.text("launcher.changelog." + entry))
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { changelogOpen = false }) { Text(strings.text("ui.got_it")) } },
+        )
+    }
     val shape = RoundedCornerShape(SyntaxBrand.panelRadius)
     BoxWithConstraints(modifier.testTag("launcher-hero").clip(shape).background(SyntaxBrand.heroEnd)
         .border(1.dp, SyntaxBrand.border, shape)) {
@@ -92,6 +117,10 @@ internal fun LauncherHero(version: String?, profile: String?, snapshots: Boolean
                 Text(if (snapshots) strings.text("ui.java_edition_snapshot") else strings.text("ui.java_edition_stable_release"),
                     style = MaterialTheme.typography.labelSmall, color = SyntaxBrand.heroMuted)
             }
+            OutlinedButton(
+                onClick = { changelogOpen = true },
+                modifier = Modifier.background(SyntaxBrand.panel, RoundedCornerShape(24.dp)).testTag("launcher-changelog"),
+            ) { Text(strings.text("launcher.changelog")) }
         }) { measurables, constraints ->
             val width = constraints.maxWidth
             val height = constraints.maxHeight
@@ -103,12 +132,16 @@ internal fun LauncherHero(version: String?, profile: String?, snapshots: Boolean
                 (contentWidth * 0.6f).roundToInt() else contentWidth
             val intro = measurables[0].measure(Constraints(
                 maxWidth = copyWidth, maxHeight = contentHeight))
+            val changelog = measurables[2].measure(Constraints(
+                maxWidth = (contentWidth / 2).coerceAtLeast(0), maxHeight = contentHeight))
+            val profileWidth = minOf(copyWidth, (contentWidth - changelog.width - gap).coerceAtLeast(0))
             val profileInfo = measurables[1].measure(Constraints(
-                minWidth = copyWidth, maxWidth = copyWidth,
+                minWidth = profileWidth, maxWidth = profileWidth,
                 maxHeight = (contentHeight - intro.height - gap).coerceAtLeast(0)))
             layout(width, height) {
                 intro.placeRelative(padding, padding)
                 profileInfo.placeRelative(padding, height - padding - profileInfo.height)
+                changelog.placeRelative(width - padding - changelog.width, height - padding - changelog.height)
             }
         }
     }

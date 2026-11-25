@@ -35,7 +35,7 @@ internal object LauncherBuildInfo {
     val compactBuildLabel: String get() = if (buildNumber == "local") "LOCAL" else "#" + buildNumber
 }
 
-internal data class DesktopUpdateHandoff(val receipt: Path, val nonce: String) {
+internal data class DesktopUpdateHandoff(val receipt: Path, val nonce: String, val checkForUpdates: Boolean = false) {
     suspend fun ready() = withContext(Dispatchers.IO) {
         Files.writeString(receipt, "$nonce\n${LauncherBuildInfo.version}", CREATE_NEW)
     }
@@ -48,7 +48,7 @@ internal data class DesktopUpdateHandoff(val receipt: Path, val nonce: String) {
             require(receipt.parent == updateRoot.toAbsolutePath().normalize() &&
                 receipt.fileName.toString().matches(Regex("startup-[a-f0-9-]{36}\\.ready")))
             require(UUID.fromString(args[2]).toString() == args[2])
-            return DesktopUpdateHandoff(receipt, args[2])
+            return DesktopUpdateHandoff(receipt, args[2], System.getenv(StartupUpdater.CHECK_AFTER_HANDOFF_ENV) == args[2])
         }
     }
 }

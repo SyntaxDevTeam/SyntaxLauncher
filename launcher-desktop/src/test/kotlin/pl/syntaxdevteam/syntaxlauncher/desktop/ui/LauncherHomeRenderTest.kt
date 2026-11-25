@@ -59,7 +59,7 @@ class LauncherHomeRenderTest {
         val scene = ImageComposeScene(1440, 810, coroutineContext = Dispatchers.Swing) { SyntaxLauncherApp(session) }
         try {
             scene.awaitReady()
-            assertNotNull(scene.text("SyntaxPlayer · Microsoft"))
+            assertNotNull(scene.text("Welcome, SyntaxPlayer"))
             assertNotNull(scene.text("Syntax Launcher"))
             val playButton = scene.nodes().first { it.config.getOrNull(SemanticsProperties.TestTag) == "launch-play" }
             scene.screenshot("play-idle")
@@ -77,7 +77,7 @@ class LauncherHomeRenderTest {
         try {
             scene.awaitReady()
             assertTrue(scene.text("PLAY MINECRAFT").config.contains(SemanticsProperties.Disabled))
-            scene.text("Manage players").click()
+            scene.text("Add account").click()
             scene.frames()
             assertNotNull(scene.text("Add Mojang/Microsoft account"))
             scene.text("Add offline account").click()
@@ -92,11 +92,9 @@ class LauncherHomeRenderTest {
             assertFalse(savePlayer.config.contains(SemanticsProperties.Disabled))
             savePlayer.click()
             withTimeout(5000.milliseconds) {
-                while (scene.nodes().none { it.label() == "LocalPlayer ✓" }) scene.frames()
+                while (scene.nodes().none { it.label() == "Welcome, LocalPlayer" }) scene.frames()
             }
             assertEquals("LocalPlayer", session.savedAccounts.value.single().account.username)
-            scene.text("Done").click()
-            scene.frames()
             assertFalse(scene.text("PLAY MINECRAFT").config.contains(SemanticsProperties.Disabled))
         } finally { scene.close(); session.shutdown() }
     }
@@ -383,10 +381,12 @@ class LauncherHomeRenderTest {
             }
             try {
                 scene.awaitReady(strings.text("ui.play_minecraft"))
-                scene.text("SyntaxPlayer · Microsoft").click()
+                assertNotNull(scene.text(strings.text("players.welcome", "SyntaxPlayer")))
+                scene.text(strings.text("players.switch_or_sign_out")).click()
                 scene.frames()
                 scene.text("ChildTwo · Microsoft").click()
                 scene.frames()
+                assertNotNull(scene.text(strings.text("players.welcome", "ChildTwo")))
                 assertFalse(scene.text(strings.text("ui.play_minecraft")).config.contains(SemanticsProperties.Disabled))
                 delay(500)
                 assertEquals("ChildTwo", session.savedAccounts.value.first {

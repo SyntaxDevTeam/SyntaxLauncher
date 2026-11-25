@@ -166,12 +166,13 @@ internal fun CatalogDetails(project: ModrinthProject, criteria: CatalogCriteria,
     picking: Boolean = false) {
     val strings = LocalStrings.current
     val uriHandler = LocalUriHandler.current
-    var detail by remember(project) { mutableStateOf<ModrinthProjectDetail?>(null) }
+    var detail by remember(project, criteria.source) { mutableStateOf<ModrinthProjectDetail?>(null) }
     var releases by remember(project, criteria) { mutableStateOf<List<CatalogRelease>?>(null) }
     var release by remember(project, criteria) { mutableStateOf<CatalogRelease?>(null) }
     var changelog by remember(project, release) { mutableStateOf<String?>(null) }
     var showingVersions by remember(project) { mutableStateOf(false) }
-    var failure by remember(project) { mutableStateOf(false) }
+    var releaseFailure by remember(project, criteria) { mutableStateOf(false) }
+    var detailFailure by remember(project, criteria.source) { mutableStateOf(false) }
     var reviewDependencies by remember(project, release) { mutableStateOf(false) }
     var optional by remember(project, release) { mutableStateOf(emptySet<String>()) }
     var plan by remember(project, release, optional) {
@@ -181,16 +182,21 @@ internal fun CatalogDetails(project: ModrinthProject, criteria: CatalogCriteria,
     var retry by remember(project) { mutableIntStateOf(0) }
 
     LaunchedEffect(project, criteria, retry) {
-        failure = false
+        releaseFailure = false
         try {
             releases = browser.releases(criteria, project)
             release = releases?.firstOrNull { it.downloadable && browser.compatible(criteria.section, it) }
                 ?: releases?.firstOrNull()
-            detail = browser.detail(criteria, project)
         } catch (cancelled: CancellationException) { throw cancelled }
-        catch (_: Exception) { failure = true }
+        catch (_: Exception) { releaseFailure = true }
     }
-    LaunchedEffect(project, release, showingVersions, retry) {
+    LaunchedEffect(project, criteria.source, retry) {
+        detailFailure = false
+        try { detail = browser.detail(criteria, project) }
+        catch (cancelled: CancellationException) { throw cancelled }
+        catch (_: Exception) { detailFailure = true }
+    }
+    LaunchedEffect(project, criteria.source, release, showingVersions, retry) {
         val version = release ?: return@LaunchedEffect
         if (!showingVersions) return@LaunchedEffect
         changelog = null
@@ -218,7 +224,7 @@ internal fun CatalogDetails(project: ModrinthProject, criteria: CatalogCriteria,
                 Text(listOf(project.author, criteria.source.label, detail?.license.orEmpty())
                     .filter { it.isNotBlank() }.joinToString("  ·  "), style = MaterialTheme.typography.labelMedium)
             }
-            detail?.projectUrl?.takeIf { it.isNotBlank() }?.let { url ->
+            (detail?.projectUrl?.takeIf { it.isNotBlank() } ?: project.projectUrl)?.let { url ->
                 TextButton(onClick = { uriHandler.openUri(url) }) { Text(criteria.source.label) }
             }
         }
@@ -230,7 +236,7 @@ internal fun CatalogDetails(project: ModrinthProject, criteria: CatalogCriteria,
             val selected = release
             if (selected != null) Button(
                 modifier = Modifier.testTag("modrinth-install-plan"),
-                enabled = canModify && !busy && selected.downloadable &&
+                enabled = canModify && !busy && selected.downloadable && detail?.distributionBlocked != true &&
                     browser.compatible(criteria.section, selected) && !installed(selected.id) &&
                     (!reviewDependencies || plan != null),
                 onClick = { onChoose(selected, optional) }) {
@@ -247,15 +253,17 @@ internal fun CatalogDetails(project: ModrinthProject, criteria: CatalogCriteria,
             ChannelButton(strings.text("catalog.versions"), showingVersions, true, { showingVersions = true })
         }
         LazyColumn(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (failure) item {
+            if (releaseFailure || detailFailure) item {
                 Text(strings.text("catalog.load_error"), color = MaterialTheme.colorScheme.error)
                 TextButton(enabled = !busy, onClick = { retry++ }) { Text(strings.text("ui.retry")) }
             }
-            if (releases == null && !failure) item { CircularProgressIndicator() }
-            if (releases?.isEmpty() == true) item { Text(strings.text("catalog.no_releases")) }
+            if (releases == null && !releaseFailure) item { CircularProgressIndicator() }
+            val distributionBlocked = detail?.distributionBlocked == true || release?.distributionBlocked == true
+            if (distributionBlocked) item { Text(strings.text("catalog.curseforge_distribution_blocked", project.title)) }
+            if (releases?.isEmpty() == true && !distributionBlocked) item { Text(strings.text("catalog.no_releases")) }
             release?.let { version ->
-                if (!version.downloadable) item { Text(strings.text("catalog.download_unavailable")) }
-                else if (!browser.compatible(criteria.section, version)) item { Text(strings.text("catalog.incompatible_profile")) }
+                if (!distributionBlocked && !version.downloadable) item { Text(strings.text("catalog.download_unavailable")) }
+                else if (!distributionBlocked && !browser.compatible(criteria.section, version)) item { Text(strings.text("catalog.incompatible_profile")) }
                 if (showingVersions) {
                     item { Text(listOf(version.channel, version.published.take(10)).filter { it.isNotBlank() }.joinToString(" · ")) }
                     item { Text("Minecraft " + version.gameVersions.joinToString(", ")) }

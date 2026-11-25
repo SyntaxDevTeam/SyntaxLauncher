@@ -37,7 +37,14 @@ internal data class UpdateBundleEntry(
     val target: String? = null,
 )
 
-data class InstalledLauncher(val version: LauncherVersion, val directory: Path, val executable: Path)
+data class InstalledLauncher(
+    val version: LauncherVersion,
+    val directory: Path,
+    val executable: Path,
+    val checksUpdatesAfterHandoff: Boolean = false,
+)
+
+private const val STARTUP_CHECK_MARKER = "syntaxlauncher-startup-check-v1"
 
 /** Extracts to a private staging directory. Existing launchers and user game data are never replaced. */
 class UpdateBundleInstaller(private val installations: Path) {
@@ -161,7 +168,8 @@ class UpdateBundleInstaller(private val installations: Path) {
                 currentCoroutineContext().ensureActive()
                 // Unique directories avoid replacing files locked by Windows or another launcher.
                 Files.move(stage, destination, ATOMIC_MOVE)
-                InstalledLauncher(release.version, destination, destination.resolve(platform.executable))
+                InstalledLauncher(release.version, destination, destination.resolve(platform.executable),
+                    Files.isRegularFile(destination.resolve(STARTUP_CHECK_MARKER), NOFOLLOW_LINKS))
             } finally {
                 deleteStaging(stage)
             }
@@ -191,7 +199,8 @@ class UpdateBundleInstaller(private val installations: Path) {
             }
         }
         require(manifest.entries.any { it.path == platform.executable && it.kind == "file" && it.executable })
-        InstalledLauncher(LauncherVersion.parse(manifest.version), directory, directory.resolve(platform.executable))
+        InstalledLauncher(LauncherVersion.parse(manifest.version), directory, directory.resolve(platform.executable),
+            manifest.entries.any { it.path == STARTUP_CHECK_MARKER && it.kind == "file" })
     }
 
     private suspend fun hashFile(file: Path): String {

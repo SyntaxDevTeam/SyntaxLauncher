@@ -2,13 +2,17 @@ package pl.syntaxdevteam.syntaxlauncher.core.network
 
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.ResponseException
+import io.ktor.client.plugins.expectSuccess
 import io.ktor.client.plugins.timeout
+import io.ktor.client.request.header
 import io.ktor.client.request.prepareGet
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsChannel
+import io.ktor.http.HttpHeaders
 import io.ktor.http.isSuccess
 import io.ktor.utils.io.readAvailable
 import java.io.IOException
+import java.net.URI
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -32,13 +36,26 @@ import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 
-class DownloadManager(
+class DownloadManager private constructor(
     private val httpClient: HttpClient,
-    private val verifier: DownloadIntegrityVerifier = DownloadIntegrityVerifier(),
-    private val maxParallelism: Int = DEFAULT_PARALLELISM,
-    private val retryPolicy: DownloadRetryPolicy = DownloadRetryPolicy(),
-    private val diskSpace: DiskSpace = DiskSpace(),
+    private val verifier: DownloadIntegrityVerifier,
+    private val maxParallelism: Int,
+    private val retryPolicy: DownloadRetryPolicy,
+    private val diskSpace: DiskSpace,
+    private val curseForgeKey: String?,
 ) {
+    constructor(
+        httpClient: HttpClient,
+        verifier: DownloadIntegrityVerifier = DownloadIntegrityVerifier(),
+        maxParallelism: Int = DEFAULT_PARALLELISM,
+        retryPolicy: DownloadRetryPolicy = DownloadRetryPolicy(),
+        diskSpace: DiskSpace = DiskSpace(),
+    ) : this(httpClient, verifier, maxParallelism, retryPolicy, diskSpace, null)
+
+    // The catalog owns this client and disables automatic redirects for all credentialed requests.
+    internal fun forCurseForge(client: HttpClient, key: String): DownloadManager =
+        DownloadManager(client, verifier, maxParallelism, retryPolicy, diskSpace, key)
+
     init {
         require(maxParallelism >= 1) { "maxParallelism must be at least 1." }
     }
@@ -169,9 +186,13 @@ class DownloadManager(
         emitter: SerialDownloadEventEmitter,
     ): DownloadResult {
         return try {
-            httpClient.prepareGet(request.url) {
-                request.requestTimeoutMillis?.let { duration -> timeout { requestTimeoutMillis = duration } }
-            }.execute { response -> downloadResponse(request, emitter, response) }
+            if (curseForgeKey != null) {
+                downloadCurseForge(request, emitter, curseForgeKey)
+            } else {
+                httpClient.prepareGet(request.url) {
+                    request.requestTimeoutMillis?.let { duration -> timeout { requestTimeoutMillis = duration } }
+                }.execute { response -> downloadResponse(request, emitter, response) }
+            }
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (responseError: ResponseException) {
@@ -179,6 +200,37 @@ class DownloadManager(
         } catch (failure: IOException) {
             throw DownloadNetworkException(request.id, failure)
         }
+    }
+
+    private suspend fun downloadCurseForge(request: DownloadRequest, emitter: SerialDownloadEventEmitter,
+        key: String): DownloadResult {
+        var url = curseForgeCdnUri(request.url)
+            ?: throw CurseForgeCdnRedirectException()
+        repeat(MAX_CURSEFORGE_REDIRECTS + 1) { hop ->
+            var result: DownloadResult? = null
+            val redirect = httpClient.prepareGet(url.toASCIIString()) {
+                expectSuccess = false
+                header("x-api-key", key)
+                request.requestTimeoutMillis?.let { duration -> timeout { requestTimeoutMillis = duration } }
+            }.execute { response ->
+                when (response.status.value) {
+                    401 -> throw CurseForgeCdnAuthenticationException()
+                    301, 302, 303, 307, 308 -> {
+                        val location = response.headers[HttpHeaders.Location]
+                        val target = location?.let { runCatching { url.resolve(it).toString() }.getOrNull() }
+                        if (hop == MAX_CURSEFORGE_REDIRECTS) throw CurseForgeCdnRedirectException()
+                        target?.let(::curseForgeCdnUri) ?: throw CurseForgeCdnRedirectException()
+                    }
+                    else -> {
+                        result = downloadResponse(request, emitter, response)
+                        null
+                    }
+                }
+            }
+            result?.let { return it }
+            url = checkNotNull(redirect)
+        }
+        throw CurseForgeCdnRedirectException()
     }
 
     private suspend fun downloadResponse(request: DownloadRequest, emitter: SerialDownloadEventEmitter,
@@ -381,8 +433,25 @@ class DownloadManager(
 
     companion object {
         const val DEFAULT_PARALLELISM = 6
+        private const val MAX_CURSEFORGE_REDIRECTS = 5
         private const val BUFFER_SIZE = 64 * 1024
         private const val PROGRESS_INTERVAL_BYTES = 256 * 1024L
         private val logger = LoggerFactory.getLogger(DownloadManager::class.java)
     }
 }
+
+private val curseForgeCdnHosts = setOf("edge.forgecdn.net", "media.forgecdn.net",
+    "mediafilez.forgecdn.net", "mediafiles.forgecdn.net")
+
+internal fun curseForgeCdnUri(url: String): URI? =
+    runCatching { URI(url) }.getOrNull()?.takeIf {
+        it.scheme == "https" && it.host in curseForgeCdnHosts && (it.port == -1 || it.port == 443) &&
+            it.userInfo == null && it.rawFragment == null && it.rawQuery == null &&
+            it.rawPath.startsWith("/files/")
+    }
+
+class CurseForgeCdnAuthenticationException :
+    DownloadException("CurseForge CDN returned HTTP 401. Check the API key and its permissions.")
+
+class CurseForgeCdnRedirectException :
+    DownloadException("CurseForge CDN returned an unsupported download redirect.")

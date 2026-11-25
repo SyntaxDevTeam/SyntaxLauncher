@@ -28,7 +28,9 @@ Find MSI, DMG and AppImage installers in [Build Explorer](https://syntaxdevteam.
 2. Pick a Minecraft version for a classic game, or open the catalog to find an add-on or modpack.
 3. Select **Play** to start your game once it's ready.
 
-To enable CurseForge, set the `CURSEFORGE_API_KEY` environment variable before starting the launcher. Projects whose authors restrict third-party downloads can be browsed in the catalog and opened on CurseForge.
+For local development with an approved CurseForge key, set the `CURSEFORGE_API_KEY` environment variable before starting the launcher. The launcher sends the key in the `x-api-key` header to the official API and allowlisted HTTPS CDN file endpoints. It validates every CDN redirect before sending the next request. Confirm a deployment model with CurseForge before enabling the integration in a public release. The developer key is confidential under the [third-party API terms](https://support.curseforge.com/support/solutions/articles/9000207405-curse-forge-3rd-party-api-terms-and-conditions).
+
+The launcher blocks automatic installation when an author disables third-party distribution or the API supplies no supported download URL. This applies to required dependencies and required modpack components. If the API supplies a CurseForge project page, users can open it from the catalog or the installation error. The launcher verifies file sizes and SHA-1 hashes from the API. It installs supported loose configuration, script, and resource files from modpack overrides and stops on embedded mods, nested archives, and other unsupported payloads whose distribution it cannot verify. CurseForge catalog metadata is held in memory for display. Installed content and local profile settings are saved, while the CurseForge archive and manifest are temporary.
 
 Made by SyntaxDevTeam. Released under the [MIT License](LICENSE).
 
