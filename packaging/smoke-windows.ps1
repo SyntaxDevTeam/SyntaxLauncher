@@ -5,37 +5,25 @@ $msi = (Resolve-Path 'launcher-desktop/build/installers/syntaxlauncher-windows-x
 # The silent lifecycle below bypasses the wizard. Check the linked MSI's button events too.
 $installer = New-Object -ComObject WindowsInstaller.Installer
 $database = $installer.OpenDatabase($msi, 0)
-foreach ($mode in @('Repair', 'Remove')) {
-    $query = @"
-SELECT * FROM ControlEvent WHERE Dialog_ = 'MaintenanceTypeDlg' AND Control_ = '${mode}Button'
-    AND ((Event = '[WixUI_InstallMode]' AND Argument = '$mode' AND Ordering = 1)
-      OR (Event = 'NewDialog' AND Argument = 'VerifyReadyDlg' AND Condition = 'Installed' AND Ordering = 2))
-"@
-    $view = $database.OpenView($query)
-    $view.Execute()
-    if ($null -eq $view.Fetch() -or $null -eq $view.Fetch()) {
-        throw "Maintenance wizard must set $mode before showing its confirmation dialog"
-    }
-    $view.Close()
-}
-$query = @'
-SELECT * FROM ControlEvent WHERE Dialog_ = 'VerifyReadyDlg' AND (Control_ = 'Remove' OR Control_ = 'RemoveNoShield')
-    AND (Event = 'Remove' OR Event = '[REMOVE]') AND Argument = 'ALL'
-'@
-$view = $database.OpenView($query)
-$view.Execute()
-$removeEvents = 0
-while ($null -ne ($event = $view.Fetch())) {
-    # MSI SQL can match All as well as ALL. Check the event argument case-sensitively.
-    $argument = $event.GetType().InvokeMember('StringData', 'GetProperty', $null, $event, @(4))
-    if ($argument -ceq 'ALL') { $removeEvents++ }
-}
-if ($removeEvents -ne 4) {
-    throw 'Maintenance wizard must request full removal from both confirmation buttons'
-}
-$view.Close()
+$database.Export('ControlEvent', $evidence, 'ControlEvent.idt')
 $database = $null
 $installer = $null
+$events = Get-Content -LiteralPath (Join-Path $evidence 'ControlEvent.idt') | Select-Object -Skip 3
+$expectedEvents = @(
+    foreach ($mode in @('Repair', 'Remove')) {
+        'MaintenanceTypeDlg', "${mode}Button", '[WixUI_InstallMode]', $mode, '1', '1' -join "`t"
+        'MaintenanceTypeDlg', "${mode}Button", 'NewDialog', 'VerifyReadyDlg', 'Installed', '2' -join "`t"
+    }
+    foreach ($button in @('Remove', 'RemoveNoShield')) {
+        'VerifyReadyDlg', $button, 'Remove', 'ALL', 'OutOfDiskSpace <> 1', '1' -join "`t"
+        'VerifyReadyDlg', $button, '[REMOVE]', 'ALL', 'OutOfDiskSpace <> 1', '1' -join "`t"
+    }
+)
+foreach ($expectedEvent in $expectedEvents) {
+    if ($events -cnotcontains $expectedEvent) {
+        throw "Missing maintenance wizard event: $expectedEvent"
+    }
+}
 $app = Join-Path $env:LOCALAPPDATA 'Programs/SyntaxLauncher'
 $data = Join-Path $env:LOCALAPPDATA 'SyntaxLauncher/installer-smoke-world-marker.txt'
 New-Item -ItemType Directory -Force (Split-Path $data) | Out-Null
