@@ -44,10 +44,9 @@ import pl.syntaxdevteam.syntaxlauncher.core.mods.LocalModInventory
 import pl.syntaxdevteam.syntaxlauncher.core.mods.LocalModManager
 import pl.syntaxdevteam.syntaxlauncher.core.mods.ModrinthCatalog
 import pl.syntaxdevteam.syntaxlauncher.core.mods.ModrinthInstaller
-import pl.syntaxdevteam.syntaxlauncher.core.mods.ModrinthInstallPlan
 import pl.syntaxdevteam.syntaxlauncher.core.mods.ModrinthUpdateReport
 
-/** Local JARs only; online dependency resolution belongs to v0.6. */
+/** Manage JARs already present in the selected profile. */
 @Composable
 fun LocalModsDialog(
     instance: MinecraftInstance,
@@ -57,7 +56,7 @@ fun LocalModsDialog(
     canModify: Boolean,
     onBusyChange: (Boolean) -> Unit,
     onDismiss: () -> Unit,
-    initialBrowse: Boolean = false,
+    onBrowse: () -> Unit,
 ) {
     val strings = LocalStrings.current
     val scope = rememberCoroutineScope()
@@ -66,7 +65,6 @@ fun LocalModsDialog(
     var busy by remember { mutableStateOf(false) }
     var removing by remember { mutableStateOf<String?>(null) }
     var confirmingUpdates by remember { mutableStateOf<List<pl.syntaxdevteam.syntaxlauncher.core.mods.ModrinthAvailableUpdate>?>(null) }
-    var browsing by remember(instance.id) { mutableStateOf(initialBrowse) }
     var updateReport by remember(instance.id) { mutableStateOf<ModrinthUpdateReport?>(null) }
     var checkingUpdates by remember(instance.id) { mutableStateOf(false) }
 
@@ -155,16 +153,6 @@ fun LocalModsDialog(
         }
 
 
-                if (browsing) {
-                    ModrinthBrowsePane(
-                        instance = instance, catalog = catalog,
-                        busy = busy, canModify = canModify,
-                        onInstall = { plan: ModrinthInstallPlan ->
-                            operate({ installer.install(instance.id, plan) }) { browsing = false }
-                        },
-                        onDismiss = { browsing = false },
-                    )
-                } else {
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth(),
@@ -186,7 +174,7 @@ fun LocalModsDialog(
                     Text(strings.text("ui.0_enabled_1_installed", inventory?.mods?.count { it.enabled } ?: 0, inventory?.mods?.size ?: 0),
                         style = MaterialTheme.typography.bodyMedium)
                     TextButton(enabled = canModify && !busy,
-                        onClick = { browsing = true }) { Text(strings.text("ui.discover_on_modrinth")) }
+                        onClick = onBrowse) { Text(strings.text("catalog.open")) }
                     Button(enabled = canModify && !busy, onClick = {
                         val picker = JFileChooser().apply {
                             dialogTitle = strings.text("ui.import_a_local_mod_for_this_instance")
@@ -330,7 +318,6 @@ fun LocalModsDialog(
                     strings.text("ui.game_syntaxlauncher_mod_trash_external_dependencies_are_not_in"),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
             }
         }
     }

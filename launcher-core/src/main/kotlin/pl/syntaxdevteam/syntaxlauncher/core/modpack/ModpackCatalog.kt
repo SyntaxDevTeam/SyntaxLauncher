@@ -42,8 +42,12 @@ class ModpackCatalog(private val http: HttpClient, private val downloads: Downlo
     suspend fun installForProfile(project: ModrinthProject, loader: String, name: String,
         progress: (ModpackProgress) -> Unit = {}): MinecraftInstance = installSelected(project, progress, loader, name)
 
+    suspend fun installVersion(project: ModrinthProject, versionId: String, loader: String? = null,
+        name: String? = null, progress: (ModpackProgress) -> Unit = {}): MinecraftInstance = installSelected(project, progress, requiredLoader = loader, name = name,
+            versionId = versionId)
+
     private suspend fun installSelected(project: ModrinthProject, progress: (ModpackProgress) -> Unit = {},
-        requiredLoader: String? = null, name: String? = null): MinecraftInstance = withContext(Dispatchers.IO) {
+        requiredLoader: String? = null, name: String? = null, versionId: String? = null): MinecraftInstance = withContext(Dispatchers.IO) {
         require(validId(project.id))
         require(requiredLoader == null || requiredLoader in setOf("minecraft", "fabric", "quilt", "forge", "neoforge"))
         val details = Json.parseToJsonElement(http.get("$api/project/${project.id}").bodyAsText()).jsonObject
@@ -56,6 +60,7 @@ class ModpackCatalog(private val http: HttpClient, private val downloads: Downlo
         val versions = Json.parseToJsonElement(text).jsonArray.map { it.jsonObject }
             .filter { it["project_id"]?.jsonPrimitive?.content == project.id &&
                 it["loaders"]?.jsonArray?.any { v -> v.jsonPrimitive.content in setOf("fabric", "quilt", "forge", "neoforge", "minecraft") } == true }
+            .filter { versionId == null || it["id"]?.jsonPrimitive?.content == versionId }
             .filter { requiredLoader == null || it["loaders"]?.jsonArray?.any { v -> v.jsonPrimitive.content == requiredLoader } == true }
             .sortedWith(compareBy<JsonObject> { if (it["version_type"]?.jsonPrimitive?.content == "release") 0 else 1 }
                 .thenByDescending { it["date_published"]?.jsonPrimitive?.content.orEmpty() })

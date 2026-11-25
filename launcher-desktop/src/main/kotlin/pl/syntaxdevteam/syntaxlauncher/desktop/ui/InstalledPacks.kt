@@ -49,7 +49,11 @@ fun InstalledPacks(instance: MinecraftInstance, session: DesktopLauncherSession,
         if (busy || !canModify) return
         busy = true; error = null; onBusyChange(true)
         operation = scope.launch {
-            try { action(); inventory = session.packManager.list(instance.id, kind) }
+            try {
+                action()
+                inventory = session.packManager.list(instance.id, kind)
+                optiFineEnabled = session.optiFine?.enabled(instance.id) == true
+            }
             catch (cancelled: CancellationException) { throw cancelled }
             catch (failure: Exception) {
                 LoggerFactory.getLogger("InstalledPacks").warn("Pack operation failed", failure)
@@ -107,8 +111,9 @@ fun InstalledPacks(instance: MinecraftInstance, session: DesktopLauncherSession,
                 session.packManager.restore(instance.id, receipt.first, receipt.second)
                 removed = null
                 if (receipt.second.wasSelected) {
-                    val proof = if (receipt.first == LocalPackKind.SHADER_PACK) session.shaderRenderer.ensure(instance) else null
-                    session.packManager.setSelected(instance.id, receipt.first, receipt.second.originalFileName, true, proof)
+                    if (receipt.first == LocalPackKind.SHADER_PACK)
+                        session.shaderPackCatalog.selectInstalledShader(instance.id, receipt.second.originalFileName)
+                    else session.packManager.setSelected(instance.id, receipt.first, receipt.second.originalFileName, true)
                 }
                 removed = null
             } }) { Text(strings.text("catalog.undo_remove")) }
@@ -140,8 +145,9 @@ fun InstalledPacks(instance: MinecraftInstance, session: DesktopLauncherSession,
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(enabled = !busy && canModify, onClick = { run {
-                                val proof = if (kind == LocalPackKind.SHADER_PACK && !pack.selected) session.shaderRenderer.ensure(instance) else null
-                                session.packManager.setSelected(instance.id, kind, pack.fileName, !pack.selected, proof)
+                                if (kind == LocalPackKind.SHADER_PACK && !pack.selected)
+                                    session.shaderPackCatalog.selectInstalledShader(instance.id, pack.fileName)
+                                else session.packManager.setSelected(instance.id, kind, pack.fileName, !pack.selected)
                             } }) { Text(strings.text(if (pack.selected) "catalog.disable_pack" else "catalog.use_pack")) }
                             TextButton(enabled = !busy && canModify, onClick = { run {
                                 removed = kind to session.packManager.remove(instance.id, kind, pack.fileName)

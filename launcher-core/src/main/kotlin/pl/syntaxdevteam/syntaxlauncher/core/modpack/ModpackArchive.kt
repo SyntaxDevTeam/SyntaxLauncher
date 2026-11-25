@@ -15,11 +15,14 @@ internal data class InspectedModpack(val plan: ModpackInstallPlan, val overrides
 /** ZIP payloads are read/CRC checked before any game is created. No ZIP attributes become filesystem attributes. */
 internal object ModpackArchive {
     const val MAX_ARCHIVE_BYTES = 512L * 1024 * 1024
-    suspend fun inspect(source: Path): InspectedModpack {
+    private data class ArchiveLayout(val index: ByteArray, val overrides: List<PackOverride>, val expandedBytes: Long)
+
+    suspend fun inspect(source: Path, indexName: String = "modrinth.index.json",
+        parse: suspend (ByteArray) -> ModpackInstallPlan = { ModrinthModpackPlanner().plan(it) }): InspectedModpack {
         if (!Files.isRegularFile(source, NOFOLLOW_LINKS) || Files.size(source) !in 1..MAX_ARCHIVE_BYTES) {
             throw ModpackFormatException("Select a regular modpack archive of at most 512 MiB.")
         }
-        try {
+        val layout = try {
             ZipFile(source.toFile()).use { zip ->
                 val planner = ModrinthModpackPlanner()
                 val seen = mutableSetOf<String>()
@@ -52,7 +55,7 @@ internal object ModpackArchive {
                     if (entry.size != count || entry.crc != crc.value) throw ModpackFormatException("Modpack ZIP entry is corrupt.")
                     val layer = when {
                         name.startsWith("overrides/") -> 0
-                        name.startsWith("client-overrides/") -> 1
+                        indexName == "modrinth.index.json" && name.startsWith("client-overrides/") -> 1
                         else -> -1
                     }
                     if (layer >= 0) {
@@ -68,9 +71,9 @@ internal object ModpackArchive {
                         parent = parent.substringBeforeLast('/', "")
                     }
                 }
-                val index = zip.getEntry("modrinth.index.json") ?: throw ModpackFormatException("Modpack index is missing.")
+                val index = zip.getEntry(indexName) ?: throw ModpackFormatException("Modpack index is missing.")
                 if (index.isDirectory || index.size !in 1..(4 * 1024 * 1024)) throw ModpackFormatException("Modpack index exceeds limits.")
-                val plan = planner.plan(zip.getInputStream(index).use { it.readNBytes(4 * 1024 * 1024 + 1) })
+                val indexBytes = zip.getInputStream(index).use { it.readNBytes(4 * 1024 * 1024 + 1) }
                 val combined = layers[0].toMutableMap()
                 for ((key, entry) in layers[1]) {
                     if (combined[key]?.destination?.let { it != entry.destination } == true) {
@@ -78,25 +81,27 @@ internal object ModpackArchive {
                     }
                     combined[key] = entry
                 }
-                // Overrides may replace a downloaded file, but never redirect its path or turn files into folders.
-                val destinations = mutableMapOf<String, String>()
-                for (path in plan.requiredFiles.map { it.path } + combined.values.map { it.destination }) {
-                    val key = path.lowercase(Locale.ROOT)
-                    if (destinations[key]?.let { it != path } == true) throw ModpackFormatException("Ambiguous modpack destinations.")
-                    destinations[key] = path
-                }
-                for (path in destinations.keys) {
-                    var parent = path.substringBeforeLast('/', "")
-                    while (parent.isNotEmpty()) {
-                        if (parent in destinations) throw ModpackFormatException("Override conflicts with a parent file.")
-                        parent = parent.substringBeforeLast('/', "")
-                    }
-                }
-                return InspectedModpack(plan, combined.values.toList(), expanded)
+                ArchiveLayout(indexBytes, combined.values.toList(), expanded)
             }
         } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
         catch (failure: ModpackFormatException) { throw failure }
         catch (failure: Exception) { throw ModpackFormatException("Cannot read this modpack ZIP.", failure) }
+        val plan = parse(layout.index)
+        // Overrides may replace a downloaded file, but never redirect its path or turn files into folders.
+        val destinations = mutableMapOf<String, String>()
+        for (path in plan.requiredFiles.map { it.path } + layout.overrides.map { it.destination }) {
+            val key = path.lowercase(Locale.ROOT)
+            if (destinations[key]?.let { it != path } == true) throw ModpackFormatException("Ambiguous modpack destinations.")
+            destinations[key] = path
+        }
+        for (path in destinations.keys) {
+            var parent = path.substringBeforeLast('/', "")
+            while (parent.isNotEmpty()) {
+                if (parent in destinations) throw ModpackFormatException("Override conflicts with a parent file.")
+                parent = parent.substringBeforeLast('/', "")
+            }
+        }
+        return InspectedModpack(plan, layout.overrides, layout.expandedBytes)
     }
 
     suspend fun copyBounded(source: Path, target: Path, limit: Long) {

@@ -26,14 +26,26 @@ class ModpackInstaller(private val instances: MinecraftInstanceRepository, priva
     private val prepareGame: suspend (ResolvedMinecraftVersion, MinecraftInstallationLayout, ModLoaderSelection?) -> Unit) {
 
     suspend fun install(source: Path, optionalPaths: Set<String> = emptySet(), name: String? = null,
-        downloadProgress: DownloadEventListener = {}, onProgress: (ModpackProgress) -> Unit = {}): MinecraftInstance = withContext(Dispatchers.IO) {
+        downloadProgress: DownloadEventListener = {}, onProgress: (ModpackProgress) -> Unit = {}): MinecraftInstance =
+        installArchive(source, optionalPaths, name, downloadProgress, onProgress, "modrinth.index.json") {
+            ModrinthModpackPlanner().plan(it)
+        }
+
+    internal suspend fun installCurseForge(source: Path, name: String?, onProgress: (ModpackProgress) -> Unit,
+        parse: suspend (ByteArray) -> ModpackInstallPlan): MinecraftInstance =
+        installArchive(source, emptySet(), name, {}, onProgress, "manifest.json", parse)
+
+    private suspend fun installArchive(source: Path, optionalPaths: Set<String>, name: String?,
+        downloadProgress: DownloadEventListener, onProgress: (ModpackProgress) -> Unit, indexName: String,
+        parse: suspend (ByteArray) -> ModpackInstallPlan): MinecraftInstance = withContext(Dispatchers.IO) {
         onProgress(ModpackProgress(ModpackPhase.VALIDATING))
         if (!Files.isRegularFile(source, NOFOLLOW_LINKS)) throw ModpackFormatException("Modpack source is missing or redirected.")
         val working = Files.createTempDirectory("syntaxlauncher-modpack-")
         try {
-            val archive = working.resolve("source.mrpack")
+            val isModrinth = indexName == "modrinth.index.json"
+            val archive = working.resolve(if (isModrinth) "source.mrpack" else "source.zip")
             ModpackArchive.copyBounded(source, archive, ModpackArchive.MAX_ARCHIVE_BYTES)
-            val inspected = ModpackArchive.inspect(archive)
+            val inspected = ModpackArchive.inspect(archive, indexName, parse)
             val plan = inspected.plan
             if (optionalPaths.any { selected -> plan.optionalFiles.none { it.path == selected } }) {
                 throw ModpackFormatException("Unknown optional modpack component.")
@@ -52,7 +64,7 @@ class ModpackInstaller(private val instances: MinecraftInstanceRepository, priva
                 val gameDir = layout.gameDir
                 val requiredSpace = inspected.expandedBytes + selectedFiles.sumOf { it.bytes } + Files.size(archive) + 64L * 1024 * 1024
                 if (Files.getFileStore(gameDir).usableSpace < requiredSpace) throw java.io.IOException("Not enough space to install the modpack.")
-                val metadata = Files.createDirectory(gameDir.resolve(".syntaxlauncher-modpack"))
+
                 for ((index, file) in selectedFiles.withIndex()) {
                     onProgress(ModpackProgress(ModpackPhase.FILES, index, selectedFiles.size))
                     val target = gameDir.resolve(file.path)
@@ -62,7 +74,7 @@ class ModpackInstaller(private val instances: MinecraftInstanceRepository, priva
                         try {
                             downloads.download(DownloadRequest("modpack-file-$index", url, target,
                                 expectedSha1 = file.sha1, expectedSize = file.bytes, maximumBytes = file.bytes), downloadProgress)
-                            if (fileHash(target, "SHA-512") != file.sha512) {
+                            if (file.sha512 != null && fileHash(target, "SHA-512") != file.sha512) {
                                 Files.deleteIfExists(target)
                                 throw ModpackIntegrityException("A modpack file failed SHA-512 verification.")
                             }
@@ -95,13 +107,16 @@ class ModpackInstaller(private val instances: MinecraftInstanceRepository, priva
                         }
                     }
                 }
-                ModpackArchive.copyBounded(archive, metadata.resolve("source.mrpack"), ModpackArchive.MAX_ARCHIVE_BYTES)
-                val receipt = buildJsonObject {
-                    put("schemaVersion", 1); put("sourceSha512", fileHash(archive, "SHA-512")); put("index", plan.manifest)
-                    put("optionalPolicy", if (optionalPaths.isEmpty()) "excluded" else "explicit-selection")
-                    put("selectedOptionalPaths", JsonArray(optionalPaths.sorted().map(::JsonPrimitive)))
+                if (isModrinth) {
+                    val metadata = Files.createDirectory(gameDir.resolve(".syntaxlauncher-modpack"))
+                    ModpackArchive.copyBounded(archive, metadata.resolve("source.mrpack"), ModpackArchive.MAX_ARCHIVE_BYTES)
+                    val receipt = buildJsonObject {
+                        put("schemaVersion", 1); put("sourceSha512", fileHash(archive, "SHA-512")); put("index", plan.manifest)
+                        put("optionalPolicy", if (optionalPaths.isEmpty()) "excluded" else "explicit-selection")
+                        put("selectedOptionalPaths", JsonArray(optionalPaths.sorted().map(::JsonPrimitive)))
+                    }
+                    Files.writeString(metadata.resolve("receipt.json"), receipt.toString())
                 }
-                Files.writeString(metadata.resolve("receipt.json"), receipt.toString())
                 onProgress(ModpackProgress(ModpackPhase.GAME))
                 // Same game/Java/loader preparation used by Play, without starting Minecraft or requiring an account.
                 prepareGame(base, layout, plan.requestedLoader)

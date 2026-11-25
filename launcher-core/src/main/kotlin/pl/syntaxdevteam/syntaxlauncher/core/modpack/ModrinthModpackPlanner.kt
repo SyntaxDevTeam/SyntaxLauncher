@@ -9,7 +9,7 @@ import pl.syntaxdevteam.syntaxlauncher.core.loader.ModLoaderSelection
 
 class ModpackFormatException(message: String, cause: Throwable? = null) : IllegalArgumentException(message, cause)
 
-data class ModpackDownload(val path: String, val bytes: Long, val sha1: String, val sha512: String,
+data class ModpackDownload(val path: String, val bytes: Long, val sha1: String, val sha512: String?,
     val mirrors: List<String>)
 
 data class ModpackInstallPlan(val name: String, val versionId: String, val minecraftVersion: String,

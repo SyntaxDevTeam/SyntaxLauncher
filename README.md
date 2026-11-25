@@ -5,9 +5,9 @@
   <p><a href="#download">Download</a> · <a href="#quick-start">Quick start</a> · <a href="https://syntaxdevteam.pl/p/syntaxlauncher">Project website</a></p>
 </div>
 
-**Syntax Launcher** brings Minecraft: Java Edition and its add-ons together in one desktop app. Start a classic survival world, try a Modrinth modpack, or give your game a new look with shaders and resource packs.
+**Syntax Launcher** brings Minecraft: Java Edition and its add-ons together in one desktop app. Start a classic survival world, try a modpack, or give your game a new look with shaders and resource packs.
 
-- **Find something new to play.** Browse mods, modpacks, shaders and resource packs in the built-in catalog.
+- **Find something new to play.** Browse mods, modpacks, shaders and resource packs from Modrinth and CurseForge in the built-in catalog.
 - **Keep your worlds organized.** Create separate installations with their own saves, mods and settings.
 - **Get set up automatically.** The launcher prepares the game files and Java runtime for the version you choose.
 - **Get back to playing.** Check your game's health and repair managed files from the launcher.
@@ -27,6 +27,8 @@ Find MSI, DMG and AppImage installers in [Build Explorer](https://syntaxdevteam.
 1. Download the build for your system and open Syntax Launcher.
 2. Pick a Minecraft version for a classic game, or open the catalog to find an add-on or modpack.
 3. Select **Play** to start your game once it's ready.
+
+To enable CurseForge, set the `CURSEFORGE_API_KEY` environment variable before starting the launcher. Projects whose authors restrict third-party downloads can be browsed in the catalog and opened on CurseForge.
 
 Made by SyntaxDevTeam. Released under the [MIT License](LICENSE).
 

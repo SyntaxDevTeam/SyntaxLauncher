@@ -370,7 +370,14 @@ private fun LauncherPanel(
     var copyJob by remember { mutableStateOf<Job?>(null) }
     LaunchedEffect(instanceOpenRequest) {
         managerOpen = instanceOpenRequest > 0
-        if (instanceOpenRequest < 0) { vanillaWizardFromHome = false; editingInstance = null; copyPreview = null; wizardOpen = false; managingMods = null }
+        browsingModpacks = false
+        managingMods = null
+        if (instanceOpenRequest < 0) {
+            vanillaWizardFromHome = false
+            editingInstance = null
+            copyPreview = null
+            wizardOpen = false
+        }
     }
     var mutationBusy by remember { mutableStateOf(false) }
     var instanceError by remember { mutableStateOf<String?>(null) }
@@ -678,25 +685,16 @@ private fun LauncherPanel(
             managingMods = null
         }
     }
-    if (browsingModpacks) ModpackCatalogDialog(session, canModify = !isRunning && !launch.isPreparing && !mutationBusy,
-        onBusyChange = { modsBusy = it }, onInstalled = ::selectInstalledPack,
-        onDismiss = { if (!modsBusy) browsingModpacks = false })
-
-    managingMods?.takeIf { !managerOpen || !browseModsFirst }?.let { target ->
-        if (browseModsFirst) ContentCatalogDialog(target, session,
-            canModify = !isRunning && !launch.isPreparing && !mutationBusy,
-            onBusyChange = { modsBusy = it }, onManage = { browseModsFirst = false },
-            onInstanceInstalled = ::selectInstalledPack,
-            onDismiss = { if (!modsBusy) managingMods = null })
-        else LocalModsDialog(
+    managingMods?.takeUnless { browseModsFirst }?.let { target ->
+        LocalModsDialog(
             instance = target,
-            initialBrowse = browseModsFirst,
             manager = session.modManager,
             catalog = session.modrinthCatalog,
             installer = session.modrinthInstaller,
             canModify = !isRunning && !launch.isPreparing && !mutationBusy,
             onBusyChange = { modsBusy = it },
-            onDismiss = { if (!modsBusy) managingMods = null },
+            onBrowse = { browseModsFirst = true },
+            onDismiss = { if (!modsBusy) { managingMods = null; contentsRevision++ } },
         )
     }
 
@@ -735,6 +733,22 @@ private fun LauncherPanel(
         }
     }
 
+    val catalogGames = remember(manifest) {
+        manifest.versions.filter { it.type == MinecraftVersionType.RELEASE }.map { it.id }
+    }
+    val catalogTarget = managingMods
+    if (browsingModpacks || (catalogTarget != null && browseModsFirst)) {
+        val canModify = !isRunning && !launch.isPreparing && !mutationBusy
+        if (browsingModpacks) ModpackCatalogPanel(session, canModify,
+            onBusyChange = { modsBusy = it }, onInstalled = ::selectInstalledPack,
+            onDismiss = { if (!modsBusy) browsingModpacks = false }, games = catalogGames)
+        else ContentCatalogPanel(requireNotNull(catalogTarget), session, canModify,
+            onBusyChange = { modsBusy = it }, onManage = { browseModsFirst = false },
+            onDismiss = { if (!modsBusy) { managingMods = null; contentsRevision++ } },
+            onInstanceInstalled = ::selectInstalledPack, games = catalogGames)
+        return
+    }
+
     if (managerOpen) {
         if (wizardOpen) ProfileWizard(
             vanillaOnly = vanillaWizardFromHome,
@@ -744,6 +758,7 @@ private fun LauncherPanel(
                 manifest.versions.sortedByDescending { it.releaseTime }.map { it.id }) },
             loadIcon = session.catalogIcons::load,
             searchPacks = { query, family -> requireNotNull(session.modpackCatalog).search(query, loader = family) },
+            packBrowser = { loader -> CatalogBrowser(session, catalogGames, requiredLoader = loader) },
             create = { name, game, loader -> session.instances.create(name, game,
                 maximumMemoryMiB = legacyRamMiB.toInt(), loader = loader) },
             installPack = { pack, family, name -> requireNotNull(session.modpackCatalog).installForProfile(pack, family, name) },
@@ -764,11 +779,6 @@ private fun LauncherPanel(
                     managerOpen = false
                 }
             })
-        else if (managingMods != null && browseModsFirst) ContentCatalogPanel(requireNotNull(managingMods), session,
-            canModify = !isRunning && !launch.isPreparing && !mutationBusy,
-            onBusyChange = { modsBusy = it }, onManage = { browseModsFirst = false },
-            onDismiss = { if (!modsBusy) { managingMods = null; contentsRevision++ } },
-            onInstanceInstalled = ::selectInstalledPack)
         else InstanceWorkspace(
             instances = inventory?.instances.orEmpty(),
             trashed = trashInventory?.entries.orEmpty(),

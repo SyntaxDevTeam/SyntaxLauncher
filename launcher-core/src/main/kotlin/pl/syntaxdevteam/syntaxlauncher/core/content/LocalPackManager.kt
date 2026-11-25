@@ -13,6 +13,8 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.JsonObject
 import pl.syntaxdevteam.syntaxlauncher.core.instance.MinecraftInstance
 import pl.syntaxdevteam.syntaxlauncher.core.instance.MinecraftInstanceRepository
@@ -27,7 +29,7 @@ data class LocalPack(val fileName: String, val sizeBytes: Long, val selected: Bo
 data class LocalPackInventory(val packs: List<LocalPack>, val warnings: List<String>)
 data class RemovedLocalPack(val originalFileName: String, val recoveryPath: Path, val wasSelected: Boolean = false)
 class LocalPackException(message: String, cause: Throwable? = null) : IOException(message, cause)
-data class ShaderActivation(val fileName: String, val renderer: ShaderRendererProof)
+data class ShaderActivation(val fileName: String, val renderer: ShaderRendererProof?, val optiFineFile: String? = null)
 
 /** Instance-local intact ZIP management and explicit selection; renderer installation is a separate service. */
 class LocalPackManager(private val instances: MinecraftInstanceRepository) {
@@ -69,10 +71,12 @@ class LocalPackManager(private val instances: MinecraftInstanceRepository) {
                 if (kind != LocalPackKind.SHADER_PACK || shaderActivation.fileName !in names) {
                     throw LocalPackException("Shader selection is not part of this batch.")
                 }
-                verifyRenderer(instance, shaderActivation.renderer)
+                verifyShaderRenderer(instance, shaderActivation)
             }
-            val resourceSelection = selectedResourcePack?.let { ResourcePackSelection.prepare(game, names.filter { name -> name != it } + it) }
-            val shaderSelection = shaderActivation?.let { ShaderPackSelection.prepare(game, it.fileName) }
+            val resourceSelection = selectedResourcePack?.let { main ->
+                ResourcePackSelection.prepare(game, names.filter { it != main } + main)
+            }
+            val shaderSelection = shaderActivation?.let { ShaderPackSelection.prepare(game, it.fileName, optiFine = it.optiFineFile != null) }
             val commitSelection: (() -> Unit)? = resourceSelection?.let { { it.commit() } }
                 ?: shaderSelection?.let { { it.commit() } }
             val staged = mutableListOf<Path>()
@@ -131,7 +135,7 @@ class LocalPackManager(private val instances: MinecraftInstanceRepository) {
     }
 
     suspend fun setSelected(instanceId: String, kind: LocalPackKind, fileName: String, enabled: Boolean,
-        renderer: ShaderRendererProof? = null): LocalPackInventory = withContext(Dispatchers.IO) {
+        renderer: ShaderRendererProof? = null, optiFineFile: String? = null): LocalPackInventory = withContext(Dispatchers.IO) {
         instances.withInactiveInstance(instanceId) { instance ->
             requirePackName(fileName)
             val folder = directory(instance, kind)
@@ -139,12 +143,14 @@ class LocalPackManager(private val instances: MinecraftInstanceRepository) {
             if (!Files.isRegularFile(source, NOFOLLOW_LINKS)) throw LocalPackException("Pack is missing or redirected.")
             if (enabled) validate(source, kind)
             if (kind == LocalPackKind.SHADER_PACK && enabled) {
-                verifyRenderer(instance, renderer ?: throw LocalPackException("Shader renderer setup is required."))
+                verifyShaderRenderer(instance, ShaderActivation(fileName, renderer, optiFineFile))
             }
             currentCoroutineContext().ensureActive()
+            val game = instances.gameDirectory(instance)
             when (kind) {
-                LocalPackKind.RESOURCE_PACK -> ResourcePackSelection.prepare(instances.gameDirectory(instance), listOf(fileName), remove = !enabled)?.commit()
-                LocalPackKind.SHADER_PACK -> ShaderPackSelection.prepare(instances.gameDirectory(instance), fileName, remove = !enabled)?.commit()
+                LocalPackKind.RESOURCE_PACK -> ResourcePackSelection.prepare(game, listOf(fileName), remove = !enabled)?.commit()
+                LocalPackKind.SHADER_PACK -> ShaderPackSelection.prepare(game, fileName, remove = !enabled,
+                    optiFine = usesOptiFine(game))?.commit()
             }
             inventory(folder)
         }
@@ -202,7 +208,7 @@ class LocalPackManager(private val instances: MinecraftInstanceRepository) {
                 val recovery = trash.resolve("${UUID.randomUUID()}-$fileName")
                 val selection = if (kind == LocalPackKind.RESOURCE_PACK)
                     ResourcePackSelection.prepare(game, listOf(fileName), remove = true) else null
-                val shaderSelection = if (kind == LocalPackKind.SHADER_PACK) ShaderPackSelection.prepare(game, fileName, remove = true) else null
+                val shaderSelection = if (kind == LocalPackKind.SHADER_PACK) ShaderPackSelection.prepare(game, fileName, remove = true, optiFine = usesOptiFine(game)) else null
                 currentCoroutineContext().ensureActive()
                 Files.move(source, recovery)
                 try { selection?.commit(); shaderSelection?.commit() } catch (failure: Throwable) {
@@ -254,12 +260,17 @@ class LocalPackManager(private val instances: MinecraftInstanceRepository) {
         return LocalPackInventory(packs.sortedBy { it.fileName.lowercase() }, warnings.sorted())
     }
 
+    private fun usesOptiFine(game: Path) =
+        readGraphicsState(game)["enabled"]?.jsonPrimitive?.booleanOrNull == true
+
     private fun selectedFiles(folder: Path): Set<String> {
         val game = folder.parent
         if (folder.fileName.toString() == LocalPackKind.SHADER_PACK.directoryName) {
-            val bytes = GameSettingsWrite.read(game.resolve("config/iris.properties")) ?: return emptySet()
+            val optiFine = usesOptiFine(game)
+            val configuration = if (optiFine) "optionsshaders.txt" else "config/iris.properties"
+            val bytes = GameSettingsWrite.read(game.resolve(configuration)) ?: return emptySet()
             val properties = java.util.Properties().also { bytes.inputStream().use(it::load) }
-            return if (properties.getProperty("enableShaders") != "false") setOfNotNull(properties.getProperty("shaderPack")) else emptySet()
+            return if (properties.getProperty("enableShaders") != "false") setOfNotNull(properties.getProperty("shaderPack")?.takeUnless { it == "OFF" }) else emptySet()
         }
         val bytes = GameSettingsWrite.read(game.resolve("options.txt")) ?: return emptySet()
         val lines = bytes.toString(Charsets.UTF_8).lineSequence().filter { it.startsWith("resourcePacks:") }.toList()
@@ -296,6 +307,25 @@ class LocalPackManager(private val instances: MinecraftInstanceRepository) {
     } catch (_: Exception) { null to null }
 
     internal suspend fun validateArchive(path: Path, kind: LocalPackKind) = validate(path, kind)
+
+    internal fun installedShader(instance: MinecraftInstance, fileName: String): Path {
+        requirePackName(fileName)
+        return directory(instance, LocalPackKind.SHADER_PACK).resolve(fileName)
+    }
+
+    private fun verifyShaderRenderer(instance: MinecraftInstance, activation: ShaderActivation) {
+        val proof = activation.renderer
+        if (proof != null) {
+            verifyRenderer(instance, proof)
+            return
+        }
+        val state = readGraphicsState(instances.gameDirectory(instance))
+        if (instance.loader != null || state["minecraft"]?.jsonPrimitive?.content != instance.minecraftVersionId ||
+            state["enabled"]?.jsonPrimitive?.booleanOrNull != true || activation.optiFineFile == null ||
+            state["optifine"]?.jsonPrimitive?.content != activation.optiFineFile) {
+            throw LocalPackException("The shader renderer is missing or changed during setup.")
+        }
+    }
 
     private fun verifyRenderer(instance: MinecraftInstance, proof: ShaderRendererProof) {
         if (instance.loader != proof.loader || instance.minecraftVersionId != proof.minecraftVersion || proof.files.isEmpty() || proof.files.size > 32) {

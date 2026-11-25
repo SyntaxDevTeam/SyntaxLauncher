@@ -19,7 +19,8 @@ import java.net.URI
 import pl.syntaxdevteam.syntaxlauncher.core.instance.MinecraftInstance
 
 data class ModrinthProject(val id: String, val title: String, val summary: String,
-    val author: String, val downloads: Long, val iconUrl: String?)
+    val author: String, val downloads: Long, val iconUrl: String?,
+    val categories: List<String> = emptyList(), val updated: String? = null, val loaders: List<String> = emptyList())
 data class ModrinthProjectDetail(val project: ModrinthProject, val description: String,
     val license: String?, val projectUrl: String)
 data class ModrinthFile(val filename: String, val url: String, val sha1: String, val bytes: Long)
@@ -51,9 +52,17 @@ class ModrinthCatalog(private val http: HttpClient,
     suspend fun search(instance: MinecraftInstance, text: String = "", offset: Int = 0): List<ModrinthProject> {
         val loader = instance.loader?.id ?: error("Choose a modded instance to browse mods.")
         checkLoader(loader)
-        require(instance.minecraftVersionId.matches(Regex("[A-Za-z0-9._+-]{1,100}")))
+        return browse("mod", text, offset, instance.minecraftVersionId, loader)
+    }
+
+    suspend fun browse(type: String, text: String, offset: Int, game: String?, loader: String?,
+        category: String? = null): List<ModrinthProject> {
+        require(type in setOf("mod", "modpack", "resourcepack", "shader"))
         require(offset in 0..1000 && text.length <= 100)
-        val facets = """[["project_type:mod"],["categories:$loader"],["versions:${instance.minecraftVersionId}"]]"""
+        require(game == null || game.matches(Regex("[A-Za-z0-9._+~-]{1,100}")))
+        val facets = JsonArray(listOfNotNull("project_type:$type", loader?.let { "categories:$it" },
+            game?.let { "versions:$it" }, category?.let { "categories:$it" })
+            .map { JsonArray(listOf(JsonPrimitive(it))) }).toString()
         val payload = request("/search") {
             parameter("query", text.trim())
             parameter("facets", facets)
@@ -68,16 +77,54 @@ class ModrinthCatalog(private val http: HttpClient,
             if (!validId(id)) return@mapNotNull null
             ModrinthProject(id, hit.string("title") ?: id, hit.string("description").orEmpty(),
                 hit.string("author").orEmpty(), hit.long("downloads") ?: 0,
-                hit.string("icon_url")?.takeIf { url -> url.startsWith("https://") })
+                hit.string("icon_url")?.takeIf { url -> url.startsWith("https://") },
+                hit.strings("display_categories"), hit.string("date_modified"),
+                hit.strings("categories").filter { it in setOf("fabric", "forge", "neoforge", "quilt", "iris", "optifine") })
         }
     }
 
-    suspend fun detail(project: ModrinthProject): ModrinthProjectDetail {
+    suspend fun detail(project: ModrinthProject, type: String = "mod"): ModrinthProjectDetail {
         require(validId(project.id))
         val obj = getObject("/project/" + project.id)
         return ModrinthProjectDetail(project, obj.string("body").orEmpty().take(16000),
             (obj["license"] as? JsonObject)?.string("id"),
-            "https://modrinth.com/mod/" + project.id)
+            "https://modrinth.com/$type/" + project.id)
+    }
+
+    suspend fun categories(type: String): List<CatalogCategory> =
+        (json.parseToJsonElement(request("/tag/category")) as JsonArray).mapNotNull { item ->
+            val category = item as JsonObject
+            category.string("name")?.takeIf { category.string("project_type") == type }
+                ?.let { CatalogCategory(it, it.replaceFirstChar(Char::uppercase)) }
+        }.distinctBy { it.id }.sortedBy { it.name }
+
+    suspend fun releases(project: ModrinthProject, game: String?, loader: String?, type: String): List<CatalogRelease> {
+        require(validId(project.id))
+        val payload = request("/project/${project.id}/version") {
+            game?.let { parameter("game_versions", JsonArray(listOf(JsonPrimitive(it))).toString()) }
+            loader?.let { parameter("loaders", JsonArray(listOf(JsonPrimitive(it))).toString()) }
+            parameter("include_changelog", false)
+        }
+        return (json.parseToJsonElement(payload) as JsonArray).mapNotNull {
+            val version = it as JsonObject
+            val id = version.string("id")?.takeIf(::validId) ?: return@mapNotNull null
+            val games = version.strings("game_versions")
+            val loaders = version.strings("loaders")
+            if (version.string("project_id") != project.id || (game != null && game !in games) ||
+                (loader != null && loader !in loaders) ||
+                version.string("environment") in setOf("server_only", "dedicated_server_only")) return@mapNotNull null
+            val extension = when (type) { "mod" -> ".jar"; "modpack" -> ".mrpack"; else -> ".zip" }
+            val downloadable = version.array("files").any { file ->
+                (file as? JsonObject)?.string("filename")?.endsWith(extension, ignoreCase = true) == true
+            }
+            CatalogRelease(id, version.string("name").orEmpty().ifBlank { id },
+                version.string("version_type").orEmpty(), games, loaders, version.string("date_published").orEmpty(), downloadable)
+        }.sortedWith(compareBy<CatalogRelease> { it.channel != "release" }.thenByDescending { it.published })
+    }
+
+    suspend fun changelog(versionId: String): String {
+        require(validId(versionId))
+        return getObject("/version/$versionId").string("changelog").orEmpty()
     }
 
     /** Entire transitive required-dependency closure is reviewed before file writes. */

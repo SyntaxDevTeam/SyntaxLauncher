@@ -150,6 +150,54 @@ class ShaderCatalogTest {
         }
     }
 
+    @Test fun vanillaShaderUsesOptiFineSettingsForInstallDisableAndSelect() = runBlocking {
+        val repo = repo()
+        val instance = repo.create("Vanilla shaders", "1.21.1")
+        val game = repo.gameDirectory(instance)
+        val optiFineFile = "OptiFine_1.21.1_HD_U_J1.jar"
+        val shader = archive(mapOf("shaders/fixture.fsh" to "shader source"))
+        val release = version("OPTIVER1", project.id, "light.zip", "optifine", shader)
+        // Use an already prepared renderer to exercise the catalog and settings without running an external installer.
+        Files.writeString(game.resolve(".syntaxlauncher-graphics.json"),
+            """{"schemaVersion":1,"enabled":true,"minecraft":"1.21.1","optifine":"$optiFineFile"}""")
+        val settings = game.resolve("optionsshaders.txt")
+        Files.writeString(settings, "shaderPack=OFF\nunknown=keep\n")
+        val http = HttpClient(MockEngine { request ->
+            when {
+                request.url.host == "optifine.net" && request.url.encodedPath == "/downloads" -> respond(optiFineFile)
+                request.url.host == "cdn.modrinth.com" -> respond(shader)
+                request.url.encodedPath.endsWith("/search") -> {
+                    assertContains(request.url.parameters["facets"].orEmpty(), "categories:optifine")
+                    respond("""{"hits":[{"project_id":"${project.id}","title":"Fixture light"}]}""")
+                }
+                request.url.encodedPath.endsWith("/version/OPTIVER1") -> respond(release)
+                request.url.encodedPath.endsWith("/project/${project.id}") ->
+                    respond("""{"id":"${project.id}","project_type":"shader"}""")
+                else -> error("Unexpected request: ${request.url}")
+            }
+        })
+        try {
+            val downloads = DownloadManager(http)
+            val packs = LocalPackManager(repo)
+            val optiFine = OptiFineCatalog(http, downloads, repo,
+                pl.syntaxdevteam.syntaxlauncher.core.minecraft.MinecraftVersionCatalog(http),
+                pl.syntaxdevteam.syntaxlauncher.core.java.MojangJavaRuntimeManager(http, downloads, root.resolve("java")),
+                pl.syntaxdevteam.syntaxlauncher.core.minecraft.MinecraftPlatform.detect())
+            val catalog = ModrinthPackCatalog(http, repo, packs, downloads, kind = LocalPackKind.SHADER_PACK,
+                optiFine = optiFine)
+            assertEquals(project.id, catalog.search(instance).single().id)
+            assertTrue(catalog.install(instance.id, project, selectedVersionId = "OPTIVER1").packs.single().selected)
+            assertFalse(packs.setSelected(instance.id, LocalPackKind.SHADER_PACK, "light.zip", false).packs.single().selected)
+            assertTrue(catalog.selectInstalledShader(instance.id, "light.zip").packs.single().selected)
+            val properties = Properties().also { Files.newInputStream(settings).use(it::load) }
+            assertEquals("light.zip", properties.getProperty("shaderPack"))
+            assertEquals("keep", properties.getProperty("unknown"))
+            assertFalse(Files.exists(game.resolve("config/iris.properties")))
+        } finally {
+            http.close()
+        }
+    }
+
     @Test fun resourcePriorityAndRecoveryKeepUnknownOptionsAndOtherPacks() = runBlocking {
         val repo = repo()
         val instance = repo.create("Textures", "1.21.1")

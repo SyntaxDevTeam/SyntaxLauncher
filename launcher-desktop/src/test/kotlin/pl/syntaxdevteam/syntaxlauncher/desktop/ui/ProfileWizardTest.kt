@@ -96,7 +96,7 @@ class ProfileWizardTest {
             scene.frames(); scene.click("With mods"); scene.click("Next"); scene.click("NeoForge"); scene.click("Next")
             scene.click("A complete modpack"); scene.click("Next")
             withTimeout(5000) { while (scene.nodes().none { it.label().startsWith("Forest") }) scene.frames() }
-            assertEquals("neoforge", family); scene.click("Forest"); scene.click("Next")
+            assertEquals("neoforge", family); scene.click("Forest")
             scene.typeName("Forest trip"); scene.click("Next"); assertEquals(0, installed)
             scene.click("Create a new profile"); scene.frames(); assertEquals(1, installed)
         } finally { scene.close() }

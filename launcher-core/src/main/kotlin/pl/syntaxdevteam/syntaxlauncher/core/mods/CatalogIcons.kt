@@ -21,7 +21,7 @@ class CatalogIcons(private val http: HttpClient) {
 
     suspend fun load(url: String): ByteArray? = withContext(Dispatchers.IO) {
         val uri = runCatching { URI(url) }.getOrNull() ?: return@withContext null
-        if (uri.scheme != "https" || uri.host != "cdn.modrinth.com" || uri.userInfo != null ||
+        if (uri.scheme != "https" || uri.host !in setOf("cdn.modrinth.com", "media.forgecdn.net", "mediafilez.forgecdn.net", "mediafiles.forgecdn.net") || uri.userInfo != null ||
             uri.port !in listOf(-1, 443)) return@withContext null
         synchronized(cache) { cache[url] }?.let { return@withContext it }
         requests.withPermit {

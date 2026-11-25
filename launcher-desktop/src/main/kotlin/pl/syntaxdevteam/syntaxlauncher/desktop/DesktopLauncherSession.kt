@@ -83,7 +83,11 @@ class DesktopLauncherSession(
         instances, modManager, modrinthCatalog, modrinthInstaller)
     val shaderPackCatalog = pl.syntaxdevteam.syntaxlauncher.core.content.ModrinthPackCatalog(
         httpClient, instances, packManager, DownloadManager(httpClient),
-        kind = pl.syntaxdevteam.syntaxlauncher.core.content.LocalPackKind.SHADER_PACK, renderer = shaderRenderer)
+        kind = pl.syntaxdevteam.syntaxlauncher.core.content.LocalPackKind.SHADER_PACK, renderer = shaderRenderer, optiFine = optiFine)
+    val curseForgeCatalog = System.getenv("CURSEFORGE_API_KEY")?.trim()?.takeIf { it.isNotEmpty() }?.let { key ->
+        pl.syntaxdevteam.syntaxlauncher.core.mods.CurseForgeCatalog(
+            httpClient, key, instances, modManager, resourcePackCatalog, shaderPackCatalog, DownloadManager(httpClient))
+    }
     val modpackInstaller = loaders?.let { registry -> pl.syntaxdevteam.syntaxlauncher.core.modpack.ModpackInstaller(
         instances, DownloadManager(httpClient), versionCatalog, versionResolver, registry,
         prepareGame = { version, layout, loader -> coordinator.prepareForInstallation(version, layout, loader) }) }
@@ -358,6 +362,7 @@ class DesktopLauncherSession(
                     mutablePremiumAccounts.value = emptyList()
                 }
             } finally {
+                curseForgeCatalog?.close()
                 httpClient.close()
                 withContext(Dispatchers.Swing) { onClosed() }
                 scope.cancel()

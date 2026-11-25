@@ -6,7 +6,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
@@ -15,6 +14,7 @@ import kotlinx.coroutines.*
 import pl.syntaxdevteam.syntaxlauncher.core.instance.MinecraftInstance
 import pl.syntaxdevteam.syntaxlauncher.core.loader.*
 import pl.syntaxdevteam.syntaxlauncher.core.mods.ModrinthProject
+import pl.syntaxdevteam.syntaxlauncher.core.mods.CatalogRelease
 import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.LocalStrings
 
 internal enum class ProfileStep { STYLE, LOADER, CONTENT, PACK, DETAILS, REVIEW }
@@ -30,6 +30,7 @@ internal fun ProfileWizard(preferredVersion: String, releases: List<String>,
     loadIcon: suspend (String) -> ByteArray? = { null },
     onCreated: (MinecraftInstance, Boolean) -> Unit, onBusyChange: (Boolean) -> Unit, onCancel: () -> Unit,
     vanillaOnly: Boolean = false,
+    packBrowser: ((String) -> CatalogBrowser)? = null,
 ) {
     val strings = LocalStrings.current
     val scope = rememberCoroutineScope()
@@ -48,9 +49,8 @@ internal fun ProfileWizard(preferredVersion: String, releases: List<String>,
     var wasCancelled by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf(false) }
     var retry by remember { mutableIntStateOf(0) }
-    var query by remember { mutableStateOf("") }
-    var submitted by remember { mutableStateOf("") }
-    var packs by remember { mutableStateOf<List<ModrinthProject>>(emptyList()) }
+    var packSource by remember { mutableStateOf(CatalogSource.MODRINTH) }
+    var packVersion by remember { mutableStateOf<CatalogRelease?>(null) }
     var pack by remember { mutableStateOf<ModrinthProject?>(null) }
     val content = if (modded) moddedContent else ProfileContent.EMPTY
     val needsCompatibility = content != ProfileContent.PACK && modded && step in setOf(ProfileStep.DETAILS, ProfileStep.REVIEW)
@@ -59,15 +59,6 @@ internal fun ProfileWizard(preferredVersion: String, releases: List<String>,
         if (needsCompatibility) {
             loading = true
             try { setup = withTimeout(20_000) { findCompatible(loader, version) }; error = setup?.versions.isNullOrEmpty() }
-            catch (cancelled: CancellationException) { if (cancelled is TimeoutCancellationException) error = true else throw cancelled }
-            catch (_: Exception) { error = true }
-            finally { loading = false }
-        }
-    }
-    LaunchedEffect(step == ProfileStep.PACK, loader, submitted, retry) {
-        if (step == ProfileStep.PACK) {
-            loading = true; error = false; packs = emptyList()
-            try { packs = withTimeout(20_000) { searchPacks(submitted, loader) } }
             catch (cancelled: CancellationException) { if (cancelled is TimeoutCancellationException) error = true else throw cancelled }
             catch (_: Exception) { error = true }
             finally { loading = false }
@@ -94,6 +85,20 @@ internal fun ProfileWizard(preferredVersion: String, releases: List<String>,
             }
             ProfileStep.REVIEW -> ProfileStep.DETAILS
         }
+    }
+    if (step == ProfileStep.PACK) {
+        ContentCatalog(null, canModify = true, search = { _, query, _ -> searchPacks(query, loader) },
+            install = { _, _ -> }, onBusyChange = {}, onManage = {}, onDismiss = { previous() },
+            modpacksAvailable = true, loadIcon = loadIcon, browser = packBrowser?.invoke(loader),
+            onPick = { selected, release, source ->
+                packSource = source
+                pack = selected
+                packVersion = release
+                if (name.isBlank()) name = selected.title.take(48)
+                // A version choice completes the browser step. The profile is written only after review.
+                step = ProfileStep.DETAILS
+            })
+        return
     }
     BoxWithConstraints(Modifier.fillMaxSize().testTag("profile-wizard")) {
         val compact = maxHeight < 440.dp || maxWidth < 600.dp
@@ -124,31 +129,15 @@ internal fun ProfileWizard(preferredVersion: String, releases: List<String>,
                             WizardChoice(strings.text("wizard.content.${route.name.lowercase()}"), content == route, !busy) { moddedContent = route; pack = null }
                         }
                     }
-                    ProfileStep.PACK -> {
-                        Text(strings.text("wizard.pack_help", loader))
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            OutlinedTextField(query, { if (it.length <= 100) query = it }, label = { Text(strings.text("catalog.search")) },
-                                singleLine = true, modifier = Modifier.weight(1f))
-                            TextButton(onClick = { submitted = query.trim(); retry++ }, enabled = !loading) { Text(strings.text("ui.search")) }
-                        }
-                        if (!loading && packs.isEmpty() && !error) Text(strings.text("catalog.empty"))
-                        packs.forEach { item ->
-                            OutlinedButton(onClick = { pack = item; if (name.isBlank()) name = item.title.take(48) },
-                                modifier = Modifier.fillMaxWidth(), border = BorderStroke(1.dp, if (pack?.id == item.id) SyntaxBrand.cyan else SyntaxBrand.border)) {
-                                CatalogProjectIcon(item, CatalogSection.MODPACKS, loadIcon, true)
-                                Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                                    Text((if (pack?.id == item.id) "✓ " else "") + item.title)
-                                    Text(item.summary, style = MaterialTheme.typography.bodySmall, maxLines = 3,
-                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                                }
-                            }
-                        }
-                    }
+                    ProfileStep.PACK -> Unit
                     ProfileStep.DETAILS -> {
                         OutlinedTextField(name, { name = it }, label = { Text(strings.text("game.name")) }, isError = name.isNotBlank() && !validName,
                             singleLine = true, modifier = Modifier.fillMaxWidth().testTag("wizard-name"))
                         if (content == ProfileContent.PACK) {
-                            Text(pack?.title.orEmpty()); Text(strings.text("wizard.pack_versions"))
+                            Text(pack?.title.orEmpty())
+                            val release = packVersion
+                            if (release == null) Text(strings.text("wizard.pack_versions"))
+                            else Text(listOf(release.name, release.gameVersions.joinToString(", ")).joinToString(" · "))
                         } else {
                             Text(strings.text("ui.game_version"))
                             Box {
@@ -170,7 +159,12 @@ internal fun ProfileWizard(preferredVersion: String, releases: List<String>,
                         Text(name.trim(), style = MaterialTheme.typography.headlineSmall)
                         Text(if (!modded) "Vanilla" else if (loader == "neoforge") "NeoForge" else loader.replaceFirstChar { it.uppercase() })
                         if (modded) Text(strings.text("wizard.content.${content.name.lowercase()}"))
-                        if (content == ProfileContent.PACK) { Text(pack?.title.orEmpty()); Text(strings.text("wizard.pack_versions")) }
+                        if (content == ProfileContent.PACK) {
+                            Text(pack?.title.orEmpty())
+                            val release = packVersion
+                            if (release == null) Text(strings.text("wizard.pack_versions"))
+                            else Text(listOf(packSource.label, release.name, release.gameVersions.joinToString(", ")).joinToString(" · "))
+                        }
                         else { Text("Minecraft ${setup?.minecraftVersion ?: version}"); Text(strings.text("wizard.first_play")) }
                         Text(strings.text("wizard.separate"))
                     }
@@ -188,7 +182,14 @@ internal fun ProfileWizard(preferredVersion: String, releases: List<String>,
                         busy = true; error = false; wasCancelled = false; onBusyChange(true)
                         creationJob = scope.launch {
                             try {
-                                val result = if (content == ProfileContent.PACK) installPack(requireNotNull(pack), loader, name.trim())
+                                val result = if (content == ProfileContent.PACK) {
+                                    val selected = requireNotNull(pack)
+                                    val release = packVersion
+                                    val browser = packBrowser?.invoke(loader)
+                                    if (release != null && browser != null)
+                                        browser.installPack(packSource, selected, release.id, name.trim())
+                                    else installPack(selected, loader, name.trim())
+                                }
                                 else {
                                     val game = setup?.minecraftVersion ?: version
                                     val selectedLoader = if (!modded) null else ModLoaderSelection(loader,

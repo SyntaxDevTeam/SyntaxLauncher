@@ -30,11 +30,12 @@ class ModrinthPackCatalog(
     private val api: String = "https://api.modrinth.com/v2",
     private val kind: LocalPackKind = LocalPackKind.RESOURCE_PACK,
     private val renderer: ShaderRendererSetup? = null,
+    private val optiFine: OptiFineCatalog? = null,
 ) {
     private val projectType get() = if (kind == LocalPackKind.SHADER_PACK) "shader" else "resourcepack"
     private val packLoader get() = if (kind == LocalPackKind.SHADER_PACK) "iris" else "minecraft"
     suspend fun available(instance: MinecraftInstance): Boolean =
-        kind != LocalPackKind.SHADER_PACK || renderer?.available(instance) == true
+        kind != LocalPackKind.SHADER_PACK || if (instance.loader == null) optiFine?.projects(instance)?.isNotEmpty() == true else renderer?.available(instance) == true
 
     suspend fun search(instance: MinecraftInstance, text: String = "", offset: Int = 0): List<ModrinthProject> {
         require(text.length <= 100 && offset in 0..1000 &&
@@ -44,7 +45,7 @@ class ModrinthPackCatalog(
             parameter("query", text.trim())
             val facets = mutableListOf(JsonArray(listOf(JsonPrimitive("project_type:$projectType"))),
                 JsonArray(listOf(JsonPrimitive("versions:${instance.minecraftVersionId}"))))
-            if (kind == LocalPackKind.SHADER_PACK) facets += JsonArray(listOf(JsonPrimitive("categories:iris")))
+            if (kind == LocalPackKind.SHADER_PACK) facets += JsonArray(listOf(JsonPrimitive("categories:${rendererLoader(instance)}")))
             parameter("facets", JsonArray(facets).toString())
             parameter("index", if (text.isBlank()) "downloads" else "relevance")
             parameter("limit", 20)
@@ -59,10 +60,14 @@ class ModrinthPackCatalog(
         }
     }
 
+    fun rendererLoader(instance: MinecraftInstance) =
+        if (kind == LocalPackKind.SHADER_PACK && instance.loader == null) "optifine" else packLoader
+
     suspend fun install(instanceId: String, project: ModrinthProject,
-        progress: DownloadEventListener = {}): LocalPackInventory = withContext(Dispatchers.IO) {
+        progress: DownloadEventListener = {}, selectedVersionId: String? = null): LocalPackInventory = withContext(Dispatchers.IO) {
         val instance = instances.get(instanceId)
         require(instance.minecraftVersionId.matches(Regex("[A-Za-z0-9._+-]{1,100}")))
+        val packLoader = rendererLoader(instance)
         val selected = linkedMapOf<String, Pair<String, JsonObject>>()
         val visiting = mutableSetOf<String>()
         suspend fun visit(projectId: String, versionId: String? = null, depth: Int = 0) {
@@ -106,7 +111,7 @@ class ModrinthPackCatalog(
             selected[projectId] = id to version
             visiting.remove(projectId)
         }
-        visit(project.id)
+        visit(project.id, selectedVersionId)
         val files = selected.values.map { (id, version) ->
             val file = version.array("files").mapNotNull { it as? JsonObject }
                 .sortedByDescending { it.string("primary") == "true" }.firstOrNull { candidate ->
@@ -134,25 +139,51 @@ class ModrinthPackCatalog(
         try {
             val requests = files.map { it.copy(target = staging.resolve(it.target)) }
             downloads.downloadAll(requests, progress)
-            // Recheck under the publication lock as metadata may have changed during network work.
-            val current = instances.get(instanceId)
-            check(current.minecraftVersionId == instance.minecraftVersionId) { "Game version changed. Try again." }
-            // Validate before installing any renderer; a bad ZIP must not add mods to the game.
-            requests.forEach { packs.validateArchive(it.target, kind) }
-            if (kind == LocalPackKind.SHADER_PACK) instances.withInactiveInstance(instanceId) {
-                ShaderPackSelection.prepare(game, requests.last().target.fileName.toString())
-            }
-            val proof = if (kind == LocalPackKind.SHADER_PACK) {
-                (renderer ?: throw LocalPackException("Shader renderer setup is unavailable.")).ensure(instance)
-            } else null
-            packs.importBatch(instanceId, kind, requests.map { it.target },
-                selectedResourcePack = if (kind == LocalPackKind.RESOURCE_PACK) requests.last().target.fileName.toString() else null,
-                expectedGameVersion = instance.minecraftVersionId, reuseIdentical = true,
-                shaderActivation = proof?.let { ShaderActivation(requests.last().target.fileName.toString(), it) })
+            publish(instance, requests.map { it.target })
         } finally {
             Files.newDirectoryStream(staging).use { entries -> entries.forEach { Files.deleteIfExists(it) } }
             Files.deleteIfExists(staging)
         }
+    }
+
+    internal suspend fun publish(instance: MinecraftInstance, sources: List<java.nio.file.Path>): LocalPackInventory {
+        val current = instances.get(instance.id)
+        check(current.minecraftVersionId == instance.minecraftVersionId && current.loader == instance.loader) {
+            "Game version or loader changed. Try again."
+        }
+        // Validate before installing any renderer; a bad ZIP must not add mods to the game.
+        sources.forEach { packs.validateArchive(it, kind) }
+        val mainFile = sources.last().fileName.toString()
+        val activation = if (kind == LocalPackKind.SHADER_PACK) prepareShader(instance, mainFile) else null
+        return packs.importBatch(instance.id, kind, sources,
+            selectedResourcePack = if (kind == LocalPackKind.RESOURCE_PACK) mainFile else null,
+            expectedGameVersion = instance.minecraftVersionId, reuseIdentical = true, shaderActivation = activation)
+    }
+
+    suspend fun selectInstalledShader(instanceId: String, fileName: String): LocalPackInventory = withContext(Dispatchers.IO) {
+        check(kind == LocalPackKind.SHADER_PACK)
+        val instance = instances.get(instanceId)
+        val archive = packs.installedShader(instance, fileName)
+        packs.validateArchive(archive, kind)
+        val activation = prepareShader(instance, fileName)
+        packs.setSelected(instanceId, kind, fileName, true, activation.renderer, activation.optiFineFile)
+    }
+
+    private suspend fun prepareShader(instance: MinecraftInstance, fileName: String): ShaderActivation {
+        val optiFineTarget = rendererLoader(instance) == "optifine"
+        instances.withInactiveInstance(instance.id) { current ->
+            check(current.minecraftVersionId == instance.minecraftVersionId && current.loader == instance.loader)
+            ShaderPackSelection.prepare(instances.gameDirectory(current), fileName, optiFine = optiFineTarget)
+        }
+        if (optiFineTarget) {
+            val service = optiFine ?: throw LocalPackException("OptiFine setup is unavailable.")
+            val project = service.projects(instance).singleOrNull()
+                ?: throw LocalPackException("This Minecraft version has no supported OptiFine release.")
+            if (!service.enabled(instance.id)) service.install(instance.id, project)
+            return ShaderActivation(fileName, null, project.id)
+        }
+        val proof = (renderer ?: throw LocalPackException("Shader renderer setup is unavailable.")).ensure(instance)
+        return ShaderActivation(fileName, proof)
     }
 
     private fun validId(value: String) = value.matches(Regex("[A-Za-z0-9]{4,32}"))

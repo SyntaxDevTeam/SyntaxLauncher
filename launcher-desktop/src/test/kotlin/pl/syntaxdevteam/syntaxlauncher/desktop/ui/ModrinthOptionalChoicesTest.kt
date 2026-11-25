@@ -7,7 +7,18 @@ import androidx.compose.ui.state.ToggleableState
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
+import java.nio.file.Path
 import java.util.UUID
+import org.junit.jupiter.api.io.TempDir
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Modifier
+import pl.syntaxdevteam.syntaxlauncher.core.instance.MinecraftInstanceRepository
+import pl.syntaxdevteam.syntaxlauncher.core.java.MojangJavaRuntimeManager
+import pl.syntaxdevteam.syntaxlauncher.core.launch.*
+import pl.syntaxdevteam.syntaxlauncher.core.minecraft.*
+import pl.syntaxdevteam.syntaxlauncher.core.network.DownloadManager
+import pl.syntaxdevteam.syntaxlauncher.core.storage.*
+import pl.syntaxdevteam.syntaxlauncher.desktop.DesktopLauncherSession
 import kotlin.test.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.swing.Swing
@@ -17,6 +28,7 @@ import pl.syntaxdevteam.syntaxlauncher.core.mods.*
 import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.*
 
 class ModrinthOptionalChoicesTest {
+    @TempDir lateinit var testRoot: Path
     private fun version(project: String, id: String, dependencies: String = "[]") = """
         {"id":"$id","project_id":"$project","name":"Release","version_number":"1.0",
         "version_type":"release","game_versions":["1.21.1"],"loaders":["fabric"],
@@ -42,14 +54,31 @@ class ModrinthOptionalChoicesTest {
             })
             var installed: ModrinthInstallPlan? = null
             val profile = MinecraftInstance(id = UUID.randomUUID().toString(), name = "Test", minecraftVersionId = "1.21.1", loader = ModLoaderSelection("fabric", "test"))
+            val layout = MinecraftInstallationLayout(testRoot.resolve("game"), testRoot.resolve("versions"), testRoot.resolve("libraries"),
+                testRoot.resolve("assets"), testRoot.resolve("indexes"), testRoot.resolve("objects"), testRoot.resolve("logging"), testRoot.resolve("natives"))
+            val downloads = DownloadManager(http)
+            val processes = MinecraftProcessManager(testRoot.resolve("logs"))
+            val repo = MinecraftInstanceRepository(testRoot.resolve("instances"), testRoot.resolve("trash"), layout)
+            val session = DesktopLauncherSession(MinecraftVersionCatalog(http), MinecraftVersionResolver(http),
+                MinecraftLaunchCoordinator(MinecraftPreparationService(downloads),
+                    MojangJavaRuntimeManager(http, downloads, testRoot.resolve("runtimes")), LaunchPlanBuilder(),
+                    processes, layout, MinecraftPlatform.detect()), processes,
+                LauncherPreferencesStore(testRoot.resolve("settings")), repo, layout, http)
+            val browser = CatalogBrowser(session, listOf("1.21.1"), profile)
+            val project = ModrinthProject("ABCDEFGH", "Main mod", "", "Fixture", 1, null)
+            val criteria = CatalogCriteria(CatalogSource.MODRINTH, CatalogSection.MODS, "1.21.1", "fabric", null)
             val scene = ImageComposeScene(width, height, coroutineContext = Dispatchers.Swing) {
                 CompositionLocalProvider(LocalStrings provides UiStrings(language)) {
-                    SyntaxTheme { ModrinthBrowsePane(profile, ModrinthCatalog(http), false, true, { installed = it }, {}) }
+                    SyntaxTheme {
+                        val scope = androidx.compose.runtime.rememberCoroutineScope()
+                        CatalogDetails(project, criteria, browser, Modifier.fillMaxSize(), false, true,
+                            loadIcon = { null }, onBack = {}, installed = { false }, onChoose = { release, optional ->
+                                scope.launch { installed = browser.modPlan(project, release, optional) }
+                            })
+                    }
                 }
             }
             try {
-                scene.until { it.any { n -> n.tag() == "modrinth-project-ABCDEFGH" } }
-                scene.tagged("modrinth-project-ABCDEFGH").click()
                 scene.until { it.any { n -> n.tag() == "modrinth-review-plan" } }
                 scene.tagged("modrinth-review-plan").click()
                 scene.until { it.any { n -> n.tag() == "modrinth-optional-BCDEFGHI" } }
@@ -60,6 +89,7 @@ class ModrinthOptionalChoicesTest {
                 gate.complete(Unit)
                 scene.until { it.any { n -> n.tag() == "modrinth-optional-BCDEFGHI" && n.config.getOrNull(SemanticsProperties.ToggleableState) == ToggleableState.On } }
                 scene.tagged("modrinth-install-plan").click()
+                withTimeout(5000) { while (installed == null) scene.frames() }
                 assertEquals(listOf("BCDEFGHI", "ABCDEFGH"), assertNotNull(installed).entries.map { it.projectId })
                 assertTrue(assertNotNull(installed).entries.first().optional)
             } finally { gate.cancel(); scene.close(); http.close() }
