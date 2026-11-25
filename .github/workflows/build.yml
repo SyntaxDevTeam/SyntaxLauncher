@@ -355,9 +355,9 @@ jobs:
         id: build-explorer
         shell: bash
         env:
-          BUILD_EXPLORER_TOKEN: ${{ secrets.BUILD_CI_TOKEN }}
+          BUILD_CI_TOKEN: ${{ secrets.BUILD_CI_TOKEN }}
         run: |
-          if [[ "$BUILD_EXPLORER_TOKEN" =~ [^[:space:]] ]]; then
+          if [[ "$BUILD_CI_TOKEN" =~ [^[:space:]] ]]; then
             echo 'enabled=true' >> "$GITHUB_OUTPUT"
           else
             echo '::warning::Build Explorer publication skipped because the BUILD_CI_TOKEN organization secret is unavailable.'
@@ -376,5 +376,5 @@ jobs:
       - name: Publish tested native installers
         if: steps.build-explorer.outputs.enabled == 'true'
         env:
-          BUILD_EXPLORER_TOKEN: ${{ secrets.BUILD_CI_TOKEN }}
+          BUILD_CI_TOKEN: ${{ secrets.BUILD_CI_TOKEN }}
         run: python3 scripts/publish_build_explorer.py
