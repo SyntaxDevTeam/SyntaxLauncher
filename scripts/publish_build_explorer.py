@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Publish one tested native installer per platform as a Build Explorer v2 release."""
+"""Publish the complete tested native installer set as a Build Explorer v2 release."""
 import argparse
 from datetime import datetime, timezone
 import hashlib
@@ -11,12 +11,14 @@ import subprocess
 import tempfile
 
 from launcher_version import read_launcher_version, validate_git_ref
+from package_installers import INSTALLERS
 
-# Build Explorer stores one artifact for each platform in a release.
-INSTALLERS = {
-    'windows-x64': ('.msi', ((0, b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1'),)),
-    'macos-arm64': ('.dmg', ((-512, b'koly'),)),
-    'linux-x64': ('.AppImage', ((0, b'\x7fELF'), (8, b'AI'))),
+INSTALLER_SIGNATURES = {
+    '.msi': ((0, b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1'),),
+    '.dmg': ((-512, b'koly'),),
+    '.deb': ((0, b'!<arch>\ndebian-binary'),),
+    '.rpm': ((0, b'\xed\xab\xee\xdb'),),
+    '.appimage': ((0, b'\x7fELF'), (8, b'AI')),
 }
 MAX_BYTES = 90 * 1024 * 1024
 ENDPOINT = 'https://syntaxdevteam.pl/api/v2/builds/ci/syntaxlauncher'
@@ -42,34 +44,36 @@ def prepare(directory, env, version_file=None):
     timestamp = datetime.now(timezone.utc).isoformat()
     filename_version = version.replace('+', '_')
     result = []
-    for platform, (extension, signatures) in INSTALLERS.items():
-        path = directory / f'syntaxlauncher-{platform}{extension}'
-        filename = f'SyntaxLauncher-{filename_version}-{platform}{extension}'
-        if len(filename) > 255:
-            raise ValueError(f'Build Explorer filename is too long for {platform}.')
-        if not path.is_file() or path.is_symlink():
-            raise ValueError(f'Missing native installer: {path.name}')
-        size = path.stat().st_size
-        if not 0 < size <= MAX_BYTES:
-            raise ValueError(f'{path.name} exceeds the 90 MiB project limit or is empty')
-        with path.open('rb') as stream:
-            for offset, expected in signatures:
-                position = size + offset if offset < 0 else offset
-                if position < 0:
-                    raise ValueError(f'{path.name} does not match its installer format')
-                stream.seek(position)
-                if stream.read(len(expected)) != expected:
-                    raise ValueError(f'{path.name} does not match its installer format')
-            stream.seek(0)
-            digest = hashlib.file_digest(stream, 'sha256').hexdigest()
-        result.append((path, {
-            'id': int(run_id), 'time': timestamp, 'channel': channel,
-            'platform': platform, 'platform_family': 'other', 'game_versions': [],
-            'version': version, 'build_number': run_number,
-            'branch': env.get('GITHUB_REF_NAME', ''), 'commit_sha': sha,
-            'filename': filename,
-            'sha256': digest, 'size': size, 'commits': [],
-        }))
+    for platform, filenames in INSTALLERS.items():
+        for name in filenames:
+            path = directory / name
+            extension = path.suffix
+            filename = f'SyntaxLauncher-{filename_version}-{platform}{extension}'
+            if len(filename) > 255:
+                raise ValueError(f'Build Explorer filename is too long for {path.name}.')
+            if not path.is_file() or path.is_symlink():
+                raise ValueError(f'Missing native installer: {path.name}')
+            size = path.stat().st_size
+            if not 0 < size <= MAX_BYTES:
+                raise ValueError(f'{path.name} exceeds the 90 MiB project limit or is empty')
+            with path.open('rb') as stream:
+                for offset, expected in INSTALLER_SIGNATURES[extension.lower()]:
+                    position = size + offset if offset < 0 else offset
+                    if position < 0:
+                        raise ValueError(f'{path.name} does not match its installer format')
+                    stream.seek(position)
+                    if stream.read(len(expected)) != expected:
+                        raise ValueError(f'{path.name} does not match its installer format')
+                stream.seek(0)
+                digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+            result.append((path, {
+                'id': int(run_id), 'time': timestamp, 'channel': channel,
+                'platform': platform, 'platform_family': 'other', 'game_versions': [],
+                'version': version, 'build_number': run_number,
+                'branch': env.get('GITHUB_REF_NAME', ''), 'commit_sha': sha,
+                'filename': filename,
+                'sha256': digest, 'size': size, 'commits': [],
+            }))
     return result
 
 
@@ -82,9 +86,9 @@ def main():
     if args.dry_run:
         print(json.dumps([metadata for _, metadata in releases], indent=2))
         return
-    token = os.environ.get('BUILD_EXPLORER_TOKEN', '')
+    token = os.environ.get('BUILD_CI_TOKEN', '')
     if not token.strip():
-        raise SystemExit('Set BUILD_EXPLORER_TOKEN to the syntaxlauncher project token with MSI, DMG and AppImage enabled.')
+        raise SystemExit('Set BUILD_CI_TOKEN to the organization credential enabled for syntaxlauncher.')
     if not token.isascii() or not token.isprintable() or token != token.strip():
         raise SystemExit('Build Explorer token contains characters unsuitable for an HTTP header.')
     with tempfile.TemporaryDirectory(prefix='build-explorer-') as temporary:
@@ -102,13 +106,13 @@ def main():
             ], input=f'X-Build-Token: {token}\n', text=True, capture_output=True)
             body, _, status = response.stdout.rpartition('\n')
             if status in ('401', '403'):
-                raise SystemExit(f'Build Explorer rejected the token for {platform} (HTTP {status}).')
+                raise SystemExit(f'Build Explorer rejected the token for {path.name} (HTTP {status}).')
             try:
                 result = json.loads(body)
             except json.JSONDecodeError:
                 result = None
             if response.returncode != 0 or not status.startswith('2'):
-                message = f'Build Explorer upload failed for {platform} (HTTP {status or "unknown"}, curl {response.returncode}).'
+                message = f'Build Explorer upload failed for {path.name} (HTTP {status or "unknown"}, curl {response.returncode}).'
                 if isinstance(result, dict):
                     for field in ('error', 'message', 'detail'):
                         detail = result.get(field)
@@ -121,8 +125,8 @@ def main():
                             break
                 raise SystemExit(message)
             if not isinstance(result, dict) or result.get('status') != 'ok' or result.get('platform') != platform:
-                raise SystemExit(f'Build Explorer did not confirm publication for {platform}.')
-            print(f"Published {platform}: release {result['release_id']}, artifact {result['artifact_id']}")
+                raise SystemExit(f'Build Explorer did not confirm publication for {path.name}.')
+            print(f"Published {path.name}: release {result['release_id']}, artifact {result['artifact_id']}")
 
 
 if __name__ == '__main__':
