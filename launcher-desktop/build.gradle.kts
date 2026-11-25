@@ -13,14 +13,14 @@ kotlin {
 dependencies {
     implementation(project(":launcher-core"))
     // Desktop itself owns HttpClient lifecycle and therefore needs this API directly.
-    implementation("io.ktor:ktor-client-core:3.6.0")
+    implementation("io.ktor:ktor-client-core:3.6.1")
     implementation(compose.desktop.currentOs)
     implementation("org.jetbrains.compose.material3:material3:1.9.0")
     implementation("org.jetbrains.compose.components:components-resources:1.12.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.11.0")
     implementation("ch.qos.logback:logback-classic:1.6.8")
     testImplementation(kotlin("test-junit5"))
-    testImplementation("io.ktor:ktor-client-mock:3.6.0")
+    testImplementation("io.ktor:ktor-client-mock:3.6.1")
     testImplementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 }
 
