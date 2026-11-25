@@ -16,6 +16,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.withContext
+import org.slf4j.LoggerFactory
 import pl.syntaxdevteam.syntaxlauncher.core.network.DownloadEvent
 import pl.syntaxdevteam.syntaxlauncher.core.network.DownloadManager
 import pl.syntaxdevteam.syntaxlauncher.core.network.DownloadRequest
@@ -48,6 +49,7 @@ class StartupUpdater(
     private val currentBuild: LauncherBuildRevision? = null,
 ) {
     init { require(startupTimeoutMillis in 1..120_000) }
+    private val logger = LoggerFactory.getLogger(StartupUpdater::class.java)
     private val root = root.toAbsolutePath().normalize()
     private val archives = archives.toAbsolutePath().normalize()
 
@@ -63,6 +65,8 @@ class StartupUpdater(
                     val installer = UpdateBundleInstaller(root.resolve("installations"))
                     val state = loadState()
                     val selected = selectedChannel()
+                    logger.info("Launcher update check for {} on channel {} (running {}, build {})",
+                        platform.id, selected.id, current.value, currentBuild ?: "local")
                     // Preserve the original stable keys and unknown schema-1 data.
                     val prefix = if (selected == LauncherUpdateChannel.STABLE) "" else "${selected.id}."
                     val activeKey = prefix + "active"
@@ -82,7 +86,7 @@ class StartupUpdater(
                                 }
                         } catch (cancelled: CancellationException) { throw cancelled }
                         catch (failure: Exception) {
-                            org.slf4j.LoggerFactory.getLogger(StartupUpdater::class.java)
+                            logger
                                 .warn("Installed launcher update failed verification; keeping its files", failure)
                             null
                         }
@@ -96,7 +100,7 @@ class StartupUpdater(
                             return@withContext StartupUpdateResult.HANDED_OFF
                         } catch (cancelled: CancellationException) { throw cancelled }
                         catch (failure: Exception) {
-                            org.slf4j.LoggerFactory.getLogger(StartupUpdater::class.java)
+                            logger
                                 .warn("Could not start active launcher before checking updates", failure)
                         }
                     }
@@ -106,6 +110,7 @@ class StartupUpdater(
                     catch (cancelled: CancellationException) { throw cancelled }
                     catch (failure: Exception) {
                         if (active == null) throw failure
+                        logger.warn("Update check failed; using verified version {}", active.version.value, failure)
                         null // Offline startup still uses the most recently verified installed version.
                     }
                     val target = try { if (release != null && shouldUse(release.version, release.build) &&
@@ -126,11 +131,16 @@ class StartupUpdater(
                     } catch (cancelled: CancellationException) { throw cancelled }
                     catch (failure: Exception) {
                         if (active == null) throw failure
-                        org.slf4j.LoggerFactory.getLogger(StartupUpdater::class.java)
+                        logger
                             .warn("New update could not be installed; starting verified installed version", failure)
                         active
                     }
-                    if (target == null) return@withContext StartupUpdateResult.CONTINUE
+                    if (target == null) {
+                        if (release == null) logger.info("No compatible release was published for {} on {}", platform.id, selected.id)
+                        else logger.info("Published version {} (build {}) is already installed or older",
+                            release.version.value, release.build ?: "unreported")
+                        return@withContext StartupUpdateResult.CONTINUE
+                    }
                     val reusingInstalled = target.directory == active?.directory
                     onProgress(StartupUpdateProgress("Starting SyntaxLauncher ${target.version.value}…", canContinue = false,
                         stage = if (reusingInstalled) StartupUpdateStage.STARTING_INSTALLED else StartupUpdateStage.STARTING,
@@ -141,7 +151,7 @@ class StartupUpdater(
                     catch (cancelled: CancellationException) { throw cancelled }
                     catch (failure: Exception) {
                         if (active == null || active.directory == target.directory) throw failure
-                        org.slf4j.LoggerFactory.getLogger(StartupUpdater::class.java)
+                        logger
                             .warn("Updated launcher failed startup; starting verified previous version", failure)
                         onProgress(StartupUpdateProgress("Starting your previous launcher version…", canContinue = false, stage = StartupUpdateStage.PREVIOUS, installedVersion = active.version.value))
                         startAndActivate(active, state, activeKey, previousKey, activeBuild?.toString())

@@ -71,6 +71,26 @@ class LauncherHomeRenderTest {
         } finally { scene.close(); session.shutdown() }
     }
 
+    @Test fun playerPortraitScalesWithTheWindow() = runBlocking(Dispatchers.Swing) {
+        val session = session()
+        val scene = ImageComposeScene(1440, 900, coroutineContext = Dispatchers.Swing) { SyntaxLauncherApp(session) }
+        try {
+            scene.awaitReady()
+            fun portrait() = scene.nodes().first {
+                it.config.getOrNull(SemanticsProperties.TestTag) == "player-portrait"
+            }.boundsInRoot
+            val tall = portrait()
+            assertTrue(tall.height >= 240)
+            assertEquals(tall.height / 2, tall.width, 1f)
+            scene.constraints = Constraints(maxWidth = 1100, maxHeight = 510)
+            scene.frames()
+            val compact = portrait()
+            assertTrue(compact.height in 120f..160f)
+            assertEquals(compact.height / 2, compact.width, 1f)
+            assertNotNull(scene.text("Sign out or switch account"))
+        } finally { scene.close(); session.shutdown() }
+    }
+
     @Test fun emptyPlayerManagerCanAddAndSelectOfflinePlayer() = runBlocking(Dispatchers.Swing) {
         val session = session(emptyPlayers = true)
         val scene = ImageComposeScene(1440, 810, coroutineContext = Dispatchers.Swing) { SyntaxLauncherApp(session) }

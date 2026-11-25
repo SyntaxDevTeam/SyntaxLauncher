@@ -15,7 +15,8 @@ import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.Dp
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -27,7 +28,7 @@ import java.awt.image.BufferedImage
 import javax.imageio.ImageIO
 
 @Composable
-internal fun PlayerPortrait(player: SavedAccount, catalog: PlayerSkinCatalog) {
+internal fun PlayerPortrait(player: SavedAccount, catalog: PlayerSkinCatalog, height: Dp) {
     val id = player.account.uuid
     val description = LocalStrings.current.text("players.portrait", player.account.username)
     var portrait by remember(id) { mutableStateOf<ImageBitmap?>(null) }
@@ -41,7 +42,8 @@ internal fun PlayerPortrait(player: SavedAccount, catalog: PlayerSkinCatalog) {
             // Skins are optional artwork and account selection is available offline.
         }
     }
-    Canvas(Modifier.size(60.dp, 120.dp).semantics { contentDescription = description }) {
+    Canvas(Modifier.size(height / 2, height).testTag("player-portrait")
+        .semantics { contentDescription = description }) {
         drawImage(portrait ?: defaultPortrait, dstSize = IntSize(size.width.toInt(), size.height.toInt()),
             filterQuality = FilterQuality.None)
     }

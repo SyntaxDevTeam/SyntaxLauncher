@@ -73,21 +73,27 @@ fun main(args: Array<String>) {
     val preferences = LauncherPreferencesStore(paths.configDir.resolve("settings.properties"))
     val handoff = DesktopUpdateHandoff.parse(args, updateRoot)
     val updatePlatform = UpdatePlatform.detect()
+    val startupLog = org.slf4j.LoggerFactory.getLogger("LauncherStartup")
     // Fail closed for unreadable flags: do not override or repair a malformed settings file.
     val automaticUpdates = runCatching { kotlinx.coroutines.runBlocking {
         preferences.loadAutomaticUpdatesEnabled()
-    } }.getOrDefault(false)
+    } }.onFailure { startupLog.warn("Could not read automatic update settings", it) }.getOrDefault(false)
     val developerModeAtStartup = runCatching { kotlinx.coroutines.runBlocking {
         preferences.loadDeveloperMode()
     } }.getOrDefault(false)
-    val updater = if (automaticUpdates && System.getProperty("jpackage.app-path") != null && updatePlatform != null) {
+    val packaged = System.getProperty("jpackage.app-path") != null
+    val updater = if (automaticUpdates && packaged && updatePlatform != null) {
         StartupUpdater(
             GitHubLauncherReleases(httpClient), downloader,
             updateRoot, paths.cacheDir.resolve("launcher-updates"), updatePlatform,
             LauncherVersion.parse(LauncherBuildInfo.version),
             selectedChannel = { preferences.initializeUpdateChannel(LauncherBuildInfo.updateChannel) },
             currentChannel = LauncherBuildInfo.updateChannel, currentBuild = LauncherBuildInfo.revision)
-    } else null
+    } else {
+        if (packaged) startupLog.info("Automatic update check skipped: enabled={}, platform={}",
+            automaticUpdates, updatePlatform?.id ?: "unsupported")
+        null
+    }
     val processManager = MinecraftProcessManager(paths.logsDir)
     val modLoaders = ModLoaderRegistry(listOf(
         FabricLoaderProvider(httpClient), QuiltLoaderProvider(httpClient),

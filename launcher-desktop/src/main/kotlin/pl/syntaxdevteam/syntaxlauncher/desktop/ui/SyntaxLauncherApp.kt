@@ -895,6 +895,7 @@ private fun LauncherPanel(
     val homeScroll = rememberScrollState()
     val sidebarWidth = if (maxWidth < 1100.dp) 310.dp else 354.dp
     val contentHeight = maxOf(maxHeight, 440.dp)
+    val portraitHeight = (maxHeight * 0.32f).coerceIn(120.dp, 256.dp)
     val leftContent: @Composable (Modifier) -> Unit = { columnModifier ->
         Column(
             modifier = columnModifier,
@@ -1054,7 +1055,7 @@ private fun LauncherPanel(
                 if (selectedPlayer != null) {
                     Text(strings.text("players.welcome", selectedPlayer.account.username),
                         style = MaterialTheme.typography.titleMedium)
-                    PlayerPortrait(selectedPlayer, session.playerSkins)
+                    PlayerPortrait(selectedPlayer, session.playerSkins, portraitHeight)
                 }
                 OutlinedButton(onClick = { playerManagerOpen = true }, enabled = !locked,
                     modifier = Modifier.fillMaxWidth().testTag("manage-players")) {
