@@ -23,7 +23,7 @@ concurrency:
 jobs:
   metadata:
     name: Select version and update channel
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       launcher_version: ${{ steps.channel.outputs.launcher_version }}
       preview_channel: ${{ steps.channel.outputs.preview_channel }}
@@ -248,7 +248,7 @@ jobs:
     name: Publish complete verified stable version
     if: startsWith(github.ref, 'refs/tags/v') && needs.metadata.outputs.build_channel == 'stable'
     needs: [metadata, distributables]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: write
     steps:
@@ -308,7 +308,7 @@ jobs:
     name: Publish verified DEV or SNAPSHOT channel
     needs: [metadata, distributables]
     if: needs.metadata.outputs.preview_channel != ''
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: write
     steps:
@@ -347,7 +347,7 @@ jobs:
     name: Publish all platforms to Build Explorer
     needs: distributables
     if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 35
     steps:
       - name: Check whether Build Explorer is configured
