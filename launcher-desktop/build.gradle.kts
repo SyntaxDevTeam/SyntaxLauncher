@@ -21,7 +21,7 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:1.6.8")
     testImplementation(kotlin("test-junit5"))
     testImplementation("io.ktor:ktor-client-mock:3.6.1")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.13.0")
 }
 
 tasks.test {
