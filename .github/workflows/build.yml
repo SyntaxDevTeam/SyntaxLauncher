@@ -154,7 +154,8 @@ jobs:
       - uses: actions/setup-dotnet@v6
         if: runner.os == 'Windows'
         with:
-          dotnet-version: '11.0.x'
+          # WiX 7 needs the .NET 8 runtime included with this SDK.
+          dotnet-version: '8.0.x'
       - name: Install pinned WiX v7
         if: runner.os == 'Windows'
         shell: pwsh
@@ -369,10 +370,10 @@ jobs:
       - if: steps.build-explorer.outputs.enabled == 'true'
         uses: actions/download-artifact@v8
         with:
-          pattern: syntaxlauncher-portable-*
+          pattern: native-installers-*-${{ github.sha }}
           path: dist
           merge-multiple: true
-      - name: Publish complete portable build set
+      - name: Publish tested native installers
         if: steps.build-explorer.outputs.enabled == 'true'
         env:
           BUILD_EXPLORER_TOKEN: ${{ secrets.BUILD_CI_TOKEN }}

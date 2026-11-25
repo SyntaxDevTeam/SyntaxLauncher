@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Publish the three tested portable applications as one Build Explorer v2 release."""
+"""Publish one tested native installer per platform as a Build Explorer v2 release."""
 import argparse
 from datetime import datetime, timezone
 import hashlib
@@ -12,7 +12,12 @@ import tempfile
 
 from launcher_version import read_launcher_version, validate_git_ref
 
-PLATFORMS = ('windows-x64', 'macos-arm64', 'linux-x64')
+# Build Explorer stores one artifact for each platform in a release.
+INSTALLERS = {
+    'windows-x64': ('.msi', ((0, b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1'),)),
+    'macos-arm64': ('.dmg', ((-512, b'koly'),)),
+    'linux-x64': ('.AppImage', ((0, b'\x7fELF'), (8, b'AI'))),
+}
 MAX_BYTES = 90 * 1024 * 1024
 ENDPOINT = 'https://syntaxdevteam.pl/api/v2/builds/ci/syntaxlauncher'
 
@@ -37,30 +42,33 @@ def prepare(directory, env, version_file=None):
     timestamp = datetime.now(timezone.utc).isoformat()
     filename_version = version.replace('+', '_')
     result = []
-    for platform in PLATFORMS:
-        path = directory / f'syntaxlauncher-{platform}.tar.gz'
-        filename = f'SyntaxLauncher-{filename_version}-{platform}.tar.gz'
+    for platform, (extension, signatures) in INSTALLERS.items():
+        path = directory / f'syntaxlauncher-{platform}{extension}'
+        filename = f'SyntaxLauncher-{filename_version}-{platform}{extension}'
         if len(filename) > 255:
             raise ValueError(f'Build Explorer filename is too long for {platform}.')
         if not path.is_file() or path.is_symlink():
-            raise ValueError(f'Missing portable application: {path.name}')
+            raise ValueError(f'Missing native installer: {path.name}')
         size = path.stat().st_size
         if not 0 < size <= MAX_BYTES:
             raise ValueError(f'{path.name} exceeds the 90 MiB project limit or is empty')
-        digest = hashlib.sha256()
         with path.open('rb') as stream:
-            if stream.read(3) != b'\x1f\x8b\x08':
-                raise ValueError(f'{path.name} is not gzip')
+            for offset, expected in signatures:
+                position = size + offset if offset < 0 else offset
+                if position < 0:
+                    raise ValueError(f'{path.name} does not match its installer format')
+                stream.seek(position)
+                if stream.read(len(expected)) != expected:
+                    raise ValueError(f'{path.name} does not match its installer format')
             stream.seek(0)
-            for chunk in iter(lambda: stream.read(1024 * 1024), b''):
-                digest.update(chunk)
+            digest = hashlib.file_digest(stream, 'sha256').hexdigest()
         result.append((path, {
             'id': int(run_id), 'time': timestamp, 'channel': channel,
             'platform': platform, 'platform_family': 'other', 'game_versions': [],
             'version': version, 'build_number': run_number,
             'branch': env.get('GITHUB_REF_NAME', ''), 'commit_sha': sha,
             'filename': filename,
-            'sha256': digest.hexdigest(), 'size': size, 'commits': [],
+            'sha256': digest, 'size': size, 'commits': [],
         }))
     return result
 
@@ -76,7 +84,7 @@ def main():
         return
     token = os.environ.get('BUILD_EXPLORER_TOKEN', '')
     if not token.strip():
-        raise SystemExit('Set BUILD_EXPLORER_TOKEN to the project-scoped token for syntaxlauncher with .tar.gz enabled.')
+        raise SystemExit('Set BUILD_EXPLORER_TOKEN to the syntaxlauncher project token with MSI, DMG and AppImage enabled.')
     if not token.isascii() or not token.isprintable() or token != token.strip():
         raise SystemExit('Build Explorer token contains characters unsuitable for an HTTP header.')
     with tempfile.TemporaryDirectory(prefix='build-explorer-') as temporary:
@@ -90,7 +98,7 @@ def main():
                 '--proto', '=https', '--connect-timeout', '30', '--max-time', '600',
                 '--retry', '3', '--retry-delay', '5',
                 '--form', f'metadata=@{metadata_file};type=application/json',
-                '--form', f'artifact=@{path};type=application/gzip', ENDPOINT,
+                '--form', f'artifact=@{path};type=application/octet-stream', ENDPOINT,
             ], input=f'X-Build-Token: {token}\n', text=True, capture_output=True)
             body, _, status = response.stdout.rpartition('\n')
             if status in ('401', '403'):
@@ -109,7 +117,7 @@ def main():
                             detail = ' '.join(''.join(c if c.isprintable() else ' ' for c in detail).split())
                             message += f' Server response: {detail[:400]}'
                             if status == '422' and detail == 'Artifact filename or format is not permitted.':
-                                message += ' Check that BUILD_EXPLORER_TOKEN has a syntaxlauncher project policy allowing tar.gz.'
+                                message += f' Check that the syntaxlauncher project policy allows {path.suffix.lower()}.'
                             break
                 raise SystemExit(message)
             if not isinstance(result, dict) or result.get('status') != 'ok' or result.get('platform') != platform:

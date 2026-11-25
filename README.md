@@ -14,7 +14,7 @@
 
 ## Download
 
-Find portable builds in [Build Explorer](https://syntaxdevteam.pl/builds) and native installers in [GitHub Releases](https://github.com/SyntaxDevTeam/SyntaxLauncher/releases).
+Find MSI, DMG and AppImage installers in [Build Explorer](https://syntaxdevteam.pl/builds). [GitHub Releases](https://github.com/SyntaxDevTeam/SyntaxLauncher/releases) also includes DEB, RPM and portable builds.
 
 | Platform | Installer |
 | --- | --- |
