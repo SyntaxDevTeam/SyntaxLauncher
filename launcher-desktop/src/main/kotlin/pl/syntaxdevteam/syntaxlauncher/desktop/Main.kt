@@ -62,6 +62,17 @@ fun main(args: Array<String>) {
         return
     }
     val paths = LauncherPaths.resolve()
+    val factoryReset = FactoryReset(paths)
+    val startupStrings = pl.syntaxdevteam.syntaxlauncher.desktop.i18n.UiStrings(
+        pl.syntaxdevteam.syntaxlauncher.desktop.i18n.UiLanguage.from(java.util.Locale.getDefault().language))
+    if (!factoryReset.register()) {
+        javax.swing.JOptionPane.showMessageDialog(null, startupStrings.text("reset.pending"))
+        return
+    }
+    Runtime.getRuntime().addShutdownHook(Thread { runCatching { factoryReset.close() } })
+    if (factoryReset.consumeFailure()) {
+        javax.swing.JOptionPane.showMessageDialog(null, startupStrings.text("reset.incomplete"))
+    }
     java.nio.file.Files.createDirectories(paths.logsDir)
     runCatching { java.nio.file.Files.setPosixFilePermissions(paths.logsDir,
         java.nio.file.attribute.PosixFilePermissions.fromString("rwx------")) }
@@ -148,7 +159,7 @@ fun main(args: Array<String>) {
         val initialWidth = minOf(1440, (screen.width - 40).coerceAtLeast(400)).dp
         val initialHeight = minOf(840, (screen.height - 40).coerceAtLeast(400)).dp
         val windowState = rememberWindowState(width = initialWidth, height = initialHeight)
-        val closeLauncher = { session.close { exitApplication() } }
+        val closeLauncher = { if (!session.factoryResetBusy) session.close { exitApplication() } }
         Window(
             onCloseRequest = closeLauncher,
             title = "Syntax Launcher · v" + LauncherBuildInfo.version +
@@ -166,6 +177,12 @@ fun main(args: Array<String>) {
                         session = session,
                         chromeInset = 144.dp,
                         headerDragArea = { content -> WindowDraggableArea { content() } },
+                        onFactoryReset = {
+                            kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+                                session.requestFactoryReset(factoryReset)
+                                closeLauncher()
+                            }
+                        },
                     )
                 }
                 WindowResizeHandles(window, windowState.placement == WindowPlacement.Maximized)

@@ -102,6 +102,8 @@ class DesktopLauncherSession(
     }
     private val lock = Any()
     private val closing = AtomicBoolean(false)
+    private val resetting = AtomicBoolean(false)
+    internal val factoryResetBusy: Boolean get() = resetting.get()
     private var launchJob: Job? = null
     private var settingsJob: Job? = null
     private var pendingPreferences: LauncherPreferences? = null
@@ -199,7 +201,7 @@ class DesktopLauncherSession(
         premiumId: String? = null,
     ): Boolean {
         synchronized(lock) {
-            if (closing.get() || launchJob?.isActive == true ||
+            if (closing.get() || resetting.get() || launchJob?.isActive == true ||
                 processManager.status.value.state in setOf(
                     MinecraftProcessState.RUNNING, MinecraftProcessState.STARTING,
                 )
@@ -311,7 +313,7 @@ class DesktopLauncherSession(
 
     /** Reuses verified preparation. No process, account or mutable world/config deletion. */
     fun repair(version: ResolvedMinecraftVersion, instance: MinecraftInstance?): Boolean = synchronized(lock) {
-        if (closing.get() || launchJob?.isActive == true ||
+        if (closing.get() || resetting.get() || launchJob?.isActive == true ||
             processManager.status.value.state in setOf(MinecraftProcessState.RUNNING, MinecraftProcessState.STARTING)) return false
         mutablePreparingAccount.value = true
         mutableLaunchIssue.value = null
@@ -350,6 +352,36 @@ class DesktopLauncherSession(
     fun stopGame() {
         if (closing.get()) return
         scope.launch { processManager.terminate() }
+    }
+
+    internal suspend fun requestFactoryReset(reset: FactoryReset) {
+        check(resetting.compareAndSet(false, true))
+        try {
+            withContext(Dispatchers.IO) {
+                check(synchronized(lock) { !closing.get() && launchJob?.isActive != true } &&
+                    !coordinator.status.value.isPreparing &&
+                    processManager.status.value.state !in setOf(
+                        MinecraftProcessState.RUNNING, MinecraftProcessState.STARTING,
+                    ) && systemUpdate?.status?.value?.busy != true) { "The launcher is busy." }
+                reset.reserve()
+                try {
+                    instances.assertAllGamesInactive()
+                    accountMutex.withLock {
+                        accounts?.let { store ->
+                            store.accounts().filter { it.microsoft }.forEach {
+                                store.remove(it.account.uuid.toString())
+                            }
+                        }
+                    }
+                    reset.startWorker()
+                } catch (failure: Throwable) {
+                    reset.cancel()
+                    throw failure
+                }
+            }
+        } finally {
+            resetting.set(false)
+        }
     }
 
     fun close(onClosed: () -> Unit) {

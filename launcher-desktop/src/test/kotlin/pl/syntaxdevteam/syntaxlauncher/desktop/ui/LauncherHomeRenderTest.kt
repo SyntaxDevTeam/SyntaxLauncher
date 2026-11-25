@@ -91,6 +91,32 @@ class LauncherHomeRenderTest {
         } finally { scene.close(); session.shutdown() }
     }
 
+    @Test fun factoryResetRequiresMatchingTypedConfirmation() = runBlocking(Dispatchers.Swing) {
+        val session = session()
+        var requested = 0
+        val scene = ImageComposeScene(1440, 900, coroutineContext = Dispatchers.Swing) {
+            SyntaxLauncherApp(session, onFactoryReset = { requested++ })
+        }
+        try {
+            fun tagged(tag: String) = scene.nodes().first { it.config.getOrNull(SemanticsProperties.TestTag) == tag }
+            scene.awaitReady()
+            tagged("launcher-settings").click()
+            scene.frames()
+            tagged("factory-reset").click()
+            scene.frames()
+            assertTrue(tagged("factory-reset-submit").config.contains(SemanticsProperties.Disabled))
+            tagged("factory-reset-confirmation").config[SemanticsActions.SetText].action!!.invoke(AnnotatedString("no"))
+            scene.frames()
+            assertTrue(tagged("factory-reset-submit").config.contains(SemanticsProperties.Disabled))
+            assertEquals(0, requested)
+            tagged("factory-reset-confirmation").config[SemanticsActions.SetText].action!!.invoke(AnnotatedString("DELETE"))
+            scene.frames()
+            tagged("factory-reset-submit").click()
+            scene.frames()
+            assertEquals(1, requested)
+        } finally { scene.close(); session.shutdown() }
+    }
+
     @Test fun emptyPlayerManagerCanAddAndSelectOfflinePlayer() = runBlocking(Dispatchers.Swing) {
         val session = session(emptyPlayers = true)
         val scene = ImageComposeScene(1440, 810, coroutineContext = Dispatchers.Swing) { SyntaxLauncherApp(session) }

@@ -113,6 +113,7 @@ fun SyntaxLauncherApp(
     session: DesktopLauncherSession,
     chromeInset: Dp = 0.dp,
     headerDragArea: @Composable (@Composable () -> Unit) -> Unit = { content -> content() },
+    onFactoryReset: (suspend () -> Unit)? = null,
 ) {
     val strings = LocalStrings.current
     SyntaxTheme {
@@ -251,7 +252,8 @@ fun SyntaxLauncherApp(
             if (setupOpen && (catalog !is ManifestState.Ready || persisted == null || settingsError != null)) androidx.compose.material3.AlertDialog(
                 onDismissRequest = { setupOpen = false },
                 title = { Text(strings.text("ui.your_setup")) },
-                text = { LauncherSettingsContent(session, onDeveloperModeChanged = { developerMode = it }) },
+                text = { LauncherSettingsContent(session, onDeveloperModeChanged = { developerMode = it },
+                    onFactoryReset = onFactoryReset) },
                 confirmButton = { TextButton(onClick = { setupOpen = false }) { Text(strings.text("ui.close")) } },
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f))
@@ -276,7 +278,7 @@ fun SyntaxLauncherApp(
                         persisted == null -> CenterMessage(strings.text("ui.loading_profile"), strings.text("ui.restoring_your_settings"), true)
                         else -> LauncherPanel(state.manifest, session, persisted!!, instanceOpenRequest,
                             setupOpen, { setupOpen = false }, { setupOpen = true }, { instanceOpenRequest = minOf(instanceOpenRequest - 1, -1) },
-                            { navigationBusy = it }, { developerMode = it })
+                            { navigationBusy = it }, { developerMode = it }, onFactoryReset)
                     }
                 }
             }
@@ -299,6 +301,7 @@ private fun LauncherPanel(
     onNavigateHome: () -> Unit,
     onNavigationBusy: (Boolean) -> Unit,
     onDeveloperModeChanged: (Boolean) -> Unit,
+    onFactoryReset: (suspend () -> Unit)?,
 ) {
     val strings = LocalStrings.current
     var nickname by remember { mutableStateOf(saved.nickname) }
@@ -682,7 +685,8 @@ private fun LauncherPanel(
                             inventory = session.instances.list(); chooseInstance(updated.id)
                         }
                     } finally { mutationBusy = false }
-                }, onDeveloperModeChanged = onDeveloperModeChanged) },
+                }, onDeveloperModeChanged = onDeveloperModeChanged,
+                onFactoryReset = onFactoryReset?.takeUnless { locked }) },
             confirmButton = { TextButton(onClick = onCloseSettings, enabled = !savingMemory) { Text(strings.text("ui.close")) } })
     }
 

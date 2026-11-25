@@ -20,7 +20,8 @@ import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.LocalStrings
 internal fun LauncherSettingsContent(session: DesktopLauncherSession, memoryMiB: Int? = null,
     profileName: String = "", memoryEnabled: Boolean = true, onMemoryBusy: (Boolean) -> Unit = {},
     onSaveMemory: suspend (Int) -> Unit = {},
-    onDeveloperModeChanged: (Boolean) -> Unit = {}) {
+    onDeveloperModeChanged: (Boolean) -> Unit = {},
+    onFactoryReset: (suspend () -> Unit)? = null) {
     val strings = LocalStrings.current
     val scope = rememberCoroutineScope()
     var logs by remember { mutableStateOf<String?>(null) }
@@ -72,13 +73,70 @@ internal fun LauncherSettingsContent(session: DesktopLauncherSession, memoryMiB:
             SelectionContainer { Text(text.ifBlank { strings.text("settings.logs_empty") },
                 style = MaterialTheme.typography.bodySmall) }
         }
-        TextButton(onClick = { paths = !paths }) { Text(strings.text("settings.storage")) }
-        if (paths) session.launcherPaths?.let {
-            SelectionContainer { Text("Data: ${it.dataDir}\nSettings: ${it.configDir}\nCache: ${it.cacheDir}\nLogs: ${it.logsDir}",
-                style = MaterialTheme.typography.bodySmall) }
-            Text(strings.text("settings.retention"), style = MaterialTheme.typography.bodySmall)
+        val storage = session.launcherPaths
+        if (storage != null) {
+            TextButton(onClick = { paths = !paths }) { Text(strings.text("settings.storage")) }
+            if (paths) {
+                SelectionContainer {
+                    Text("Data: ${storage.dataDir}\nSettings: ${storage.configDir}\nCache: ${storage.cacheDir}\nLogs: ${storage.logsDir}",
+                        style = MaterialTheme.typography.bodySmall)
+                }
+            }
         }
+        onFactoryReset?.let { FactoryResetOption(it) }
     }
+}
+
+@Composable
+private fun FactoryResetOption(onReset: suspend () -> Unit) {
+    val strings = LocalStrings.current
+    val scope = rememberCoroutineScope()
+    var open by remember { mutableStateOf(false) }
+    var busy by remember { mutableStateOf(false) }
+    var confirmation by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf(false) }
+    val token = strings.text("reset.token")
+    HorizontalDivider()
+    TextButton(onClick = { open = true }, colors = ButtonDefaults.textButtonColors(
+        contentColor = MaterialTheme.colorScheme.error), modifier = Modifier.testTag("factory-reset")) {
+        Text(strings.text("reset.title"))
+    }
+    if (open) AlertDialog(
+        onDismissRequest = { if (!busy) { open = false; confirmation = ""; error = false } },
+        title = { Text(strings.text("reset.title")) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(strings.text("reset.description"))
+                OutlinedTextField(confirmation, { confirmation = it }, enabled = !busy, singleLine = true,
+                    label = { Text(strings.text("reset.confirmation", token)) },
+                    modifier = Modifier.fillMaxWidth().testTag("factory-reset-confirmation"))
+                if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
+                if (error) Text(strings.text("reset.failed"), color = MaterialTheme.colorScheme.error)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = { open = false; confirmation = ""; error = false }, enabled = !busy) {
+                Text(strings.text("players.cancel"))
+            }
+        },
+        confirmButton = {
+            Button(enabled = !busy && confirmation.trim() == token,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError),
+                modifier = Modifier.testTag("factory-reset-submit"), onClick = {
+                    busy = true
+                    error = false
+                    scope.launch {
+                        try { onReset() }
+                        catch (cancelled: CancellationException) { throw cancelled }
+                        catch (failure: Exception) {
+                            org.slf4j.LoggerFactory.getLogger("FactoryReset").warn("Could not reset launcher data", failure)
+                            error = true
+                        } finally { busy = false }
+                    }
+                }) { Text(strings.text("reset.delete")) }
+        },
+    )
 }
 
 @Composable

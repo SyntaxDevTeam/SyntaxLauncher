@@ -32,6 +32,21 @@ class MinecraftInstanceRepositoryTest {
         ) to layout
     }
 
+    @Test fun resetPreflightRejectsBothLegacyAndIsolatedGameLeases() = runBlocking {
+        val (repo, _) = fixture()
+        val profile = repo.create("Survival", "26.3")
+        for (id in listOf(null, profile.id)) {
+            repo.assertAllGamesInactive()
+            repo.beginLaunch(id)
+            try {
+                assertFailsWith<InstanceInUseException> { repo.assertAllGamesInactive() }
+            } finally {
+                repo.endPreparation(id)
+            }
+        }
+        repo.assertAllGamesInactive()
+    }
+
     @Test fun independentGameDirectoriesShareOnlyImmutableCache() = runBlocking {
         val (repo, layout) = fixture()
         val first = repo.create("Creative", "26.3", maximumMemoryMiB = 6144)

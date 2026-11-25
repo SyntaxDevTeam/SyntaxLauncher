@@ -108,6 +108,10 @@ class MinecraftInstanceRepository(
         }
     }
 
+    suspend fun assertAllGamesInactive() = withContext(Dispatchers.IO) {
+        mutex.withLock { activity.assertAllInactive() }
+    }
+
     fun gameDirectory(instance: MinecraftInstance): Path =
         instanceDirectory(instance.id).resolve("game")
 

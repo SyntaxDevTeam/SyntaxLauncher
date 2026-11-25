@@ -29,6 +29,21 @@ internal class InstanceActivityGuard(private val directory: Path) {
 
     fun assertInactive(key: String) = withFileLock(key) { assertInactiveLocked(key) }
 
+    fun assertAllInactive() {
+        if (!Files.exists(directory, LinkOption.NOFOLLOW_LINKS)) return
+        require(Files.isDirectory(directory, LinkOption.NOFOLLOW_LINKS)) { "Unsafe activity directory." }
+        Files.newDirectoryStream(directory).use { markers ->
+            markers.mapNotNull { path ->
+                val name = path.fileName.toString()
+                when {
+                    name.endsWith(".lock") -> name.removeSuffix(".lock")
+                    name.endsWith(".guard") -> name.removeSuffix(".guard")
+                    else -> null
+                }
+            }.distinct().forEach(::assertInactive)
+        }
+    }
+
     /** Hold the same interprocess lock throughout the caller's mutation. */
     suspend fun <T> withInactive(key: String, mutation: suspend () -> T): T {
         val channel = openLock(key)
