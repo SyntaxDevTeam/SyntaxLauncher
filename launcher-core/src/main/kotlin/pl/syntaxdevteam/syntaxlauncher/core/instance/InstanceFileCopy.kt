@@ -46,8 +46,8 @@ internal object InstanceFileCopy {
     private data class Item(val relative: Path, val bytes: Long)
     private data class Plan(val directories: List<Path>, val files: List<Item>, val totalBytes: Long)
 
-    suspend fun estimate(source: Path): InstanceCopyEstimate {
-        val plan = inspect(source, currentCoroutineContext())
+    suspend fun estimate(source: Path, excluded: Set<String>): InstanceCopyEstimate {
+        val plan = inspect(source, currentCoroutineContext(), excluded)
         return InstanceCopyEstimate(plan.totalBytes, plan.files.size)
     }
 
@@ -55,9 +55,10 @@ internal object InstanceFileCopy {
         source: Path,
         destination: Path,
         onProgress: (InstanceCopyProgress) -> Unit,
+        excluded: Set<String>,
     ) {
         val context = currentCoroutineContext()
-        val plan = inspect(source, context)
+        val plan = inspect(source, context, excluded)
         check(!destination.toAbsolutePath().normalize().startsWith(source.toAbsolutePath().normalize())) {
             "Cannot copy a folder inside itself."
         }
@@ -157,7 +158,7 @@ internal object InstanceFileCopy {
         }
     }
 
-    private fun inspect(source: Path, context: CoroutineContext): Plan {
+    private fun inspect(source: Path, context: CoroutineContext, excluded: Set<String>): Plan {
         validateAncestors(source)
         if (!Files.isDirectory(source, LinkOption.NOFOLLOW_LINKS)) {
             throw InstanceCopyException(InstanceCopyFailureKind.SOURCE_INVALID,
@@ -170,6 +171,7 @@ internal object InstanceFileCopy {
             Files.walkFileTree(source, object : SimpleFileVisitor<Path>() {
                 override fun preVisitDirectory(dir: Path, attrs: BasicFileAttributes): FileVisitResult {
                     context.ensureActive()
+                    if (dir.parent == source && dir.fileName.toString() in excluded) return FileVisitResult.SKIP_SUBTREE
                     if (!attrs.isDirectory || Files.isSymbolicLink(dir)) {
                         throw InstanceCopyException(InstanceCopyFailureKind.SOURCE_INVALID,
                             "Directory link or unsupported folder: $dir")
@@ -180,6 +182,7 @@ internal object InstanceFileCopy {
 
                 override fun visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult {
                     context.ensureActive()
+                    if (file.parent == source && file.fileName.toString() in excluded && attrs.isRegularFile) return FileVisitResult.CONTINUE
                     if (!attrs.isRegularFile || Files.isSymbolicLink(file)) {
                         throw InstanceCopyException(InstanceCopyFailureKind.SOURCE_INVALID,
                             "Symbolic links and special files are not copied: $file")

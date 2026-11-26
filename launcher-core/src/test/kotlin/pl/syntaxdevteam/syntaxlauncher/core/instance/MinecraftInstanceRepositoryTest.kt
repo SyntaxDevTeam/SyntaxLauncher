@@ -1,6 +1,11 @@
 package pl.syntaxdevteam.syntaxlauncher.core.instance
 
+import net.kyori.adventure.nbt.BinaryTagIO
+import net.kyori.adventure.nbt.BinaryTagTypes
+import net.kyori.adventure.nbt.CompoundBinaryTag
+import net.kyori.adventure.nbt.ListBinaryTag
 import java.nio.file.Files
+import java.nio.file.Path
 import java.util.UUID
 import kotlin.test.Test
 import kotlinx.coroutines.CancellationException
@@ -66,7 +71,7 @@ class MinecraftInstanceRepositoryTest {
         assertTrue(listing.problems.isEmpty())
     }
 
-    @Test fun clonePreservesFilesSettingsAndIsIndependent() = runBlocking {
+    @Test fun cloneCopiesPrivateSettingsWithoutDuplicatingSharedWorlds() = runBlocking {
         val (repo, _) = fixture()
         val original = repo.create("Original", "26.2", maximumMemoryMiB = 8192,
             extraJvmArguments = listOf("-Dtest=ok"))
@@ -82,12 +87,9 @@ class MinecraftInstanceRepositoryTest {
         assertNotEquals(original.id, clone.id)
         assertEquals(8192, clone.maximumMemoryMiB)
         assertEquals(listOf("-Dtest=ok"), clone.extraJvmArguments)
-        val cloneWorld = repo.gameDirectory(clone).resolve("saves/world/level.dat")
-        assertEquals("initial", Files.readString(cloneWorld))
-        Files.writeString(cloneWorld, "modified clone")
+        assertFalse(Files.exists(repo.gameDirectory(clone).resolve("saves/world/level.dat")))
         assertEquals("initial", Files.readString(originalWorld))
-        val trashPath = repo.moveToTrash(clone.id)
-        assertTrue(Files.exists(trashPath.resolve("game/saves/world/level.dat")))
+        repo.moveToTrash(clone.id)
         assertFalse(Files.exists(repo.gameDirectory(clone)))
         assertEquals(listOf("Original"), repo.list().instances.map { it.name })
     }
@@ -116,8 +118,7 @@ class MinecraftInstanceRepositoryTest {
         Files.writeString(legacyWorld, "legacy world")
         assertTrue(repo.legacyGameAvailable())
         val copy = repo.importLegacy("From v0.1", "26.3")
-        assertEquals("legacy world",
-            Files.readString(repo.gameDirectory(copy).resolve("saves/legacy/level.dat")))
+        assertFalse(Files.exists(repo.gameDirectory(copy).resolve("saves/legacy/level.dat")))
         assertEquals("legacy world", Files.readString(legacyWorld))
     }
 
@@ -139,7 +140,7 @@ class MinecraftInstanceRepositoryTest {
         val restored = repo.restoreFromTrash(deleted.entries.single().entryName)
         assertEquals(original, restored)
         assertEquals(original.id, repo.list().instances.single().id)
-        assertEquals("world data", Files.readString(world))
+        assertEquals("world data", Files.readString(repo.sharedSavesDirectory().resolve("important/level.dat")))
         assertTrue(Files.readString(metadata).contains("futureSetting"))
         assertTrue(repo.listTrashed().entries.isEmpty())
     }
@@ -181,7 +182,7 @@ class MinecraftInstanceRepositoryTest {
 
     @Test fun importReportsProgressAndKeepsOriginalUntouched() = runBlocking {
         val (repo, layout) = fixture()
-        val source = layout.gameDir.resolve("saves/legacy/world.dat")
+        val source = layout.gameDir.resolve("config/legacy/settings.dat")
         Files.createDirectories(source.parent)
         Files.write(source, ByteArray(1024 * 1024) { 7 })
         val estimate = repo.estimateLegacyImport()
@@ -194,13 +195,13 @@ class MinecraftInstanceRepositoryTest {
         assertEquals(1, updates.last().copiedFiles)
         assertTrue(updates.last().fraction == 1f)
         assertEquals(Files.readAllBytes(source).size.toLong(),
-            Files.size(repo.gameDirectory(imported).resolve("saves/legacy/world.dat")))
+            Files.size(repo.gameDirectory(imported).resolve("config/legacy/settings.dat")))
         assertEquals(7, Files.readAllBytes(source).first().toInt())
     }
 
     @Test fun abortedCopyNeverPublishesIncompleteProfile() = runBlocking {
         val (repo, layout) = fixture()
-        val original = layout.gameDir.resolve("saves/large.dat")
+        val original = layout.gameDir.resolve("config/large.dat")
         Files.createDirectories(original.parent)
         Files.write(original, ByteArray(1024 * 1024) { 5 })
         assertFailsWith<IllegalStateException> {
@@ -263,7 +264,7 @@ class MinecraftInstanceRepositoryTest {
 
     @Test fun cancelledLargeCopyLeavesNoPublishedWorldOrTouchedSource() = runBlocking {
         val (repo, layout) = fixture()
-        val legacyFile = layout.gameDir.resolve("saves/World/level.dat")
+        val legacyFile = layout.gameDir.resolve("config/World/settings.dat")
         Files.createDirectories(legacyFile.parent)
         Files.write(legacyFile, ByteArray(2 * 1024 * 1024) { (it % 251).toByte() })
         val originalBytes = Files.readAllBytes(legacyFile)
@@ -306,6 +307,53 @@ class MinecraftInstanceRepositoryTest {
         assertEquals(a.id, restored.id)
         assertEquals("OnlyInA", Files.readString(again.gameDirectory(restored).resolve("options.txt")))
     }
+
+    @Test fun playerDataSurvivesProfileSwitchCrashRecoveryAndDeletion() = runBlocking {
+        val (repo, layout) = fixture()
+        val first = repo.create("First", "26.3")
+        val second = repo.create("Second", "26.3")
+        val firstGame = repo.gameDirectory(first)
+        val secondGame = repo.gameDirectory(second)
+        for ((game, nickname) in listOf(firstGame to "one", secondGame to "two")) {
+            val world = game.resolve("saves/World/level.dat")
+            Files.createDirectories(world.parent)
+            Files.writeString(world, nickname)
+            writeServers(game.resolve("servers.dat"), nickname)
+        }
+        val removed = repo.moveToTrash(first.id)
+        val deletedGame = removed.resolve("game")
+        val deletedWorld = deletedGame.resolve("saves/Deleted/level.dat")
+        Files.createDirectories(deletedWorld.parent)
+        Files.writeString(deletedWorld, "old trash save")
+        writeServers(deletedGame.resolve("servers.dat"), "old-trash")
+        repo.beginLaunch(second.id)
+        assertEquals(setOf("one", "two", "old-trash"), readServers(secondGame.resolve("servers.dat")))
+        val movedWorlds = Files.list(secondGame.resolve("saves")).use { paths ->
+            paths.map { Files.readString(it.resolve("level.dat")) }.toList().toSet()
+        }
+        assertEquals(setOf("one", "two", "old trash save"), movedWorlds)
+        assertFailsWith<InstanceInUseException> { repo.beginLaunch(null) }
+        writeServers(secondGame.resolve("servers.dat"), "edited")
+        repo.endPreparation(second.id)
+
+        val restarted = MinecraftInstanceRepository(secondGame.parent.parent, removed.parent, layout)
+        restarted.beginLaunch(null)
+        assertEquals(setOf("edited"), readServers(layout.gameDir.resolve("servers.dat")))
+        assertEquals(3L, Files.list(restarted.sharedSavesDirectory()).use { it.count() })
+        restarted.endPreparation(null)
+        restarted.moveToTrash(second.id)
+        assertEquals(setOf("edited"), readServers(layout.gameDir.resolve("servers.dat")))
+        assertEquals(3L, Files.list(restarted.sharedSavesDirectory()).use { it.count() })
+    }
+
+    private fun writeServers(path: Path, address: String) {
+        val entry = CompoundBinaryTag.builder().putString("ip", address).build()
+        val list = ListBinaryTag.listBinaryTag(BinaryTagTypes.COMPOUND, listOf(entry))
+        BinaryTagIO.writer().write(CompoundBinaryTag.builder().put("servers", list).build(), path)
+    }
+
+    private fun readServers(path: Path): Set<String> = BinaryTagIO.reader().read(path)
+        .getList("servers", BinaryTagTypes.COMPOUND).map { (it as CompoundBinaryTag).getString("ip") }.toSet()
 
     @Test fun disappearedWorldDirectoryIsNotSilentlyRecreated() = runBlocking {
         val (repo, _) = fixture()

@@ -35,10 +35,14 @@ fun InstanceWorkspace(
     onCancelCopy: () -> Unit, onDelete: (MinecraftInstance) -> Unit, onRestore: (TrashedMinecraftInstance) -> Unit,
     onDismiss: () -> Unit, onImportModpack: () -> Unit = {}, onCancelImport: (() -> Unit)? = null,
     onRetry: () -> Unit = {}, onEditLegacy: () -> Unit = {},
+    onBrowseAddons: (MinecraftInstance) -> Unit = onManageMods,
+    onCreateStarter: (() -> Unit)? = null,
+    onManagePacks: ((MinecraftInstance) -> Unit)? = null,
 ) {
     val strings = LocalStrings.current
     var search by remember { mutableStateOf("") }
-    var advanced by remember { mutableStateOf(false) }
+    var advanced by remember(selectedId) { mutableStateOf(false) }
+    var showTrash by remember { mutableStateOf(false) }
     var cloneName by remember(selectedId) { mutableStateOf(selected?.name?.plus(" copy").orEmpty()) }
     var legacyName by remember { mutableStateOf("Vanilla") }
     var deleting by remember { mutableStateOf<MinecraftInstance?>(null) }
@@ -96,7 +100,10 @@ fun InstanceWorkspace(
                     }
                     if (trashed.isNotEmpty()) {
                         HorizontalDivider()
-                        trashed.forEach { entry ->
+                        TextButton(onClick = { showTrash = !showTrash }, modifier = Modifier.testTag("show-profile-trash")) {
+                            Text(strings.text(if (showTrash) "profiles.hide_trash" else "profiles.trash", trashed.size))
+                        }
+                        if (showTrash) trashed.forEach { entry ->
                             TextButton(onClick = { onRestore(entry) }, enabled = canModify,
                                 modifier = Modifier.testTag("restore-profile-${entry.instance.id}")) {
                                 Text(strings.text("ui.restore") + " · " + entry.instance.name)
@@ -108,33 +115,38 @@ fun InstanceWorkspace(
             val detail: @Composable (Modifier) -> Unit = { modifier ->
                 Column(modifier.background(SyntaxBrand.background.copy(alpha = .91f), RoundedCornerShape(14.dp))
                     .padding(16.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(selected?.name ?: strings.text(if (selectedId.isBlank()) "ui.legacy_vanilla" else "ui.unavailable_instance"), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Text(strings.text(if (selected?.loader == null) "profiles.vanilla_info" else "profiles.modded_info"))
-                    Text("Minecraft ${selected?.minecraftVersionId ?: latestVersion} · ${selected?.loader?.let { "${it.id} ${it.version}" } ?: "Vanilla"}", style = MaterialTheme.typography.bodyMedium)
-                    if (contentsLoading) LinearProgressIndicator(Modifier.fillMaxWidth())
-                    contents?.let { info ->
-                        HorizontalDivider()
-                        Text(strings.text("profiles.contains"), style = MaterialTheme.typography.titleMedium)
-                        fun items(names: List<String>) = names.take(8).joinToString(", ").ifEmpty { strings.text("profiles.none") } +
-                            if (names.size > 8) " …" else ""
-                        Text(strings.text("profiles.mods", info.mods.size, items(info.mods)))
-                        Text(strings.text("profiles.worlds", info.worlds.size, items(info.worlds)))
-                        Text(strings.text("profiles.textures", info.textures.size, items(info.textures)))
-                        Text(strings.text("profiles.shaders", info.shaders.size, items(info.shaders)))
-                        Text(strings.text("profiles.configs", info.configs))
-                        if (info.modpack) Text(strings.text("profiles.modpack_info"), color = SyntaxBrand.cyan)
+                    Text(selected?.name ?: strings.text(if (selectedId.isBlank()) "ui.legacy_vanilla" else "ui.unavailable_instance"),
+                        style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    Text("Minecraft ${selected?.minecraftVersionId ?: latestVersion} · ${selected?.loader?.let { "${it.id} ${it.version}" } ?: "Vanilla"}",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = onDismiss, enabled = canModify && (selectedId.isBlank() || selected != null)) {
+                            Text(strings.text("profiles.use"))
+                        }
+                        selected?.let { profile ->
+                            OutlinedButton(onClick = { onEdit(profile) }, enabled = canModify) { Text(strings.text("profiles.settings")) }
+                            if (profile.loader != null) OutlinedButton(onClick = { onManageMods(profile) }, enabled = canModify) {
+                                Text(strings.text("catalog.mods"))
+                            }
+                            onManagePacks?.let { manage ->
+                                OutlinedButton(onClick = { manage(profile) }, enabled = canModify) {
+                                    Text(strings.text("catalog.my_packs"))
+                                }
+                            }
+                            OutlinedButton(onClick = { onBrowseAddons(profile) }, enabled = canModify) { Text(strings.text("catalog.open")) }
+                        } ?: OutlinedButton(onClick = onEditLegacy, enabled = canModify && selectedId.isBlank()) { Text(strings.text("profiles.settings")) }
+                        TextButton(onClick = { advanced = !advanced }) {
+                            Text(strings.text(if (advanced) "game.fewer_options" else "game.more_options"))
+                        }
                     }
-                    Button(onClick = onDismiss, enabled = canModify && (selectedId.isBlank() || selected != null)) { Text(strings.text("profiles.use")) }
-                    if (selected == null && selectedId.isBlank()) OutlinedButton(onClick = onEditLegacy, enabled = canModify) { Text(strings.text("profiles.edit")) }
-                    selected?.let { profile ->
-                        OutlinedButton(onClick = { onEdit(profile) }, enabled = canModify) { Text(strings.text("profiles.edit")) }
-                        OutlinedButton(onClick = { onManageMods(profile) }, enabled = canModify) { Text(strings.text("catalog.open")) }
-                    }
-                    TextButton(onClick = { advanced = !advanced }) { Text(strings.text("game.more_options")) }
                     if (advanced) {
                         selected?.let { profile ->
                             OutlinedTextField(cloneName, { cloneName = it }, label = { Text(strings.text("ui.clone_as")) }, singleLine = true, enabled = canModify, modifier = Modifier.fillMaxWidth())
                             OutlinedButton(onClick = { onClonePreview(profile, cloneName.trim()) }, enabled = canModify && cloneName.trim().length in 1..48) { Text(strings.text("ui.review_clone")) }
+                        }
+                        onCreateStarter?.let { create ->
+                            OutlinedButton(onClick = create, enabled = canModify) { Text(strings.text("game.starter_name")) }
                         }
                         OutlinedButton(onClick = onImportModpack, enabled = canModify) { Text(strings.text("modpack.import_file")) }
                         onCancelImport?.let { TextButton(onClick = it) { Text(strings.text("ui.cancel")) } }
@@ -142,6 +154,18 @@ fun InstanceWorkspace(
                             OutlinedTextField(legacyName, { legacyName = it }, label = { Text(strings.text("ui.imported_profile_name")) }, enabled = canModify, modifier = Modifier.fillMaxWidth())
                             TextButton(onClick = { onLegacyPreview(legacyName.trim(), latestVersion) }, enabled = canModify && legacyName.trim().length in 1..48) { Text(strings.text("ui.review_v0_1_import")) }
                         }
+                    }
+                    if (contentsLoading) LinearProgressIndicator(Modifier.fillMaxWidth())
+                    contents?.let { info ->
+                        HorizontalDivider()
+                        Text(strings.text(if (info.modpack) "profiles.modpack_info" else "profiles.contains"),
+                            style = MaterialTheme.typography.titleMedium)
+                        Text(strings.text("profiles.inventory", info.mods.size, info.textures.size, info.shaders.size))
+                        if (info.mods.isNotEmpty()) Text(info.mods.take(6).joinToString(" · ") + if (info.mods.size > 6) " …" else "",
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(strings.text("profiles.shared_worlds", info.worlds.size))
+                        Text(strings.text("profiles.shared_worlds_help"), style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }

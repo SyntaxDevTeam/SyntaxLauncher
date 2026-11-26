@@ -16,8 +16,7 @@ data class ProfileContents(val mods: List<String>, val worlds: List<String>, val
 suspend fun describeProfile(session: DesktopLauncherSession, instance: MinecraftInstance?): ProfileContents = withContext(Dispatchers.IO) {
     val root = instance?.let(session.instances::gameDirectory) ?: session.instances.legacyGameDirectory()
     check(!Files.isSymbolicLink(root)) { "Redirected game directory." }
-    suspend fun names(directory: String, directoriesOnly: Boolean = false): List<String> {
-        val folder = root.resolve(directory)
+    suspend fun names(folder: Path, directoriesOnly: Boolean = false): List<String> {
         if (!Files.isDirectory(folder, NOFOLLOW_LINKS)) return emptyList()
         return Files.newDirectoryStream(folder).use { entries ->
             val result = mutableListOf<String>()
@@ -31,7 +30,8 @@ suspend fun describeProfile(session: DesktopLauncherSession, instance: Minecraft
     }
     val mods = if (instance?.loader != null) session.modManager.list(instance.id).mods.map {
         (it.metadata?.name ?: it.fileName) + " · " + (it.metadata?.version ?: "?") + if (!it.enabled) " (off)" else ""
-    } else names("mods")
-    ProfileContents(mods, names("saves", true), names("resourcepacks"), names("shaderpacks"), names("config").size,
+    } else names(root.resolve("mods"))
+    ProfileContents(mods, names(session.instances.sharedSavesDirectory(), true), names(root.resolve("resourcepacks")),
+        names(root.resolve("shaderpacks")), names(root.resolve("config")).size,
         Files.isDirectory(root.resolve(".syntaxlauncher-modpack"), NOFOLLOW_LINKS))
 }

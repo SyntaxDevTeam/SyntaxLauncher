@@ -166,7 +166,7 @@ internal class InstanceActivityGuard(private val directory: Path) {
     }
 
     private fun validateKey(key: String): String {
-        require(key == "legacy" || runCatching {
+        require(key in setOf("legacy", "shared-player-data") || runCatching {
             UUID.fromString(key).toString() == key
         }.getOrDefault(false)) { "Invalid instance identifier." }
         return key

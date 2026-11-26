@@ -32,7 +32,8 @@ class IrisRendererSetup(
 ) : ShaderRendererSetup {
     override suspend fun available(instance: MinecraftInstance): Boolean =
         instance.loader?.id in setOf("fabric", "quilt", "neoforge") &&
-            catalog.compatibleProjectVersions(instance, PROJECT_ID).isNotEmpty()
+            (mods.list(instance.id).mods.any { it.enabled && it.metadata?.id == "iris" } ||
+                catalog.compatibleProjectVersions(instance, PROJECT_ID).isNotEmpty())
 
     override suspend fun ensure(instance: MinecraftInstance): ShaderRendererProof = withContext(Dispatchers.IO) {
         if (instance.loader?.id !in setOf("fabric", "quilt", "neoforge")) {
@@ -46,6 +47,11 @@ class IrisRendererSetup(
             throw LocalPackException("OptiFine and Iris cannot be installed together in this game.")
         }
         val current = before.mods.singleOrNull { it.metadata?.id == "iris" }
+        if (current?.enabled == true && current.modrinth?.projectId != PROJECT_ID) {
+            // Modpacks commonly ship Iris without the launcher's Modrinth management metadata.
+            return@withContext ShaderRendererProof(requireNotNull(instance.loader),
+                listOf(RendererFileProof(current.fileName, current.sha256)), instance.minecraftVersionId)
+        }
         if (current != null && current.modrinth?.projectId != PROJECT_ID) {
             throw LocalPackException("Existing untracked Iris must be reviewed before automatic shader setup.")
         }

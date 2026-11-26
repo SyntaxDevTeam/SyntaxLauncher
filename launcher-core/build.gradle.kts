@@ -8,6 +8,7 @@ kotlin {
 }
 
 dependencies {
+    implementation("net.kyori:adventure-nbt:4.26.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.13.0")
 

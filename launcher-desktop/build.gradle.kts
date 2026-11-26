@@ -11,6 +11,8 @@ kotlin {
 }
 
 dependencies {
+    implementation("org.jetbrains:markdown-jvm:0.7.3")
+    implementation("org.jsoup:jsoup:1.24.1")
     implementation(project(":launcher-core"))
     // Desktop itself owns HttpClient lifecycle and therefore needs this API directly.
     implementation("io.ktor:ktor-client-core:3.6.2")
@@ -31,8 +33,6 @@ tasks.test {
 }
 
 val launcherVersion = providers.gradleProperty("launcherVersion")
-// Native formats use the numeric SemVer core; only macOS needs the pre-1.0 compatibility mapping.
-// Derive the native package version from the canonical launcherVersion; never maintain another version value.
 val nativePackageVersion = launcherVersion.map { product ->
     val numeric = product.substringBefore('-').substringBefore('+')
     val parts = numeric.split('.')

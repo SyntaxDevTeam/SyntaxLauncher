@@ -62,14 +62,14 @@ class ProfileWizardTest {
         var extras = false
         val scene = ImageComposeScene(900, 700, coroutineContext = Dispatchers.Swing) {
             SyntaxTheme { ProfileWizard("new-snapshot", listOf("26.3"),
-                findCompatible = { id, game -> assertEquals("quilt", id); assertEquals("new-snapshot", game)
-                    CompatibleLoaderGame("26.3", listOf(ModLoaderVersion("0.29", true))) },
+                findCompatible = { id, game -> assertEquals("new-snapshot", game)
+                    if (id == "quilt") CompatibleLoaderGame("26.3", listOf(ModLoaderVersion("0.29", true))) else null },
                 searchPacks = { _, _ -> error("Not a pack") },
                 create = { name, game, loader -> MinecraftInstance(id = UUID.randomUUID().toString(), name = name, minecraftVersionId = game, loader = loader).also { created = it } },
                 installPack = { _, _, _ -> error("Not a pack") }, onCreated = { _, open -> extras = open }, onBusyChange = {}, onCancel = {}) }
         }
         try {
-            scene.frames(); scene.click("With mods"); scene.click("Next"); scene.click("Quilt"); scene.click("Next")
+            scene.frames(); scene.click("With mods"); scene.click("Next"); scene.awaitLabel("Quilt"); scene.click("Quilt"); scene.click("Next")
             scene.click("Individual extras from the catalog"); scene.click("Next")
             withTimeout(5000) { while (scene.nodes().none { it.label().contains("Minecraft 26.3 · quilt 0.29") }) scene.frames() }
             scene.typeName("Quilt fun"); scene.click("Next"); assertNull(created)
@@ -84,7 +84,7 @@ class ProfileWizardTest {
         var family: String? = null
         var installed = 0
         val scene = ImageComposeScene(900, 700, coroutineContext = Dispatchers.Swing) {
-            SyntaxTheme { ProfileWizard("26.3", listOf("26.3"), { _, _ -> error("The pack determines exact versions") },
+            SyntaxTheme { ProfileWizard("26.3", listOf("26.3"), { id, _ -> if (id == "neoforge") CompatibleLoaderGame("26.3", listOf(ModLoaderVersion("26.3.1", true))) else null },
                 searchPacks = { _, loader -> family = loader; listOf(pack) },
                 create = { _, _, _ -> error("Do not create an empty profile for a pack") },
                 installPack = { project, loader, name ->
@@ -93,7 +93,7 @@ class ProfileWizardTest {
                 }, onCreated = { _, extras -> assertFalse(extras) }, onBusyChange = {}, onCancel = {}) }
         }
         try {
-            scene.frames(); scene.click("With mods"); scene.click("Next"); scene.click("NeoForge"); scene.click("Next")
+            scene.frames(); scene.click("With mods"); scene.click("Next"); scene.awaitLabel("NeoForge"); scene.click("NeoForge"); scene.click("Next")
             scene.click("A complete modpack"); scene.click("Next")
             withTimeout(5000) { while (scene.nodes().none { it.label().startsWith("Forest") }) scene.frames() }
             assertEquals("neoforge", family); scene.click("Forest")
@@ -148,4 +148,8 @@ class ProfileWizardTest {
         val directory = Path.of("build/reports/ui").also(Files::createDirectories)
         render(System.nanoTime()).use { image -> Files.write(directory.resolve("$name.png"), image.encodeToData()!!.use { it.bytes }) }
     }
+    private suspend fun ImageComposeScene.awaitLabel(label: String) {
+        withTimeout(5000) { while (nodes().none { it.label().contains(label) }) frames() }
+    }
+
 }

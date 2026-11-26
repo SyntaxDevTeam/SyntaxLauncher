@@ -43,11 +43,12 @@ class ModpackCatalog(private val http: HttpClient, private val downloads: Downlo
         progress: (ModpackProgress) -> Unit = {}): MinecraftInstance = installSelected(project, progress, loader, name)
 
     suspend fun installVersion(project: ModrinthProject, versionId: String, loader: String? = null,
-        name: String? = null, progress: (ModpackProgress) -> Unit = {}): MinecraftInstance = installSelected(project, progress, requiredLoader = loader, name = name,
-            versionId = versionId)
+        name: String? = null, progress: (ModpackProgress) -> Unit = {},
+        requiredGame: String? = null): MinecraftInstance = installSelected(project, progress, requiredLoader = loader, name = name,
+            versionId = versionId, requiredGame = requiredGame)
 
     private suspend fun installSelected(project: ModrinthProject, progress: (ModpackProgress) -> Unit = {},
-        requiredLoader: String? = null, name: String? = null, versionId: String? = null): MinecraftInstance = withContext(Dispatchers.IO) {
+        requiredLoader: String? = null, name: String? = null, versionId: String? = null, requiredGame: String? = null): MinecraftInstance = withContext(Dispatchers.IO) {
         require(validId(project.id))
         require(requiredLoader == null || requiredLoader in setOf("minecraft", "fabric", "quilt", "forge", "neoforge"))
         val details = Json.parseToJsonElement(http.get("$api/project/${project.id}").bodyAsText()).jsonObject
@@ -83,7 +84,7 @@ class ModpackCatalog(private val http: HttpClient, private val downloads: Downlo
             val plan = ModpackArchive.inspect(archive).plan
             val games = version.getValue("game_versions").jsonArray.map { it.jsonPrimitive.content }
             val loaders = version.getValue("loaders").jsonArray.map { it.jsonPrimitive.content }
-            if (plan.minecraftVersion !in games || (plan.requestedLoader?.id ?: "minecraft") !in loaders) {
+            if ((requiredGame != null && requiredGame != plan.minecraftVersion) || plan.minecraftVersion !in games || (plan.requestedLoader?.id ?: "minecraft") !in loaders) {
                 throw ModpackCompatibilityException("Modpack index does not match its published game/loader compatibility.")
             }
             if (requiredLoader != null && (plan.requestedLoader?.id ?: "minecraft") != requiredLoader) {

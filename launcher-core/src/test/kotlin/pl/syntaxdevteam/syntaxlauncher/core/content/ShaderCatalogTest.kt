@@ -122,6 +122,36 @@ class ShaderCatalogTest {
         } finally { http.close() }
     }
 
+    @Test fun installsShaderUsingUntrackedIrisFromModpack() = runBlocking {
+        val repo = repo()
+        val instance = repo.create("Imported pack", "1.21.1", loader = ModLoaderSelection("fabric", "fixture"))
+        val game = repo.gameDirectory(instance)
+        Files.createDirectory(game.resolve("mods"))
+        val bundledIris = game.resolve("mods/bundled-iris.jar")
+        val iris = mod("iris")
+        Files.write(bundledIris, iris)
+        val shader = archive(mapOf("shaders/fixture.fsh" to "fixture shader source"))
+        HttpClient(MockEngine { request ->
+            when (request.url.encodedPath) {
+                "/v2/project/SHADER01" -> respond("""{"id":"SHADER01","project_type":"shader"}""")
+                "/v2/project/SHADER01/version" ->
+                    respond("[" + version("SHADERV1", "SHADER01", "light.zip", "iris", shader) + "]")
+                "/data/SHADER01/light.zip" -> respond(shader)
+                else -> error("Bundled Iris should not trigger a renderer download: ${request.url}")
+            }
+        }).use { http ->
+            val mods = LocalModManager(repo)
+            val downloads = DownloadManager(http, retryPolicy = DownloadRetryPolicy(maxAttempts = 1))
+            val renderer = IrisRendererSetup(repo, mods, ModrinthCatalog(http), ModrinthInstaller(repo, mods, downloads))
+            val service = ModrinthPackCatalog(http, repo, LocalPackManager(repo), downloads,
+                kind = LocalPackKind.SHADER_PACK, renderer = renderer)
+            assertTrue(service.available(instance))
+            assertTrue(service.install(instance.id, project).packs.single().selected)
+            assertContentEquals(iris, Files.readAllBytes(bundledIris))
+            assertEquals("bundled-iris.jar", mods.list(instance.id).mods.single().fileName)
+        }
+    }
+
     @Test fun malformedShaderNeverInstallsRendererAndRendererFailureNeverSelectsAPack() = runBlocking {
         for (corrupt in listOf(true, false)) {
             val repo = repo()

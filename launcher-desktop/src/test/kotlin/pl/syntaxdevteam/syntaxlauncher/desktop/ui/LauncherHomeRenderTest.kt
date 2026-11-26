@@ -156,12 +156,10 @@ class LauncherHomeRenderTest {
             scene.text("My Vanilla game").click()
             scene.frames()
             assertNotNull(scene.text("Add a new profile"))
-            assertTrue(scene.nodes().none { it.label().startsWith("Quilt world · ") })
+            assertTrue(scene.nodes().any { it.label().startsWith("Quilt world · ") })
             scene.text("Add a new profile").click()
             scene.frames()
-            assertTrue(scene.nodes().any { it.config.getOrNull(SemanticsProperties.TestTag) == "wizard-name" })
-            assertTrue(scene.nodes().none { it.label() in listOf("With mods", "A complete modpack") &&
-                it.config.contains(SemanticsActions.OnClick) })
+            assertNotNull(scene.text("With mods"))
             scene.text("Cancel").click()
             scene.frames()
             scene.text("My Vanilla game").click()
@@ -171,13 +169,13 @@ class LauncherHomeRenderTest {
             assertNotNull(scene.text("SURVIVAL"))
             assertTrue(scene.nodes().none { it.label() == "MEMORY ALLOCATION" })
             assertTrue(scene.text("PLAY MINECRAFT").boundsInRoot.bottom < 810)
-            scene.text("With mods").click()
+            scene.text("Survival").click()
             scene.frames()
-            scene.text("Quilt world").click()
+            scene.nodes().first { it.label().startsWith("Quilt world · ") }.click()
             scene.frames()
-            assertNotNull(scene.text("Add a new profile"))
-            assertTrue(scene.nodes().any { it.label().startsWith("Quilt world · ") })
-            assertTrue(scene.nodes().none { it.label().startsWith("Survival · ") || it.label() == "My Vanilla game" })
+            assertNotNull(scene.text("QUILT WORLD"))
+            assertTrue(scene.nodes().none { it.config.getOrNull(SemanticsProperties.TestTag) == "profiles-page" })
+
         } finally { scene.close(); session.shutdown() }
     }
 
@@ -263,7 +261,7 @@ class LauncherHomeRenderTest {
                 assertTrue(languageMenu.boundsInRoot.right <= settings.boundsInRoot.left)
                 assertEquals(1, scene.nodes().count { it.label() == strings.text("game.my_games") })
                 assertTrue(scene.nodes().none { it.label() == strings.text("ui.memory_allocation") })
-                assertTrue(scene.text(strings.text("game.style")).positionInRoot.y > scene.text(strings.text("ui.game_version")).positionInRoot.y)
+                assertTrue(scene.nodes().none { it.label() == strings.text("game.style") })
                 assertTrue(scene.nodes().none { it.label() == strings.text("ui.built_for_the_adventure") })
                 assertNotNull(scene.text(strings.text("ui.your_world")))
                 assertNotNull(scene.text(strings.text("ui.your_adventure")))
@@ -278,7 +276,7 @@ class LauncherHomeRenderTest {
     }
 
     @Test
-    fun gameTypeButtonsReuseQuiltAndRestoreSavedVanillaWithoutTouchingWorlds() = runBlocking(Dispatchers.Swing) {
+    fun profileSelectorSwitchesBetweenQuiltAndVanillaWithSharedWorlds() = runBlocking(Dispatchers.Swing) {
         val session = session()
         val vanilla = session.instances.create("My Vanilla", "26.3")
         val quilt = session.instances.create("My mods", "26.3", loader = ModLoaderSelection("quilt", "0.28.0"))
@@ -290,44 +288,44 @@ class LauncherHomeRenderTest {
         try {
             scene.awaitReady()
             assertNotNull(scene.text("MY VANILLA"))
-            scene.text("With mods").click()
+            scene.text("My Vanilla").click()
+            scene.frames()
+            scene.text("My mods · 26.3").click()
             scene.frames()
             assertNotNull(scene.text("MY MODS"))
             assertNotNull(scene.text("MINECRAFT WITH MODS"))
             assertNotNull(scene.text("Choose extras"))
             scene.screenshot("home-modded-1440x810")
-            scene.text("Vanilla").click()
+            scene.text("My mods").click()
+            scene.frames()
+            scene.text("My Vanilla · 26.3").click()
             scene.frames()
             assertNotNull(scene.text("MY VANILLA"))
-            scene.text("With mods").click()
+            scene.text("My Vanilla").click()
+            scene.frames()
+            scene.text("My mods · 26.3").click()
             scene.frames()
             assertNotNull(scene.text("MY MODS"))
             assertEquals(2, session.instances.list().instances.size)
             assertEquals(vanilla, session.instances.get(vanilla.id))
             assertEquals(quilt, session.instances.get(quilt.id))
-            assertEquals("my world", Files.readString(world))
+            assertEquals("my world", Files.readString(session.instances.sharedSavesDirectory().resolve("keep.txt")))
         } finally { scene.close(); session.shutdown() }
         assertEquals(quilt.id, session.preferences.load().selectedInstanceId)
     }
 
     @Test
-    fun emptyModdedListOffersCreationWithoutChangingVanillaSelection() = runBlocking(Dispatchers.Swing) {
+    fun emptyProfileListOffersCreationWithoutChangingVanillaSelection() = runBlocking(Dispatchers.Swing) {
         val session = session()
         val scene = ImageComposeScene(1440, 810, coroutineContext = Dispatchers.Swing) { SyntaxLauncherApp(session) }
         try {
             scene.awaitReady()
-            scene.text("With mods").click()
-            scene.frames()
-            assertTrue(scene.text("PLAY MINECRAFT").config.contains(SemanticsProperties.Disabled))
             scene.nodes().first { it.config.getOrNull(SemanticsProperties.TestTag) == "home-profile-selector" }.click()
             scene.frames()
-            assertTrue(scene.nodes().none { it.label() == "My Vanilla game" })
             scene.text("Add a new profile").click()
             scene.frames()
-            assertNotNull(scene.text("Let’s play with mods"))
+            assertNotNull(scene.text("With mods"))
             scene.text("Cancel").click()
-            scene.frames()
-            scene.text("Vanilla").click()
             scene.frames()
             assertNotNull(scene.text("My Vanilla game"))
             assertTrue(session.instances.list().instances.isEmpty())
@@ -335,7 +333,7 @@ class LauncherHomeRenderTest {
         assertEquals("", session.preferences.load().selectedInstanceId)
     }
 
-    @Test fun modpacksAreHiddenForVanillaAndAvailableForModdedGames() = runBlocking(Dispatchers.Swing) {
+    @Test fun modpacksAreAvailableForVanillaAndModdedGames() = runBlocking(Dispatchers.Swing) {
         for (language in UiLanguage.entries) {
             val session = session(packCatalog = true)
             val vanilla = session.instances.create("Vanilla game", "26.3")
@@ -348,11 +346,12 @@ class LauncherHomeRenderTest {
             try {
                 scene.awaitReady(strings.text("ui.play_minecraft"))
                 fun hasPacks() = scene.nodes().any { it.config.getOrNull(SemanticsProperties.TestTag) == "browse-modpacks" }
-                assertFalse(hasPacks(), "Vanilla must not offer modpacks")
-                scene.text(strings.text("game.with_mods")).click(); scene.frames()
                 assertTrue(hasPacks())
-                scene.text(strings.text("game.vanilla")).click(); scene.frames()
-                assertFalse(hasPacks())
+                scene.nodes().first { it.config.getOrNull(SemanticsProperties.TestTag) == "home-profile-selector" }.click()
+                scene.frames()
+                scene.text("Modded game · 26.3").click()
+                scene.frames()
+                assertTrue(hasPacks())
                 assertEquals(2, session.instances.list().instances.size)
                 assertEquals(modded, session.instances.get(modded.id))
             } finally { scene.close(); session.shutdown() }
@@ -363,8 +362,9 @@ class LauncherHomeRenderTest {
         for ((language, width, height) in listOf(Triple(UiLanguage.EN, 1440, 810), Triple(UiLanguage.PL, 400, 400), Triple(UiLanguage.DE, 400, 400))) {
             val session = session()
             val profile = session.instances.create("Adventure", "26.3")
-            val world = session.instances.gameDirectory(profile).resolve("saves/keep.txt")
-            Files.createDirectories(world.parent); Files.writeString(world, "precious world")
+            val oldWorld = session.instances.gameDirectory(profile).resolve("saves/keep.txt")
+            Files.createDirectories(oldWorld.parent); Files.writeString(oldWorld, "precious world")
+            val world = session.instances.legacyGameDirectory().resolve("saves/keep.txt")
             session.preferences.save(session.preferences.load().copy(selectedInstanceId = profile.id))
             val strings = UiStrings(language)
             val scene = ImageComposeScene(width, height, coroutineContext = Dispatchers.Swing) {
@@ -392,7 +392,7 @@ class LauncherHomeRenderTest {
                 scene.reveal("confirm-delete-profile")
                 tagged("confirm-delete-profile").click()
                 withTimeout(10000) {
-                    while (scene.nodes().none { it.config.getOrNull(SemanticsProperties.TestTag) == "restore-profile-${profile.id}" }) {
+                    while (scene.nodes().none { it.config.getOrNull(SemanticsProperties.TestTag) == "show-profile-trash" }) {
                         scene.frames()
                     }
                 }
@@ -401,6 +401,11 @@ class LauncherHomeRenderTest {
                 withTimeout(5000) {
                     while (session.preferences.load().selectedInstanceId.isNotBlank()) scene.frames()
                 }
+                assertEquals("precious world", Files.readString(world))
+                assertTrue(scene.nodes().none { it.config.getOrNull(SemanticsProperties.TestTag) == "restore-profile-${profile.id}" })
+                scene.reveal("show-profile-trash")
+                tagged("show-profile-trash").click()
+                scene.frames()
                 scene.reveal("restore-profile-${profile.id}")
                 tagged("restore-profile-${profile.id}").click()
                 withTimeout(10000) {
@@ -442,7 +447,7 @@ class LauncherHomeRenderTest {
         }
     }
 
-    @Test fun profileNavigationUsesMainPageAndShowsContentsWithoutChangingWorlds() = runBlocking(Dispatchers.Swing) {
+    @Test fun profileNavigationShowsSharedWorldsAndPrivateAddonCounts() = runBlocking(Dispatchers.Swing) {
         for (language in UiLanguage.entries) for ((width, height) in listOf(1440 to 810, 400 to 400)) {
             val strings = UiStrings(language)
             val session = session()
@@ -459,18 +464,18 @@ class LauncherHomeRenderTest {
                 scene.awaitReady(strings.text("ui.play_minecraft"))
                 scene.nodes().first { it.config.getOrNull(SemanticsProperties.TestTag) == "nav-profiles" }.click()
                 withTimeout(5000) {
-                    while (scene.nodes().none { it.label().contains("My world") }) { scene.render(System.nanoTime()).close(); delay(20) }
+                    while (scene.nodes().none { it.label() == strings.text("profiles.shared_worlds", 1) }) { scene.render(System.nanoTime()).close(); delay(20) }
                 }
                 assertTrue(scene.nodes().any { it.config.getOrNull(SemanticsProperties.TestTag) == "profiles-page" })
                 assertTrue(scene.nodes().none { it.label() == strings.text("ui.play_minecraft") })
                 assertTrue(scene.nodes().any { it.label() == strings.text("profiles.create") })
-                assertTrue(scene.nodes().any { it.label().contains("Blue.zip") })
+                assertTrue(scene.nodes().any { it.label() == strings.text("profiles.inventory", 0, 1, 0) })
                 val create = scene.nodes().first { it.config.getOrNull(SemanticsProperties.TestTag) == "create-profile" }
                 assertTrue(create.boundsInRoot.height >= 40 && create.boundsInRoot.right <= width)
                 scene.screenshot("profiles-${language.code}-$width")
                 scene.text(strings.text("ui.home")).click(); scene.frames()
                 assertNotNull(scene.text(strings.text("ui.play_minecraft")))
-                assertEquals("keep", Files.readString(game.resolve("saves/My world/level.dat")))
+                assertEquals("keep", Files.readString(session.instances.sharedSavesDirectory().resolve("My world/level.dat")))
                 assertEquals(profile, session.instances.get(profile.id))
             } finally { scene.close(); session.shutdown() }
         }

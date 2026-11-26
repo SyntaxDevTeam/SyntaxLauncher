@@ -43,6 +43,7 @@ fun InstanceSettingsDialog(
     findCompatibleGame: (suspend (String, String) -> CompatibleLoaderGame?)? = null,
     onSave: (MinecraftInstance) -> Unit,
     onCancel: () -> Unit,
+    onManageAddons: (() -> Unit)? = null,
 ) {
     val strings = LocalStrings.current
     var name by remember(instance.id) { mutableStateOf(instance.name) }
@@ -277,6 +278,13 @@ fun InstanceSettingsDialog(
                 },
             ) { Text(strings.text("ui.save_settings")) }
         },
-        dismissButton = { TextButton(onClick = onCancel) { Text(strings.text("ui.cancel")) } },
+        dismissButton = {
+            Row {
+                onManageAddons?.let { action ->
+                    TextButton(onClick = action) { Text(strings.text("profiles.addons")) }
+                }
+                TextButton(onClick = onCancel) { Text(strings.text("ui.cancel")) }
+            }
+        },
     )
 }

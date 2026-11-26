@@ -231,8 +231,10 @@ class DesktopLauncherSession(
                             current.account to current.launchAuthentication(signIn.clientId)
                         }
                     }
-                    instances.beginLaunch(instance?.id)
-                    leased = true
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+                        instances.beginLaunch(instance?.id)
+                        leased = true
+                    }
                     lastDiagnosticInstanceId = instance?.id
                     coordinator.launch(
                         version = version,
@@ -260,6 +262,9 @@ class DesktopLauncherSession(
                             if (running.state == MinecraftProcessState.RUNNING && gamePid != null) {
                                 try {
                                     instances.markGameStarted(instance?.id, gamePid)
+                                    ProcessHandle.of(gamePid).ifPresent { child ->
+                                        child.onExit().thenRun { scope.launch { collectPlayerData() } }
+                                    }
                                 } catch (error: Exception) {
                                     mutableLaunchIssue.value = error.message
                                         ?: "Failed to protect the running game; stopping it."
@@ -268,12 +273,25 @@ class DesktopLauncherSession(
                                 }
                             }
                             runCatching { instances.endPreparation(instance?.id) }
+                            collectPlayerData()
                         }
                     }
                 }
             }
             launchJob!!.invokeOnCompletion { mutablePreparingAccount.value = false }
             return true
+        }
+    }
+
+    private suspend fun collectPlayerData() {
+        try {
+            instances.collectPlayerData()
+        } catch (_: pl.syntaxdevteam.syntaxlauncher.core.instance.InstanceInUseException) {
+            // The child or another launcher still holds the data lease.
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (failure: Exception) {
+            org.slf4j.LoggerFactory.getLogger("SharedPlayerData").warn("Could not return shared game data", failure)
         }
     }
 
@@ -321,8 +339,10 @@ class DesktopLauncherSession(
         launchJob = scope.launch {
             var leased = false
             try {
-                instances.beginLaunch(instance?.id)
-                leased = true
+                withContext(kotlinx.coroutines.NonCancellable) {
+                    instances.beginLaunch(instance?.id, sharePlayerData = false)
+                    leased = true
+                }
                 if (instance != null) {
                     val current = instances.get(instance.id)
                     check(current.minecraftVersionId == version.id && current.loader == instance.loader) {

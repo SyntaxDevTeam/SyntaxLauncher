@@ -47,6 +47,7 @@ internal class CatalogBrowser(
     val games: List<String>,
     private val instance: MinecraftInstance? = null,
     val requiredLoader: String? = null,
+    val requiredGame: String? = null,
     private val onInstalled: (MinecraftInstance) -> Unit = {},
     private val modpackProgress: (ModpackProgress) -> Unit = {},
 ) {
@@ -99,6 +100,7 @@ internal class CatalogBrowser(
 
     fun compatible(section: CatalogSection, release: CatalogRelease): Boolean {
         if (section == CatalogSection.MODPACKS) {
+            if (requiredGame != null && requiredGame !in release.gameVersions) return false
             return if (requiredLoader != null) requiredLoader in release.loaders
             else release.loaders.any { it in setOf("minecraft", "fabric", "forge", "neoforge", "quilt") }
         }
@@ -136,8 +138,8 @@ internal class CatalogBrowser(
     suspend fun installPack(source: CatalogSource, project: ModrinthProject, releaseId: String, name: String? = null,
         progress: (ModpackProgress) -> Unit = {}): MinecraftInstance =
         if (source == CatalogSource.CURSEFORGE) curseForge.installModpack(project, releaseId,
-            requireNotNull(session.modpackInstaller), name, requiredLoader, progress)
-        else requireNotNull(session.modpackCatalog).installVersion(project, releaseId, requiredLoader, name, progress)
+            requireNotNull(session.modpackInstaller), name, requiredLoader, progress, requiredGame)
+        else requireNotNull(session.modpackCatalog).installVersion(project, releaseId, requiredLoader, name, progress, requiredGame)
 
 }
 
@@ -272,7 +274,7 @@ internal fun CatalogDetails(project: ModrinthProject, criteria: CatalogCriteria,
                     item {
                         val notes = changelog
                         if (notes == null) LinearProgressIndicator(Modifier.fillMaxWidth())
-                        else Text(notes.ifBlank { strings.text("catalog.no_changelog") })
+                        else CatalogDescription(notes.ifBlank { strings.text("catalog.no_changelog") })
                     }
                 }
             }
@@ -313,7 +315,7 @@ internal fun CatalogDetails(project: ModrinthProject, criteria: CatalogCriteria,
                     }
                 }
             }
-            if (!showingVersions) item { Text(detail?.description?.ifBlank { project.summary } ?: project.summary) }
+            if (!showingVersions) item { CatalogDescription(detail?.description?.ifBlank { project.summary } ?: project.summary) }
         }
     }
 }

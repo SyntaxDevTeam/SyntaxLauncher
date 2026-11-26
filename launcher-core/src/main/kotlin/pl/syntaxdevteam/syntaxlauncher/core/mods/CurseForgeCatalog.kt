@@ -169,7 +169,7 @@ class CurseForgeCatalog(http: HttpClient, private val apiKey: String,
 
     suspend fun installModpack(project: ModrinthProject, versionId: String, installer: ModpackInstaller,
         name: String? = null, requiredLoader: String? = null,
-        progress: (ModpackProgress) -> Unit = {}): MinecraftInstance = withContext(Dispatchers.IO) {
+        progress: (ModpackProgress) -> Unit = {}, requiredGame: String? = null): MinecraftInstance = withContext(Dispatchers.IO) {
         val id = numeric(project.id)
         val version = numeric(versionId)
         val info = request("/mods/$id").jsonObject
@@ -182,7 +182,7 @@ class CurseForgeCatalog(http: HttpClient, private val apiKey: String,
             val source = staging.resolve(archive.target)
             downloads.download(archive.copy(target = source))
             installer.installCurseForge(source, name, downloads, progress) { bytes ->
-                planModpack(bytes, archiveFile, requiredLoader)
+                planModpack(bytes, archiveFile, requiredLoader, requiredGame)
             }
         } finally {
             Files.deleteIfExists(staging.resolve(archive.target))
@@ -190,7 +190,7 @@ class CurseForgeCatalog(http: HttpClient, private val apiKey: String,
         }
     }
 
-    private suspend fun planModpack(bytes: ByteArray, archive: JsonObject, requiredLoader: String?): ModpackInstallPlan {
+    private suspend fun planModpack(bytes: ByteArray, archive: JsonObject, requiredLoader: String?, requiredGame: String?): ModpackInstallPlan {
         val manifest = Json.parseToJsonElement(bytes.decodeToString(throwOnInvalidSequence = true)).jsonObject
         if (manifest.string("manifestType") != "minecraftModpack" || manifest.string("manifestVersion") != "1" ||
             manifest.string("overrides") != "overrides") throw ModpackFormatException("Unsupported CurseForge manifest.")
@@ -205,7 +205,8 @@ class CurseForgeCatalog(http: HttpClient, private val apiKey: String,
         val family = loaderId.substringBefore('-')
         val loaderVersion = loaderId.substringAfter('-', "")
         if (family !in loaderTypes || !loaderVersion.matches(Regex("[A-Za-z0-9][A-Za-z0-9._+~-]{0,99}")) ||
-            (requiredLoader != null && requiredLoader != family) || gameVersion !in archive.versions() ||
+            (requiredLoader != null && requiredLoader != family) ||
+            (requiredGame != null && requiredGame != gameVersion) || gameVersion !in archive.versions() ||
             archive.versions().none { it.equals(family, true) }) {
             throw ModpackCompatibilityException("CurseForge archive compatibility does not match the selected release.")
         }

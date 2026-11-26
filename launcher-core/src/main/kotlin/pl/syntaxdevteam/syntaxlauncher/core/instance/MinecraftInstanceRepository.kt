@@ -64,7 +64,7 @@ data class TrashedInstanceInventory(
     val problems: List<String>,
 )
 
-/** Isolated mutable game directories, immutable shared cache, and safe schema 1 metadata. */
+/** Private profile settings, shared player data and shared game downloads. */
 class MinecraftInstanceRepository(
     private val root: Path,
     private val trash: Path,
@@ -74,22 +74,74 @@ class MinecraftInstanceRepository(
     private val mutex = Mutex()
     private val activity = InstanceActivityGuard(root.resolve(".activity"))
 
-    /** The launcher claims a profile before preparation and transfers its lease to the child game PID. */
-    suspend fun beginLaunch(id: String?) = withContext(Dispatchers.IO) {
-        mutex.withLock {
-            if (id != null) read(instanceDirectory(id))
-            activity.begin(id ?: "legacy")
+    private val playerData = SharedPlayerData(sharedLayout.gameDir, root, trash)
+    private val sharedLease = "shared-player-data"
+
+    /** Claim the common player data and the profile before preparing the game. */
+    suspend fun beginLaunch(id: String?, sharePlayerData: Boolean = true) {
+        withContext(Dispatchers.IO) {
+            mutex.withLock {
+                val key = id ?: "legacy"
+                if (id != null) read(instanceDirectory(id))
+                activity.begin(sharedLease)
+                try {
+                    activity.withInactive("legacy") {
+                        playerData.recover()
+                        if (sharePlayerData) migratePlayerData()
+                    }
+                    activity.begin(key)
+                    try {
+                        if (id != null) {
+                            read(instanceDirectory(id))
+                            if (sharePlayerData) activity.withInactive("legacy") { playerData.checkout(id) }
+                        }
+                    } catch (failure: Exception) {
+                        activity.releasePreparation(key)
+                        throw failure
+                    }
+                } catch (failure: Exception) {
+                    activity.releasePreparation(sharedLease)
+                    throw failure
+                }
+            }
         }
     }
 
     suspend fun markGameStarted(id: String?, pid: Long) = withContext(Dispatchers.IO) {
+        activity.launched(sharedLease, pid)
         activity.launched(id ?: "legacy", pid)
     }
 
     suspend fun endPreparation(id: String?) = withContext(Dispatchers.IO) {
-        activity.releasePreparation(id ?: "legacy")
+        mutex.withLock {
+            try {
+                activity.releasePreparation(id ?: "legacy")
+            } finally {
+                activity.releasePreparation(sharedLease)
+            }
+        }
     }
 
+    suspend fun collectPlayerData(migrateProfiles: Boolean = false) = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            activity.withInactive(sharedLease) {
+                activity.withInactive("legacy") {
+                    playerData.recover()
+                    if (migrateProfiles) migratePlayerData()
+                }
+            }
+        }
+    }
+
+    private suspend fun migratePlayerData() {
+        playerData.migrateAll { profile, game ->
+            activity.withInactive(profile) {
+                if (Files.isDirectory(game, LinkOption.NOFOLLOW_LINKS)) playerData.migrate(game, profile)
+            }
+        }
+    }
+
+    fun sharedSavesDirectory(): Path = playerData.savesDirectory()
 
     /** Inspect one existing instance; read-only access is allowed while Minecraft runs. */
     suspend fun get(id: String): MinecraftInstance = withContext(Dispatchers.IO) {
@@ -245,13 +297,13 @@ class MinecraftInstanceRepository(
         mutex.withLock {
             activity.assertInactive(id)
             val selected = read(instanceDirectory(id))
-            InstanceFileCopy.estimate(gameDirectory(selected))
+            InstanceFileCopy.estimate(gameDirectory(selected), SharedPlayerData.files)
         }
     }
 
     suspend fun estimateLegacyImport(): InstanceCopyEstimate = withContext(Dispatchers.IO) {
         activity.assertInactive("legacy")
-        InstanceFileCopy.estimate(sharedLayout.gameDir)
+        InstanceFileCopy.estimate(sharedLayout.gameDir, SharedPlayerData.files)
     }
 
     suspend fun cloneInstance(
@@ -269,19 +321,25 @@ class MinecraftInstanceRepository(
         }
     }
 
-    /** Moves all mutable user data into a recoverable trash area; never permanently deletes it. */
+    /** Keep player data available while moving the private profile files into recoverable trash. */
     suspend fun moveToTrash(id: String): Path = withContext(Dispatchers.IO) {
+        val source = instanceDirectory(id)
         mutex.withLock {
-            activity.withInactive(id) {
-                val source = instanceDirectory(id)
-                read(source)
-                Files.createDirectories(trash)
-                require(Files.isDirectory(trash, LinkOption.NOFOLLOW_LINKS) && !Files.isSymbolicLink(trash)) {
-                    "Instance trash must be a normal directory"
+            activity.withInactive(sharedLease) {
+                activity.withInactive("legacy") {
+                    playerData.recover()
+                    activity.withInactive(id) {
+                        read(source)
+                        playerData.migrate(source.resolve("game"), id)
+                        Files.createDirectories(trash)
+                        require(Files.isDirectory(trash, LinkOption.NOFOLLOW_LINKS)) {
+                            "Instance trash must be a normal directory"
+                        }
+                        val target = trash.resolve(id + "-" + UUID.randomUUID())
+                        move(source, target)
+                        target
+                    }
                 }
-                val target = trash.resolve(id + "-" + UUID.randomUUID())
-                move(source, target)
-                target
             }
         }
     }
@@ -338,7 +396,7 @@ class MinecraftInstanceRepository(
         Files.createDirectory(temporary)
         try {
             Files.createDirectory(temporary.resolve("game"))
-            if (sourceGame != null) InstanceFileCopy.copy(sourceGame, temporary.resolve("game"), onProgress)
+            if (sourceGame != null) InstanceFileCopy.copy(sourceGame, temporary.resolve("game"), onProgress, SharedPlayerData.files)
             if (sourceMetadata != null) Files.copy(sourceMetadata, temporary.resolve("instance.json"))
             write(temporary, value)
             move(temporary, destination)

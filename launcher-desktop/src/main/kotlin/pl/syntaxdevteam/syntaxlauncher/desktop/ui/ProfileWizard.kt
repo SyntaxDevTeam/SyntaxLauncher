@@ -19,6 +19,8 @@ import pl.syntaxdevteam.syntaxlauncher.core.mods.CatalogRelease
 import pl.syntaxdevteam.syntaxlauncher.core.mods.CurseForgeDownloadUnavailable
 import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.LocalStrings
 
+private val loaderFamilies = listOf("fabric", "neoforge", "forge", "quilt")
+
 internal enum class ProfileStep { STYLE, LOADER, CONTENT, PACK, DETAILS, REVIEW }
 internal enum class ProfileContent { PACK, EXTRAS, EMPTY }
 
@@ -32,7 +34,7 @@ internal fun ProfileWizard(preferredVersion: String, releases: List<String>,
     loadIcon: suspend (String) -> ByteArray? = { null },
     onCreated: (MinecraftInstance, Boolean) -> Unit, onBusyChange: (Boolean) -> Unit, onCancel: () -> Unit,
     vanillaOnly: Boolean = false,
-    packBrowser: ((String) -> CatalogBrowser)? = null,
+    packBrowser: ((String, String) -> CatalogBrowser)? = null,
 ) {
     val strings = LocalStrings.current
     val uriHandler = LocalUriHandler.current
@@ -44,7 +46,6 @@ internal fun ProfileWizard(preferredVersion: String, releases: List<String>,
     var moddedContent by remember { mutableStateOf(ProfileContent.EMPTY) }
     var name by remember { mutableStateOf("") }
     var version by remember { mutableStateOf(preferredVersion) }
-    var versionMenu by remember { mutableStateOf(false) }
     var setup by remember { mutableStateOf<CompatibleLoaderGame?>(null) }
     var loading by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
@@ -56,8 +57,29 @@ internal fun ProfileWizard(preferredVersion: String, releases: List<String>,
     var packSource by remember { mutableStateOf(CatalogSource.MODRINTH) }
     var packVersion by remember { mutableStateOf<CatalogRelease?>(null) }
     var pack by remember { mutableStateOf<ModrinthProject?>(null) }
+    var compatibleLoaders by remember(version) { mutableStateOf<List<String>?>(null) }
     val content = if (modded) moddedContent else ProfileContent.EMPTY
     val needsCompatibility = content != ProfileContent.PACK && modded && step in setOf(ProfileStep.DETAILS, ProfileStep.REVIEW)
+    LaunchedEffect(step, version, retry) {
+        if (step != ProfileStep.LOADER) return@LaunchedEffect
+        compatibleLoaders = null
+        val candidates = loaderFamilies.map { family ->
+            async {
+                try {
+                    withTimeout(20_000) { findCompatible(family, version) }?.versions?.isNotEmpty() == true
+                } catch (_: TimeoutCancellationException) {
+                    true
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) {
+                    true // A failed lookup is distinct from an unsupported Minecraft version.
+                }
+            }
+        }.awaitAll()
+        val supported = loaderFamilies.filterIndexed { index, _ -> candidates[index] }
+        compatibleLoaders = supported
+        if (loader !in supported && supported.isNotEmpty()) loader = supported.first()
+    }
     LaunchedEffect(needsCompatibility, loader, version, retry) {
         setup = null; error = false
         if (needsCompatibility) {
@@ -68,9 +90,20 @@ internal fun ProfileWizard(preferredVersion: String, releases: List<String>,
             finally { loading = false }
         }
     }
+    val versionPicker: @Composable () -> Unit = {
+        Text(strings.text("ui.game_version"))
+        CatalogOptions(strings.text("ui.game_version"), version,
+            (listOf(preferredVersion) + releases).distinct().map { it to it }, !busy,
+            Modifier.testTag("wizard-game-version")) {
+            version = requireNotNull(it)
+            pack = null
+            packVersion = null
+        }
+    }
     val validName = name.trim().length in 1..48 && name.none { it.code < 32 || it.code == 127 }
     val validSetup = !modded || !setup?.versions.isNullOrEmpty()
     val canNext = !busy && !loading && when (step) {
+        ProfileStep.LOADER -> compatibleLoaders?.contains(loader) == true
         ProfileStep.PACK -> pack != null && !error
         ProfileStep.DETAILS, ProfileStep.REVIEW -> validName && if (content == ProfileContent.PACK) pack != null else validSetup && !error
         else -> true
@@ -94,7 +127,7 @@ internal fun ProfileWizard(preferredVersion: String, releases: List<String>,
     if (step == ProfileStep.PACK) {
         ContentCatalog(null, canModify = true, search = { _, query, _ -> searchPacks(query, loader) },
             install = { _, _ -> }, onBusyChange = {}, onManage = {}, onDismiss = { previous() },
-            modpacksAvailable = true, loadIcon = loadIcon, browser = packBrowser?.invoke(loader),
+            modpacksAvailable = true, loadIcon = loadIcon, browser = packBrowser?.invoke(loader, version),
             onPick = { selected, release, source ->
                 packSource = source
                 pack = selected
@@ -117,16 +150,20 @@ internal fun ProfileWizard(preferredVersion: String, releases: List<String>,
             Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 when (step) {
                     ProfileStep.STYLE -> {
+                        versionPicker()
                         Text(strings.text("wizard.style_help"))
                         WizardChoice(strings.text("game.vanilla"), !modded, !busy) { modded = false; pack = null }
                         WizardChoice(strings.text("game.with_mods"), modded, !busy) { modded = true; pack = null }
                     }
                     ProfileStep.LOADER -> {
                         Text(strings.text("wizard.loader_help"))
-                        listOf("fabric", "neoforge", "forge", "quilt").forEach { id ->
+                        val options = compatibleLoaders
+                        if (options == null) LinearProgressIndicator(Modifier.fillMaxWidth())
+                        else if (options.isEmpty()) Text(strings.text("wizard.no_compatible_loaders"))
+                        options.orEmpty().forEach { id ->
                             WizardChoice(if (id == "neoforge") "NeoForge" else id.replaceFirstChar { it.uppercase() }, loader == id, !busy) { loader = id; pack = null }
                         }
-                        if (loader == "forge") Text(strings.text("ui.forge_v2_test_only"), style = MaterialTheme.typography.bodySmall)
+                        if (loader == "forge" && options?.contains(loader) == true) Text(strings.text("ui.forge_v2_test_only"), style = MaterialTheme.typography.bodySmall)
                     }
                     ProfileStep.CONTENT -> {
                         Text(strings.text("wizard.content_help"))
@@ -144,15 +181,8 @@ internal fun ProfileWizard(preferredVersion: String, releases: List<String>,
                             if (release == null) Text(strings.text("wizard.pack_versions"))
                             else Text(listOf(release.name, release.gameVersions.joinToString(", ")).joinToString(" · "))
                         } else {
-                            Text(strings.text("ui.game_version"))
-                            Box {
-                                SelectorButton(version, { versionMenu = true }, enabled = !busy)
-                                DropdownMenu(versionMenu, { versionMenu = false }) {
-                                    (listOf(preferredVersion) + releases).distinct().forEach { id ->
-                                        DropdownMenuItem(text = { Text(id) }, onClick = { version = id; versionMenu = false })
-                                    }
-                                }
-                            }
+                            if (vanillaOnly) versionPicker()
+                            else Text("Minecraft $version")
                             setup?.let { compatible ->
                                 Text("Minecraft ${compatible.minecraftVersion} · $loader ${compatible.versions.firstOrNull { it.stable }?.version ?: compatible.versions.firstOrNull()?.version.orEmpty()}")
                                 if (compatible.minecraftVersion != version) Text(strings.text("loader.version_adjusted", version, compatible.minecraftVersion))
@@ -198,7 +228,7 @@ internal fun ProfileWizard(preferredVersion: String, releases: List<String>,
                                 val result = if (content == ProfileContent.PACK) {
                                     val selected = requireNotNull(pack)
                                     val release = packVersion
-                                    val browser = packBrowser?.invoke(loader)
+                                    val browser = packBrowser?.invoke(loader, version)
                                     if (release != null && browser != null)
                                         browser.installPack(packSource, selected, release.id, name.trim())
                                     else installPack(selected, loader, name.trim())

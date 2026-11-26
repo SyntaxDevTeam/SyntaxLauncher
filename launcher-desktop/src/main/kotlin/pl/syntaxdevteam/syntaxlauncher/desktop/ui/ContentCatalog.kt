@@ -58,6 +58,8 @@ import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.LocalStrings
 import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.UiStrings
 import org.slf4j.LoggerFactory
 
+private class NoCompatibleCatalogRelease : IllegalStateException()
+
 enum class CatalogSection(val label: String) { MODS("catalog.mods"), TEXTURES("catalog.textures"), SHADERS("catalog.shaders"), OPTIFINE("catalog.optifine"), MODPACKS("catalog.modpacks") }
 
 @Composable
@@ -134,7 +136,7 @@ internal fun ContentCatalog(instance: MinecraftInstance?, canModify: Boolean,
     val scope = rememberCoroutineScope()
     val sections = remember(instance?.loader?.id, shaderAvailable, optiFineAvailable, modpacksAvailable) {
         buildList {
-            if (instance?.loader != null || (instance != null && browser != null)) add(CatalogSection.MODS)
+            if (instance?.loader != null) add(CatalogSection.MODS)
             if (instance != null) add(CatalogSection.TEXTURES)
             if (shaderAvailable) add(CatalogSection.SHADERS)
             if (optiFineAvailable) add(CatalogSection.OPTIFINE)
@@ -158,7 +160,7 @@ internal fun ContentCatalog(instance: MinecraftInstance?, canModify: Boolean,
     var cancelled by remember { mutableStateOf(false) }
     var installationJob by remember { mutableStateOf<Job?>(null) }
     var source by remember { mutableStateOf(CatalogSource.MODRINTH) }
-    var game by remember(instance?.id) { mutableStateOf(instance?.minecraftVersionId) }
+    var game by remember(instance?.id) { mutableStateOf(browser?.requiredGame ?: instance?.minecraftVersionId) }
     var loader by remember(instance?.id) { mutableStateOf(browser?.requiredLoader ?: instance?.loader?.id) }
     var category by remember { mutableStateOf<String?>(null) }
     var categories by remember { mutableStateOf<List<CatalogCategory>>(emptyList()) }
@@ -199,17 +201,24 @@ internal fun ContentCatalog(instance: MinecraftInstance?, canModify: Boolean,
             })
         } finally { loading = false }
     }
-    fun beginInstall(id: String, key: String, action: suspend () -> Unit) {
+    fun beginInstall(id: String, key: String, recordSuccess: Boolean = true, action: suspend () -> Unit) {
         if (installing != null || !canModify || key in installed) return
         installing = id; onBusyChange(true); error = null; success = false; cancelled = false
         errorProjectUrl = null
         installationJob = scope.launch {
-            try { action(); installed = installed + key; success = true }
+            try {
+                action()
+                if (recordSuccess) {
+                    installed = installed + key
+                    success = true
+                }
+            }
             catch (cancellation: CancellationException) { cancelled = true; throw cancellation }
             catch (failure: Exception) {
                 LoggerFactory.getLogger("ContentCatalog").warn("Catalog installation failed", failure)
                 errorProjectUrl = (failure as? CurseForgeDownloadUnavailable)?.projectUrl
                 error = strings.curseForgeInstallError(failure) ?: strings.text(when (failure) {
+                    is NoCompatibleCatalogRelease -> "catalog.no_releases"
                     is pl.syntaxdevteam.syntaxlauncher.core.modpack.ModpackCompatibilityException,
                     is pl.syntaxdevteam.syntaxlauncher.core.loader.ModLoaderException -> "catalog.modpack_compatibility_error"
                     is pl.syntaxdevteam.syntaxlauncher.core.modpack.ModpackFormatException -> "catalog.modpack_format_error"
@@ -247,7 +256,7 @@ internal fun ContentCatalog(instance: MinecraftInstance?, canModify: Boolean,
             if (sections.size > 1) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 sections.forEach { item -> ChannelButton(strings.text(item.label), section == item, !busy, {
                     section = item; offset = 0; query = ""; submitted = ""; category = null; selection = null
-                    game = if (item == CatalogSection.MODPACKS) null else instance?.minecraftVersionId
+                    game = if (item == CatalogSection.MODPACKS) browser?.requiredGame else instance?.minecraftVersionId
                     loader = browser?.requiredLoader ?: if (item == CatalogSection.MODPACKS) null else instance?.loader?.id
                 }, Modifier.weight(1f)) }
             }
@@ -275,7 +284,7 @@ internal fun ContentCatalog(instance: MinecraftInstance?, canModify: Boolean,
                     if (section.usesLoaderFilter) {
                         val loaderChoices = listOf("fabric" to "Fabric", "forge" to "Forge", "neoforge" to "NeoForge", "quilt" to "Quilt")
                         CatalogOptions(strings.text("catalog.loaders"), selectedLoader,
-                            listOf(null to strings.text("catalog.all")) + loaderChoices, !busy && browser.requiredLoader == null) {
+                            listOf(null to strings.text("catalog.all")) + loaderChoices, !busy && browser.requiredLoader == null && (instance == null || section == CatalogSection.MODPACKS)) {
                             loader = it
                             if (activeSource == CatalogSource.CURSEFORGE && it != null && game == null)
                                 game = instance?.minecraftVersionId ?: browser.games.firstOrNull()
@@ -288,7 +297,7 @@ internal fun ContentCatalog(instance: MinecraftInstance?, canModify: Boolean,
                     CatalogOptions(strings.text("ui.game_version"), selectedGame,
                         (if (needsGame) emptyList() else listOf(null to strings.text("catalog.all"))) +
                             (listOfNotNull(instance?.minecraftVersionId) + browser.games).distinct().map { it to it },
-                        !busy) { game = it; offset = 0 }
+                        !busy && browser.requiredGame == null && (instance == null || section == CatalogSection.MODPACKS)) { game = it; offset = 0 }
                 }
             }
             onRetryCompatibility?.let { retry -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -370,8 +379,33 @@ internal fun ContentCatalog(instance: MinecraftInstance?, canModify: Boolean,
                                     val action: @Composable () -> Unit = {
                                         val key = section.name + ":" + project.id
                                         if (browser != null && section != CatalogSection.OPTIFINE) {
-                                            OutlinedButton(enabled = !busy, onClick = { selection = project }) {
-                                                Text(strings.text("catalog.details"))
+                                            val projectKey = "${activeSource.name}:${section.name}:${project.id}"
+                                            val projectInstalled = projectKey in installed || installed.any { it.startsWith("$projectKey:") }
+                                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                Button(enabled = canModify && !busy && !projectInstalled && (instance?.loader != null || section != CatalogSection.MODS),
+                                                    modifier = Modifier.testTag("catalog-install-${project.id}"),
+                                                    onClick = {
+                                                        beginInstall(project.id, projectKey, recordSuccess = onPick == null) {
+                                                            val release = browser.releases(criteria, project).firstOrNull {
+                                                                it.downloadable && !it.distributionBlocked && browser.compatible(section, it)
+                                                            } ?: throw NoCompatibleCatalogRelease()
+                                                            if (onPick != null) onPick(project, release, activeSource)
+                                                            else {
+                                                                browser.install(criteria, project, release.id)
+                                                                installed = installed + "$projectKey:${release.id}"
+                                                            }
+                                                        }
+                                                    }) {
+                                                    Text(strings.text(when {
+                                                        installing == project.id -> "catalog.installing"
+                                                        onPick != null -> "catalog.choose_pack"
+                                                        projectInstalled -> "catalog.installed"
+                                                        else -> "catalog.install"
+                                                    }))
+                                                }
+                                                OutlinedButton(enabled = !busy, onClick = { selection = project }) {
+                                                    Text(strings.text("catalog.details"))
+                                                }
                                             }
                                         } else {
                                             Button(enabled = canModify && !busy && key !in installed,
