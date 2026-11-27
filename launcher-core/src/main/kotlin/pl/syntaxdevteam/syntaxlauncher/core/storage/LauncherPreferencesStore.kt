@@ -136,6 +136,10 @@ class LauncherPreferencesStore(private val file: Path) {
     suspend fun saveAutomaticUpdatesEnabled(enabled: Boolean) = saveFlag("automatic_updates_enabled", enabled)
     suspend fun loadDeveloperMode(): Boolean = loadFlag("developer_mode", false)
     suspend fun saveDeveloperMode(enabled: Boolean) = saveFlag("developer_mode", enabled)
+    suspend fun loadDiscordPresence(): Boolean = loadFlag("discord_presence", true)
+    suspend fun saveDiscordPresence(enabled: Boolean) = saveFlag("discord_presence", enabled)
+    suspend fun loadDiscordServerAddress(): Boolean = loadFlag("discord_server_address", true)
+    suspend fun saveDiscordServerAddress(enabled: Boolean) = saveFlag("discord_server_address", enabled)
 
     suspend fun loadStarterPending(): Boolean? = withContext(Dispatchers.IO) {
         mutex.withLock {

@@ -95,6 +95,23 @@ val generateLauncherBuildInfo = tasks.register<GenerateLauncherBuildInfo>("gener
 }
 sourceSets.main { resources.srcDir(generateLauncherBuildInfo) }
 
+val compileGamePresence = tasks.register<JavaCompile>("compileGamePresence") {
+    source = fileTree("src/gamePresence/java") { include("**/*.java") }
+    classpath = files()
+    javaCompiler.set(javaToolchains.compilerFor { languageVersion.set(JavaLanguageVersion.of(21)) })
+    options.release.set(21)
+    destinationDirectory.set(layout.buildDirectory.dir("classes/gamePresence"))
+}
+val gamePresenceJar = tasks.register<Jar>("gamePresenceJar") {
+    archiveFileName.set("syntax-game-presence.jar")
+    destinationDirectory.set(layout.buildDirectory.dir("generated/game-presence"))
+    from(compileGamePresence)
+    from("src/gamePresence/resources")
+}
+tasks.processResources {
+    from(gamePresenceJar)
+}
+
 tasks.register<JavaExec>("verifyUpdateBundle") {
     group = "verification"
     description = "Install and verify an explicit update bundle without starting it."

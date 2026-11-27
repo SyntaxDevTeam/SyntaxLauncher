@@ -36,6 +36,8 @@ The launcher blocks automatic installation when an author disables third-party d
 
 Discord can display **Active in Launcher** or **Playing Minecraft** under the SyntaxLauncher application name. The launcher sends the activity and elapsed time to the local Discord desktop client. Visibility follows the user's Discord activity privacy settings.
 
+Fabric profiles on Minecraft 26.2 and 26.3 also report the game menu, singleplayer, and multiplayer. Server domain names are shown by default. In launcher settings you can hide server addresses or turn off Discord activity entirely.
+
 Official builds use the SyntaxLauncher Discord application by default. For a custom build, set the public Application ID in `SYNTAXLAUNCHER_DISCORD_APPLICATION_ID` or pass `-PdiscordApplicationId=<id>` to Gradle. Discord loads the SyntaxLauncher logo from the project's public GitHub repository. [Discord Developer Portal](https://discord.com/developers/applications)
 
 Made by SyntaxDevTeam. Released under the [MIT License](LICENSE).

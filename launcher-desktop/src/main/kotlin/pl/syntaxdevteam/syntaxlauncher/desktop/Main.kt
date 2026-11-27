@@ -159,7 +159,10 @@ fun main(args: Array<String>) {
             ?.trim()?.takeIf { DiscordPresence.validApplicationId(it) } ?: LauncherBuildInfo.discordApplicationId
         LaunchedEffect(discordId, processManager) {
             if (DiscordPresence.validApplicationId(discordId)) {
-                DiscordPresence(discordId, platform.os).publish(processManager.status)
+                session.initializeDiscordSettings()
+                DiscordPresence(discordId, platform.os).publish(
+                    processManager.status, { session.discordPresenceEnabled }, session::discordGameDetails,
+                )
             }
         }
         // Respect smaller laptop desktops; short windows remain fully usable via sidebar scrolling.

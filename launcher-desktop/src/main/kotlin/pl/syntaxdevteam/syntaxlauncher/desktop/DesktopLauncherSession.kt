@@ -43,6 +43,7 @@ import pl.syntaxdevteam.syntaxlauncher.core.minecraft.ResolvedMinecraftVersion
 import pl.syntaxdevteam.syntaxlauncher.core.storage.MinecraftInstallationLayout
 import pl.syntaxdevteam.syntaxlauncher.core.storage.LauncherPreferences
 import pl.syntaxdevteam.syntaxlauncher.core.storage.LauncherPreferencesStore
+import pl.syntaxdevteam.syntaxlauncher.desktop.discord.DiscordGamePresence
 
 /** Metadata retained for the *last attempted game*, independent of later UI selection. */
 data class LastGameAttempt(
@@ -96,6 +97,27 @@ class DesktopLauncherSession(
     val modpackCatalog = modpackInstaller?.let { pl.syntaxdevteam.syntaxlauncher.core.modpack.ModpackCatalog(httpClient,
         DownloadManager(httpClient), it) }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val discordGamePresence = DiscordGamePresence()
+    @Volatile internal var discordPresenceEnabled = false
+        private set
+    @Volatile private var discordServerAddressEnabled = false
+
+    internal suspend fun initializeDiscordSettings() {
+        discordServerAddressEnabled = runCatching { preferences.loadDiscordServerAddress() }.getOrDefault(false)
+        discordPresenceEnabled = runCatching { preferences.loadDiscordPresence() }.getOrDefault(false)
+    }
+
+    internal suspend fun setDiscordPresence(enabled: Boolean) {
+        preferences.saveDiscordPresence(enabled)
+        discordPresenceEnabled = enabled
+    }
+
+    internal suspend fun setDiscordServerAddress(enabled: Boolean) {
+        preferences.saveDiscordServerAddress(enabled)
+        discordServerAddressEnabled = enabled
+    }
+
+    internal fun discordGameDetails() = discordGamePresence.details(discordServerAddressEnabled)
     internal val systemUpdate = launcherPaths?.let {
         DebianSystemUpdate(pl.syntaxdevteam.syntaxlauncher.core.update.GitHubLauncherReleases(httpClient),
             DownloadManager(httpClient), preferences, it.cacheDir.resolve("system-updates"), scope)
@@ -217,6 +239,7 @@ class DesktopLauncherSession(
             mutablePreparingAccount.value = true
             launchJob = scope.launch {
                 var leased = false
+                var presence: DiscordGamePresence.Session? = null
                 try {
                     val (account, authentication) = accountMutex.withLock {
                         val store = accounts ?: error("Account storage is unavailable.")
@@ -236,13 +259,20 @@ class DesktopLauncherSession(
                         leased = true
                     }
                     lastDiagnosticInstanceId = instance?.id
+                    val userJvmArguments = instance?.extraJvmArguments.orEmpty()
+                    withContext(kotlinx.coroutines.NonCancellable) {
+                        presence = withContext(Dispatchers.IO) {
+                            runCatching { discordGamePresence.prepare(version.id, instance?.loader, userJvmArguments) }
+                                .getOrNull()
+                        }
+                    }
                     coordinator.launch(
                         version = version,
                         account = account,
                         options = LaunchOptions(
                             minimumMemoryMiB = instance?.minimumMemoryMiB ?: 512,
                             maximumMemoryMiB = maximumMemoryMiB,
-                            extraJvmArguments = instance?.extraJvmArguments.orEmpty(),
+                            extraJvmArguments = userJvmArguments + presence?.arguments.orEmpty(),
                         ),
                         instanceLayout = instance?.let(instances::layoutFor) ?: legacyLayout,
                         authentication = authentication,
@@ -262,16 +292,21 @@ class DesktopLauncherSession(
                             if (running.state == MinecraftProcessState.RUNNING && gamePid != null) {
                                 try {
                                     instances.markGameStarted(instance?.id, gamePid)
-                                    ProcessHandle.of(gamePid).ifPresent { child ->
-                                        child.onExit().thenRun { scope.launch { collectPlayerData() } }
+                                    val child = ProcessHandle.of(gamePid).orElse(null)
+                                    val gamePresence = presence
+                                    if (child == null) gamePresence?.let(discordGamePresence::finish)
+                                    else child.onExit().thenRun {
+                                        gamePresence?.let(discordGamePresence::finish)
+                                        scope.launch { collectPlayerData() }
                                     }
                                 } catch (error: Exception) {
                                     mutableLaunchIssue.value = error.message
                                         ?: "Failed to protect the running game; stopping it."
                                     // Never leave a child game writing into an unprotected profile.
                                     runCatching { processManager.terminate() }
+                                    presence?.let(discordGamePresence::finish)
                                 }
-                            }
+                            } else presence?.let(discordGamePresence::finish)
                             runCatching { instances.endPreparation(instance?.id) }
                             collectPlayerData()
                         }
@@ -419,6 +454,7 @@ class DesktopLauncherSession(
                     mutablePremiumAccounts.value = emptyList()
                 }
             } finally {
+                withContext(Dispatchers.IO) { discordGamePresence.close() }
                 curseForgeCatalog?.close()
                 httpClient.close()
                 withContext(Dispatchers.Swing) { onClosed() }

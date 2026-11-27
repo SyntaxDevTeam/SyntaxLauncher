@@ -79,6 +79,22 @@ class LauncherPreferencesStoreTest {
     }
 
     @Test
+    fun discordFlagsDefaultOnAndPersistIndependently() = runBlocking {
+        val file = Files.createTempDirectory("syntax-discord-settings").resolve("settings.properties")
+        val store = LauncherPreferencesStore(file)
+        store.save(LauncherPreferences("PlayerOne"))
+        assertTrue(store.loadDiscordPresence())
+        assertTrue(store.loadDiscordServerAddress())
+        store.saveDiscordServerAddress(false)
+        assertTrue(store.loadDiscordPresence())
+        store.saveDiscordPresence(false)
+        store.save(store.load().copy(maximumMemoryMiB = 3072))
+        val reopened = LauncherPreferencesStore(file)
+        assertEquals(false, reopened.loadDiscordPresence())
+        assertEquals(false, reopened.loadDiscordServerAddress())
+    }
+
+    @Test
     fun unknownSchemaIsNotDestroyedByLoadOrSave() = runBlocking {
         val file = Files.createTempDirectory("syntax-prefs-newer").resolve("settings.properties")
         val original = "schema_version=999\nfuture_setting=keep\n"

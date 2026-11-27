@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -35,7 +36,7 @@ import pl.syntaxdevteam.syntaxlauncher.core.minecraft.MinecraftOperatingSystem
 private const val LAUNCHER_LOGO_URL = "https://raw.githubusercontent.com/SyntaxDevTeam/SyntaxLauncher/main/" +
     "launcher-desktop/src/main/resources/branding/syntaxlauncher-icon.png"
 
-/** Publishes only the launcher/game state and timer to the local Discord desktop client. */
+/** Publishes the selected game details and timer to the local Discord desktop client. */
 internal class DiscordPresence(
     private val applicationId: String,
     private val os: MinecraftOperatingSystem,
@@ -43,9 +44,17 @@ internal class DiscordPresence(
 ) {
     private val log = LoggerFactory.getLogger(DiscordPresence::class.java)
 
-    suspend fun publish(process: StateFlow<MinecraftProcessStatus>) = withContext(Dispatchers.IO) {
+    suspend fun publish(
+        process: StateFlow<MinecraftProcessStatus>,
+        enabled: () -> Boolean = { true },
+        gameDetails: () -> String? = { null },
+    ) = withContext(Dispatchers.IO) {
         val launcherStarted = Instant.now()
         while (currentCoroutineContext().isActive) {
+            if (!enabled()) {
+                delay(250)
+                continue
+            }
             try {
                 connect()?.use { connection ->
                     connection.send(0, buildJsonObject {
@@ -56,30 +65,43 @@ internal class DiscordPresence(
 
                     var published: Activity? = null
                     var lastUpdate = 0L
-                    while (currentCoroutineContext().isActive) {
+                    while (currentCoroutineContext().isActive && enabled()) {
                         val current = process.value
                         val activity = if (current.state == MinecraftProcessState.RUNNING)
-                            Activity("Playing Minecraft", current.startedAt ?: launcherStarted)
+                            Activity(gameDetails() ?: "Playing Minecraft", current.startedAt ?: launcherStarted)
                         else Activity("Active in Launcher", launcherStarted)
                         // Periodic acknowledgements also detect a closed Windows pipe, where available() reports zero.
                         if (activity != published || System.nanoTime() - lastUpdate >= 30_000_000_000L) {
-                            val nonce = UUID.randomUUID().toString()
-                            connection.send(1, activity.command(nonce).toString())
-                            connection.await { it.string("nonce") == nonce && it.string("cmd") == "SET_ACTIVITY" }
+                            connection.setActivity(activity.payload())
                             published = activity
                             lastUpdate = System.nanoTime()
                         }
                         connection.poll()
                         delay(250)
                     }
+                    if (published != null && !enabled()) connection.setActivity(null)
                 }
             } catch (failure: IOException) {
                 log.debug("Discord IPC disconnected: {}", failure.javaClass.simpleName)
             } catch (failure: SerializationException) {
                 log.debug("Discord IPC returned an invalid message")
             }
-            delay(5_000)
+            if (enabled()) delay(5_000)
         }
+    }
+
+    private suspend fun RpcConnection.setActivity(activity: JsonObject?) {
+        val nonce = UUID.randomUUID().toString()
+        val command = buildJsonObject {
+            put("cmd", "SET_ACTIVITY")
+            put("nonce", nonce)
+            putJsonObject("args") {
+                put("pid", ProcessHandle.current().pid())
+                put("activity", activity ?: JsonNull)
+            }
+        }
+        send(1, command.toString())
+        await { it.string("nonce") == nonce && it.string("cmd") == "SET_ACTIVITY" }
     }
 
     private fun connect(): RpcConnection? {
@@ -116,20 +138,13 @@ internal class DiscordPresence(
     }
 
     private data class Activity(val details: String, val start: Instant) {
-        fun command(nonce: String) = buildJsonObject {
-            put("cmd", "SET_ACTIVITY")
-            put("nonce", nonce)
-            putJsonObject("args") {
-                put("pid", ProcessHandle.current().pid())
-                putJsonObject("activity") {
-                    put("type", 0)
-                    put("details", details)
-                    putJsonObject("timestamps") { put("start", start.epochSecond) }
-                    putJsonObject("assets") {
-                        put("large_image", LAUNCHER_LOGO_URL)
-                        put("large_text", "SyntaxLauncher")
-                    }
-                }
+        fun payload() = buildJsonObject {
+            put("type", 0)
+            put("details", details)
+            putJsonObject("timestamps") { put("start", start.epochSecond) }
+            putJsonObject("assets") {
+                put("large_image", LAUNCHER_LOGO_URL)
+                put("large_text", "SyntaxLauncher")
             }
         }
     }

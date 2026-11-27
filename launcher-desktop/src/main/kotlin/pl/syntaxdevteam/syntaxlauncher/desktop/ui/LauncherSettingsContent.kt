@@ -44,6 +44,7 @@ internal fun LauncherSettingsContent(session: DesktopLauncherSession, memoryMiB:
         LauncherSettingsBooleanOption(
             label = strings.text("settings.auto_updates"),
             detail = strings.text("settings.auto_updates_help"),
+            tag = "settings-auto-updates",
             load = { session.preferences.loadAutomaticUpdatesEnabled() },
             save = { session.preferences.saveAutomaticUpdatesEnabled(it) },
         )
@@ -51,8 +52,24 @@ internal fun LauncherSettingsContent(session: DesktopLauncherSession, memoryMiB:
         session.systemUpdate?.let { DebianSystemUpdateOption(it) }
         HorizontalDivider()
         LauncherSettingsBooleanOption(
+            label = strings.text("settings.discord_presence"),
+            detail = strings.text("settings.discord_presence_help"),
+            tag = "settings-discord-presence",
+            load = { session.preferences.loadDiscordPresence() },
+            save = session::setDiscordPresence,
+        )
+        LauncherSettingsBooleanOption(
+            label = strings.text("settings.discord_server"),
+            detail = strings.text("settings.discord_server_help"),
+            tag = "settings-discord-server",
+            load = { session.preferences.loadDiscordServerAddress() },
+            save = session::setDiscordServerAddress,
+        )
+        HorizontalDivider()
+        LauncherSettingsBooleanOption(
             label = strings.text("settings.developer_mode"),
             detail = strings.text("settings.developer_mode_help"),
+            tag = "settings-developer-mode",
             load = { session.preferences.loadDeveloperMode() },
             save = { session.preferences.saveDeveloperMode(it) },
             onSaved = { developerMode = it; onDeveloperModeChanged(it) },
@@ -205,6 +222,7 @@ internal fun MemoryAllocationSettings(profileName: String, memoryMiB: Int, enabl
 private fun LauncherSettingsBooleanOption(
     label: String,
     detail: String,
+    tag: String,
     load: suspend () -> Boolean,
     save: suspend (Boolean) -> Unit,
     onSaved: (Boolean) -> Unit = {},
@@ -236,7 +254,6 @@ private fun LauncherSettingsBooleanOption(
                 catch (_: Exception) { failed = true }
                 finally { busy = false }
             }
-        }, modifier = Modifier.testTag(if (label == LocalStrings.current.text("settings.developer_mode"))
-            "settings-developer-mode" else "settings-auto-updates"))
+        }, modifier = Modifier.testTag(tag))
     }
 }
