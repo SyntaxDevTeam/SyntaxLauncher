@@ -98,6 +98,7 @@ jobs:
         env:
           BUILD_CHANNEL: ${{ needs.metadata.outputs.build_channel }}
           SYNTAXLAUNCHER_JAVA_LIVE_SMOKE: "1"
+          SYNTAXLAUNCHER_DISCORD_APPLICATION_ID: ${{ vars.SYNTAXLAUNCHER_DISCORD_APPLICATION_ID }}
         run: |
           if [[ "$RUNNER_OS" == Linux ]]; then
             if [[ "$GITHUB_REF" == refs/heads/main && "$GITHUB_EVENT_NAME" == push ]]; then

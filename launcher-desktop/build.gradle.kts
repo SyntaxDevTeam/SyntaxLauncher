@@ -20,10 +20,10 @@ dependencies {
     implementation("org.jetbrains.compose.material3:material3:1.9.0")
     implementation("org.jetbrains.compose.components:components-resources:1.12.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.11.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.13.0")
     implementation("ch.qos.logback:logback-classic:1.6.8")
     testImplementation(kotlin("test-junit5"))
     testImplementation("io.ktor:ktor-client-mock:3.6.2")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.13.0")
 }
 
 tasks.test {
@@ -45,12 +45,16 @@ val launcherBuildNumber = providers.gradleProperty("launcherBuildNumber")
     .orElse(providers.environmentVariable("GITHUB_RUN_NUMBER")).orElse("local")
 val launcherCommit = providers.gradleProperty("launcherCommit")
     .orElse(providers.environmentVariable("GITHUB_SHA")).orElse("unknown")
+val discordApplicationId = providers.gradleProperty("discordApplicationId")
+    .orElse(providers.environmentVariable("SYNTAXLAUNCHER_DISCORD_APPLICATION_ID").filter { it.isNotBlank() })
+    .orElse("1575963809129037937")
 abstract class GenerateLauncherBuildInfo : DefaultTask() {
     @get:Input abstract val releaseVersion: Property<String>
     @get:Input abstract val buildNumber: Property<String>
     @get:Input abstract val commitSha: Property<String>
     @get:Input abstract val updateChannel: Property<String>
     @get:Input abstract val buildAttempt: Property<String>
+    @get:Input abstract val discordId: Property<String>
     @get:OutputDirectory abstract val destination: DirectoryProperty
 
     @TaskAction fun generate() {
@@ -64,6 +68,10 @@ abstract class GenerateLauncherBuildInfo : DefaultTask() {
         require(attempt.matches(Regex("[1-9][0-9]*")))
         val build = buildNumber.get()
         val commit = commitSha.get()
+        val discord = discordId.get().trim()
+        require(discord.isEmpty() || (discord.matches(Regex("[1-9][0-9]{16,19}")) && discord.toULongOrNull() != null)) {
+            "discordApplicationId must contain a Discord Application ID."
+        }
         require(build == "local" || build.matches(Regex("[1-9][0-9]*"))) {
             "launcherBuildNumber must be 'local' or a positive integer."
         }
@@ -72,7 +80,7 @@ abstract class GenerateLauncherBuildInfo : DefaultTask() {
         }
         destination.file("launcher-build.properties").get().asFile.apply {
             parentFile.mkdirs()
-            writeText("version=$value\nbuild=$build\ncommit=$commit\nchannel=$channel\nattempt=$attempt\n")
+            writeText("version=$value\nbuild=$build\ncommit=$commit\nchannel=$channel\nattempt=$attempt\ndiscordApplicationId=$discord\n")
         }
     }
 }
@@ -81,6 +89,7 @@ val generateLauncherBuildInfo = tasks.register<GenerateLauncherBuildInfo>("gener
     buildNumber.set(launcherBuildNumber)
     updateChannel.set(providers.gradleProperty("launcherUpdateChannel").orElse("stable"))
     buildAttempt.set(providers.environmentVariable("GITHUB_RUN_ATTEMPT").orElse("1"))
+    discordId.set(discordApplicationId)
     commitSha.set(launcherCommit)
     destination.set(layout.buildDirectory.dir("generated/launcher-build-info"))
 }

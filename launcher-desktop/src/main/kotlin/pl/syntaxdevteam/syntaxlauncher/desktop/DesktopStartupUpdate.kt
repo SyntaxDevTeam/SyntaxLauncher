@@ -29,6 +29,7 @@ internal object LauncherBuildInfo {
     }
     val buildNumber: String get() = metadata.getProperty("build", "local")
     val commit: String get() = metadata.getProperty("commit", "unknown")
+    val discordApplicationId: String get() = metadata.getProperty("discordApplicationId", "")
     val shortCommit: String get() = commit.takeIf { it.matches(Regex("[a-fA-F0-9]{40}")) }
         ?.take(7) ?: "untracked"
     val buildLabel: String get() = if (buildNumber == "local") "LOCAL BUILD" else "BUILD #" + buildNumber

@@ -7,6 +7,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.window.WindowDraggableArea
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.rememberWindowState
 import androidx.compose.ui.window.Window
@@ -33,6 +34,7 @@ import pl.syntaxdevteam.syntaxlauncher.core.storage.LauncherPaths
 import pl.syntaxdevteam.syntaxlauncher.core.storage.LauncherPreferencesStore
 import pl.syntaxdevteam.syntaxlauncher.core.storage.MinecraftInstallationLayout
 import pl.syntaxdevteam.syntaxlauncher.desktop.i18n.LauncherLanguageHost
+import pl.syntaxdevteam.syntaxlauncher.desktop.discord.DiscordPresence
 import pl.syntaxdevteam.syntaxlauncher.desktop.ui.SyntaxLauncherApp
 import pl.syntaxdevteam.syntaxlauncher.desktop.ui.rememberBrandingPainter
 import pl.syntaxdevteam.syntaxlauncher.desktop.ui.StartupUpdateGate
@@ -153,6 +155,13 @@ fun main(args: Array<String>) {
     )
 
     application {
+        val discordId = System.getenv("SYNTAXLAUNCHER_DISCORD_APPLICATION_ID")
+            ?.trim()?.takeIf { DiscordPresence.validApplicationId(it) } ?: LauncherBuildInfo.discordApplicationId
+        LaunchedEffect(discordId, processManager) {
+            if (DiscordPresence.validApplicationId(discordId)) {
+                DiscordPresence(discordId, platform.os).publish(processManager.status)
+            }
+        }
         // Respect smaller laptop desktops; short windows remain fully usable via sidebar scrolling.
         val screen = GraphicsEnvironment.getLocalGraphicsEnvironment().maximumWindowBounds
         // Never create a window larger than the actual usable desktop bounds.

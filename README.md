@@ -32,6 +32,12 @@ For local development with an approved CurseForge key, set the `CURSEFORGE_API_K
 
 The launcher blocks automatic installation when an author disables third-party distribution or the API supplies no supported download URL. This applies to required dependencies and required modpack components. If the API supplies a CurseForge project page, users can open it from the catalog or the installation error. The launcher verifies file sizes and SHA-1 hashes from the API. It installs supported loose configuration, script, and resource files from modpack overrides and stops on embedded mods, nested archives, and other unsupported payloads whose distribution it cannot verify. CurseForge catalog metadata is held in memory for display. Installed content and local profile settings are saved, while the CurseForge archive and manifest are temporary.
 
+## Discord Rich Presence
+
+Discord can display **Active in Launcher** or **Playing Minecraft** under the SyntaxLauncher application name. The launcher sends the activity and elapsed time to the local Discord desktop client. Visibility follows the user's Discord activity privacy settings.
+
+Official builds use the SyntaxLauncher Discord application by default. For a custom build, set the public Application ID in `SYNTAXLAUNCHER_DISCORD_APPLICATION_ID` or pass `-PdiscordApplicationId=<id>` to Gradle. Discord loads the SyntaxLauncher logo from the project's public GitHub repository. [Discord Developer Portal](https://discord.com/developers/applications)
+
 Made by SyntaxDevTeam. Released under the [MIT License](LICENSE).
 
 **Unofficial Minecraft project. Not approved by or associated with Mojang or Microsoft.**
