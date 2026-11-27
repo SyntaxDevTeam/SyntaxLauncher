@@ -6,6 +6,7 @@ import io.ktor.client.request.parameter
 import io.ktor.client.statement.bodyAsText
 import java.net.URI
 import java.nio.file.Files
+import java.nio.file.Path
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -66,6 +67,36 @@ class ModrinthPackCatalog(
     suspend fun install(instanceId: String, project: ModrinthProject,
         progress: DownloadEventListener = {}, selectedVersionId: String? = null): LocalPackInventory = withContext(Dispatchers.IO) {
         val instance = instances.get(instanceId)
+        val files = resolveDownloads(instance, project, selectedVersionId)
+        val game = instances.gameDirectory(instance)
+        val staging = instances.withInactiveInstance(instanceId) { current ->
+            check(current.minecraftVersionId == instance.minecraftVersionId) { "Game version changed. Try again." }
+            Files.createTempDirectory(game, ".catalog-packs-")
+        }
+        try {
+            val requests = files.map { it.copy(target = staging.resolve(it.target)) }
+            downloads.downloadAll(requests, progress)
+            publish(instance, requests.map { it.target })
+        } finally {
+            Files.newDirectoryStream(staging).use { entries -> entries.forEach { Files.deleteIfExists(it) } }
+            Files.deleteIfExists(staging)
+        }
+    }
+
+    /** For an unpublished instance whose staging directory is discarded if preparation fails. */
+    suspend fun prepareResourcePack(instance: MinecraftInstance, gameDirectory: Path, project: ModrinthProject,
+        versionId: String) = withContext(Dispatchers.IO) {
+        check(kind == LocalPackKind.RESOURCE_PACK)
+        val files = resolveDownloads(instance, project, versionId)
+        val folder = Files.createDirectory(gameDirectory.resolve(kind.directoryName))
+        val requests = files.map { it.copy(target = folder.resolve(it.target)) }
+        downloads.downloadAll(requests)
+        requests.forEach { packs.validateArchive(it.target, kind) }
+        ResourcePackSelection.prepare(gameDirectory, requests.map { it.target.fileName.toString() })?.commit()
+    }
+
+    private suspend fun resolveDownloads(instance: MinecraftInstance, project: ModrinthProject,
+        selectedVersionId: String?): List<DownloadRequest> {
         require(instance.minecraftVersionId.matches(Regex("[A-Za-z0-9._+-]{1,100}")))
         val packLoader = rendererLoader(instance)
         val selected = linkedMapOf<String, Pair<String, JsonObject>>()
@@ -131,19 +162,7 @@ class ModrinthPackCatalog(
             DownloadRequest("resourcepack:$id", url, java.nio.file.Path.of(name), expectedSha1 = sha1, expectedSize = bytes)
         }
         require(files.map { it.target }.distinct().size == files.size) { "Required resource pack filenames conflict." }
-        val game = instances.gameDirectory(instance)
-        val staging = instances.withInactiveInstance(instanceId) { current ->
-            check(current.minecraftVersionId == instance.minecraftVersionId) { "Game version changed. Try again." }
-            Files.createTempDirectory(game, ".catalog-packs-")
-        }
-        try {
-            val requests = files.map { it.copy(target = staging.resolve(it.target)) }
-            downloads.downloadAll(requests, progress)
-            publish(instance, requests.map { it.target })
-        } finally {
-            Files.newDirectoryStream(staging).use { entries -> entries.forEach { Files.deleteIfExists(it) } }
-            Files.deleteIfExists(staging)
-        }
+        return files
     }
 
     internal suspend fun publish(instance: MinecraftInstance, sources: List<java.nio.file.Path>): LocalPackInventory {

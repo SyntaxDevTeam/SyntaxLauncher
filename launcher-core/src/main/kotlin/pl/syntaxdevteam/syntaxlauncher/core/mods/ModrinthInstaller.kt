@@ -76,8 +76,13 @@ class ModrinthInstaller(
             }
         }
 
-    /** Publish a ready-to-launch profile only after every verified JAR is in place. */
-    suspend fun createProfile(name: String, loader: ModLoaderSelection, plan: ModrinthInstallPlan) =
+    /** Publish a ready-to-launch profile after its verified JARs and settings are in place. */
+    suspend fun createProfile(
+        name: String,
+        loader: ModLoaderSelection,
+        plan: ModrinthInstallPlan,
+        configureGame: suspend (Path) -> Unit = {},
+    ) =
         instances.createPrepared(name, plan.minecraftVersionId, loader) { _, layout ->
             require(loader.id == plan.loaderId && plan.entries.size in 1..32 &&
                 plan.entries.distinctBy { it.projectId }.size == plan.entries.size &&
@@ -102,6 +107,7 @@ class ModrinthInstaller(
                 ModrinthManagedMod(entry.file.filename, entry.projectId, entry.versionId,
                     fileHash(request.target, "SHA-256"))
             })
+            configureGame(layout.gameDir)
         }
 
     private fun validateConflicts(plan: ModrinthInstallPlan, installed: List<LocalMod>) {

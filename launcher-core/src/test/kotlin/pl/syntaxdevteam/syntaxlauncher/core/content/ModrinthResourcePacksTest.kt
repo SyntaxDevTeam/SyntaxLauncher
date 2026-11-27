@@ -129,6 +129,28 @@ class ModrinthResourcePacksTest {
         }
     }
 
+    @Test fun preparedProfilePublishesWithVerifiedResourcePackSelected() = runBlocking {
+        val repo = repo()
+        val bytes = zip("starter overlays")
+        HttpClient(MockEngine { request ->
+            when (request.url.encodedPath) {
+                "/v2/project/PACKROOT" -> respond("""{"id":"PACKROOT","project_type":"resourcepack"}""")
+                "/v2/version/VERPACKROOT" -> respond(release("PACKROOT", bytes, false).removeSurrounding("[", "]"))
+                "/data/PACKROOT/PACKROOT.zip" -> respond(bytes)
+                else -> error("Unexpected resource pack request")
+            }
+        }).use { http ->
+            val packs = LocalPackManager(repo)
+            val service = ModrinthResourcePacks(http, repo, packs, DownloadManager(http))
+            val profile = repo.createPrepared("Starter overlays", "1.21.1", null) { instance, layout ->
+                service.prepareResourcePack(instance, layout.gameDir, project, "VERPACKROOT")
+            }
+            val pack = packs.list(profile.id, LocalPackKind.RESOURCE_PACK).packs.single()
+            assertTrue(pack.selected)
+            assertContentEquals(bytes, Files.readAllBytes(repo.gameDirectory(profile).resolve("resourcepacks/PACKROOT.zip")))
+        }
+    }
+
     @Test fun rejectsWrongGameNonPackDependenciesAndUntrustedCdnBeforePublication() = runBlocking {
         for (scenario in listOf("wrong-game", "wrong-type", "unsafe-url", "unsafe-name")) {
             val repo = repo()

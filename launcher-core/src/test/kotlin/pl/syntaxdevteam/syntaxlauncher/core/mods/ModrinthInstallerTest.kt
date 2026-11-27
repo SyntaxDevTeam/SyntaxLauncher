@@ -48,7 +48,7 @@ class ModrinthInstallerTest {
         } finally { client.close() }
     }
 
-    @Test fun starterProfileIsPublishedOnlyAfterVerifiedModsAreInstalled() = runBlocking {
+    @Test fun starterProfileIsPublishedOnlyAfterVerifiedModsAndSettingsAreInstalled() = runBlocking {
         val (instances, game) = setup()
         val loader = ModLoaderSelection("fabric", "0.18.0")
         val bytes = jar("starter")
@@ -66,9 +66,20 @@ class ModrinthInstallerTest {
                 )))
             }
             assertTrue(instances.list().instances.isEmpty())
-            val installed = installer.createProfile("Starter", loader, plan)
+            val configName = "starter-settings.toml"
+            assertFailsWith<java.io.IOException> {
+                installer.createProfile("Starter", loader, plan) { gameDirectory ->
+                    Files.writeString(gameDirectory.resolve(configName), "incomplete")
+                    throw java.io.IOException("Unable to finish configuring the game")
+                }
+            }
+            assertTrue(instances.list().instances.isEmpty())
+            val installed = installer.createProfile("Starter", loader, plan) { gameDirectory ->
+                Files.writeString(gameDirectory.resolve(configName), "enabled = true")
+            }
             assertEquals(installed, instances.list().instances.single())
             assertEquals("ABCDEFGH", local.list(installed.id).mods.single().modrinth?.projectId)
+            assertEquals("enabled = true", Files.readString(instances.gameDirectory(installed).resolve(configName)))
         } finally { client.close() }
     }
 
